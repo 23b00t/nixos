@@ -29,6 +29,7 @@
     # Flakes clones its dependencies through the git command,
     # so git must be installed first
     kitty
+    wl-clipboard
     git
     vim
     gnupg
