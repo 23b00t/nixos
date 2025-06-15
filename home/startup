@@ -1,0 +1,7 @@
+new_tab system
+layout vertical
+launch zsh
+
+new_tab monitor
+layout horizontal
+launch zsh -c "btop"
