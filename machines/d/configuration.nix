@@ -40,6 +40,9 @@
     libvirt
     qemu
     pciutils
+    cloud-hypervisor
+    virtiofsd
+    zellij
     firefox # testing only
   ];
   # Set the default editor to vim
