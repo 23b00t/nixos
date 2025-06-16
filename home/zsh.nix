@@ -11,6 +11,9 @@
       la = "ls -la";
       edit = "sudo -e";
       update = "sudo nixos-rebuild switch";
+      sc = "systemctl";
+      cmd = "eval $(fzf < ~/cmds)";
+      pcmd = "cmd=$(fzf < cmds); vared -p '> ' -c cmd; eval '$cmd'";
     };
 
     history.size = 10000;
