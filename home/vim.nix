@@ -8,6 +8,9 @@
       number = true;        # Show line numbers
     };
     extraConfig = ''
+      " Deactivate swap files
+      set noswapfile
+
       " Use system clipboard (Wayland)
       set clipboard=unnamedplus
 

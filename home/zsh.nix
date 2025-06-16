@@ -33,7 +33,7 @@
         "zap-zsh/sudo"
         "wintermi/zsh-oh-my-posh"
         "kutsan/zsh-system-clipboard"
-        "ohmyzsh/ohmyzsh/plugins/git"
+        "ohmyzsh/ohmyzsh path:plugins/git"
       ];
     };
 	initContent = ''

@@ -3,7 +3,9 @@
 { config, lib, pkgs, ... }:
 
 {
-  imports = [ ./hardware-configuration.nix ];
+  imports = [ 
+    ./hardware-configuration.nix 
+  ];
 
   # Switch to minimal channel for host?
   system.stateVersion = "25.05";
@@ -145,13 +147,25 @@
   programs.gnupg.agent = {
     enable = true;
     settings = {
-      defaultCacheTtl = 3600;
-      maxCacheTtl = 7200;
+      default-cache-ttl = 3600;
+      max-cache-ttl = 7200;
     };
   };
 
   # ssh
   programs.ssh.startAgent = true;
   # security.pam.sshAgentAuth.enable = true;
+
+  # microvm network
+  # networking.interfaces.vm-net.ipv4.addresses = [{
+  #  address = "192.168.100.1";
+  #  prefixLength = 24;
+  # }];
+
+  networking.nat.enable = true;
+  networking.nat.internalInterfaces = [ "vm-net" ];
+  networking.nat.externalInterface = "enp0s20f0u2u3";
+
+  # networking.firewall.allowedTCPPorts = [ 22 ];
 }
 
