@@ -12,7 +12,7 @@
   outputs = { self, nixpkgs, microvm }:
   let
     system = "x86_64-linux";
-    # pkgs = nixpkgs.legacyPackages.${system};
+    pkgs = nixpkgs.legacyPackages.${system};
   in {
     packages.${system} = {
       default = self.packages.${system}.net-vm;
@@ -21,6 +21,12 @@
     nixosConfigurations.net-vm = nixpkgs.lib.nixosSystem {
       inherit system;
       modules = [
+        {
+        environment.systemPackages = with pkgs; [
+          firefox
+          vim
+        ];
+        }
         microvm.nixosModules.microvm
         {
           networking.useDHCP = false;
