@@ -29,14 +29,14 @@
         }
         microvm.nixosModules.microvm
         {
-          networking.useDHCP = false;
-          networking.interfaces.enp0s4.ipv4.addresses = [{
-            address = "192.168.100.2";
-            prefixLength = 24;
-          }];
-          networking.defaultGateway.address = "192.168.100.1";
-          networking.defaultGateway.interface = "enp0s4";
-          networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+          # networking.useDHCP = false;
+          # networking.interfaces.enp0s4.ipv4.addresses = [{
+            # address = "192.168.100.2";
+            # prefixLength = 24;
+          # }];
+          # networking.defaultGateway.address = "192.168.100.1";
+          # networking.defaultGateway.interface = "enp0s4";
+          # networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
 
           users.users.root.password = "";
 

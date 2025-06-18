@@ -1,7 +1,9 @@
 # NixOS config
 
 { config, lib, pkgs, ... }:
-
+let
+  maxVMs = 8;
+in
 {
   imports = [ 
     ./hardware-configuration.nix 
@@ -160,16 +162,48 @@
   # security.pam.sshAgentAuth.enable = true;
 
   # microvm network
-  networking.interfaces."vm-net".ipv4.addresses = [{
-   address = "192.168.100.1";
-   prefixLength = 24;
-  }];
+  # networking.interfaces."vm-net".ipv4.addresses = [{
+  # address = "192.168.100.1";
+  # prefixLength = 24;
+  # }];
 
-  networking.nat.enable = true;
-  networking.nat.internalInterfaces = [ "vm-net" ];
-  networking.nat.externalInterface = "enp0s20f0u2u3";
-  boot.kernel.sysctl."net.ipv4.ip_forward" = true;
+  # networking.nat.enable = true;
+  # networking.nat.internalInterfaces = [ "vm-net" ];
+  # networking.nat.externalInterface = "enp0s20f0u2u3";
+  # boot.kernel.sysctl."net.ipv4.ip_forward" = true;
 
   # networking.firewall.allowedTCPPorts = [ 22 ];
+  networking.useNetworkd = true;
+
+  systemd.network.networks = builtins.listToAttrs (
+    map (index: {
+      name = "30-vm${toString index}";
+      value = {
+        matchConfig.Name = "vm${toString index}";
+        # Host's addresses
+        address = [
+          "10.0.0.0/32"
+          "fec0::/128"
+        ];
+        # Setup routes to the VM
+        routes = [ {
+          Destination = "10.0.0.${toString index}/32";
+        } {
+          Destination = "fec0::${lib.toHexString index}/128";
+        } ];
+        # Enable routing
+        networkConfig = {
+          IPv4Forwarding = true;
+          IPv6Forwarding = true;
+        };
+      };
+    }) (lib.genList (i: i + 1) maxVMs)
+  );
+  networking.nat = {
+    enable = true;
+    internalIPs = [ "10.0.0.0/24" ];
+    # Change this to the interface with upstream Internet access
+    externalInterface = "enp0s20f0u2u3";
+  };
 }
 
