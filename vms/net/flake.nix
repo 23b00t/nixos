@@ -14,6 +14,11 @@
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
   in {
+    (import ./vm-networking.nix {
+      inherit lib;
+      index = 5;
+      mac = "00:00:00:00:00:01";
+    })
     packages.${system} = {
       default = self.packages.${system}.net-vm;
       net-vm = self.nixosConfigurations.net-vm.config.microvm.declaredRunner;

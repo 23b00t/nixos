@@ -205,5 +205,6 @@ in
     # Change this to the interface with upstream Internet access
     externalInterface = "enp0s20f0u2u3";
   };
+  systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
 }
 
