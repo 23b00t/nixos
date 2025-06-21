@@ -1,5 +1,5 @@
 # vm-networking.nix
-{ lib, config, index, mac, ... }:
+{ lib, index, mac, ... }:
 
 {
   microvm.interfaces = [{

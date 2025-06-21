@@ -25,10 +25,10 @@ in
   services.xserver.displayManager.gdm.wayland = true;
 
   networking.hostName = "machine";
-  networking.firewall = {
-    enable = true;
-    trustedInterfaces = [ "vm-net" ];
-  };
+  # networking.firewall = {
+    # enable = true;
+    # trustedinterfaces = [ "vm-net" ];
+  # };
 
   # Enable the Flakes feature and the accompanying new nix command-line tool
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
