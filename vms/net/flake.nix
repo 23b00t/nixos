@@ -28,17 +28,16 @@
               # users.users.root.password = "";
 
               microvm = {
-                hypervisor = "cloud-hypervisor";
+                hypervisor = "qemu";
                 graphics.enable = true;
-                interfaces = lib.optional (tapInterface != null) {
+                interfaces = [{
                   id = "vm${toString index}";
                   type = "tap";
                   inherit mac;
-                };
+                }];
               };
 
               system.stateVersion = lib.trivial.release;
-              nixpkgs.overlays = [ self.overlay ];
 
               services.getty.autologinUser = "user";
               users.users.user = {
@@ -78,12 +77,7 @@
               environment.systemPackages = with pkgs; [
                 xdg-utils # Required
                 firefox
-              ] ++ map (package:
-                lib.attrByPath (lib.splitString "." package) (throw "Package ${package} not found in nixpkgs") pkgs
-              ) (
-                builtins.filter (package:
-                  package != ""
-                ) (lib.splitString " " packages));
+              ];
 
               hardware.graphics.enable = true;
 
