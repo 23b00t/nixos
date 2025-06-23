@@ -29,42 +29,66 @@
 
               microvm = {
                 hypervisor = "qemu";
+                socket = "control.socket";
                 graphics.enable = true;
                 interfaces = [{
                   id = "vm${toString index}";
                   type = "tap";
                   inherit mac;
                 }];
+                volumes = [
+                  { 
+                    mountPoint = "/var";
+                    image = "var.img";
+                    size = 256;
+                  }
+                ];
+
+                shares = [ 
+                  {
+                    # use proto = "virtiofs" for MicroVMs that are started by systemd
+                    proto = "9p";
+                    tag = "ro-store";
+                    # a host's /nix/store will be picked up so that no
+                    # squashfs/erofs will be built for it.
+                    source = "/nix/store";
+                    mountPoint = "/nix/.ro-store";
+                  } 
+                  {
+                    proto      = "9p";
+                    tag        = "wayland";
+                    source     = "/run/user/1000";
+                    mountPoint = "/wayland-host";
+                  }
+                ];
               };
 
               system.stateVersion = lib.trivial.release;
 
-              services.getty.autologinUser = "user";
-              users.users.user = {
+              services.getty.autologinUser = "nx";
+              users.users.nx = {
                 password = "";
-                group = "user";
+                group = "nx";
                 isNormalUser = true;
                 extraGroups = [ "wheel" "video" ];
               };
-              users.groups.user = {};
+              users.groups.nx = {};
               security.sudo = {
                 enable = true;
                 wheelNeedsPassword = false;
               };
 
               environment.sessionVariables = {
-                WAYLAND_DISPLAY = "wayland-1";
+                WAYLAND_DISPLAY = "/wayland-host/wayland-1";
+                # WAYLAND_DISPLAY = "tcp:10.0.2.2:12345";
+                # WAYLAND_DISPLAY = "wayland-1";
                 DISPLAY = ":0";
-                QT_QPA_PLATFORM = "wayland"; # Qt Applications
-                GDK_BACKEND = "wayland";     # GTK Applications
-                XDG_SESSION_TYPE = "wayland";# Electron Applications
-                SDL_VIDEODRIVER = "wayland";
-                CLUTTER_BACKEND = "wayland";
               };
 
               environment.systemPackages = with pkgs; [
                 xdg-utils
                 firefox
+                wayland-proxy-virtwl
               ];
 
               hardware.graphics.enable = true;
