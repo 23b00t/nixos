@@ -51,7 +51,7 @@ in
     virtiofsd
     zellij
     firefox # testing only
-    wayland-proxy-virtwl
+    xwayland
   ];
   # Set the default editor to vim
   programs.vim.enable = true;
@@ -206,17 +206,5 @@ in
     externalInterface = "enp0s20f0u2u3";
   };
   systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
-
-  # Use host wayland from vm
-  systemd.user.services.wayland-proxy = {
-    enable = true;
-    description = "Wayland Proxy";
-    serviceConfig = {
-      ExecStart = "${pkgs.wayland-proxy-virtwl}/bin/wayland-proxy-virtwl --virtio-gpu";
-      Restart = "on-failure";
-      Environment = "WAYLAND_DISPLAY=wayland-1";
-    };
-    wantedBy = [ "default.target" ];
-  };
 }
 
