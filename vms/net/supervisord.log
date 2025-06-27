@@ -1,0 +1,51 @@
+2025-06-27 10:45:07,245 INFO supervisord started with pid 20508
+2025-06-27 10:45:08,259 INFO spawned: 'notify' with pid 20509
+2025-06-27 10:45:08,261 INFO spawned: 'virtiofsd-ro-store' with pid 20510
+2025-06-27 10:45:08,286 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:45:09,300 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-27 10:45:09,302 INFO spawned: 'virtiofsd-ro-store' with pid 20516
+2025-06-27 10:45:09,319 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:45:11,338 INFO spawned: 'virtiofsd-ro-store' with pid 20526
+2025-06-27 10:45:11,352 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:45:14,367 INFO spawned: 'virtiofsd-ro-store' with pid 20533
+2025-06-27 10:45:14,382 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:45:14,383 INFO gave up: virtiofsd-ro-store entered FATAL state, too many start retries too quickly
+2025-06-27 10:46:05,464 WARN received SIGINT indicating exit request
+2025-06-27 10:46:05,465 INFO waiting for notify to die
+2025-06-27 10:46:06,470 WARN stopped: notify (terminated by SIGTERM)
+2025-06-27 10:46:58,619 INFO supervisord started with pid 20800
+2025-06-27 10:46:59,625 INFO spawned: 'notify' with pid 20803
+2025-06-27 10:46:59,629 INFO spawned: 'virtiofsd-ro-store' with pid 20804
+2025-06-27 10:46:59,644 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:47:00,667 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-27 10:47:00,671 INFO spawned: 'virtiofsd-ro-store' with pid 20808
+2025-06-27 10:47:00,687 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:47:02,702 INFO spawned: 'virtiofsd-ro-store' with pid 20819
+2025-06-27 10:47:02,720 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:47:05,739 INFO spawned: 'virtiofsd-ro-store' with pid 20829
+2025-06-27 10:47:05,757 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:47:05,757 INFO gave up: virtiofsd-ro-store entered FATAL state, too many start retries too quickly
+2025-06-27 10:47:15,790 WARN received SIGINT indicating exit request
+2025-06-27 10:47:15,790 INFO waiting for notify to die
+2025-06-27 10:47:16,795 WARN stopped: notify (terminated by SIGTERM)
+2025-06-27 10:48:07,168 INFO supervisord started with pid 21140
+2025-06-27 10:48:08,172 INFO spawned: 'notify' with pid 21143
+2025-06-27 10:48:08,174 INFO spawned: 'virtiofsd-ro-store' with pid 21144
+2025-06-27 10:48:08,188 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:48:09,210 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-27 10:48:09,212 INFO spawned: 'virtiofsd-ro-store' with pid 21150
+2025-06-27 10:48:09,227 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:48:11,240 INFO spawned: 'virtiofsd-ro-store' with pid 21160
+2025-06-27 10:48:11,257 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:48:14,272 INFO spawned: 'virtiofsd-ro-store' with pid 21167
+2025-06-27 10:48:14,287 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-27 10:48:14,287 INFO gave up: virtiofsd-ro-store entered FATAL state, too many start retries too quickly
+2025-06-27 10:49:03,361 WARN received SIGINT indicating exit request
+2025-06-27 10:49:03,361 INFO waiting for notify to die
+2025-06-27 10:49:04,367 WARN stopped: notify (terminated by SIGTERM)
+2025-06-27 10:49:06,240 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-06-27 10:49:06,241 INFO supervisord started with pid 21287
+2025-06-27 10:49:07,246 INFO spawned: 'notify' with pid 21290
+2025-06-27 10:49:07,249 INFO spawned: 'virtiofsd-ro-store' with pid 21291
+2025-06-27 10:49:08,281 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-27 10:49:08,282 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)

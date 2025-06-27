@@ -206,5 +206,20 @@ in
     externalInterface = "enp0s20f0u2u3";
   };
   systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
+
+  # use cache
+  nix = {
+    settings = {
+      substituters = [
+        "https://cache.nixos.org"
+        "https://microvm.cachix.org"
+      ];
+      trusted-public-keys = [
+        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+        "microvm.cachix.org-1:oXnBs9THCoQI4PiXLm2ODWyptDIrQ2NYjmJfUfpGqMI="
+      ];
+      trusted-users = [ "root" "nx" ];
+    };
+  };
 }
 

@@ -28,9 +28,9 @@
               # users.users.root.password = "";
 
               microvm = {
-                hypervisor = "qemu";
-                socket = "control.socket";
-                graphics.enable = true;
+                hypervisor = "cloud-hypervisor";
+                # socket = "control.socket";
+                # graphics.enable = true;
                 interfaces = [{
                   id = "vm${toString index}";
                   type = "tap";
@@ -46,19 +46,13 @@
                 shares = [ 
                   {
                     # use proto = "virtiofs" for MicroVMs that are started by systemd
-                    proto = "9p";
+                    proto = "virtiofs";
                     tag = "ro-store";
                     # a host's /nix/store will be picked up so that no
                     # squashfs/erofs will be built for it.
                     source = "/nix/store";
                     mountPoint = "/nix/.ro-store";
                   } 
-                  # {
-                  # proto = "9p";
-                  # tag = "wayland-proxy";
-                  #  source = "/run/user/1000";
-                  # mountPoint = "/mnt/wayland-sock";
-                  # }
                 ];
               };
 
@@ -103,8 +97,13 @@
                 firefox
                 neverball
               ];
-
+                            
               hardware.graphics.enable = true;
+
+              xdg.portal.wlr.settings = {
+                enable = true;
+                wlr.enable = true;
+              };
 
               networking.useNetworkd = true;
 
