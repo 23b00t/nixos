@@ -221,5 +221,8 @@ in
       trusted-users = [ "root" "nx" ];
     };
   };
+
+
+  boot.kernelModules = [ "drm" "virtio_gpu" ];
 }
 

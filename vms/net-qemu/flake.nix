@@ -11,26 +11,25 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       lib = nixpkgs.lib;
-      index = 1;
-      mac = "00:00:00:00:00:01";
+      index = 2;
+      mac = "00:00:00:00:00:02";
     in {
       packages.${system} = {
-        default = self.packages.${system}.net-vm;
-        net-vm = self.nixosConfigurations.net-vm.config.microvm.declaredRunner;
+        default = self.packages.${system}.net-vm-qemu;
+        net-vm-qemu = self.nixosConfigurations.net-vm-qemu.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
-        net-vm = nixpkgs.lib.nixosSystem {
+        net-vm-qemu = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
             {
-              networking.hostName = "net-vm";
-              # users.users.root.password = "";
+              networking.hostName = "net-vm-qemu";
 
               microvm = {
-                hypervisor = "cloud-hypervisor";
-                # socket = "control.socket";
-                # graphics.enable = true;
+                hypervisor = "qemu";
+                socket = "control.socket";
+                graphics.enable = true;
                 interfaces = [{
                   id = "vm${toString index}";
                   type = "tap";
@@ -45,8 +44,7 @@
                 ];
                 shares = [ 
                   {
-                    # use proto = "virtiofs" for MicroVMs that are started by systemd
-                    proto = "virtiofs";
+                    proto = "9p";
                     tag = "ro-store";
                     # a host's /nix/store will be picked up so that no
                     # squashfs/erofs will be built for it.
