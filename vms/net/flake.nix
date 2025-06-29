@@ -1,12 +1,17 @@
 {
   description = "NixOS in MicroVMs";
 
-  inputs.microvm = {
-    url = "github:astro/microvm.nix";
-    inputs.nixpkgs.follows = "nixpkgs";
+  inputs = {
+    microvm.url = "github:astro/microvm.nix";
+    
+    # home-manager als separater Input
+    home-manager = {
+      url = "github:nix-community/home-manager/release-25.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, microvm }:
+  outputs = { self, nixpkgs, microvm, home-manager }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -23,8 +28,16 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
+            home-manager.nixosModules.home-manager
             {
               networking.hostName = "net-vm";
+
+              # Home Manager-Konfiguration
+              home-manager = {
+                useGlobalPkgs = true;
+                useUserPackages = true;
+                users.nx = import ./home/home.nix;
+              };
 
               microvm = {
                 hypervisor = "cloud-hypervisor";
@@ -38,6 +51,11 @@
                     mountPoint = "/var";
                     image = "var.img";
                     size = 256;
+                  }
+                  { 
+                    mountPoint = "/home/nx";
+                    image = "home.img";
+                    size = 8192;
                   }
                 ];
                 shares = [ 
@@ -58,6 +76,9 @@
                 group = "nx";
                 isNormalUser = true;
                 extraGroups = [ "wheel" "video" ];
+                openssh.authorizedKeys.keys = [ 
+                "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINB4DnXkH9Y/XWof2jgTkrdCrc7X9OtlxQI69L8U81P9 nx@machine"
+                ];
               };
               users.groups.nx = {};
               security.sudo = {
@@ -66,8 +87,6 @@
               };
 
               environment.systemPackages = with pkgs; [
-                firefox
-                neverball
                 waypipe
               ];
                             
@@ -78,6 +97,23 @@
               # ssh for waypipe
               services.openssh = {
                 enable = true;
+                settings = {
+                  PasswordAuthentication = false;
+                  PubkeyAuthentication = true;
+                  PermitRootLogin = "no";
+                };
+              };
+              
+              # Audio in der MicroVM
+              services.pulseaudio.enable = false;
+              services.pipewire = {
+                enable = true;
+                pulse.enable = true;
+              };
+
+              # Umgebungsvariable für alle User
+              environment.sessionVariables = {
+                PULSE_SERVER = "tcp:localhost:4713";
               };
 
               systemd.network.networks."10-eth" = {

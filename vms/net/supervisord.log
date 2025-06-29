@@ -129,3 +129,66 @@
 2025-06-29 15:26:57,100 INFO spawned: 'virtiofsd-ro-store' with pid 5933
 2025-06-29 15:26:58,194 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
 2025-06-29 15:26:58,195 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 15:53:42,203 INFO exited: virtiofsd-ro-store (exit status 0; expected)
+2025-06-29 15:53:43,208 INFO spawned: 'virtiofsd-ro-store' with pid 14806
+2025-06-29 15:53:44,260 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 18:26:42,454 WARN Failed to clean up '/tmp/virtiofsd-ro-store-stdout---supervisor-j2bep259.log'
+2025-06-29 18:26:42,454 WARN Failed to clean up '/tmp/virtiofsd-ro-store-stderr---supervisor-pobtukf9.log'
+2025-06-29 18:26:42,455 WARN Failed to clean up '/tmp/notify-stdout---supervisor-dz91fn5p.log'
+2025-06-29 18:26:42,455 WARN Failed to clean up '/tmp/notify-stderr---supervisor-den1p8ta.log'
+2025-06-29 18:26:42,460 CRIT could not write pidfile /home/nx/nixos-config/vms/net/supervisord.pid
+2025-06-29 18:26:43,472 INFO spawned: 'notify' with pid 8363
+2025-06-29 18:26:43,476 INFO spawned: 'virtiofsd-ro-store' with pid 8364
+2025-06-29 18:26:43,528 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-29 18:26:44,589 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 18:26:44,593 INFO spawned: 'virtiofsd-ro-store' with pid 8370
+2025-06-29 18:26:44,631 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-29 18:26:46,668 INFO spawned: 'virtiofsd-ro-store' with pid 8380
+2025-06-29 18:26:46,698 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-29 18:26:49,717 INFO spawned: 'virtiofsd-ro-store' with pid 8387
+2025-06-29 18:26:49,738 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-06-29 18:26:49,738 INFO gave up: virtiofsd-ro-store entered FATAL state, too many start retries too quickly
+2025-06-29 18:26:57,778 WARN received SIGINT indicating exit request
+2025-06-29 18:26:57,778 INFO waiting for notify to die
+2025-06-29 18:26:58,782 WARN stopped: notify (terminated by SIGTERM)
+2025-06-29 18:27:04,288 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-06-29 18:27:04,290 INFO supervisord started with pid 8455
+2025-06-29 18:27:05,296 INFO spawned: 'notify' with pid 8458
+2025-06-29 18:27:05,300 INFO spawned: 'virtiofsd-ro-store' with pid 8459
+2025-06-29 18:27:06,373 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 18:27:06,373 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 18:47:35,784 INFO exited: virtiofsd-ro-store (exit status 0; expected)
+2025-06-29 18:47:36,788 INFO spawned: 'virtiofsd-ro-store' with pid 14314
+2025-06-29 18:47:37,837 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 19:00:27,885 INFO exited: virtiofsd-ro-store (exit status 0; expected)
+2025-06-29 19:00:28,891 INFO spawned: 'virtiofsd-ro-store' with pid 15702
+2025-06-29 19:00:29,943 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 19:00:35,965 WARN received SIGINT indicating exit request
+2025-06-29 19:00:35,966 INFO waiting for notify, virtiofsd-ro-store to die
+2025-06-29 19:00:35,968 WARN stopped: virtiofsd-ro-store (exit status 1)
+2025-06-29 19:00:35,979 WARN stopped: notify (terminated by SIGTERM)
+2025-06-29 19:01:15,198 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-06-29 19:01:15,200 INFO supervisord started with pid 16370
+2025-06-29 19:01:16,206 INFO spawned: 'notify' with pid 16371
+2025-06-29 19:01:16,210 INFO spawned: 'virtiofsd-ro-store' with pid 16372
+2025-06-29 19:01:17,284 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 19:01:17,285 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 19:03:00,896 INFO exited: virtiofsd-ro-store (exit status 0; expected)
+2025-06-29 19:03:01,901 INFO spawned: 'virtiofsd-ro-store' with pid 16792
+2025-06-29 19:03:02,951 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 19:03:24,998 WARN received SIGINT indicating exit request
+2025-06-29 19:03:24,998 INFO waiting for notify, virtiofsd-ro-store to die
+2025-06-29 19:03:24,999 WARN stopped: virtiofsd-ro-store (exit status 1)
+2025-06-29 19:03:25,004 WARN stopped: notify (terminated by SIGTERM)
+2025-06-29 19:03:55,845 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-06-29 19:03:55,848 INFO supervisord started with pid 16993
+2025-06-29 19:03:56,853 INFO spawned: 'notify' with pid 16996
+2025-06-29 19:03:56,857 INFO spawned: 'virtiofsd-ro-store' with pid 16997
+2025-06-29 19:03:57,975 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 19:03:57,976 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 19:06:50,486 INFO exited: virtiofsd-ro-store (exit status 0; expected)
+2025-06-29 19:06:51,491 INFO spawned: 'virtiofsd-ro-store' with pid 17415
+2025-06-29 19:06:52,545 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 19:23:29,501 INFO exited: virtiofsd-ro-store (exit status 0; expected)
+2025-06-29 19:23:30,506 INFO spawned: 'virtiofsd-ro-store' with pid 20286
+2025-06-29 19:23:31,557 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)

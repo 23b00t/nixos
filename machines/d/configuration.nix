@@ -87,6 +87,14 @@ in
     pulse.enable = true;
     # If you want to use JACK applications, uncomment this
     #jack.enable = true;
+    # Netzwerk-Audio aktivieren
+    configPackages = [
+      (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
+        pulse.cmd = [
+          { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
+        ]
+      '')
+    ];
   };
 
   # Bluetooth
@@ -204,7 +212,8 @@ in
     enable = true;
     internalIPs = [ "10.0.0.0/24" ];
     # Change this to the interface with upstream Internet access
-    externalInterface = "enp0s20f0u2u3";
+    # externalInterface = "enp0s20f0u2u3";
+    externalInterface = "wlo1";
   };
   systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
 
@@ -223,7 +232,17 @@ in
     };
   };
 
-
-  boot.kernelModules = [ "drm" "virtio_gpu" ];
+  # net vm ssh config
+  programs.ssh.extraConfig = ''
+    Host net-vm 
+      HostName 10.0.0.1
+      User nx
+      IdentityFile /home/23b00t/.ssh/net-vm
+      RemoteForward 4713 localhost:4713
+      StrictHostKeyChecking no
+      UserKnownHostsFile /dev/null
+      PasswordAuthentication no
+      PubkeyAuthentication yes
+  '';
 }
 
