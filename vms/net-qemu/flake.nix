@@ -46,19 +46,18 @@
                   {
                     proto = "9p";
                     tag = "ro-store";
-                    # a host's /nix/store will be picked up so that no
-                    # squashfs/erofs will be built for it.
                     source = "/nix/store";
                     mountPoint = "/nix/.ro-store";
                   } 
                 ];
+                mem = 2096;
               };
               boot.kernelModules = [ "drm" "virtio_gpu" ];
               system.stateVersion = lib.trivial.release;
 
               services.getty.autologinUser = "nx";
               users.users.nx = {
-                password = "";
+                password = "trash";
                 group = "nx";
                 isNormalUser = true;
                 extraGroups = [ "wheel" "video" ];
@@ -70,24 +69,13 @@
               };
 
               environment.sessionVariables = {
-                WAYLAND_DISPLAY = "wayland-1";
-                DISPLAY = ":0";
-                QT_QPA_PLATFORM = "wayland"; # Qt Applications
-                GDK_BACKEND = "wayland"; # GTK Applications
-                XDG_SESSION_TYPE = "wayland"; # Electron Applications
-                SDL_VIDEODRIVER = "wayland";
-                CLUTTER_BACKEND = "wayland";
-              };
-              systemd.user.services.wayland-proxy = {
-                enable = true;
-                description = "Wayland Proxy";
-                serviceConfig = with pkgs; {
-                  # Environment = "WAYLAND_DISPLAY=wayland-1";
-                  ExecStart = "${wayland-proxy-virtwl}/bin/wayland-proxy-virtwl --virtio-gpu --x-display=0 --xwayland-binary=${xwayland}/bin/Xwayland";
-                  Restart = "on-failure";
-                  RestartSec = 5;
-                };
-                wantedBy = [ "default.target" ];
+                # WAYLAND_DISPLAY = "/wayland/wayland-0";
+                # DISPLAY = ":0";
+                # QT_QPA_PLATFORM = "wayland"; # Qt Applications
+                # GDK_BACKEND = "wayland"; # GTK Applications
+                # XDG_SESSION_TYPE = "wayland"; # Electron Applications
+                # SDL_VIDEODRIVER = "wayland";
+                # CLUTTER_BACKEND = "wayland";
               };
 
               environment.systemPackages = with pkgs; [
@@ -96,6 +84,7 @@
                 neverball
                 wayland-proxy-virtwl
                 xwayland
+                waypipe
               ];
                             
               hardware.graphics.enable = true;
@@ -106,6 +95,11 @@
               };
 
               networking.useNetworkd = true;
+
+              # ssh for waypipe
+              services.openssh = {
+                enable = true;
+              };
 
               systemd.network.networks."10-eth" = {
                 matchConfig.MACAddress = mac;

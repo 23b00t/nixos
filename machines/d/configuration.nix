@@ -52,6 +52,7 @@ in
     zellij
     firefox # testing only
     xwayland
+    waypipe
   ];
   # Set the default editor to vim
   programs.vim.enable = true;
