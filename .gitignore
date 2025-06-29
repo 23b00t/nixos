@@ -1,1 +1,3 @@
-vms/net/var.img
+*.img
+*.pid
+*.log

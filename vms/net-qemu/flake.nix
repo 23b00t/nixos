@@ -29,7 +29,6 @@
               microvm = {
                 hypervisor = "qemu";
                 socket = "control.socket";
-                graphics.enable = true;
                 interfaces = [{
                   id = "vm${toString index}";
                   type = "tap";
@@ -52,8 +51,9 @@
                 ];
                 mem = 2096;
               };
-              boot.kernelModules = [ "drm" "virtio_gpu" ];
               system.stateVersion = lib.trivial.release;
+
+              hardware.graphics.enable = true;
 
               services.getty.autologinUser = "nx";
               users.users.nx = {
@@ -68,32 +68,12 @@
                 wheelNeedsPassword = false;
               };
 
-              environment.sessionVariables = {
-                # WAYLAND_DISPLAY = "/wayland/wayland-0";
-                # DISPLAY = ":0";
-                # QT_QPA_PLATFORM = "wayland"; # Qt Applications
-                # GDK_BACKEND = "wayland"; # GTK Applications
-                # XDG_SESSION_TYPE = "wayland"; # Electron Applications
-                # SDL_VIDEODRIVER = "wayland";
-                # CLUTTER_BACKEND = "wayland";
-              };
-
               environment.systemPackages = with pkgs; [
-                xdg-utils
                 firefox
                 neverball
-                wayland-proxy-virtwl
-                xwayland
                 waypipe
               ];
                             
-              hardware.graphics.enable = true;
-
-              xdg.portal.wlr.settings = {
-                enable = true;
-                wlr.enable = true;
-              };
-
               networking.useNetworkd = true;
 
               # ssh for waypipe
