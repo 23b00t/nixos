@@ -123,3 +123,9 @@
 2025-06-27 16:01:35,141 INFO waiting for notify, virtiofsd-ro-store to die
 2025-06-27 16:01:35,153 WARN stopped: virtiofsd-ro-store (exit status 1)
 2025-06-27 16:01:35,157 WARN stopped: notify (terminated by SIGTERM)
+2025-06-29 15:26:56,077 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-06-29 15:26:56,083 INFO supervisord started with pid 5929
+2025-06-29 15:26:57,096 INFO spawned: 'notify' with pid 5932
+2025-06-29 15:26:57,100 INFO spawned: 'virtiofsd-ro-store' with pid 5933
+2025-06-29 15:26:58,194 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-06-29 15:26:58,195 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
