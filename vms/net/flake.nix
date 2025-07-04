@@ -2,6 +2,7 @@
   description = "NixOS in MicroVMs";
 
   inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
     microvm.url = "github:astro/microvm.nix";
     
     # home-manager als separater Input
@@ -11,7 +12,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, microvm, home-manager }:
+  outputs = inputs@{ self, nixpkgs, microvm, home-manager }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -29,7 +30,7 @@
           modules = [
             microvm.nixosModules.microvm
             home-manager.nixosModules.home-manager
-            {
+            ({ config, ... }: {
               networking.hostName = "net-vm";
 
               # Home Manager-Konfiguration
@@ -40,6 +41,7 @@
               };
 
               microvm = {
+                writableStoreOverlay = "/nix/.rw-store";
                 hypervisor = "cloud-hypervisor";
                 interfaces = [{
                   id = "vm${toString index}";
@@ -57,6 +59,11 @@
                     image = "home.img";
                     size = 8192;
                   }
+                  {
+                    image = "nix-store-overlay.img";
+                    mountPoint = config.microvm.writableStoreOverlay;
+                    size = 2048;
+                  }
                 ];
                 shares = [ 
                   {
@@ -68,6 +75,7 @@
                 ];
                 mem = 2096;
               };
+              boot.initrd.postDeviceCommands = lib.mkForce "";
               system.stateVersion = lib.trivial.release;
 
               services.getty.autologinUser = "nx";
@@ -137,6 +145,7 @@
                 };
               };
             }
+            )
           ];
         };
       };
