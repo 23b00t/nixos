@@ -277,3 +277,50 @@
 2025-07-03 21:39:54,989 INFO waiting for notify, virtiofsd-ro-store to die
 2025-07-03 21:39:55,000 WARN stopped: virtiofsd-ro-store (exit status 1)
 2025-07-03 21:39:55,003 WARN stopped: notify (terminated by SIGTERM)
+2025-07-04 21:42:50,705 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-07-04 21:42:50,707 INFO supervisord started with pid 21073
+2025-07-04 21:42:51,720 INFO spawned: 'notify' with pid 21074
+2025-07-04 21:42:51,723 INFO spawned: 'virtiofsd-ro-store' with pid 21075
+2025-07-04 21:42:52,762 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-07-04 21:42:52,763 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-07-04 21:51:03,377 INFO exited: virtiofsd-ro-store (exit status 0; expected)
+2025-07-04 21:51:04,380 INFO spawned: 'virtiofsd-ro-store' with pid 22062
+2025-07-04 21:51:05,412 INFO success: virtiofsd-ro-store entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-07-05 15:40:50,689 WARN Failed to clean up '/tmp/notify-stdout---supervisor-2y10f9f2.log'
+2025-07-05 15:40:50,690 WARN Failed to clean up '/tmp/notify-stderr---supervisor-r_1a80b1.log'
+2025-07-05 15:40:50,690 WARN Failed to clean up '/tmp/virtiofsd-ro-store-stdout---supervisor-oysashi9.log'
+2025-07-05 15:40:50,690 WARN Failed to clean up '/tmp/virtiofsd-ro-store-stderr---supervisor-uta5a7d1.log'
+2025-07-05 15:40:50,691 CRIT could not write pidfile /home/nx/nixos-config/vms/net/supervisord.pid
+2025-07-05 15:40:51,706 INFO spawned: 'notify' with pid 5085
+2025-07-05 15:40:51,708 INFO spawned: 'virtiofsd-ro-store' with pid 5086
+2025-07-05 15:40:51,732 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-07-05 15:40:52,743 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-07-05 15:40:52,745 INFO spawned: 'virtiofsd-ro-store' with pid 5090
+2025-07-05 15:40:52,761 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-07-05 15:40:54,776 INFO spawned: 'virtiofsd-ro-store' with pid 5100
+2025-07-05 15:40:54,792 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-07-05 15:40:57,810 INFO spawned: 'virtiofsd-ro-store' with pid 5109
+2025-07-05 15:40:57,828 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-07-05 15:40:57,828 INFO gave up: virtiofsd-ro-store entered FATAL state, too many start retries too quickly
+2025-07-05 15:41:06,855 WARN received SIGINT indicating exit request
+2025-07-05 15:41:06,856 INFO waiting for notify to die
+2025-07-05 15:41:07,860 WARN stopped: notify (terminated by SIGTERM)
+2025-07-05 15:42:17,292 WARN Failed to clean up '/tmp/notify-stdout---supervisor-2y10f9f2.log'
+2025-07-05 15:42:17,292 WARN Failed to clean up '/tmp/notify-stderr---supervisor-r_1a80b1.log'
+2025-07-05 15:42:17,292 WARN Failed to clean up '/tmp/virtiofsd-ro-store-stdout---supervisor-oysashi9.log'
+2025-07-05 15:42:17,293 WARN Failed to clean up '/tmp/virtiofsd-ro-store-stderr---supervisor-uta5a7d1.log'
+2025-07-05 15:42:17,294 INFO supervisord started with pid 5392
+2025-07-05 15:42:18,296 INFO spawned: 'notify' with pid 5395
+2025-07-05 15:42:18,299 INFO spawned: 'virtiofsd-ro-store' with pid 5396
+2025-07-05 15:42:18,311 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-07-05 15:42:19,332 INFO success: notify entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-07-05 15:42:19,336 INFO spawned: 'virtiofsd-ro-store' with pid 5400
+2025-07-05 15:42:19,353 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-07-05 15:42:21,367 INFO spawned: 'virtiofsd-ro-store' with pid 5410
+2025-07-05 15:42:21,383 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-07-05 15:42:24,398 INFO spawned: 'virtiofsd-ro-store' with pid 5419
+2025-07-05 15:42:24,415 WARN exited: virtiofsd-ro-store (exit status 1; not expected)
+2025-07-05 15:42:24,415 INFO gave up: virtiofsd-ro-store entered FATAL state, too many start retries too quickly
+2025-07-05 15:42:33,439 WARN received SIGINT indicating exit request
+2025-07-05 15:42:33,439 INFO waiting for notify to die
+2025-07-05 15:42:34,444 WARN stopped: notify (terminated by SIGTERM)

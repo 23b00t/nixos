@@ -7,6 +7,7 @@ in
 {
   imports = [ 
     ./hardware-configuration.nix 
+    ../../vms/microvm-user-service.nix
   ];
 
   # Switch to minimal channel for host?
@@ -68,9 +69,14 @@ in
   ]);
 
   # User
+  users.groups.tun = {};
+
+  services.udev.extraRules = ''
+    KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
+  '';
   users.users.nx = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "libvirtd" ];
+    extraGroups = [ "wheel" "networkmanager" "libvirtd" "tun" ];
   };
 
   # Sound
@@ -212,8 +218,8 @@ in
     enable = true;
     internalIPs = [ "10.0.0.0/24" ];
     # Change this to the interface with upstream Internet access
-    # externalInterface = "enp0s20f0u2u3";
-    externalInterface = "wlo1";
+    externalInterface = "enp0s20f0u2u3";
+    # externalInterface = "wlo1";
   };
   systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
 
@@ -244,5 +250,13 @@ in
       PasswordAuthentication no
       PubkeyAuthentication yes
   '';
+
+  # vm service
+  services.microvm-user = {
+    enable = true;
+    vmPath = "/home/nx/nixos-config/vms/net";
+    user = "nx";
+    vmName = "net";
+  };
 }
 
