@@ -28,43 +28,72 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Install needed packages
-    environment.systemPackages = with pkgs; [
-      # Ensure microvm tools are available
-      microvm
-    ];
-
     # Add user to necessary groups
     users.users.${cfg.user}.extraGroups = [ "kvm" ];
 
-    # Create the systemd user services
-    systemd.user.services."microvm-${cfg.vmName}" = {
+    # Create a script to run the VM interactively or start/stop the system service
+    environment.systemPackages = with pkgs; [
+      (writeScriptBin "run-microvm-${cfg.vmName}" ''
+        #!${pkgs.bash}/bin/bash
+        
+        if [ "$1" = "--interactive" ] || [ "$1" = "-i" ]; then
+          echo "Starte MicroVM ${cfg.vmName} im interaktiven Modus..."
+          cd ${cfg.vmPath}
+          sudo ${cfg.vmPath}/result/bin/virtiofsd-run &
+          sleep 2
+          sudo ${cfg.vmPath}/result/bin/microvm-run
+        else
+          sudo systemctl start microvm-${cfg.vmName}
+          echo "MicroVM ${cfg.vmName} im Hintergrund gestartet."
+          echo "Verwende 'sudo systemctl status microvm-${cfg.vmName}' um den Status zu prüfen."
+          echo "Verwende 'sudo systemctl stop microvm-${cfg.vmName}' um die VM zu stoppen."
+        fi
+      '')
+    ];
+
+    # Create the systemd system service (runs as root)
+    systemd.services."microvm-${cfg.vmName}" = {
       description = "NixOS MicroVM (${cfg.vmName})";
-      path = [ pkgs.microvm ];
+      
+      # Don't start automatically
+      wantedBy = [];
       
       serviceConfig = {
         Type = "simple";
         WorkingDirectory = cfg.vmPath;
-        ExecStart = "${pkgs.microvm}/bin/microvm run";
+        ExecStart = "${cfg.vmPath}/result/bin/microvm-run";
+        ExecStop = "${cfg.vmPath}/result/bin/microvm-shutdown";
         Restart = "no";
+        
+        # Add some security hardening
+        NoNewPrivileges = true;
+        ProtectSystem = "strict";
+        ProtectHome = "read-only";
+        ReadWritePaths = [ cfg.vmPath ];
       };
     };
-
-    # Create a script to run the VM interactively
-    environment.systemPackages = with pkgs; [
-      (writeScriptBin "run-microvm-${cfg.vmName}" ''
-        #!${pkgs.bash}/bin/bash
-        cd ${cfg.vmPath}
-        
-        if [ "$1" = "--interactive" ] || [ "$1" = "-i" ]; then
-          ${pkgs.microvm}/bin/microvm run
-        else
-          systemctl --user start microvm-${cfg.vmName}
-          echo "MicroVM ${cfg.vmName} started in background."
-          echo "Use 'systemctl --user status microvm-${cfg.vmName}' to check status."
-          echo "Use 'systemctl --user stop microvm-${cfg.vmName}' to stop the VM."
-        fi
-      '')
-    ];
+    
+    # Allow the user to start and stop the VM service without password
+    security.sudo.extraRules = [{
+      users = [ cfg.user ];
+      commands = [
+        {
+          command = "${pkgs.systemd}/bin/systemctl start microvm-${cfg.vmName}";
+          options = [ "NOPASSWD" ];
+        }
+        {
+          command = "${pkgs.systemd}/bin/systemctl stop microvm-${cfg.vmName}";
+          options = [ "NOPASSWD" ];
+        }
+        {
+          command = "${pkgs.systemd}/bin/systemctl status microvm-${cfg.vmName}";
+          options = [ "NOPASSWD" ];
+        }
+        {
+          command = "${cfg.vmPath}/result/bin/microvm-run";
+          options = [ "NOPASSWD" ];
+        }
+      ];
+    }];
   };
 }
