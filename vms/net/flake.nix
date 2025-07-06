@@ -9,7 +9,12 @@
   outputs = { self, nixpkgs, microvm }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+        config = {
+          allowUnfree = true;
+        };
+      };
       lib = nixpkgs.lib;
       index = 1;
       mac = "00:00:00:00:00:01";
@@ -32,14 +37,13 @@
                 interfaces = [{
                   id = "vm${toString index}";
                   type = "tap";
-                  tapOwner = "nx";
                   inherit mac;
                 }];
                 volumes = [
                   { 
                     mountPoint = "/var";
                     image = "var.img";
-                    size = 256;
+                    size = 8192;
                   }
                   { 
                     mountPoint = "/home/nx";
@@ -49,7 +53,7 @@
                   {
                     image = "nix-store-overlay.img";
                     mountPoint = config.microvm.writableStoreOverlay;
-                    size = 2048;
+                    size = 8192;
                   }
                 ];
                 shares = [ 
@@ -60,10 +64,11 @@
                     mountPoint = "/nix/.ro-store";
                   } 
                 ];
-                mem = 2096;
+                mem = 4096;
               };
               boot.initrd.postDeviceCommands = lib.mkForce "";
-              system.stateVersion = lib.trivial.release;
+              # system.stateVersion = lib.trivial.release;
+              system.stateVersion = "25.05";
 
               services.getty.autologinUser = "nx";
               users.users.nx = {
@@ -89,8 +94,22 @@
               environment.systemPackages = with pkgs; [
                 waypipe
                 firefox
+                # discord-canary
+                # zoom-us
+                # telegram-desktop
+                qmmp
+                # flatpak
               ];
-                            
+
+              xdg.portal = {
+                enable = true;
+                extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+                config.common.default = "*";
+                # Optional: spezifisch Wayland-Integration
+                # extraPortals = [ pkgs.xdg-desktop-portal-gtk pkgs.xdg-desktop-portal-wlr ];
+              };
+              services.flatpak.enable = true;
+
               hardware.graphics.enable = true;
 
               networking.useNetworkd = true;
@@ -110,11 +129,23 @@
               services.pipewire = {
                 enable = true;
                 pulse.enable = true;
+                alsa.enable = true;
+                alsa.support32Bit = true;
+                jack.enable = true;
               };
 
               # Umgebungsvariable für alle User
               environment.sessionVariables = {
                 PULSE_SERVER = "tcp:localhost:4713";
+                # Für Wayland-Support
+                QT_QPA_PLATFORM = "wayland;xcb";
+                GDK_BACKEND = "wayland,x11";
+                NIXOS_OZONE_WL = "1";  # Für Electron-Apps wie Discord
+                MOZ_ENABLE_WAYLAND = "1";
+                XDG_SESSION_TYPE = "wayland";
+                DISPLAY = ":0";
+                SDL_VIDEODRIVER = "wayland";
+                CLUTTER_BACKEND = "wayland";
               };
 
               systemd.network.networks."10-eth" = {

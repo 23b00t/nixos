@@ -9,7 +9,12 @@
   outputs = { self, nixpkgs, microvm }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+        config = {
+          allowUnfree = true;
+        };
+      };
       lib = nixpkgs.lib;
       index = 2;
       mac = "00:00:00:00:00:02";
@@ -29,6 +34,7 @@
               microvm = {
                 hypervisor = "qemu";
                 socket = "control.socket";
+                graphics.enable = true;
                 interfaces = [{
                   id = "vm${toString index}";
                   type = "tap";
@@ -61,6 +67,10 @@
                 group = "nx";
                 isNormalUser = true;
                 extraGroups = [ "wheel" "video" ];
+
+                openssh.authorizedKeys.keys = [ 
+                "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGE1nVsPaYZfreqzCqtA97lnSciYlPnPlvlUZ7xYETws nx@machine"
+                ];
               };
               users.groups.nx = {};
               security.sudo = {
@@ -69,9 +79,12 @@
               };
 
               environment.systemPackages = with pkgs; [
+                westonLite
                 firefox
-                neverball
                 waypipe
+                discord
+                zoom-us
+                telegram-desktop
               ];
                             
               networking.useNetworkd = true;
@@ -79,6 +92,24 @@
               # ssh for waypipe
               services.openssh = {
                 enable = true;
+                settings = {
+                  PasswordAuthentication = false;
+                  PubkeyAuthentication = true;
+                  PermitRootLogin = "no";
+                };
+              };
+
+              environment.sessionVariables = {
+                PULSE_SERVER = "tcp:localhost:4713";
+                # Für Wayland-Support
+                QT_QPA_PLATFORM = "wayland;xcb";
+                GDK_BACKEND = "wayland,x11";
+                NIXOS_OZONE_WL = "1";  # Für Electron-Apps wie Discord
+                MOZ_ENABLE_WAYLAND = "1";
+                XDG_SESSION_TYPE = "wayland";
+                DISPLAY = ":0";
+                SDL_VIDEODRIVER = "wayland";
+                CLUTTER_BACKEND = "wayland";
               };
 
               systemd.network.networks."10-eth" = {

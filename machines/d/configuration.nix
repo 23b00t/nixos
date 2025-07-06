@@ -239,11 +239,22 @@ in
   };
 
   # net vm ssh config
+  # 
   programs.ssh.extraConfig = ''
     Host net-vm 
       HostName 10.0.0.1
       User nx
       IdentityFile /home/23b00t/.ssh/net-vm
+      RemoteForward 4713 localhost:4713
+      StrictHostKeyChecking no
+      UserKnownHostsFile /dev/null
+      PasswordAuthentication no
+      PubkeyAuthentication yes
+
+    Host full-qemu 
+      HostName 10.0.0.2
+      User nx
+      IdentityFile /home/23b00t/.ssh/full-qemu
       RemoteForward 4713 localhost:4713
       StrictHostKeyChecking no
       UserKnownHostsFile /dev/null
