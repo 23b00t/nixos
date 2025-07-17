@@ -94,21 +94,20 @@
               environment.systemPackages = with pkgs; [
                 waypipe
                 firefox
-                # discord-canary
-                # zoom-us
+                discord
+                zoom-us
                 # telegram-desktop
                 qmmp
-                # flatpak
               ];
 
-              xdg.portal = {
-                enable = true;
-                extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-                config.common.default = "*";
+              # xdg.portal = {
+              #   enable = true;
+              #   extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+              #   config.common.default = "*";
                 # Optional: spezifisch Wayland-Integration
                 # extraPortals = [ pkgs.xdg-desktop-portal-gtk pkgs.xdg-desktop-portal-wlr ];
-              };
-              services.flatpak.enable = true;
+              # };
+              # services.flatpak.enable = true;
 
               hardware.graphics.enable = true;
 
