@@ -1,13 +1,9 @@
 # NixOS config
 
 { config, lib, pkgs, ... }:
-let
-  maxVMs = 8;
-in
 {
   imports = [ 
     ./hardware-configuration.nix 
-    ../../vms/microvm-user-service.nix
   ];
 
   # Switch to minimal channel for host?
@@ -17,7 +13,6 @@ in
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   # boot.loader.efi.efiSysMountPoint = "/boot";  
-  # boot.initrd.systemd.enable = true;
 
   # GNOME Wayland (with PaperWM)
   services.xserver.enable = true;
@@ -28,6 +23,24 @@ in
   networking.hostName = "machine";
   networking.firewall = {
     enable = true;
+  };
+
+  # Xen
+  # Prerequestis
+  boot.initrd.systemd.enable = true;
+  boot.initrd.kernelModules = [ "tpm_tis" ];
+  # Dom0
+  virtualisation.xen = {
+    enable = true;
+    efi.bootBuilderVerbosity = "info"; # Adds a handy report that lets you know which Xen boot entries were created.
+    bootParams = [
+      "vga=ask" # Useful for non-headless systems with screens bigger than 640x480.
+      "dom0=pvh" # Uses the PVH virtualisation mode for the Domain 0, instead of PV.
+    ];
+    dom0Resources = {
+      memory = 1024; # Only allocates 1GiB of memory to the Domain 0, with the rest of the system memory being freely available to other domains.
+      maxVCPUs = 2; # Allows the Domain 0 to use, at most, two CPU cores.
+    };
   };
 
   # Enable the Flakes feature and the accompanying new nix command-line tool
@@ -42,14 +55,7 @@ in
     gnupg
     pinentry
     wget
-    gnome-shell
     gnome-control-center
-    virt-manager
-    libvirt
-    qemu
-    pciutils
-    cloud-hypervisor
-    virtiofsd
     zellij
     firefox # testing only
     xwayland
@@ -69,14 +75,9 @@ in
   ]);
 
   # User
-  users.groups.tun = {};
-
-  services.udev.extraRules = ''
-    KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
-  '';
   users.users.nx = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "libvirtd" "tun" ];
+    extraGroups = [ "wheel" "networkmanager" ];
   };
 
   # Sound
@@ -140,22 +141,6 @@ in
   services.xserver.xkb.variant = "intl";
   services.xserver.xkb.options = "grp:alt_shift_toggle";
 
-  virtualisation.libvirtd.enable = true;
-  systemd.services."libvirt-default-net" = {
-    description = "Start libvirt default network";
-    wantedBy = [ "multi-user.target" ];
-    wants = [ "libvirtd.service" ];
-    after = [ "libvirtd.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.libvirt}/bin/virsh net-start default";
-      # Doesn't work as expected. Should only start the service if it is not running
-      # ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.libvirt}/bin/virsh net-info default | grep -q active || ${pkgs.libvirt}/bin/virsh net-start default'";
-      RemainAfterExit = true;
-    };
-  };
-  programs.virt-manager.enable = true;
-
   # zsh
   programs.zsh.enable = true;
   users.extraUsers.nx = {
@@ -176,52 +161,7 @@ in
   programs.ssh.startAgent = true;
   # security.pam.sshAgentAuth.enable = true;
 
-  # microvm network
-  # networking.interfaces."vm-net".ipv4.addresses = [{
-  # address = "192.168.100.1";
-  # prefixLength = 24;
-  # }];
-
-  # networking.nat.enable = true;
-  # networking.nat.internalInterfaces = [ "vm-net" ];
-  # networking.nat.externalInterface = "enp0s20f0u2u3";
-  # boot.kernel.sysctl."net.ipv4.ip_forward" = true;
-
-  # networking.firewall.allowedTCPPorts = [ 22 ];
   networking.useNetworkd = true;
-
-  systemd.network.networks = builtins.listToAttrs (
-    map (index: {
-      name = "30-vm${toString index}";
-      value = {
-        matchConfig.Name = "vm${toString index}";
-        # Host's addresses
-        address = [
-          "10.0.0.0/32"
-          "fec0::/128"
-        ];
-        # Setup routes to the VM
-        routes = [ {
-          Destination = "10.0.0.${toString index}/32";
-        } {
-          Destination = "fec0::${lib.toHexString index}/128";
-        } ];
-        # Enable routing
-        networkConfig = {
-          IPv4Forwarding = true;
-          IPv6Forwarding = true;
-        };
-      };
-    }) (lib.genList (i: i + 1) maxVMs)
-  );
-  networking.nat = {
-    enable = true;
-    internalIPs = [ "10.0.0.0/24" ];
-    # Change this to the interface with upstream Internet access
-    externalInterface = "enp0s20f0u2u3";
-    # externalInterface = "wlo1";
-  };
-  systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
 
   # use cache
   nix = {
@@ -236,38 +176,6 @@ in
       ];
       trusted-users = [ "root" "nx" ];
     };
-  };
-
-  # net vm ssh config
-  # 
-  programs.ssh.extraConfig = ''
-    Host net-vm 
-      HostName 10.0.0.1
-      User nx
-      IdentityFile /home/23b00t/.ssh/net-vm
-      RemoteForward 4713 localhost:4713
-      StrictHostKeyChecking no
-      UserKnownHostsFile /dev/null
-      PasswordAuthentication no
-      PubkeyAuthentication yes
-
-    Host full-qemu 
-      HostName 10.0.0.2
-      User nx
-      IdentityFile /home/23b00t/.ssh/full-qemu
-      RemoteForward 4713 localhost:4713
-      StrictHostKeyChecking no
-      UserKnownHostsFile /dev/null
-      PasswordAuthentication no
-      PubkeyAuthentication yes
-  '';
-
-  # vm service
-  services.microvm-user = {
-    enable = true;
-    vmPath = "/home/nx/nixos-config/vms/net";
-    user = "nx";
-    vmName = "net";
   };
 }
 
