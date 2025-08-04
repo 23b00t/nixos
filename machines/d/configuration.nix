@@ -28,20 +28,64 @@
   # Xen
   # Prerequestis
   boot.initrd.systemd.enable = true;
-  boot.initrd.kernelModules = [ "tpm_tis" ];
-  # Dom0
+  # boot.initrd.kernelModules = [ "nvme" "sd_mod" "dm-crypt" ];
+  # boot.initrd.kernelModules = [ "nvme" "sd_mod" "dm-crypt" "dm-mod" "i2c-hid" "i2c-hid-acpi" "hid-generic" "hid-multitouch" ];
+  boot.initrd.kernelModules = [ 
+    "nvme" 
+    "sd_mod" 
+    "dm-crypt" 
+    "dm-mod"
+    "i2c_hid"
+    "i2c_hid_acpi"
+    "i2c_i801"    # Intel I2C Controller
+  ];
+  boot.kernelParams = [
+    "usbcore.autosuspend=-1"
+    "xhci_hcd.quirks=270336"
+    "intel_iommu=on"  # Änderung von 'off' zu 'on'
+    "rd.debug"
+    "irqpoll"
+    "i2c_hid.polling_mode=1"
+    "pci=nocrs"       # Versucht IRQ-Konflikte zu vermeiden
+  ];
+  boot.initrd.services.lvm.enable = true;
+  hardware.i2c.enable = true;
+
+  services.upower.enable = true;  # Wichtig für einige ACPI-Funktionen
+
+  # Xen-Konfiguration
   virtualisation.xen = {
     enable = true;
-    efi.bootBuilderVerbosity = "info"; # Adds a handy report that lets you know which Xen boot entries were created.
+    efi.bootBuilderVerbosity = "info";
     bootParams = [
-      "vga=ask" # Useful for non-headless systems with screens bigger than 640x480.
-      "dom0=pvh" # Uses the PVH virtualisation mode for the Domain 0, instead of PV.
+      "vga=ask"
+      "dom0=hvm"      # Änderung von 'pvh' zu 'hvm'
+      "iommu=verbose"
+      "acpi=force"
+      "i2c_designware.poll_mode=1"
+      "xen-pciback.hide=(00:15.0),(00:15.1)"  # I2C Controller
     ];
     dom0Resources = {
-      memory = 1024; # Only allocates 1GiB of memory to the Domain 0, with the rest of the system memory being freely available to other domains.
-      maxVCPUs = 2; # Allows the Domain 0 to use, at most, two CPU cores.
+      memory = 8192;
+      maxVCPUs = 4;
     };
   };
+
+  # Zusätzliche Hardware-Unterstützung
+  services.xserver.libinput = {
+    enable = true;
+    touchpad = {
+      disableWhileTyping = true;
+      naturalScrolling = true;
+      tapping = true;
+    };
+  };
+
+  # Kernel-Module beim Start laden
+  boot.extraModprobeConfig = ''
+    options i2c_hid poll_interval=1
+    options i2c_hid_acpi poll_interval=1
+  '';
 
   # Enable the Flakes feature and the accompanying new nix command-line tool
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
@@ -94,26 +138,9 @@
     pulse.enable = true;
     # If you want to use JACK applications, uncomment this
     #jack.enable = true;
-    # Netzwerk-Audio aktivieren
-    configPackages = [
-      (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
-        pulse.cmd = [
-          { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
-        ]
-      '')
-    ];
   };
 
   # Bluetooth
-
-  services.pipewire.wireplumber.extraConfig.bluetoothEnhancements = {
-    "monitor.bluez.properties" = {
-        "bluez5.enable-sbc-xq" = true;
-        "bluez5.enable-msbc" = true;
-        "bluez5.enable-hw-volume" = true;
-        "bluez5.roles" = [ "hsp_hs" "hsp_ag" "hfp_hf" "hfp_ag" ];
-    };
-  };
 
   networking.networkmanager.enable = true;
   # networking.wireless.enable = true;
@@ -136,7 +163,7 @@
   };
 
   # Keyboard layout
-  console.keyMap = "us";
+  console.keyMap = "en";
   services.xserver.xkb.layout = "us,de";
   services.xserver.xkb.variant = "intl";
   services.xserver.xkb.options = "grp:alt_shift_toggle";
@@ -156,12 +183,6 @@
       max-cache-ttl = 7200;
     };
   };
-
-  # ssh
-  programs.ssh.startAgent = true;
-  # security.pam.sshAgentAuth.enable = true;
-
-  networking.useNetworkd = true;
 
   # use cache
   nix = {
