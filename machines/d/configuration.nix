@@ -19,73 +19,62 @@
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
   services.xserver.displayManager.gdm.wayland = true;
-
-  networking.hostName = "machine";
-  networking.firewall = {
-    enable = true;
-  };
-
   # Xen
   # Prerequestis
-  boot.initrd.systemd.enable = true;
-  # boot.initrd.kernelModules = [ "nvme" "sd_mod" "dm-crypt" ];
-  # boot.initrd.kernelModules = [ "nvme" "sd_mod" "dm-crypt" "dm-mod" "i2c-hid" "i2c-hid-acpi" "hid-generic" "hid-multitouch" ];
-  boot.initrd.kernelModules = [ 
-    "nvme" 
-    "sd_mod" 
-    "dm-crypt" 
-    "dm-mod"
-    "i2c_hid"
-    "i2c_hid_acpi"
-    "i2c_i801"    # Intel I2C Controller
-  ];
-  boot.kernelParams = [
-    "usbcore.autosuspend=-1"
-    "xhci_hcd.quirks=270336"
-    "intel_iommu=on"  # Änderung von 'off' zu 'on'
-    "rd.debug"
-    "irqpoll"
-    "i2c_hid.polling_mode=1"
-    "pci=nocrs"       # Versucht IRQ-Konflikte zu vermeiden
-  ];
-  boot.initrd.services.lvm.enable = true;
-  hardware.i2c.enable = true;
+  # nixpkgs.config.allowUnfree = true;
+  # Grundlegende Boot- und LVM-Konfiguration
+  boot.initrd = {
+    systemd.enable = true;
+    kernelModules = [ 
+      "nvme" 
+      "sd_mod" 
+      "dm-crypt" 
+      "dm-mod"
+    ];
+    services.lvm.enable = true;
+  };
 
-  services.upower.enable = true;  # Wichtig für einige ACPI-Funktionen
+  # Kernel-Parameter für I2C und Interrupts
+#   boot.kernelParams = [
+#     "intel_iommu=on"
+#     "iommu.passthrough=1"
+#     "irqpoll"
+#     "pci=realloc"
+#     "i2c_designware.sync_mode=1"  # Synchroner Modus für DesignWare I2C
+#   ];
+
+  # Explizite Kernel-Module für I2C
+#   boot.kernelModules = [
+#     "i2c_hid"
+#     "i2c_hid_acpi"
+#     "i2c_i801"
+#     "i2c_designware_platform"
+#     "i2c_designware_core"
+#   ];
 
   # Xen-Konfiguration
   virtualisation.xen = {
     enable = true;
-    efi.bootBuilderVerbosity = "info";
     bootParams = [
+      "dom0=pvh"
       "vga=ask"
-      "dom0=hvm"      # Änderung von 'pvh' zu 'hvm'
-      "iommu=verbose"
-      "acpi=force"
-      "i2c_designware.poll_mode=1"
-      "xen-pciback.hide=(00:15.0),(00:15.1)"  # I2C Controller
+#       "iommu=1"
+#       "acpi=force"
     ];
     dom0Resources = {
       memory = 8192;
-      maxVCPUs = 4;
+      maxVCPUs = 2;
     };
   };
 
-  # Zusätzliche Hardware-Unterstützung
-  services.xserver.libinput = {
-    enable = true;
-    touchpad = {
-      disableWhileTyping = true;
-      naturalScrolling = true;
-      tapping = true;
-    };
-  };
+  # Hardware-Unterstützung
+#   hardware = {
+#     enableAllFirmware = true;
+#     i2c.enable = true;
+#   };
 
-  # Kernel-Module beim Start laden
-  boot.extraModprobeConfig = ''
-    options i2c_hid poll_interval=1
-    options i2c_hid_acpi poll_interval=1
-  '';
+  # Input-Unterstützung
+  # services.xserver.libinput.enable = true;
 
   # Enable the Flakes feature and the accompanying new nix command-line tool
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
@@ -104,6 +93,8 @@
     firefox # testing only
     xwayland
     waypipe
+    xen
+    qemu_xen
   ];
   # Set the default editor to vim
   programs.vim.enable = true;
@@ -121,7 +112,7 @@
   # User
   users.users.nx = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" ];
+    extraGroups = [ "wheel" "networkmanager" "kvm" "xen" ];
   };
 
   # Sound
@@ -182,6 +173,26 @@
       default-cache-ttl = 3600;
       max-cache-ttl = 7200;
     };
+  };
+
+
+  networking = {
+    hostName = "machine";
+    firewall.enable = true;
+
+    interfaces.enp0s20f0u2u3.useDHCP = false;
+
+    bridges.br0.interfaces = [ "enp0s20f0u2u3" ];
+    interfaces.br0 = {
+      useDHCP = false;
+      ipv4.addresses = [ {
+        address = "192.168.0.254";
+        prefixLength = 24;
+      } ];
+    };
+
+    defaultGateway = "192.168.0.1";
+    # nameservers = [ "8.8.8.8" "192.168.0.1" ];
   };
 
   # use cache
