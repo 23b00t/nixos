@@ -42,8 +42,8 @@ let
 	hide_window_decorations yes 
 
 	tab_bar_margin_width      1 
-	tab_bar_style             separator
-	# tab_bar_style             hidden
+  # tab_bar_style             separator
+	tab_bar_style             hidden
 	tab_bar_align center
 	tab_bar_edge bottom
 	tab_bar_min_tabs          1

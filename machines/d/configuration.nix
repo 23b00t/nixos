@@ -51,7 +51,6 @@ in
     cloud-hypervisor
     virtiofsd
     zellij
-    firefox # testing only
     xwayland
     waypipe
   ];

@@ -36,6 +36,8 @@ in
     "Xcursor.size" = 16;
     "Xft.dpi" = 172;
   };
+  
+  nixpkgs.config.allowUnfree = true;
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
@@ -87,6 +89,15 @@ in
     dracula-theme
     tela-icon-theme
     nerd-fonts.droid-sans-mono
+
+    firefox
+    zoom-us
+    discord
+    neovim
+    lazygit
+    onlyoffice-bin
+    gimp
+    vlc
   ];
 
 
@@ -177,6 +188,17 @@ in
   home.file.".config/kitty/kitty.conf".text = kittyConf;
   home.file.".config/kitty/current-theme.conf".source = ./current-theme.conf;
   home.file.".config/kitty/startup".source = ./startup;
+  
+  # nvim with LazyVim config
+  programs.neovim = {
+    enable = true;
+    extraPackages = with pkgs; [ ];
+    # Use your existing LazyVim config
+    viAlias = true;
+    vimAlias = true;
+  };
+  # symlink your lazyvim config
+  home.file.".config/nvim".source = ./lazyvim;
 
   # This value determines the home Manager release that your
   # configuration is compatible with. This helps avoid breakage
