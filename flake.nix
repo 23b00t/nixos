@@ -7,7 +7,6 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Dein lazyvim-Repo als garantierte, externe Quelle
     lazyvim-config = {
       url = "github:23b00t/lazyvim";
       flake = false;
@@ -15,24 +14,36 @@
   };
 
   outputs = { self, nixpkgs, home-manager, lazyvim-config, ... }@inputs: {
-    # KORREKTUR: Der Name hier MUSS mit deinem Hostnamen übereinstimmen.
+    # Erstelle eine nixpkgs-Instanz, die unfreie Pakete erlaubt.
+    # Dies ist der saubere, moderne Weg.
+    legacyPackages = forAllSystems:
+      let
+        pkgs = import nixpkgs {
+          system = forAllSystems;
+          config.allowUnfree = true;
+        };
+      in {
+        # pkgs wird an die Home-Manager-Konfiguration weitergegeben
+      };
+
     nixosConfigurations.machine = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       
       modules = [
-        # Der Pfad zu deiner Systemkonfiguration
         ./machines/d/configuration.nix
 
-        # KORREKTUR: Home-Manager wird als Modul mit den richtigen Argumenten eingebunden
         home-manager.nixosModules.home-manager
         {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
+          # Wir verwenden NICHT mehr die globale Konfiguration.
+          home-manager.useGlobalPkgs = false;
           
-          # Hier wird deine home.nix importiert
-          home-manager.users.nx = import ./home/home.nix;
+          # Stattdessen geben wir unsere eigene, `allowUnfree`-fähige pkgs-Instanz.
+          home-manager.pkgs = self.legacyPackages.x86_64-linux;
 
-          # KORREKTUR: So wird `lazyvim-config` korrekt an `home.nix` übergeben
+          home-manager.users.nx = {
+            imports = [ ./home/home.nix ];
+          };
+
           home-manager.extraSpecialArgs = {
             inherit lazyvim-config;
           };

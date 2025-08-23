@@ -93,7 +93,6 @@ in
     firefox
     zoom-us
     discord
-    neovim
     lazygit
     onlyoffice-bin
     gimp
