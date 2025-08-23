@@ -193,13 +193,15 @@ in
   programs.neovim = {
     enable = true;
     extraPackages = with pkgs; [ ];
-    # Use your existing LazyVim config
     viAlias = true;
     vimAlias = true;
   };
-  # symlink your lazyvim config
+
+  # Verlinke die LazyVim-Konfiguration.
+  # Wir verwenden 'import' auf den Ordner, um den Pfad korrekt aufzulösen,
+  # genau wie bei deiner Kitty-Konfiguration.
   home.file.".config/nvim" = {
-    source = ./lazyvim;
+    source = import ./lazyvim {};
     recursive = true;
   };
 
