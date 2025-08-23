@@ -13,42 +13,39 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, lazyvim-config, ... }@inputs: {
-    # Erstelle eine nixpkgs-Instanz, die unfreie Pakete erlaubt.
-    # Dies ist der saubere, moderne Weg.
-    legacyPackages = forAllSystems:
-      let
-        pkgs = import nixpkgs {
-          system = forAllSystems;
-          config.allowUnfree = true;
-        };
-      in {
-        # pkgs wird an die Home-Manager-Konfiguration weitergegeben
-      };
-
-    nixosConfigurations.machine = nixpkgs.lib.nixosSystem {
+  outputs = { self, nixpkgs, home-manager, lazyvim-config, ... }@inputs:
+    let
       system = "x86_64-linux";
-      
-      modules = [
-        ./machines/d/configuration.nix
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
+    in
+    {
+      nixosConfigurations.machine = nixpkgs.lib.nixosSystem {
+        inherit system;
+        
+        specialArgs = { inherit lazyvim-config; }; # `specialArgs` für NixOS-Module
+        
+        modules = [
+          ./machines/d/configuration.nix
 
-        home-manager.nixosModules.home-manager
-        {
-          # Wir verwenden NICHT mehr die globale Konfiguration.
-          home-manager.useGlobalPkgs = false;
-          
-          # Stattdessen geben wir unsere eigene, `allowUnfree`-fähige pkgs-Instanz.
-          home-manager.pkgs = self.legacyPackages.x86_64-linux;
+          # Konfiguriere das Home-Manager Modul
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = false; # Wichtig: Wir nutzen nicht die globalen pkgs
+            home-manager.pkgs = pkgs; # Sondern unsere eigene, `allowUnfree`-fähige Instanz
 
-          home-manager.users.nx = {
-            imports = [ ./home/home.nix ];
-          };
+            home-manager.users.nx = {
+              imports = [ ./home/home.nix ];
+            };
 
-          home-manager.extraSpecialArgs = {
-            inherit lazyvim-config;
-          };
-        }
-      ];
+            # `extraSpecialArgs` für Home-Manager Module
+            home-manager.extraSpecialArgs = {
+              inherit lazyvim-config;
+            };
+          }
+        ];
+      };
     };
-  };
 }
