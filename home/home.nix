@@ -189,19 +189,106 @@ in
   home.file.".config/kitty/current-theme.conf".source = ./current-theme.conf;
   home.file.".config/kitty/startup".source = ./startup;
   
-  # nvim with LazyVim config
+  # nvim with LazyVim config, managed declaratively by Nix
+  # Based on the method from https://github.com/LazyVim/LazyVim/discussions/1972
   programs.neovim = {
     enable = true;
-    extraPackages = with pkgs; [ ];
     viAlias = true;
     vimAlias = true;
+
+    # 1. Definiere alle Plugins, die LazyVim standardmäßig benötigt.
+    #    Diese werden von nixpkgs bereitgestellt.
+    plugins = with pkgs.vimPlugins; [
+      # Kern-Plugin-Manager
+      lazy-nvim
+
+      # Kern-Plugins für LazyVim
+      LazyVim
+      (catppuccin-nvim.override { variant = "macchiato"; }) # Beispiel: Variante hier festlegen
+      cmp-buffer
+      cmp-nvim-lsp
+      cmp-path
+      cmp_luasnip
+      conform-nvim
+      dashboard-nvim
+      dressing-nvim
+      flash-nvim
+      friendly-snippets
+      gitsigns-nvim
+      indent-blankline-nvim
+      lazydev-nvim
+      lualine-nvim
+      luasnip
+      mason-nvim
+      mason-lspconfig-nvim
+      mini-nvim # Stellt mini.ai, mini.indentscope, etc. bereit
+      neo-tree-nvim
+      neoconf-nvim
+      neodev-nvim
+      noice-nvim
+      nui-nvim
+      nvim-cmp
+      nvim-lint
+      nvim-lspconfig
+      nvim-notify
+      nvim-spectre
+      nvim-treesitter.withAllGrammars # Alle Treesitter-Parser für die Syntaxhervorhebung
+      nvim-ts-autotag
+      nvim-ts-context-commentstring
+      nvim-web-devicons
+      persistence-nvim
+      plenary-nvim
+      telescope-fzf-native-nvim
+      telescope-nvim
+      todo-comments-nvim
+      tokyonight-nvim
+      trouble-nvim
+      which-key-nvim
+
+      # Deine zusätzlichen Plugins hier einfügen, z.B.:
+      # copilot-lua
+      # copilot-cmp
+    ];
+
+    # 2. Definiere externe Abhängigkeiten, die von den Plugins benötigt werden.
+    extraPackages = with pkgs; [
+      # Für Telescope
+      ripgrep
+      # Für nvim-lint
+      stylua
+      # Für Mason/LSP (Beispiele)
+      lua-language-server
+      nil # Nix Language Server
+      phpactor
+    ];
+
+    # 3. Konfiguriere LazyVim, um die von Nix verwalteten Plugins zu verwenden
+    #    und deine benutzerdefinierte Konfiguration zu laden.
+    extraLuaConfig = ''
+      -- Deaktiviere netrw
+      vim.g.loaded_netrw = 1
+      vim.g.loaded_netrwPlugin = 1
+
+      require("lazy").setup({
+        -- Lass LazyVim wissen, dass es keine Plugins herunterladen soll,
+        -- da sie bereits von Nix bereitgestellt werden.
+        checker = { enabled = false },
+        
+        -- Wichtig: Hier gibst du den Pfad zu deinen eigenen Konfigurationsdateien an.
+        -- Wir importieren die Standard-LazyVim-Plugins und dann deine eigenen Anpassungen.
+        spec = {
+          { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+          { import = "plugins" },
+        },
+      })
+    '';
   };
 
-  # Verlinke die LazyVim-Konfiguration.
-  # Wir verwenden 'import' auf den Ordner, um den Pfad korrekt aufzulösen,
-  # genau wie bei deiner Kitty-Konfiguration.
+  # 4. Verlinke deine persönliche Lua-Konfiguration (init.lua, lua/plugins/*, etc.)
+  #    Dies ist der einzige Teil, den wir aus deinem Verzeichnis verlinken.
+  #    Stelle sicher, dass dieser Pfad relativ zur home.nix korrekt ist.
   home.file.".config/nvim" = {
-    source = import ./lazyvim {};
+    source = ./lazyvim; # Dein Verzeichnis mit init.lua, lua/
     recursive = true;
   };
 
