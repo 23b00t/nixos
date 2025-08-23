@@ -16,6 +16,7 @@
   outputs = { self, nixpkgs, home-manager, lazyvim-config, ... }@inputs:
     let
       system = "x86_64-linux";
+      # 1. Definiere die pkgs-Instanz mit allowUnfree.
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
@@ -25,22 +26,28 @@
       nixosConfigurations.machine = nixpkgs.lib.nixosSystem {
         inherit system;
         
-        specialArgs = { inherit lazyvim-config; }; # `specialArgs` für NixOS-Module
+        specialArgs = { inherit lazyvim-config; };
         
         modules = [
           ./machines/d/configuration.nix
 
-          # Konfiguriere das Home-Manager Modul
           home-manager.nixosModules.home-manager
           {
-            home-manager.useGlobalPkgs = false; # Wichtig: Wir nutzen nicht die globalen pkgs
-            home-manager.pkgs = pkgs; # Sondern unsere eigene, `allowUnfree`-fähige Instanz
-
+            # 2. Definiere die Konfiguration für den Benutzer 'nx'.
             home-manager.users.nx = {
+              # 3. KORREKTUR: Weise die pkgs-Instanz hier zu.
+              #    Die Option heißt `pkgs`, nicht `home-manager.pkgs`.
+              pkgs = pkgs;
+
+              # Der Import deiner home.nix
               imports = [ ./home/home.nix ];
             };
 
-            # `extraSpecialArgs` für Home-Manager Module
+            # Es ist wichtig, `useGlobalPkgs` auf `false` zu setzen,
+            # damit die obige `pkgs`-Zuweisung respektiert wird.
+            home-manager.useGlobalPkgs = false;
+
+            # Extra-Argumente für Home-Manager-Module
             home-manager.extraSpecialArgs = {
               inherit lazyvim-config;
             };
