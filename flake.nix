@@ -13,46 +13,38 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, lazyvim-config, ... }@inputs:
-    let
+  outputs = { self, nixpkgs, home-manager, lazyvim-config, ... }@inputs: {
+    nixosConfigurations.machine = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
-      # 1. Definiere die pkgs-Instanz mit allowUnfree.
-      pkgs = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-      };
-    in
-    {
-      nixosConfigurations.machine = nixpkgs.lib.nixosSystem {
-        inherit system;
-        
-        specialArgs = { inherit lazyvim-config; };
-        
-        modules = [
-          ./machines/d/configuration.nix
+      
+      specialArgs = { inherit lazyvim-config; };
+      
+      modules = [
+        ./machines/d/configuration.nix
 
-          home-manager.nixosModules.home-manager
-          {
-            # 2. Definiere die Konfiguration für den Benutzer 'nx'.
-            home-manager.users.nx = {
-              # 3. KORREKTUR: Weise die pkgs-Instanz hier zu.
-              #    Die Option heißt `pkgs`, nicht `home-manager.pkgs`.
-              pkgs = pkgs;
+        home-manager.nixosModules.home-manager
+        {
+          # --- DIE KORREKTUR ---
+          # 1. Wir sagen Home-Manager, dass es NICHT die globale Konfiguration verwenden soll.
+          home-manager.useGlobalPkgs = false;
 
-              # Der Import deiner home.nix
-              imports = [ ./home/home.nix ];
-            };
+          # 2. Wir definieren die Konfiguration für den Benutzer `nx`.
+          home-manager.users.nx = {
+            # 3. Das ist der korrekte Weg: Wir setzen die `nixpkgs`-Konfiguration
+            #    direkt hier. Home-Manager erstellt daraufhin seine eigene,
+            #    korrekt konfigurierte `pkgs`-Instanz.
+            nixpkgs.config.allowUnfree = true;
 
-            # Es ist wichtig, `useGlobalPkgs` auf `false` zu setzen,
-            # damit die obige `pkgs`-Zuweisung respektiert wird.
-            home-manager.useGlobalPkgs = false;
+            # Der Import deiner home.nix bleibt unverändert.
+            imports = [ ./home/home.nix ];
+          };
 
-            # Extra-Argumente für Home-Manager-Module
-            home-manager.extraSpecialArgs = {
-              inherit lazyvim-config;
-            };
-          }
-        ];
-      };
+          # Extra-Argumente für Home-Manager-Module
+          home-manager.extraSpecialArgs = {
+            inherit lazyvim-config;
+          };
+        }
+      ];
     };
+  };
 }
