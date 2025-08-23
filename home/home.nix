@@ -204,7 +204,6 @@ in
 
       # Kern-Plugins für LazyVim
       LazyVim
-      (catppuccin-nvim.override { variant = "macchiato"; }) # Beispiel: Variante hier festlegen
       cmp-buffer
       cmp-nvim-lsp
       cmp-path
