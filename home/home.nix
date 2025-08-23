@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, lazyvim-config, ... }:
 let
   kittyConf = import ./kitty.nix;
 in
@@ -287,7 +287,7 @@ in
   #    Dies ist der einzige Teil, den wir aus deinem Verzeichnis verlinken.
   #    Stelle sicher, dass dieser Pfad relativ zur home.nix korrekt ist.
   home.file.".config/nvim" = {
-    source = ./lazyvim; # Dein Verzeichnis mit init.lua, lua/
+    source = lazyvim-config; # Das ist der Pfad zum lazyvim-Repo
     recursive = true;
   };
 

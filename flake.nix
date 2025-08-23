@@ -1,39 +1,41 @@
 {
-  description = "NixOS configuration";
+  description = "Nixos config";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
-    # home-manager, used for managing user configuration
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
-      # The `follows` keyword in inputs is used for inheritance.
-      # Here, `inputs.nixpkgs` of home-manager is kept consistent with
-      # the `inputs.nixpkgs` of the current flake,
-      # to avoid problems caused by different versions of nixpkgs.
+      url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # --- NEUER BLOCK ---
+    # Füge dein lazyvim-Repo als Input hinzu.
+    # Nix wird diesen Ordner jetzt garantiert kennen.
+    lazyvim-config = {
+      url = "github:23b00t/lazyvim";
+      flake = false; # Wichtig, da dein lazyvim-Repo kein Flake ist
+    };
+    # --- ENDE NEUER BLOCK ---
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, ... }: {
-    nixosConfigurations = {
-      machine = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [
-          ./machines/d/configuration.nix
-
-          # make home-manager as a module of nixos
-          # so that home-manager configuration will be deployed automatically when executing `nixos-rebuild switch`
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-
-            home-manager.users.nx = import ./home/home.nix;
-
-            # Optionally, use home-manager.extraSpecialArgs to pass arguments to home.nix
-          }
-        ];
+  outputs = { self, nixpkgs, home-manager, lazyvim-config, ... }@inputs: {
+    nixosConfigurations.d = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = {
+        # Gib den neuen Input an deine Konfiguration weiter
+        inherit lazyvim-config;
       };
+      modules = [
+        ./machines/d/configuration.nix
+        home-manager.nixosModules.home-manager {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.users.nx = import ./home/home.nix;
+          home-manager.extraSpecialArgs = {
+            # Gib den Input auch an Home-Manager weiter
+            inherit lazyvim-config;
+          };
+        }
+      ];
     };
   };
 }
