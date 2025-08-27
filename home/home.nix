@@ -98,7 +98,7 @@ in
     gimp
     vlc
 
-    github-copilot
+    gh-copilot
   ];
 
   programs.gh = {
