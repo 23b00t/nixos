@@ -20,7 +20,7 @@
       specialArgs = { inherit lazyvim-config; };
       
       modules = [
-        ./machines/d/configuration.nix
+        ./machines/h/configuration.nix
 
         home-manager.nixosModules.home-manager
         {

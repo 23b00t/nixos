@@ -192,8 +192,8 @@ in
   # Based on the method from https://github.com/LazyVim/LazyVim/discussions/1972
   programs.neovim = {
     enable = true;
-    viAlias = true;
-    vimAlias = true;
+    viAlias = false;
+    vimAlias = false;
 
     # 1. Definiere alle Plugins, die LazyVim standardmäßig benötigt.
     #    Diese werden von nixpkgs bereitgestellt.
@@ -244,8 +244,8 @@ in
       which-key-nvim
 
       # Deine zusätzlichen Plugins hier einfügen, z.B.:
-      # copilot-lua
-      # copilot-cmp
+      copilot-lua
+      copilot-cmp
     ];
 
     # 2. Definiere externe Abhängigkeiten, die von den Plugins benötigt werden.
