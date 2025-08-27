@@ -44,8 +44,8 @@
 		eval "$(oh-my-posh init zsh --config $POSH_THEME)"
 
     # GitHub Copilot CLI Aliases
-    if command -v ${pkgs.github-copilot-cli}/bin/github-copilot-cli >/dev/null 2>&1; then
-      eval "$(${pkgs.github-copilot-cli}/bin/github-copilot-cli alias -- zsh)"
+    if command -v ${pkgs.gh}/bin/gh >/dev/null 2>&1; then
+      eval "$(${pkgs.gh}/bin/gh copilot alias -- zsh)"
     fi
 	'';
   };
