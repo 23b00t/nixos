@@ -97,7 +97,18 @@ in
     onlyoffice-bin
     gimp
     vlc
+
+    github-copilot-cli
   ];
+
+  programs.gh = {
+    enable = true;
+    settings = {
+      git_protocol = "ssh";
+    };
+    # Optional: Extensions kannst du hier später hinzufügen.
+    # extensions = with pkgs; [ gh-dash ];
+  };
 
 
   # Icons and theme

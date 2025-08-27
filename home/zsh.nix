@@ -42,6 +42,11 @@
 	initContent = ''
 		export POSH_THEME="$HOME/.cache/oh-my-posh/themes/1_shell.omp.json"
 		eval "$(oh-my-posh init zsh --config $POSH_THEME)"
+
+    # GitHub Copilot CLI Aliases
+    if command -v ${pkgs.github-copilot-cli}/bin/github-copilot-cli >/dev/null 2>&1; then
+      eval "$(${pkgs.github-copilot-cli}/bin/github-copilot-cli alias -- zsh)"
+    fi
 	'';
   };
 }
