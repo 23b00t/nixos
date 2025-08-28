@@ -79,7 +79,7 @@
           python3Packages.ruff
 
           # PHP Tooling + Versioning
-          composer
+          phpPackages.composer
           symfony-cli
           asdf-vm                 # für PHP-Versionen via asdf-Plugin
           nodePackages.intelephense  # PHP LSP (empfohlen statt phpactor)
