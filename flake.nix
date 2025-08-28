@@ -130,7 +130,7 @@
           echo "DevShell aktiv."
 
           # Oh-My-Posh initialisieren
-          export POSH_THEME="$HOME/.cache/oh-my-posh/themes/1_shell.omp.json"
+          export POSH_THEME="$HOME/.cache/oh-my-posh/themes/amro.omp.json"
 
           # asdf korrekt initialisieren (Nix-Paketpfad + Home-Datenverzeichnis)
           export ASDF_DIR="${pkgs.asdf-vm}/share/asdf-vm"
