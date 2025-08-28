@@ -49,7 +49,19 @@
 
     # --- NEU: nur DevShells, berührt NixOS/Home nicht ---
     devShells."x86_64-linux" = let
-      pkgs = import nixpkgs { system = "x86_64-linux"; };
+      lib = nixpkgs.lib;
+      pkgs = import nixpkgs {
+        system = "x86_64-linux";
+        config = {
+          # Global für die Shell erlauben:
+          allowUnfree = true;
+
+          # Optional: statt global nur gezielt erlauben (z. B. intelephense)
+          # allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
+          #   "intelephense"
+          # ];
+        };
+      };
     in {
       # Haupt-DevShell für Editor + Sprachen + Tools
       dev = pkgs.mkShell {
