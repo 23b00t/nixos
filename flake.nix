@@ -73,7 +73,7 @@
 
           # Python
           python3
-          nodePackages.pyright
+          pyright
           python3Packages.black
           python3Packages.isort
           python3Packages.ruff
