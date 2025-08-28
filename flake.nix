@@ -68,7 +68,7 @@
         packages = with pkgs; [
           # Editor + Basics
           neovim
-          git ripgrep fd tree-sitter
+          git ripgrep fd tree-sitter fzf
           cmake pkg-config gnumake
           gcc clang
 
@@ -96,10 +96,7 @@
           asdf-vm                 # für PHP-Versionen via asdf-Plugin
           nodePackages.intelephense  # PHP LSP (empfohlen statt phpactor)
 
-          # Ruby Versioning + Build-Deps (ruby-lsp/solargraph via Bundler im Projekt)
-          rbenv
-          ruby-build
-          # Häufige Ruby Build-Abhängigkeiten
+          # Ruby
           openssl
           zlib
           bzip2
@@ -132,19 +129,16 @@
           echo
           echo "DevShell aktiv."
 
-          # rbenv
-          export RBENV_ROOT="$HOME/.rbenv"
-          export PATH="$RBENV_ROOT/bin:$PATH"
-          if command -v rbenv >/dev/null 2>&1; then
-            eval "$(rbenv init - bash)"
+          # asdf korrekt initialisieren (Nix-Paketpfad + Home-Datenverzeichnis)
+          export ASDF_DIR="${pkgs.asdf-vm}/share/asdf-vm"
+          export ASDF_DATA_DIR="$HOME/.asdf"
+          if [ -f "$ASDF_DIR/asdf.sh" ]; then
+            . "$ASDF_DIR/asdf.sh"
           fi
+          # Shims sicher in den PATH (falls asdf.sh das nicht schon getan hat)
+          export PATH="$ASDF_DATA_DIR/shims:$PATH"
 
-          # asdf (für PHP Versionen)
-          if [ -f "${pkgs.asdf-vm}/share/asdf/asdf.sh" ]; then
-            . "${pkgs.asdf-vm}/share/asdf/asdf.sh"
-          fi
-
-          # Node corepack (Yarn/Pnpm)
+          # Node corepack etc.
           if command -v corepack >/dev/null 2>&1; then
             corepack enable >/dev/null 2>&1 || true
           fi
@@ -158,7 +152,9 @@
 
           echo
           echo "Ruby:"
-          echo "  rbenv install 3.3.4 && rbenv global 3.3.4"
+          echo "  asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git"
+          echo "  asdf install ruby 3.3.4"
+          echo "  asdf global ruby 3.3.4"
           echo "  In deinem Gemfile (group :development): gem 'ruby-lsp'; gem 'solargraph'; dann 'bundle install'"
           echo
           echo "PHP:"
