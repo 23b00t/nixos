@@ -14,6 +14,9 @@
       sc = "systemctl";
       cmd = "eval $(fzf < ~/cmds)";
       pcmd = "cmd=$(fzf < ~/cmds); vared -p '> ' -c cmd; eval '$cmd'";
+      dev = "nix develop '/home/nx/nixos-config#dev' --command zsh";
+      containers = "nix develop '/home/nx/nixos-config#containers'";
+      n = "nvim";
     };
 
     history.size = 10000;

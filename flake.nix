@@ -67,7 +67,7 @@
       dev = pkgs.mkShell {
         packages = with pkgs; [
           # Editor + Basics
-          neovim
+          neovim zsh lazygit
           git ripgrep fd tree-sitter fzf
           cmake pkg-config gnumake
           gcc clang
@@ -128,6 +128,9 @@
         shellHook = ''
           echo
           echo "DevShell aktiv."
+
+          # Oh-My-Posh initialisieren
+          export POSH_THEME="$HOME/.cache/oh-my-posh/themes/1_shell.omp.json"
 
           # asdf korrekt initialisieren (Nix-Paketpfad + Home-Datenverzeichnis)
           export ASDF_DIR="${pkgs.asdf-vm}/share/asdf-vm"
