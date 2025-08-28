@@ -46,5 +46,143 @@
         }
       ];
     };
+
+    # --- NEU: nur DevShells, berührt NixOS/Home nicht ---
+    devShells."x86_64-linux" = let
+      pkgs = import nixpkgs { system = "x86_64-linux"; };
+    in {
+      # Haupt-DevShell für Editor + Sprachen + Tools
+      dev = pkgs.mkShell {
+        packages = with pkgs; [
+          # Editor + Basics
+          neovim
+          git ripgrep fd tree-sitter
+          cmake pkg-config gnumake
+          gcc clang
+
+          # JS / TS / Web
+          nodejs
+          nodePackages.typescript
+          nodePackages.typescript-language-server
+          nodePackages.vscode-langservers-extracted # html, css, json
+          nodePackages.yaml-language-server
+          nodePackages.dockerfile-language-server-nodejs
+          nodePackages.eslint_d
+          nodePackages.prettier
+          yarn
+
+          # Python
+          python3
+          nodePackages.pyright
+          python3Packages.black
+          python3Packages.isort
+          python3Packages.ruff
+
+          # PHP Tooling + Versioning
+          composer
+          symfony-cli
+          asdf-vm                 # für PHP-Versionen via asdf-Plugin
+          nodePackages.intelephense  # PHP LSP (empfohlen statt phpactor)
+
+          # Ruby Versioning + Build-Deps (ruby-lsp/solargraph via Bundler im Projekt)
+          rbenv
+          ruby-build
+          # Häufige Ruby Build-Abhängigkeiten
+          openssl
+          zlib
+          bzip2
+          libffi
+          readline
+          libyaml
+          gdbm
+          ncurses
+          xz
+
+          # Bash / Shell
+          nodePackages.bash-language-server
+          shellcheck
+          shfmt
+
+          # Rust (Versionsverwaltung via rustup)
+          rustup
+          rust-analyzer
+
+          # DB-Clients
+          postgresql
+          mariadb
+
+          # Sonstiges nützliches
+          lua-language-server
+          jq
+        ];
+
+        shellHook = ''
+          echo
+          echo "DevShell aktiv."
+
+          # rbenv
+          export RBENV_ROOT="$HOME/.rbenv"
+          export PATH="$RBENV_ROOT/bin:$PATH"
+          if command -v rbenv >/dev/null 2>&1; then
+            eval "$(rbenv init - bash)"
+          fi
+
+          # asdf (für PHP Versionen)
+          if [ -f "${pkgs.asdf-vm}/share/asdf/asdf.sh" ]; then
+            . "${pkgs.asdf-vm}/share/asdf/asdf.sh"
+          fi
+
+          # Node corepack (Yarn/Pnpm)
+          if command -v corepack >/dev/null 2>&1; then
+            corepack enable >/dev/null 2>&1 || true
+          fi
+
+          # Rustup: Falls keine Toolchain gesetzt
+          if command -v rustup >/dev/null 2>&1 && ! command -v rustc >/dev/null 2>&1; then
+            rustup toolchain install stable >/dev/null 2>&1 || true
+            rustup default stable >/dev/null 2>&1 || true
+            rustup component add rust-analyzer >/dev/null 2>&1 || true
+          fi
+
+          echo
+          echo "Ruby:"
+          echo "  rbenv install 3.3.4 && rbenv global 3.3.4"
+          echo "  In deinem Gemfile (group :development): gem 'ruby-lsp'; gem 'solargraph'; dann 'bundle install'"
+          echo
+          echo "PHP:"
+          echo "  asdf plugin add php https://github.com/asdf-community/asdf-php.git"
+          echo "  asdf install php 8.3.12 && asdf global php 8.3.12"
+          echo "  LSP: intelephense ist im PATH"
+          echo
+          echo "JS/TS/HTML/CSS: typescript-language-server, vscode-langservers-extracted, eslint_d, prettier"
+          echo "Python: pyright, black, isort, ruff"
+          echo "Shell: bash-language-server, shellcheck, shfmt"
+          echo "Rust: rustup + rust-analyzer"
+          echo "DB-Clients: psql (PostgreSQL), mariadb"
+          echo
+        '';
+      };
+
+      # Separate Shell für Container-Tools (keine Systemänderung)
+      containers = pkgs.mkShell {
+        packages = with pkgs; [
+          docker
+          docker-compose
+          podman
+          podman-compose
+          distrobox
+        ];
+        shellHook = ''
+          echo
+          echo "Containers-Shell aktiv:"
+          echo "  docker, docker-compose, podman, podman-compose, distrobox im PATH."
+          echo "  Hinweis: Für lauffähige Daemons Docker/Podman in NixOS aktivieren und Benutzer in 'docker'-Gruppe aufnehmen."
+          echo
+        '';
+      };
+
+      # Alias
+      default = self.devShells."x86_64-linux".dev;
+    };
   };
 }

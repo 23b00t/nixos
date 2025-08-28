@@ -105,7 +105,6 @@ in
     extensions = with pkgs; [ gh-copilot ];
   };
 
-
   # Icons and theme
   gtk = {
     enable = true;
@@ -122,7 +121,6 @@ in
   };
   
   # dconf settings for gnome shell theme
-
   dconf.settings = {
     "org/gnome/shell" = {
         enabled-extensions = [
@@ -194,115 +192,15 @@ in
   home.file.".config/kitty/current-theme.conf".source = ./current-theme.conf;
   home.file.".config/kitty/startup".source = ./startup;
   
-  # nvim with LazyVim config, managed declaratively by Nix
-  # Based on the method from https://github.com/LazyVim/LazyVim/discussions/1972
-  programs.neovim = {
-    enable = true;
-    viAlias = false;
-    vimAlias = false;
+  # nvim: Binary nicht über Home-Manager, Config bleibt verlinkt.
+  # Neovim + Compiler/LSPs kommen aus der DevShell.
+  programs.neovim.enable = lib.mkForce false;
 
-    # 1. Definiere alle Plugins, die LazyVim standardmäßig benötigt.
-    #    Diese werden von nixpkgs bereitgestellt.
-    plugins = with pkgs.vimPlugins; [
-      # Kern-Plugin-Manager
-      lazy-nvim
-
-      # Kern-Plugins für LazyVim
-      LazyVim
-      cmp-buffer
-      cmp-nvim-lsp
-      cmp-path
-      cmp_luasnip
-      conform-nvim
-      dashboard-nvim
-      dressing-nvim
-      flash-nvim
-      friendly-snippets
-      gitsigns-nvim
-      indent-blankline-nvim
-      lazydev-nvim
-      lualine-nvim
-      luasnip
-      mason-nvim
-      mason-lspconfig-nvim
-      mini-nvim # Stellt mini.ai, mini.indentscope, etc. bereit
-      neo-tree-nvim
-      neoconf-nvim
-      neodev-nvim
-      noice-nvim
-      nui-nvim
-      nvim-cmp
-      nvim-lint
-      nvim-lspconfig
-      nvim-notify
-      nvim-spectre
-      nvim-treesitter.withAllGrammars # Alle Treesitter-Parser für die Syntaxhervorhebung
-      nvim-ts-autotag
-      nvim-ts-context-commentstring
-      nvim-web-devicons
-      persistence-nvim
-      plenary-nvim
-      telescope-fzf-native-nvim
-      telescope-nvim
-      todo-comments-nvim
-      tokyonight-nvim
-      trouble-nvim
-      which-key-nvim
-
-      # Deine zusätzlichen Plugins hier einfügen, z.B.:
-      copilot-lua
-      copilot-cmp
-    ];
-
-    # 2. Definiere externe Abhängigkeiten, die von den Plugins benötigt werden.
-    extraPackages = with pkgs; [
-      # Für Telescope
-      ripgrep
-      # Für nvim-lint
-      stylua
-      # Für Mason/LSP (Beispiele)
-      lua-language-server
-      nil # Nix Language Server
-      phpactor
-    ];
-
-    # 3. Konfiguriere LazyVim, um die von Nix verwalteten Plugins zu verwenden
-    #    und deine benutzerdefinierte Konfiguration zu laden.
-    extraLuaConfig = ''
-      -- Deaktiviere netrw
-      vim.g.loaded_netrw = 1
-      vim.g.loaded_netrwPlugin = 1
-
-      require("lazy").setup({
-        -- Lass LazyVim wissen, dass es keine Plugins herunterladen soll,
-        -- da sie bereits von Nix bereitgestellt werden.
-        checker = { enabled = false },
-        
-        -- Wichtig: Hier gibst du den Pfad zu deinen eigenen Konfigurationsdateien an.
-        -- Wir importieren die Standard-LazyVim-Plugins und dann deine eigenen Anpassungen.
-        spec = {
-          { "LazyVim/LazyVim", import = "lazyvim.plugins" },
-          { import = "plugins" },
-        },
-      })
-    '';
-  };
-
-  # 4. Verlinke deine persönliche Lua-Konfiguration (init.lua, lua/plugins/*, etc.)
-  #    Dies ist der einzige Teil, den wir aus deinem Verzeichnis verlinken.
-  #    Stelle sicher, dass dieser Pfad relativ zur home.nix korrekt ist.
+  # Verlinke deine persönliche Lua-/LazyVim-Konfiguration
   home.file.".config/nvim" = {
-    source = lazyvim-config; # Das ist der Pfad zum lazyvim-Repo
+    source = lazyvim-config; # Pfad zum lazyvim-Repo
     recursive = true;
   };
 
-  # This value determines the home Manager release that your
-  # configuration is compatible with. This helps avoid breakage
-  # when a new home Manager release introduces backwards
-  # incompatible changes.
-  #
-  # You can update home Manager without changing this value. See
-  # the home Manager release notes for a list of state version
-  # changes in each release.
   home.stateVersion = "25.05";
 }
