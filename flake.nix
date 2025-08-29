@@ -101,7 +101,9 @@
           nodePackages.intelephense  # PHP LSP
 
           # Webserver & Debugging Tools für Neovim
-          php83Packages.php-debug-adapter  # PHP Debugger (xdebug-kompatibel)
+          php83Extensions.xdebug
+          php82Extensions.xdebug
+          php81Extensions.xdebug
           nodePackages.live-server         # JS/HTML Live-Server
           xdg-utils                        # Für xdg-open (Browser-Öffnen)
 
@@ -110,6 +112,7 @@
           nixpkgs-fmt                      # Nix Formatter
 
           # Ruby
+          asdf-vm 
           openssl
           zlib
           bzip2
@@ -144,6 +147,15 @@
 
           # Oh-My-Posh Theme
           export OMP_CONFIG="''${OMP_CONFIG:-$HOME/.cache/oh-my-posh/themes/amro.omp.json}"
+
+          # asdf
+          export ASDF_DIR="${pkgs.asdf-vm}/share/asdf-vm"
+          export ASDF_DATA_DIR="$HOME/.asdf"
+          if [ -f "$ASDF_DIR/asdf.sh" ]; then
+            . "$ASDF_DIR/asdf.sh"
+          fi
+          # Shims sicher in den PATH (falls asdf.sh das nicht schon getan hat)
+          export PATH="$ASDF_DATA_DIR/shims:$PATH"
 
           # PHP-Versionen mit Symlinks verwalten (NixOS-kompatibel)
           mkdir -p $HOME/bin
@@ -204,6 +216,11 @@
           fi
 
           echo
+          echo "Ruby:"
+          echo "  asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git"
+          echo "  asdf install ruby 3.3.4"
+          echo "  asdf global ruby 3.3.4"
+          echo
           echo "PHP: PHP 8.1-8.3 mit php-switch"
           echo "  Wechseln zwischen Versionen: php-switch 8.1|8.2|8.3"
           echo "  Aktuelle Version: $(php -v | head -n 1)"
@@ -221,7 +238,6 @@
           echo "DB-Clients: psql (PostgreSQL), mariadb"
           echo
         '';
-      };
     };
 
       # Separate Shell für Container-Tools (keine Systemänderung)
