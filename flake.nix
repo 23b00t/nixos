@@ -243,17 +243,18 @@
       # Separate Shell für Container-Tools (keine Systemänderung)
       containers = pkgs.mkShell {
         packages = with pkgs; [
-          docker
-          docker-compose
-          podman
-          podman-compose
-          distrobox
+          # Nur Hilfswerkzeuge, nicht die Container-Engines selbst
+          lazydocker
+          dive
+          ctop
+          docker-slim
+          podman-tui
+          distrobox  # Falls nicht systemweit benötigt
         ];
         shellHook = ''
           echo
-          echo "Containers-Shell aktiv:"
-          echo "  docker, docker-compose, podman, podman-compose, distrobox im PATH."
-          echo "  Hinweis: Für lauffähige Daemons Docker/Podman in NixOS aktivieren und Benutzer in 'docker'-Gruppe aufnehmen."
+          echo "Container-Tools-Shell aktiv:"
+          echo "  lazydocker, dive, ctop, podman-tui im PATH."
           echo
         '';
       };

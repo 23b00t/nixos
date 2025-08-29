@@ -271,5 +271,13 @@ in
     user = "nx";
     vmName = "net";
   };
+
+  virtualisation = {
+    docker.enable = true;
+    podman = {
+      enable = true;
+      dockerCompat = true;
+    };
+  };
 }
 
