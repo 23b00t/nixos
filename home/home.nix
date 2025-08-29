@@ -97,6 +97,13 @@ in
     onlyoffice-bin
     gimp
     vlc
+    telegram-desktop
+    google-chrome
+    pinta
+    pdfarranger
+
+    postman
+    jetbrains.phpstorm
   ];
 
   programs.gh = {
