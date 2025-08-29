@@ -90,11 +90,20 @@
           python3Packages.isort
           python3Packages.ruff
 
-          # PHP Tooling + Versioning
-          phpPackages.composer
+          # PHP mit mehreren Versionen
+          php81
+          php82
+          php83
+          php81Packages.composer
+          php82Packages.composer
+          php83Packages.composer
+          update-alternatives
           symfony-cli
-          asdf-vm                 # für PHP-Versionen via asdf-Plugin
-          nodePackages.intelephense  # PHP LSP (empfohlen statt phpactor)
+          nodePackages.intelephense  # PHP LSP
+
+          # Webserver für Debugging
+          php83Packages.php-debug-adapter  # PHP Debugger (xdebug-kompatibel)
+          live-server                      # JS/HTML Live-Server
 
           # Ruby
           openssl
@@ -116,6 +125,10 @@
           rustup
           rust-analyzer
 
+          # Nix LSP und Tools
+          nil                        # Nix Language Server
+          nixpkgs-fmt               # Nix Formatter
+
           # DB-Clients
           postgresql
           mariadb
@@ -132,14 +145,31 @@
           # Oh-My-Posh Theme
           export OMP_CONFIG="''${OMP_CONFIG:-$HOME/.cache/oh-my-posh/themes/amro.omp.json}"
 
-          # asdf korrekt initialisieren (Nix-Paketpfad + Home-Datenverzeichnis)
-          export ASDF_DIR="${pkgs.asdf-vm}/share/asdf-vm"
-          export ASDF_DATA_DIR="$HOME/.asdf"
-          if [ -f "$ASDF_DIR/asdf.sh" ]; then
-            . "$ASDF_DIR/asdf.sh"
-          fi
-          # Shims sicher in den PATH (falls asdf.sh das nicht schon getan hat)
-          export PATH="$ASDF_DATA_DIR/shims:$PATH"
+          # PHP mit update-alternatives einrichten
+          echo "PHP-Versionen mit update-alternatives einrichten..."
+          
+          # PHP Binaries
+          sudo update-alternatives --remove-all php 2>/dev/null || true
+          sudo update-alternatives --install /usr/bin/php php ${pkgs.php81}/bin/php 81
+          sudo update-alternatives --install /usr/bin/php php ${pkgs.php82}/bin/php 82
+          sudo update-alternatives --install /usr/bin/php php ${pkgs.php83}/bin/php 83
+          
+          # PHP-FPM
+          sudo update-alternatives --remove-all php-fpm 2>/dev/null || true
+          sudo update-alternatives --install /usr/bin/php-fpm php-fpm ${pkgs.php81}/bin/php-fpm 81
+          sudo update-alternatives --install /usr/bin/php-fpm php-fpm ${pkgs.php82}/bin/php-fpm 82
+          sudo update-alternatives --install /usr/bin/php-fpm php-fpm ${pkgs.php83}/bin/php-fpm 83
+          
+          # Composer
+          sudo update-alternatives --remove-all composer 2>/dev/null || true
+          sudo update-alternatives --install /usr/bin/composer composer ${pkgs.php81Packages.composer}/bin/composer 81
+          sudo update-alternatives --install /usr/bin/composer composer ${pkgs.php82Packages.composer}/bin/composer 82
+          sudo update-alternatives --install /usr/bin/composer composer ${pkgs.php83Packages.composer}/bin/composer 83
+          
+          echo "PHP-Version wechseln mit: sudo update-alternatives --config php"
+          echo "PHP-FPM-Version wechseln mit: sudo update-alternatives --config php-fpm"
+          echo "Composer-Version wechseln mit: sudo update-alternatives --config composer"
+          echo "Aktuelle PHP-Version: $(php -v | head -n 1)"
 
           # Node corepack etc.
           if command -v corepack >/dev/null 2>&1; then
@@ -153,17 +183,20 @@
             rustup component add rust-analyzer >/dev/null 2>&1 || true
           fi
 
-          echo
           echo "Ruby:"
           echo "  asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git"
           echo "  asdf install ruby 3.3.4"
           echo "  asdf global ruby 3.3.4"
-          echo "  In deinem Gemfile (group :development): gem 'ruby-lsp'; gem 'solargraph'; dann 'bundle install'"
-          echo
-          echo "PHP:"
-          echo "  asdf plugin add php https://github.com/asdf-community/asdf-php.git"
-          echo "  asdf install php 8.3.12 && asdf global php 8.3.12"
+          echo "PHP: PHP 8.1-8.3 mit update-alternatives"
+          echo "  Wechseln zwischen Versionen: sudo update-alternatives --config php"
+          echo "  Aktuelle Version: $(php -v | head -n 1)"
           echo "  LSP: intelephense ist im PATH"
+          echo
+          echo "Nix: LSP (nil) und Formatter (nixpkgs-fmt)"
+          echo "  In Neovim: <leader>nf zum Formatieren von Nix-Dateien"
+          echo
+          echo "Webserver für Debugging:"
+          echo "  In Neovim für HTML/PHP/JS-Dateien: <leader>wp startet einen passenden Webserver"
           echo
           echo "JS/TS/HTML/CSS: typescript-language-server, vscode-langservers-extracted, eslint_d, prettier"
           echo "Python: pyright, black, isort, ruff"
@@ -173,6 +206,7 @@
           echo
         '';
       };
+    };
 
       # Separate Shell für Container-Tools (keine Systemänderung)
       containers = pkgs.mkShell {
