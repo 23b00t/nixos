@@ -78,7 +78,7 @@ in
   '';
   users.users.nx = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "libvirtd" "tun" ];
+    extraGroups = [ "wheel" "networkmanager" "libvirtd" "tun" "docker" ];
   };
 
   # Sound
@@ -276,7 +276,6 @@ in
     docker.enable = true;
     podman = {
       enable = true;
-      dockerCompat = true;
     };
   };
 }
