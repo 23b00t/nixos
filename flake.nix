@@ -68,7 +68,7 @@
         packages = with pkgs; [
           # Editor + Basics
           neovim zsh lazygit
-          git ripgrep fd tree-sitter fzf
+          fd tree-sitter
           cmake pkg-config gnumake
           gcc clang
 
@@ -97,13 +97,17 @@
           php81Packages.composer
           php82Packages.composer
           php83Packages.composer
-          update-alternatives
           symfony-cli
           nodePackages.intelephense  # PHP LSP
 
-          # Webserver für Debugging
+          # Webserver & Debugging Tools für Neovim
           php83Packages.php-debug-adapter  # PHP Debugger (xdebug-kompatibel)
-          live-server                      # JS/HTML Live-Server
+          nodePackages.live-server         # JS/HTML Live-Server
+          xdg-utils                        # Für xdg-open (Browser-Öffnen)
+
+          # Nix LSP und Tools für Neovim
+          nil                              # Nix Language Server
+          nixpkgs-fmt                      # Nix Formatter
 
           # Ruby
           openssl
@@ -125,10 +129,6 @@
           rustup
           rust-analyzer
 
-          # Nix LSP und Tools
-          nil                        # Nix Language Server
-          nixpkgs-fmt               # Nix Formatter
-
           # DB-Clients
           postgresql
           mariadb
@@ -145,31 +145,51 @@
           # Oh-My-Posh Theme
           export OMP_CONFIG="''${OMP_CONFIG:-$HOME/.cache/oh-my-posh/themes/amro.omp.json}"
 
-          # PHP mit update-alternatives einrichten
-          echo "PHP-Versionen mit update-alternatives einrichten..."
+          # PHP-Versionen mit Symlinks verwalten (NixOS-kompatibel)
+          mkdir -p $HOME/bin
+          export PATH="$HOME/bin:$PATH"
           
-          # PHP Binaries
-          sudo update-alternatives --remove-all php 2>/dev/null || true
-          sudo update-alternatives --install /usr/bin/php php ${pkgs.php81}/bin/php 81
-          sudo update-alternatives --install /usr/bin/php php ${pkgs.php82}/bin/php 82
-          sudo update-alternatives --install /usr/bin/php php ${pkgs.php83}/bin/php 83
+          # PHP-Binaries
+          ln -sf ${pkgs.php81}/bin/php $HOME/bin/php-8.1
+          ln -sf ${pkgs.php82}/bin/php $HOME/bin/php-8.2
+          ln -sf ${pkgs.php83}/bin/php $HOME/bin/php-8.3
           
-          # PHP-FPM
-          sudo update-alternatives --remove-all php-fpm 2>/dev/null || true
-          sudo update-alternatives --install /usr/bin/php-fpm php-fpm ${pkgs.php81}/bin/php-fpm 81
-          sudo update-alternatives --install /usr/bin/php-fpm php-fpm ${pkgs.php82}/bin/php-fpm 82
-          sudo update-alternatives --install /usr/bin/php-fpm php-fpm ${pkgs.php83}/bin/php-fpm 83
+          # Composer für jede Version
+          ln -sf ${pkgs.php81Packages.composer}/bin/composer $HOME/bin/composer-8.1
+          ln -sf ${pkgs.php82Packages.composer}/bin/composer $HOME/bin/composer-8.2
+          ln -sf ${pkgs.php83Packages.composer}/bin/composer $HOME/bin/composer-8.3
           
-          # Composer
-          sudo update-alternatives --remove-all composer 2>/dev/null || true
-          sudo update-alternatives --install /usr/bin/composer composer ${pkgs.php81Packages.composer}/bin/composer 81
-          sudo update-alternatives --install /usr/bin/composer composer ${pkgs.php82Packages.composer}/bin/composer 82
-          sudo update-alternatives --install /usr/bin/composer composer ${pkgs.php83Packages.composer}/bin/composer 83
+          # Standard ist PHP 8.3
+          if [ ! -e "$HOME/bin/php" ] || [ ! -e "$HOME/bin/composer" ]; then
+            ln -sf $HOME/bin/php-8.3 $HOME/bin/php
+            ln -sf $HOME/bin/composer-8.3 $HOME/bin/composer
+          fi
           
-          echo "PHP-Version wechseln mit: sudo update-alternatives --config php"
-          echo "PHP-FPM-Version wechseln mit: sudo update-alternatives --config php-fpm"
-          echo "Composer-Version wechseln mit: sudo update-alternatives --config composer"
-          echo "Aktuelle PHP-Version: $(php -v | head -n 1)"
+          # Einfaches Wechsel-Skript erstellen
+          cat > $HOME/bin/php-switch <<EOF
+          #!/usr/bin/env bash
+          if [ "\$1" == "8.1" ] || [ "\$1" == "81" ]; then
+            rm -f \$HOME/bin/php \$HOME/bin/composer
+            ln -sf \$HOME/bin/php-8.1 \$HOME/bin/php
+            ln -sf \$HOME/bin/composer-8.1 \$HOME/bin/composer
+            echo "PHP 8.1 aktiviert: \$(php -v | head -n 1)"
+          elif [ "\$1" == "8.2" ] || [ "\$1" == "82" ]; then
+            rm -f \$HOME/bin/php \$HOME/bin/composer
+            ln -sf \$HOME/bin/php-8.2 \$HOME/bin/php
+            ln -sf \$HOME/bin/composer-8.2 \$HOME/bin/composer
+            echo "PHP 8.2 aktiviert: \$(php -v | head -n 1)"
+          elif [ "\$1" == "8.3" ] || [ "\$1" == "83" ]; then
+            rm -f \$HOME/bin/php \$HOME/bin/composer
+            ln -sf \$HOME/bin/php-8.3 \$HOME/bin/php
+            ln -sf \$HOME/bin/composer-8.3 \$HOME/bin/composer
+            echo "PHP 8.3 aktiviert: \$(php -v | head -n 1)"
+          else
+            echo "Verwendung: php-switch <version>"
+            echo "Verfügbare Versionen: 8.1, 8.2, 8.3"
+            echo "Aktuelle PHP-Version: \$(php -v | head -n 1)"
+          fi
+          EOF
+          chmod +x $HOME/bin/php-switch
 
           # Node corepack etc.
           if command -v corepack >/dev/null 2>&1; then
@@ -183,20 +203,16 @@
             rustup component add rust-analyzer >/dev/null 2>&1 || true
           fi
 
-          echo "Ruby:"
-          echo "  asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git"
-          echo "  asdf install ruby 3.3.4"
-          echo "  asdf global ruby 3.3.4"
-          echo "PHP: PHP 8.1-8.3 mit update-alternatives"
-          echo "  Wechseln zwischen Versionen: sudo update-alternatives --config php"
+          echo
+          echo "PHP: PHP 8.1-8.3 mit php-switch"
+          echo "  Wechseln zwischen Versionen: php-switch 8.1|8.2|8.3"
           echo "  Aktuelle Version: $(php -v | head -n 1)"
           echo "  LSP: intelephense ist im PATH"
           echo
-          echo "Nix: LSP (nil) und Formatter (nixpkgs-fmt)"
-          echo "  In Neovim: <leader>nf zum Formatieren von Nix-Dateien"
-          echo
-          echo "Webserver für Debugging:"
-          echo "  In Neovim für HTML/PHP/JS-Dateien: <leader>wp startet einen passenden Webserver"
+          echo "Webserver & Debugging:"
+          echo "  live-server: HTML/JS Live-Server"
+          echo "  php -S localhost:8000: PHP Builtin-Server"
+          echo "  php-debug-adapter: Für PHP Debugging in Neovim verfügbar"
           echo
           echo "JS/TS/HTML/CSS: typescript-language-server, vscode-langservers-extracted, eslint_d, prettier"
           echo "Python: pyright, black, isort, ruff"
