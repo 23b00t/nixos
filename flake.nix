@@ -46,73 +46,66 @@
         };
       };
 
-      # --- KORRIGIERT: LazyVim-Setup mit richtiger Konfigurationsverlinkung ---
+      # --- VERBESSERT: LazyVim-Setup mit Korrektur für dynamisch verlinkte Binaries ---
       devNeovim = pkgs.writeShellScriptBin "nvim" ''
         # Erstelle XDG_CONFIG_HOME, falls es nicht existiert
         TEMP_CONFIG_DIR="$HOME/.config/nvim-dev"
-        mkdir -p "$TEMP_CONFIG_DIR"
-
-        # Erstelle die erforderlichen Datenverzeichnisse
         TEMP_DATA_DIR="$HOME/.local/share/nvim-dev"
         TEMP_STATE_DIR="$HOME/.local/state/nvim-dev"
         TEMP_CACHE_DIR="$HOME/.cache/nvim-dev"
-        mkdir -p "$TEMP_DATA_DIR"
+        
+        # Erstelle benötigte Verzeichnisse
+        mkdir -p "$TEMP_CONFIG_DIR/spell"
+        mkdir -p "$TEMP_DATA_DIR/site/spell"
         mkdir -p "$TEMP_STATE_DIR"
         mkdir -p "$TEMP_CACHE_DIR"
 
-        # Erstelle ein Spell-Verzeichnis, das beschreibbar ist
-        mkdir -p "$TEMP_DATA_DIR/site/spell"
-        mkdir -p "$TEMP_CONFIG_DIR/spell"
+        # Überprüfe, ob die Konfiguration bereits kopiert wurde
+        CONFIG_MARKER="$TEMP_CONFIG_DIR/.config_copied"
         
-        # Fix für dynamisch verlinkte Binaries: Erstelle einen Wrapper für markdown-preview
-        MARKDOWN_PREVIEW_DIR="$TEMP_DATA_DIR/lazy/markdown-preview.nvim"
-        if [ -d "$MARKDOWN_PREVIEW_DIR" ]; then
-          BIN_DIR="$MARKDOWN_PREVIEW_DIR/app/bin"
-          if [ -d "$BIN_DIR" ] && [ -f "$BIN_DIR/markdown-preview-linux" ]; then
-            # Erstelle einen Wrapper-Skript, der die Umgebung korrekt einrichtet
-            cat > "$BIN_DIR/markdown-preview-linux.wrapper" << 'EOF'
-#!/usr/bin/env bash
-# Wrapper für markdown-preview-linux, der dynamische Bibliotheken unter NixOS handhabt
-export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib}/lib:$LD_LIBRARY_PATH
-exec "$0.original" "$@"
-EOF
-            chmod +x "$BIN_DIR/markdown-preview-linux.wrapper"
-            
-            # Benenne das Original um und verwende den Wrapper
-            if [ ! -f "$BIN_DIR/markdown-preview-linux.original" ]; then
-              mv "$BIN_DIR/markdown-preview-linux" "$BIN_DIR/markdown-preview-linux.original"
-              ln -sf "$BIN_DIR/markdown-preview-linux.wrapper" "$BIN_DIR/markdown-preview-linux"
-            fi
-            
-            echo "markdown-preview-linux Binary gepatcht für NixOS-Kompatibilität"
+        # Kopiere LazyVim-Konfiguration nur, wenn sie noch nicht existiert
+        if [ ! -f "$CONFIG_MARKER" ]; then
+          echo "Erstelle LazyVim-Konfiguration in $TEMP_CONFIG_DIR..."
+          
+          # Kopiere die LazyVim-Konfiguration (verwende cp -n, um Überschreiben zu vermeiden)
+          cp -rn "${lazyvim-config}/"* "$TEMP_CONFIG_DIR/" 2>/dev/null || true
+          
+          # Mache alle Dateien beschreibbar
+          find "$TEMP_CONFIG_DIR" -type f -exec chmod u+w {} \;
+          
+          # Kopiere Spell-Dateien aus deiner normalen Neovim-Konfiguration
+          SPELL_SOURCE="$HOME/.config/nvim/spell"
+          if [ -d "$SPELL_SOURCE" ]; then
+            for spell_file in "$SPELL_SOURCE"/*.{spl,sug}; do
+              if [ -f "$spell_file" ]; then
+                cp -f "$spell_file" "$TEMP_CONFIG_DIR/spell/$(basename "$spell_file")" 2>/dev/null || true
+              fi
+            done
           fi
-        fi
+          
+          # Anpassen der init.lua
+          if [ -f "$TEMP_CONFIG_DIR/init.lua" ]; then
+            # Mache die Datei beschreibbar
+            chmod u+w "$TEMP_CONFIG_DIR/init.lua"
+            
+            # Erstelle eine temporäre Datei mit unseren Anpassungen
+            TMP_INIT=$(mktemp)
+            cat > "$TMP_INIT" << 'EOF'
+-- Diese Zeilen wurden automatisch von der Nix-DevShell hinzugefügt
+vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
+vim.env.XDG_STATE_HOME = vim.env.HOME .. "/.local/state/nvim-dev"
+vim.env.XDG_CACHE_HOME = vim.env.HOME .. "/.cache/nvim-dev"
+vim.opt.runtimepath:append(vim.env.HOME .. "/.config/nvim-dev")
 
-        # --- KORRIGIERT: Kopiere die gesamte LazyVim-Konfiguration statt nur den lua-Ordner zu verlinken ---
-        # Lösche alte Konfiguration, falls vorhanden (außer spell/)
-        find "$TEMP_CONFIG_DIR" -mindepth 1 -maxdepth 1 -not -name "spell" -exec rm -rf {} \; 2>/dev/null || true
-        
-        # Kopiere die vollständige Konfiguration (cp -r ist zuverlässiger als Symlinks)
-        echo "Kopiere LazyVim-Konfiguration aus ${lazyvim-config}..."
-        cp -r "${lazyvim-config}/"* "$TEMP_CONFIG_DIR/"
-        
-        # Überprüfe, ob die Konfiguration korrekt kopiert wurde
-        if [ ! -d "$TEMP_CONFIG_DIR/lua" ]; then
-          echo "FEHLER: LazyVim-Konfiguration konnte nicht kopiert werden!" >&2
-          echo "Prüfe, ob der Pfad korrekt ist: ${lazyvim-config}" >&2
-          exit 1
-        fi
-        
-        # Zeige Debug-Informationen zur Konfiguration
-        echo "LazyVim-Konfiguration in $TEMP_CONFIG_DIR:"
-        ls -la "$TEMP_CONFIG_DIR"
-        echo "LazyVim lua-Verzeichnis:"
-        ls -la "$TEMP_CONFIG_DIR/lua" 2>/dev/null || echo "lua-Verzeichnis fehlt!"
-
-        # Erstelle eine angepasste init.lua, falls es keine gibt oder modifiziere die vorhandene
-        if [ ! -f "$TEMP_CONFIG_DIR/init.lua" ]; then
-          # Erstelle eine neue init.lua
-          cat > "$TEMP_CONFIG_DIR/init.lua" << 'EOF'
+EOF
+            # Füge die originale init.lua hinzu
+            cat "$TEMP_CONFIG_DIR/init.lua" >> "$TMP_INIT"
+            # Ersetze die originale init.lua ohne Nachfrage
+            mv -f "$TMP_INIT" "$TEMP_CONFIG_DIR/init.lua"
+            chmod u+w "$TEMP_CONFIG_DIR/init.lua"
+          else
+            # Erstelle eine neue init.lua
+            cat > "$TEMP_CONFIG_DIR/init.lua" << 'EOF'
 -- Diese init.lua lädt deine LazyVim-Konfiguration
 -- Setze XDG-Variablen, damit Plugins in der devShell installiert werden
 vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
@@ -139,39 +132,80 @@ vim.opt.rtp:prepend(lazypath)
 -- Lade die Konfiguration aus dem Modul "config.lazy"
 require("config.lazy")
 EOF
-        else
-          # Modifiziere die bestehende init.lua, um XDG-Variablen zu setzen
-          # Wir erstellen eine temporäre Datei und fügen unsere Anpassungen am Anfang ein
-          TMP_INIT="$TEMP_CONFIG_DIR/init.lua.tmp"
-          cat > "$TMP_INIT" << 'EOF'
--- Diese Zeilen wurden automatisch von der Nix-DevShell hinzugefügt
-vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
-vim.env.XDG_STATE_HOME = vim.env.HOME .. "/.local/state/nvim-dev"
-vim.env.XDG_CACHE_HOME = vim.env.HOME .. "/.cache/nvim-dev"
-vim.opt.runtimepath:append(vim.env.HOME .. "/.config/nvim-dev")
-
-EOF
-          # Füge die originale init.lua hinzu
-          cat "$TEMP_CONFIG_DIR/init.lua" >> "$TMP_INIT"
-          # Ersetze die originale init.lua
-          mv "$TMP_INIT" "$TEMP_CONFIG_DIR/init.lua"
+          fi
+          
+          # Marker setzen, dass die Konfiguration kopiert wurde
+          touch "$CONFIG_MARKER"
+          
+          echo "LazyVim-Konfiguration erfolgreich erstellt."
         fi
 
-        # Kopiere Spell-Dateien aus der normalen Neovim-Konfiguration
-        SPELL_SOURCE="$HOME/.config/nvim/spell"
-        if [ -d "$SPELL_SOURCE" ]; then
-          for spell_file in "$SPELL_SOURCE"/*.{spl,sug}; do
-            if [ -f "$spell_file" ]; then
-              cp -f "$spell_file" "$TEMP_CONFIG_DIR/spell/$(basename "$spell_file")" 2>/dev/null || true
+        # --- VERBESSERT: FHS-Wrapper für dynamisch verlinkte Binaries wie markdown-preview ---
+        # Erstelle ein generelles FHS-Wrapper-Skript für alle dynamisch verlinkten Binaries
+        FHS_WRAPPER="$HOME/bin/nix-fhs-run"
+        if [ ! -f "$FHS_WRAPPER" ]; then
+          mkdir -p "$HOME/bin"
+          cat > "$FHS_WRAPPER" << 'EOF'
+#!/usr/bin/env bash
+# FHS-Wrapper für dynamisch verlinkte Binaries unter NixOS
+
+# Füge wichtige Bibliotheken zum LD_LIBRARY_PATH hinzu
+export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.glib}/lib:${pkgs.zlib}/lib:${pkgs.ncurses}/lib:$LD_LIBRARY_PATH
+
+# Führe die Binary mit den richtigen Umgebungsvariablen aus
+exec "$@"
+EOF
+          chmod +x "$FHS_WRAPPER"
+        fi
+
+        # Prüfe nach Markdown-Preview und andere problematische Binaries
+        process_bin() {
+          local bin_path="$1"
+          
+          # Überprüfe, ob die Binary existiert und ausführbar ist
+          if [ -f "$bin_path" ] && [ -x "$bin_path" ]; then
+            # Erstelle einen Wrapper, wenn er noch nicht existiert
+            if [ ! -f "$bin_path.wrapped" ]; then
+              # Sichere die Original-Binary
+              cp "$bin_path" "$bin_path.original"
+              
+              # Erstelle einen Wrapper-Skript
+              cat > "$bin_path" << EOF
+#!/usr/bin/env bash
+# Automatisch generierter FHS-Wrapper für $(basename "$bin_path")
+$FHS_WRAPPER "$bin_path.original" "\$@"
+EOF
+              chmod +x "$bin_path"
+              
+              # Setze Marker, dass die Binary gewrappt wurde
+              touch "$bin_path.wrapped"
+              
+              echo "Binary gewrappt: $bin_path"
+            fi
+          fi
+        }
+
+        # Suche nach allen Binaries in Markdown-Preview und patche sie
+        LAZY_DIR="$TEMP_DATA_DIR/lazy"
+        if [ -d "$LAZY_DIR" ]; then
+          echo "Prüfe auf dynamisch verlinkte Binaries in Plugins..."
+          # Markdown-Preview spezifisch
+          if [ -d "$LAZY_DIR/markdown-preview.nvim" ]; then
+            MP_BIN="$LAZY_DIR/markdown-preview.nvim/app/bin/markdown-preview-linux"
+            process_bin "$MP_BIN"
+          fi
+          
+          # Nach anderen ausführbaren Binaries in Plugin-Verzeichnissen suchen
+          find "$LAZY_DIR" -type f -executable -not -name "*.sh" -not -name "*.wrapped" -not -name "*.original" | while read -r bin; do
+            # Prüfe, ob es sich um eine ELF-Binary handelt
+            if file "$bin" | grep -q "ELF"; then
+              process_bin "$bin"
             fi
           done
         fi
-        
-        # Stelle sicher, dass die Berechtigungen korrekt sind
-        chmod -R u+rw "$TEMP_CONFIG_DIR" "$TEMP_DATA_DIR" "$TEMP_STATE_DIR" "$TEMP_CACHE_DIR" 2>/dev/null || true
 
         # Starte Neovim mit der temporären Konfiguration
-        XDG_CONFIG_HOME="$HOME/.config" NVIM_APPNAME="nvim-dev" LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib}/lib:$LD_LIBRARY_PATH ${pkgs.neovim}/bin/nvim "$@"
+        XDG_CONFIG_HOME="$HOME/.config" NVIM_APPNAME="nvim-dev" ${pkgs.neovim}/bin/nvim "$@"
       '';
 
     in {
@@ -180,6 +214,9 @@ EOF
         packages = with pkgs; [
           # --- GEÄNDERT: Ersetze Neovim durch unser Skript ---
           devNeovim 
+          
+          # Tools zur Binary-Modifikation
+          patchelf
           
           # Alle anderen Pakete bleiben unverändert
           zsh lazygit
@@ -353,6 +390,9 @@ EOF
           echo "Shell: bash-language-server, shellcheck, shfmt"
           echo "Rust: rustup + rust-analyzer"
           echo "DB-Clients: psql (PostgreSQL), mariadb"
+          echo
+          echo "LazyVim-Konfiguration: Deine eigene Konfiguration aus 23b00t/lazyvim wird verwendet."
+          echo "Dynamisch verlinkte Binaries werden automatisch gewrappt."
           echo
         '';
       };
