@@ -24,22 +24,11 @@
 
         home-manager.nixosModules.home-manager
         {
-          # --- DIE KORREKTUR ---
-          # 1. Wir sagen Home-Manager, dass es NICHT die globale Konfiguration verwenden soll.
           home-manager.useGlobalPkgs = false;
-
-          # 2. Wir definieren die Konfiguration für den Benutzer `nx`.
           home-manager.users.nx = {
-            # 3. Das ist der korrekte Weg: Wir setzen die `nixpkgs`-Konfiguration
-            #    direkt hier. Home-Manager erstellt daraufhin seine eigene,
-            #    korrekt konfigurierte `pkgs`-Instanz.
             nixpkgs.config.allowUnfree = true;
-
-            # Der Import deiner home.nix bleibt unverändert.
             imports = [ ./home/home.nix ];
           };
-
-          # Extra-Argumente für Home-Manager-Module
           home-manager.extraSpecialArgs = {
             inherit lazyvim-config;
           };
@@ -47,27 +36,99 @@
       ];
     };
 
-    # --- NEU: nur DevShells, berührt NixOS/Home nicht ---
+    # --- DevShells ---
     devShells."x86_64-linux" = let
       lib = nixpkgs.lib;
       pkgs = import nixpkgs {
         system = "x86_64-linux";
         config = {
-          # Global für die Shell erlauben:
           allowUnfree = true;
-
-          # Optional: statt global nur gezielt erlauben (z. B. intelephense)
-          # allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
-          #   "intelephense"
-          # ];
         };
       };
+
+      # --- NEU: Ein einfaches, aber effektives LazyVim-Setup ---
+      # Erstellt eine Shell-Umgebung, die beim Start von Neovim die LazyVim-Konfiguration verwendet
+      # --- VERBESSERT: Ein funktionierendes LazyVim-Setup mit Spell-Support ---
+      devNeovim = pkgs.writeShellScriptBin "nvim" ''
+        # Erstelle XDG_CONFIG_HOME, falls es nicht existiert
+        TEMP_CONFIG_DIR="$HOME/.config/nvim-dev"
+        mkdir -p "$TEMP_CONFIG_DIR"
+
+        # Erstelle die erforderlichen Datenverzeichnisse
+        TEMP_DATA_DIR="$HOME/.local/share/nvim-dev"
+        TEMP_STATE_DIR="$HOME/.local/state/nvim-dev"
+        TEMP_CACHE_DIR="$HOME/.cache/nvim-dev"
+        mkdir -p "$TEMP_DATA_DIR"
+        mkdir -p "$TEMP_STATE_DIR"
+        mkdir -p "$TEMP_CACHE_DIR"
+
+        # Erstelle ein Spell-Verzeichnis, das beschreibbar ist
+        mkdir -p "$TEMP_DATA_DIR/site/spell"
+        
+        # Verlinke die Spell-Dateien aus deiner regulären Neovim-Konfiguration
+        # Wenn du deine Konfiguration über home-manager verwaltest, befinden sich die Spell-Dateien im Nix-Store
+        SPELL_SOURCE="$HOME/.config/nvim/spell"
+        if [ -d "$SPELL_SOURCE" ]; then
+          for spell_file in "$SPELL_SOURCE"/*.{spl,sug}; do
+            if [ -f "$spell_file" ]; then
+              ln -sf "$spell_file" "$TEMP_CONFIG_DIR/spell/$(basename "$spell_file")" 2>/dev/null || true
+            fi
+          done
+        fi
+
+        # Stelle die Verbindung zur LazyVim-Konfiguration her (via Symlink)
+        ln -sfn "${lazyvim-config}/lua" "$TEMP_CONFIG_DIR/lua"
+
+        # Erstelle eine minimale init.lua, die deine Konfiguration lädt
+        cat > "$TEMP_CONFIG_DIR/init.lua" << 'EOF'
+        -- Diese init.lua lädt deine LazyVim-Konfiguration
+        -- Setze XDG-Variablen, damit Plugins in der devShell installiert werden
+        vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
+        vim.env.XDG_STATE_HOME = vim.env.HOME .. "/.local/state/nvim-dev"
+        vim.env.XDG_CACHE_HOME = vim.env.HOME .. "/.cache/nvim-dev"
+
+        -- Stellen sicher, dass Spell-Dateien gefunden werden
+        vim.opt.runtimepath:append(vim.env.HOME .. "/.config/nvim-dev")
+        
+        -- Standard LazyVim-Bootstrap-Code
+        local lazypath = vim.env.XDG_DATA_HOME .. "/lazy/lazy.nvim"
+        if not vim.loop.fs_stat(lazypath) then
+          vim.fn.system({
+            "git",
+            "clone",
+            "--filter=blob:none",
+            "https://github.com/folke/lazy.nvim.git",
+            "--branch=stable",
+            lazypath,
+          })
+        end
+        vim.opt.rtp:prepend(lazypath)
+
+        -- Lade die Konfiguration aus dem Modul "config.lazy"
+        require("config.lazy")
+        EOF
+
+        # Erstelle das Spell-Verzeichnis in der Neovim-Konfiguration
+        mkdir -p "$TEMP_CONFIG_DIR/spell"
+        
+        # Kopiere die deutschen Spell-Dateien direkt aus dem Nix-Store in die Konfiguration
+        if [ -d "${lazyvim-config}/spell" ]; then
+          cp -f "${lazyvim-config}/spell/"*.{spl,sug} "$TEMP_CONFIG_DIR/spell/" 2>/dev/null || true
+        fi
+
+        # Starte Neovim mit der temporären Konfiguration
+        XDG_CONFIG_HOME="$HOME/.config" NVIM_APPNAME="nvim-dev" ${pkgs.neovim}/bin/nvim "$@"
+      '';
+
     in {
       # Haupt-DevShell für Editor + Sprachen + Tools
       dev = pkgs.mkShell {
         packages = with pkgs; [
-          # Editor + Basics
-          neovim zsh lazygit
+          # --- GEÄNDERT: Ersetze Neovim durch unser Skript ---
+          devNeovim 
+          
+          # Alle anderen Pakete bleiben unverändert
+          zsh lazygit
           fd tree-sitter
           cmake pkg-config gnumake
           gcc clang
@@ -139,6 +200,8 @@
           # Sonstiges nützliches
           lua-language-server
           jq
+          ripgrep # Für Telescope erforderlich
+          stylua  # Für LazyVim
         ];
 
         shellHook = ''
@@ -238,18 +301,17 @@
           echo "DB-Clients: psql (PostgreSQL), mariadb"
           echo
         '';
-    };
+      };
 
-      # Separate Shell für Container-Tools (keine Systemänderung)
+      # Separate Shell für Container-Tools
       containers = pkgs.mkShell {
         packages = with pkgs; [
-          # Nur Hilfswerkzeuge, nicht die Container-Engines selbst
           lazydocker
           dive
           ctop
           docker-slim
           podman-tui
-          distrobox  # Falls nicht systemweit benötigt
+          distrobox
         ];
         shellHook = ''
           echo
