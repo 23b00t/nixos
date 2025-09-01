@@ -46,11 +46,29 @@
         };
       };
 
-      # --- Neovim mit FHS-Umgebung ---
-      # Dies ist der einzige zuverlässige Weg, damit dynamisch verlinkte Binaries funktionieren
+      # --- Neovim mit erweiterter FHS-Umgebung ---
       neovimFHS = pkgs.buildFHSEnv {
         name = "nvim-fhs";
-        targetPkgs = pkgs: with pkgs; [
+        
+        # Kritische Systembibliotheken für dynamisch verlinkte Programme
+        targetPkgs = pkgs: (with pkgs; [
+          # Systembibiotheken für dynamisches Linking
+          stdenv.cc.cc.lib  # libstdc++
+          zlib
+          glib
+          xorg.libX11
+          xorg.libXau
+          xorg.libXdmcp
+          xorg.libXext
+          xorg.libxcb
+          ncurses
+          
+          # .NET/Mono-Abhängigkeiten für marksman
+          icu              # Internationalisierung (libicu)
+          dotnet-runtime   # .NET-Laufzeitumgebung
+          dotnet-sdk       # .NET SDK
+          mono             # Mono für ältere .NET-Anwendungen
+          
           # Neovim und Grundvoraussetzungen
           neovim
           git
@@ -100,7 +118,25 @@
           lazygit
           stylua
           jq
-        ];
+        ]);
+        
+        # Spezielle LD_LIBRARY_PATH-Einrichtung für bessere Bibliotheksauflösung
+        profile = ''
+          # Setze LD_LIBRARY_PATH für dynamisch verlinkte Bibliotheken
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.lib.makeLibraryPath [
+            pkgs.stdenv.cc.cc.lib
+            pkgs.zlib
+            pkgs.glib
+            pkgs.ncurses
+            pkgs.xorg.libX11
+            pkgs.icu
+          ]}
+          
+          # .NET-spezifische Einstellungen
+          export DOTNET_ROOT=${pkgs.dotnet-sdk}
+          export MSBuildSDKsPath=$DOTNET_ROOT/sdk/$(${pkgs.dotnet-sdk}/bin/dotnet --version)/Sdks
+          export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=0
+        '';
         
         # Ein Skript, das die Neovim-Konfiguration vorbereitet und dann Neovim startet
         runScript = ''
