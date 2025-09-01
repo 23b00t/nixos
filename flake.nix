@@ -46,184 +46,303 @@
         };
       };
 
-      # --- VERBESSERT: LazyVim-Setup mit Korrektur für dynamisch verlinkte Binaries ---
-      devNeovim = pkgs.writeShellScriptBin "nvim" ''
-        # Erstelle XDG_CONFIG_HOME, falls es nicht existiert
-        TEMP_CONFIG_DIR="$HOME/.config/nvim-dev"
-        TEMP_DATA_DIR="$HOME/.local/share/nvim-dev"
-        TEMP_STATE_DIR="$HOME/.local/state/nvim-dev"
-        TEMP_CACHE_DIR="$HOME/.cache/nvim-dev"
+      # --- Setup-Skript für LazyVim-Konfiguration ---
+      setup-lazyvim = pkgs.writeShellScriptBin "setup-lazyvim" ''
+        # Konfigurationspfade
+        CONFIG_DIR="$HOME/.config/nvim-dev"
+        DATA_DIR="$HOME/.local/share/nvim-dev"
+        STATE_DIR="$HOME/.local/state/nvim-dev"
+        CACHE_DIR="$HOME/.cache/nvim-dev"
         
-        # Erstelle benötigte Verzeichnisse
-        mkdir -p "$TEMP_CONFIG_DIR/spell"
-        mkdir -p "$TEMP_DATA_DIR/site/spell"
-        mkdir -p "$TEMP_STATE_DIR"
-        mkdir -p "$TEMP_CACHE_DIR"
-
-        # Überprüfe, ob die Konfiguration bereits kopiert wurde
-        CONFIG_MARKER="$TEMP_CONFIG_DIR/.config_copied"
+        # Verzeichnisse erstellen
+        mkdir -p "$CONFIG_DIR/spell" "$DATA_DIR/site/spell" "$STATE_DIR" "$CACHE_DIR"
         
-        # Kopiere LazyVim-Konfiguration nur, wenn sie noch nicht existiert
-        if [ ! -f "$CONFIG_MARKER" ]; then
-          echo "Erstelle LazyVim-Konfiguration in $TEMP_CONFIG_DIR..."
+        # Nur kopieren, wenn noch nicht vorhanden
+        if [ ! -f "$CONFIG_DIR/.config_copied" ]; then
+          echo "Kopiere LazyVim-Konfiguration..."
           
-          # Kopiere die LazyVim-Konfiguration (verwende cp -n, um Überschreiben zu vermeiden)
-          cp -rn "${lazyvim-config}/"* "$TEMP_CONFIG_DIR/" 2>/dev/null || true
+          # Lösche vorhandene Konfiguration, um sauberen Start zu gewährleisten
+          rm -rf "$CONFIG_DIR/lua" "$CONFIG_DIR/init.lua" 2>/dev/null || true
+          
+          # Kopiere die gesamte Konfiguration
+          cp -r "${lazyvim-config}/"* "$CONFIG_DIR/" 2>/dev/null || true
           
           # Mache alle Dateien beschreibbar
-          find "$TEMP_CONFIG_DIR" -type f -exec chmod u+w {} \;
+          find "$CONFIG_DIR" -type f -exec chmod u+w {} \; 2>/dev/null || true
           
-          # Kopiere Spell-Dateien aus deiner normalen Neovim-Konfiguration
-          SPELL_SOURCE="$HOME/.config/nvim/spell"
-          if [ -d "$SPELL_SOURCE" ]; then
-            for spell_file in "$SPELL_SOURCE"/*.{spl,sug}; do
-              if [ -f "$spell_file" ]; then
-                cp -f "$spell_file" "$TEMP_CONFIG_DIR/spell/$(basename "$spell_file")" 2>/dev/null || true
-              fi
-            done
-          fi
+          # Marker setzen
+          touch "$CONFIG_DIR/.config_copied"
+        fi
+        
+        # Treesitter-Parser-Verzeichnis verlinken
+        PARSER_DIR="${treesitterPath}"
+        if [ -d "$PARSER_DIR" ]; then
+          mkdir -p "$CONFIG_DIR/parser"
+          ln -sf "$PARSER_DIR"/* "$CONFIG_DIR/parser/" 2>/dev/null || true
+        fi
+        
+        # Spell-Dateien kopieren
+        SPELL_SOURCE="$HOME/.config/nvim/spell"
+        if [ -d "$SPELL_SOURCE" ]; then
+          for spell_file in "$SPELL_SOURCE"/*.{spl,sug}; do
+            if [ -f "$spell_file" ]; then
+              cp -f "$spell_file" "$CONFIG_DIR/spell/$(basename "$spell_file")" 2>/dev/null || true
+            fi
+          done
+        fi
+        
+        # Lazy.nvim-Setup in init.lua einfügen
+        # Wir erstellen eine neue init.lua oder passen die vorhandene an
+        if [ -f "$CONFIG_DIR/init.lua" ]; then
+          # Sichern der Original-Datei
+          cp "$CONFIG_DIR/init.lua" "$CONFIG_DIR/init.lua.original"
           
-          # Anpassen der init.lua
-          if [ -f "$TEMP_CONFIG_DIR/init.lua" ]; then
-            # Mache die Datei beschreibbar
-            chmod u+w "$TEMP_CONFIG_DIR/init.lua"
-            
-            # Erstelle eine temporäre Datei mit unseren Anpassungen
-            TMP_INIT=$(mktemp)
-            cat > "$TMP_INIT" << 'EOF'
--- Diese Zeilen wurden automatisch von der Nix-DevShell hinzugefügt
+          # Temporäre Datei erstellen
+          TMP_INIT=$(mktemp)
+          
+          # Unsere Konfiguration oben einfügen
+          cat > "$TMP_INIT" << 'EOF'
+-- XDG-Variablen für separate Konfiguration
 vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
 vim.env.XDG_STATE_HOME = vim.env.HOME .. "/.local/state/nvim-dev"
 vim.env.XDG_CACHE_HOME = vim.env.HOME .. "/.cache/nvim-dev"
+
+-- Stelle sicher, dass diese Konfiguration im Runtimepfad ist
 vim.opt.runtimepath:append(vim.env.HOME .. "/.config/nvim-dev")
 
-EOF
-            # Füge die originale init.lua hinzu
-            cat "$TEMP_CONFIG_DIR/init.lua" >> "$TMP_INIT"
-            # Ersetze die originale init.lua ohne Nachfrage
-            mv -f "$TMP_INIT" "$TEMP_CONFIG_DIR/init.lua"
-            chmod u+w "$TEMP_CONFIG_DIR/init.lua"
-          else
-            # Erstelle eine neue init.lua
-            cat > "$TEMP_CONFIG_DIR/init.lua" << 'EOF'
--- Diese init.lua lädt deine LazyVim-Konfiguration
--- Setze XDG-Variablen, damit Plugins in der devShell installiert werden
-vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
-vim.env.XDG_STATE_HOME = vim.env.HOME .. "/.local/state/nvim-dev"
-vim.env.XDG_CACHE_HOME = vim.env.HOME .. "/.cache/nvim-dev"
-
--- Stelle sicher, dass Spell-Dateien gefunden werden
-vim.opt.runtimepath:append(vim.env.HOME .. "/.config/nvim-dev")
-
--- Standard LazyVim-Bootstrap-Code
+-- Lazy.nvim-Konfiguration für Nix
 local lazypath = vim.env.XDG_DATA_HOME .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
   vim.fn.system({
-    "git",
-    "clone",
-    "--filter=blob:none",
-    "https://github.com/folke/lazy.nvim.git",
-    "--branch=stable",
-    lazypath,
+    "git", "clone", "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git", "--branch=stable", lazypath
   })
 end
 vim.opt.rtp:prepend(lazypath)
 
--- Lade die Konfiguration aus dem Modul "config.lazy"
+-- Lazy-Plugin-Setup mit Nix-Integration
+require("lazy").setup({
+  defaults = { lazy = true },
+  dev = {
+    -- Plugins aus Nix-Store verwenden
+    path = "${lazyPath}",
+    patterns = { "" },
+    fallback = true,
+  },
+  spec = {
+    { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+    -- Nix-spezifische Konfiguration
+    { "nvim-telescope/telescope-fzf-native.nvim", enabled = true },
+    -- Mason deaktivieren, alles über Nix
+    { "williamboman/mason-lspconfig.nvim", enabled = false },
+    { "williamboman/mason.nvim", enabled = false },
+    -- Eigene Plugins laden
+    { import = "plugins" },
+    -- Treesitter über Nix
+    { "nvim-treesitter/nvim-treesitter", opts = { ensure_installed = {} } },
+  },
+})
+
+EOF
+          
+          # Original-Inhalt (ohne Lazy-Setup) anfügen, falls vorhanden
+          if grep -q "require(\"config.lazy\")" "$CONFIG_DIR/init.lua.original"; then
+            # Wir haben ein Standard-LazyVim-Setup, können unseres verwenden
+            echo "Standard-LazyVim-Setup gefunden, wird durch Nix-Version ersetzt."
+          else
+            # Andere Initialisierung, an unsere anfügen
+            cat "$CONFIG_DIR/init.lua.original" >> "$TMP_INIT"
+          fi
+          
+          # Ersetze die Original-Datei
+          mv "$TMP_INIT" "$CONFIG_DIR/init.lua"
+          chmod u+w "$CONFIG_DIR/init.lua"
+        else
+          # Erstelle eine neue init.lua
+          cat > "$CONFIG_DIR/init.lua" << 'EOF'
+-- XDG-Variablen für separate Konfiguration
+vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
+vim.env.XDG_STATE_HOME = vim.env.HOME .. "/.local/state/nvim-dev"
+vim.env.XDG_CACHE_HOME = vim.env.HOME .. "/.cache/nvim-dev"
+
+-- Stelle sicher, dass diese Konfiguration im Runtimepfad ist
+vim.opt.runtimepath:append(vim.env.HOME .. "/.config/nvim-dev")
+
+-- Lazy.nvim-Konfiguration für Nix
+local lazypath = vim.env.XDG_DATA_HOME .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+  vim.fn.system({
+    "git", "clone", "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git", "--branch=stable", lazypath
+  })
+end
+vim.opt.rtp:prepend(lazypath)
+
+-- Lazy-Plugin-Setup mit Nix-Integration
+require("lazy").setup({
+  defaults = { lazy = true },
+  dev = {
+    -- Plugins aus Nix-Store verwenden
+    path = "${lazyPath}",
+    patterns = { "" },
+    fallback = true,
+  },
+  spec = {
+    { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+    -- Nix-spezifische Konfiguration
+    { "nvim-telescope/telescope-fzf-native.nvim", enabled = true },
+    -- Mason deaktivieren, alles über Nix
+    { "williamboman/mason-lspconfig.nvim", enabled = false },
+    { "williamboman/mason.nvim", enabled = false },
+    -- Eigene Plugins laden
+    { import = "plugins" },
+    -- Treesitter über Nix
+    { "nvim-treesitter/nvim-treesitter", opts = { ensure_installed = {} } },
+  },
+})
+
+-- Lade deine Konfiguration
 require("config.lazy")
 EOF
-          fi
-          
-          # Marker setzen, dass die Konfiguration kopiert wurde
-          touch "$CONFIG_MARKER"
-          
-          echo "LazyVim-Konfiguration erfolgreich erstellt."
         fi
-
-        # --- VERBESSERT: FHS-Wrapper für dynamisch verlinkte Binaries wie markdown-preview ---
-        # Erstelle ein generelles FHS-Wrapper-Skript für alle dynamisch verlinkten Binaries
-        FHS_WRAPPER="$HOME/bin/nix-fhs-run"
-        if [ ! -f "$FHS_WRAPPER" ]; then
-          mkdir -p "$HOME/bin"
-          cat > "$FHS_WRAPPER" << 'EOF'
-#!/usr/bin/env bash
-# FHS-Wrapper für dynamisch verlinkte Binaries unter NixOS
-
-# Füge wichtige Bibliotheken zum LD_LIBRARY_PATH hinzu
-export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.glib}/lib:${pkgs.zlib}/lib:${pkgs.ncurses}/lib:$LD_LIBRARY_PATH
-
-# Führe die Binary mit den richtigen Umgebungsvariablen aus
-exec "$@"
-EOF
-          chmod +x "$FHS_WRAPPER"
-        fi
-
-        # Prüfe nach Markdown-Preview und andere problematische Binaries
-        process_bin() {
-          local bin_path="$1"
-          
-          # Überprüfe, ob die Binary existiert und ausführbar ist
-          if [ -f "$bin_path" ] && [ -x "$bin_path" ]; then
-            # Erstelle einen Wrapper, wenn er noch nicht existiert
-            if [ ! -f "$bin_path.wrapped" ]; then
-              # Sichere die Original-Binary
-              cp "$bin_path" "$bin_path.original"
-              
-              # Erstelle einen Wrapper-Skript
-              cat > "$bin_path" << EOF
-#!/usr/bin/env bash
-# Automatisch generierter FHS-Wrapper für $(basename "$bin_path")
-$FHS_WRAPPER "$bin_path.original" "\$@"
-EOF
-              chmod +x "$bin_path"
-              
-              # Setze Marker, dass die Binary gewrappt wurde
-              touch "$bin_path.wrapped"
-              
-              echo "Binary gewrappt: $bin_path"
-            fi
-          fi
-        }
-
-        # Suche nach allen Binaries in Markdown-Preview und patche sie
-        LAZY_DIR="$TEMP_DATA_DIR/lazy"
-        if [ -d "$LAZY_DIR" ]; then
-          echo "Prüfe auf dynamisch verlinkte Binaries in Plugins..."
-          # Markdown-Preview spezifisch
-          if [ -d "$LAZY_DIR/markdown-preview.nvim" ]; then
-            MP_BIN="$LAZY_DIR/markdown-preview.nvim/app/bin/markdown-preview-linux"
-            process_bin "$MP_BIN"
-          fi
-          
-          # Nach anderen ausführbaren Binaries in Plugin-Verzeichnissen suchen
-          find "$LAZY_DIR" -type f -executable -not -name "*.sh" -not -name "*.wrapped" -not -name "*.original" | while read -r bin; do
-            # Prüfe, ob es sich um eine ELF-Binary handelt
-            if file "$bin" | grep -q "ELF"; then
-              process_bin "$bin"
-            fi
-          done
-        fi
-
-        # Starte Neovim mit der temporären Konfiguration
-        XDG_CONFIG_HOME="$HOME/.config" NVIM_APPNAME="nvim-dev" ${pkgs.neovim}/bin/nvim "$@"
+        
+        echo "LazyVim-Konfiguration erfolgreich eingerichtet in $CONFIG_DIR"
       '';
+
+      # --- Wrapper-Skript für Neovim mit LazyVim-Konfiguration ---
+      nvim-lazyvim = pkgs.writeShellScriptBin "nvim" ''
+        # Führe das Setup-Skript aus
+        setup-lazyvim
+        
+        # Starte Neovim mit der richtigen Konfiguration
+        NVIM_APPNAME="nvim-dev" XDG_CONFIG_HOME="$HOME/.config" ${pkgs.neovim}/bin/nvim "$@"
+      '';
+
+      # --- Treesitter-Parser ---
+      treesitterPath =
+        let
+          parsers = pkgs.symlinkJoin {
+            name = "treesitter-parsers";
+            paths = (pkgs.vimPlugins.nvim-treesitter.withPlugins (plugins: with plugins; [
+              # Basis-Parser
+              c lua bash comment regex 
+              
+              # Web-Entwicklung
+              html css javascript typescript tsx json yaml
+              
+              # Backend
+              php python ruby go rust
+              
+              # Konfiguration
+              toml nix markdown
+            ])).dependencies;
+          };
+        in
+        "${parsers}/parser";
+
+      # --- Liste aller Plugins für LazyVim ---
+      plugins = with pkgs.vimPlugins; [
+        # LazyVim Kern-Plugins
+        LazyVim
+        bufferline-nvim
+        cmp-buffer
+        cmp-nvim-lsp
+        cmp-path
+        cmp_luasnip
+        conform-nvim
+        dashboard-nvim
+        dressing-nvim
+        flash-nvim
+        friendly-snippets
+        gitsigns-nvim
+        indent-blankline-nvim
+        lualine-nvim
+        neo-tree-nvim
+        neoconf-nvim
+        neodev-nvim
+        noice-nvim
+        nui-nvim
+        nvim-cmp
+        nvim-lint
+        nvim-lspconfig
+        nvim-notify
+        nvim-spectre
+        nvim-treesitter
+        nvim-treesitter-context
+        nvim-treesitter-textobjects
+        nvim-ts-autotag
+        nvim-ts-context-commentstring
+        nvim-web-devicons
+        persistence-nvim
+        plenary-nvim
+        telescope-fzf-native-nvim
+        telescope-nvim
+        todo-comments-nvim
+        tokyonight-nvim
+        trouble-nvim
+        vim-illuminate
+        vim-startuptime
+        which-key-nvim
+        { name = "LuaSnip"; path = luasnip; }
+        { name = "catppuccin"; path = catppuccin-nvim; }
+        { name = "mini.ai"; path = mini-nvim; }
+        { name = "mini.bufremove"; path = mini-nvim; }
+        { name = "mini.comment"; path = mini-nvim; }
+        { name = "mini.indentscope"; path = mini-nvim; }
+        { name = "mini.pairs"; path = mini-nvim; }
+        { name = "mini.surround"; path = mini-nvim; }
+        
+        # Zusätzliche Plugins basierend auf deiner Konfiguration
+        vim-visual-multi
+        typescript-vim
+        vim-jsx-typescript
+        vim-surround
+        rainbow-delimiters-nvim
+        vim-exchange
+        autosave-nvim
+        windsurf-vim
+        github-nvim-theme
+        copilot-lua
+        copilot-cmp
+        nvim-dap
+        nvim-dap-ui
+        edgy-nvim
+        vim-rails
+        orgmode
+        vim-ReplaceWithRegister
+        toggleterm-nvim
+        tiny-inline-diagnostic-nvim
+      ];
+      
+      # --- Plugin-Pfad für lazy.nvim ---
+      lazyPath = pkgs.linkFarm "lazy-plugins" (builtins.map 
+        (drv: if lib.isDerivation drv then { name = "${lib.getName drv}"; path = drv; } else drv) 
+        plugins);
 
     in {
       # Haupt-DevShell für Editor + Sprachen + Tools
       dev = pkgs.mkShell {
         packages = with pkgs; [
-          # --- GEÄNDERT: Ersetze Neovim durch unser Skript ---
-          devNeovim 
+          # --- LazyVim statt Standard-Neovim ---
+          nvim-lazyvim
+          setup-lazyvim
           
-          # Tools zur Binary-Modifikation
-          patchelf
+          # Tools für Neovim
+          ripgrep            # Für Telescope
+          fd                 # Schnellere Alternative zu find
+          stylua             # Lua-Formatter
           
-          # Alle anderen Pakete bleiben unverändert
+          # Basis-Tools
           zsh lazygit
-          fd tree-sitter
+          tree-sitter
           cmake pkg-config gnumake
           gcc clang
-
+          
+          # Sprachen und LSPs basierend auf deiner Konfiguration
+          
+          # Lua
+          lua-language-server
+          
           # JS / TS / Web
           nodejs
           nodePackages.typescript
@@ -234,15 +353,15 @@ EOF
           nodePackages.eslint_d
           nodePackages.prettier
           yarn
-
+          
           # Python
           python3
           pyright
           python3Packages.black
           python3Packages.isort
           python3Packages.ruff
-
-          # PHP mit mehreren Versionen
+          
+          # PHP
           php81
           php82
           php83
@@ -251,18 +370,18 @@ EOF
           php83Packages.composer
           symfony-cli
           nodePackages.intelephense  # PHP LSP
-
-          # Webserver & Debugging Tools für Neovim
           php83Extensions.xdebug
           php82Extensions.xdebug
           php81Extensions.xdebug
-          nodePackages.live-server         # JS/HTML Live-Server
-          xdg-utils                        # Für xdg-open (Browser-Öffnen)
-
-          # Nix LSP und Tools für Neovim
-          nil                              # Nix Language Server
-          nixpkgs-fmt                      # Nix Formatter
-
+          
+          # Webserver & Debugging
+          nodePackages.live-server
+          xdg-utils
+          
+          # Nix
+          nil
+          nixpkgs-fmt
+          
           # Ruby
           asdf-vm 
           openssl
@@ -274,30 +393,27 @@ EOF
           gdbm
           ncurses
           xz
-
+          
           # Bash / Shell
           nodePackages.bash-language-server
           shellcheck
           shfmt
-
-          # Rust (Versionsverwaltung via rustup)
+          
+          # Rust
           rustup
           rust-analyzer
-
+          
           # DB-Clients
           postgresql
           mariadb
-
+          
           # Sonstiges nützliches
-          lua-language-server
           jq
-          ripgrep # Für Telescope erforderlich
-          stylua  # Für LazyVim
         ];
 
         shellHook = ''
           echo
-          echo "DevShell aktiv."
+          echo "LazyVim DevShell aktiv."
 
           # Oh-My-Posh Theme
           export OMP_CONFIG="''${OMP_CONFIG:-$HOME/.cache/oh-my-posh/themes/amro.omp.json}"
@@ -370,6 +486,9 @@ EOF
           fi
 
           echo
+          echo "LazyVim Setup: Verwendet deine persönliche Konfiguration aus 23b00t/lazyvim"
+          echo "Mason ist deaktiviert - alle Tools werden direkt über Nix bereitgestellt"
+          echo
           echo "Ruby:"
           echo "  asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git"
           echo "  asdf install ruby 3.3.4"
@@ -383,16 +502,12 @@ EOF
           echo "Webserver & Debugging:"
           echo "  live-server: HTML/JS Live-Server"
           echo "  php -S localhost:8000: PHP Builtin-Server"
-          echo "  php-debug-adapter: Für PHP Debugging in Neovim verfügbar"
           echo
           echo "JS/TS/HTML/CSS: typescript-language-server, vscode-langservers-extracted, eslint_d, prettier"
           echo "Python: pyright, black, isort, ruff"
           echo "Shell: bash-language-server, shellcheck, shfmt"
           echo "Rust: rustup + rust-analyzer"
           echo "DB-Clients: psql (PostgreSQL), mariadb"
-          echo
-          echo "LazyVim-Konfiguration: Deine eigene Konfiguration aus 23b00t/lazyvim wird verwendet."
-          echo "Dynamisch verlinkte Binaries werden automatisch gewrappt."
           echo
         '';
       };
