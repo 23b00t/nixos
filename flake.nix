@@ -217,6 +217,8 @@ vim.opt.rtp:prepend(lazypath)
 require("config.lazy")
 EOF
 
+mkdir -p "$CONFIG_DIR"
+touch "$CONFIG_DIR/config.yml"
           # Starte Neovim mit der richtigen Konfiguration
           exec env NVIM_APPNAME="nvim-dev" XDG_CONFIG_HOME="$HOME/.config" nvim "$@"
         '';
