@@ -46,9 +46,7 @@
         };
       };
 
-      # --- NEU: Ein einfaches, aber effektives LazyVim-Setup ---
-      # Erstellt eine Shell-Umgebung, die beim Start von Neovim die LazyVim-Konfiguration verwendet
-      # --- VERBESSERT: Ein funktionierendes LazyVim-Setup mit Spell-Support ---
+      # --- KORRIGIERT: LazyVim-Setup mit richtiger Konfigurationsverlinkung ---
       devNeovim = pkgs.writeShellScriptBin "nvim" ''
         # Erstelle XDG_CONFIG_HOME, falls es nicht existiert
         TEMP_CONFIG_DIR="$HOME/.config/nvim-dev"
@@ -64,60 +62,116 @@
 
         # Erstelle ein Spell-Verzeichnis, das beschreibbar ist
         mkdir -p "$TEMP_DATA_DIR/site/spell"
+        mkdir -p "$TEMP_CONFIG_DIR/spell"
         
-        # Verlinke die Spell-Dateien aus deiner regulären Neovim-Konfiguration
-        # Wenn du deine Konfiguration über home-manager verwaltest, befinden sich die Spell-Dateien im Nix-Store
+        # Fix für dynamisch verlinkte Binaries: Erstelle einen Wrapper für markdown-preview
+        MARKDOWN_PREVIEW_DIR="$TEMP_DATA_DIR/lazy/markdown-preview.nvim"
+        if [ -d "$MARKDOWN_PREVIEW_DIR" ]; then
+          BIN_DIR="$MARKDOWN_PREVIEW_DIR/app/bin"
+          if [ -d "$BIN_DIR" ] && [ -f "$BIN_DIR/markdown-preview-linux" ]; then
+            # Erstelle einen Wrapper-Skript, der die Umgebung korrekt einrichtet
+            cat > "$BIN_DIR/markdown-preview-linux.wrapper" << 'EOF'
+#!/usr/bin/env bash
+# Wrapper für markdown-preview-linux, der dynamische Bibliotheken unter NixOS handhabt
+export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib}/lib:$LD_LIBRARY_PATH
+exec "$0.original" "$@"
+EOF
+            chmod +x "$BIN_DIR/markdown-preview-linux.wrapper"
+            
+            # Benenne das Original um und verwende den Wrapper
+            if [ ! -f "$BIN_DIR/markdown-preview-linux.original" ]; then
+              mv "$BIN_DIR/markdown-preview-linux" "$BIN_DIR/markdown-preview-linux.original"
+              ln -sf "$BIN_DIR/markdown-preview-linux.wrapper" "$BIN_DIR/markdown-preview-linux"
+            fi
+            
+            echo "markdown-preview-linux Binary gepatcht für NixOS-Kompatibilität"
+          fi
+        fi
+
+        # --- KORRIGIERT: Kopiere die gesamte LazyVim-Konfiguration statt nur den lua-Ordner zu verlinken ---
+        # Lösche alte Konfiguration, falls vorhanden (außer spell/)
+        find "$TEMP_CONFIG_DIR" -mindepth 1 -maxdepth 1 -not -name "spell" -exec rm -rf {} \; 2>/dev/null || true
+        
+        # Kopiere die vollständige Konfiguration (cp -r ist zuverlässiger als Symlinks)
+        echo "Kopiere LazyVim-Konfiguration aus ${lazyvim-config}..."
+        cp -r "${lazyvim-config}/"* "$TEMP_CONFIG_DIR/"
+        
+        # Überprüfe, ob die Konfiguration korrekt kopiert wurde
+        if [ ! -d "$TEMP_CONFIG_DIR/lua" ]; then
+          echo "FEHLER: LazyVim-Konfiguration konnte nicht kopiert werden!" >&2
+          echo "Prüfe, ob der Pfad korrekt ist: ${lazyvim-config}" >&2
+          exit 1
+        fi
+        
+        # Zeige Debug-Informationen zur Konfiguration
+        echo "LazyVim-Konfiguration in $TEMP_CONFIG_DIR:"
+        ls -la "$TEMP_CONFIG_DIR"
+        echo "LazyVim lua-Verzeichnis:"
+        ls -la "$TEMP_CONFIG_DIR/lua" 2>/dev/null || echo "lua-Verzeichnis fehlt!"
+
+        # Erstelle eine angepasste init.lua, falls es keine gibt oder modifiziere die vorhandene
+        if [ ! -f "$TEMP_CONFIG_DIR/init.lua" ]; then
+          # Erstelle eine neue init.lua
+          cat > "$TEMP_CONFIG_DIR/init.lua" << 'EOF'
+-- Diese init.lua lädt deine LazyVim-Konfiguration
+-- Setze XDG-Variablen, damit Plugins in der devShell installiert werden
+vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
+vim.env.XDG_STATE_HOME = vim.env.HOME .. "/.local/state/nvim-dev"
+vim.env.XDG_CACHE_HOME = vim.env.HOME .. "/.cache/nvim-dev"
+
+-- Stelle sicher, dass Spell-Dateien gefunden werden
+vim.opt.runtimepath:append(vim.env.HOME .. "/.config/nvim-dev")
+
+-- Standard LazyVim-Bootstrap-Code
+local lazypath = vim.env.XDG_DATA_HOME .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+  vim.fn.system({
+    "git",
+    "clone",
+    "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable",
+    lazypath,
+  })
+end
+vim.opt.rtp:prepend(lazypath)
+
+-- Lade die Konfiguration aus dem Modul "config.lazy"
+require("config.lazy")
+EOF
+        else
+          # Modifiziere die bestehende init.lua, um XDG-Variablen zu setzen
+          # Wir erstellen eine temporäre Datei und fügen unsere Anpassungen am Anfang ein
+          TMP_INIT="$TEMP_CONFIG_DIR/init.lua.tmp"
+          cat > "$TMP_INIT" << 'EOF'
+-- Diese Zeilen wurden automatisch von der Nix-DevShell hinzugefügt
+vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
+vim.env.XDG_STATE_HOME = vim.env.HOME .. "/.local/state/nvim-dev"
+vim.env.XDG_CACHE_HOME = vim.env.HOME .. "/.cache/nvim-dev"
+vim.opt.runtimepath:append(vim.env.HOME .. "/.config/nvim-dev")
+
+EOF
+          # Füge die originale init.lua hinzu
+          cat "$TEMP_CONFIG_DIR/init.lua" >> "$TMP_INIT"
+          # Ersetze die originale init.lua
+          mv "$TMP_INIT" "$TEMP_CONFIG_DIR/init.lua"
+        fi
+
+        # Kopiere Spell-Dateien aus der normalen Neovim-Konfiguration
         SPELL_SOURCE="$HOME/.config/nvim/spell"
         if [ -d "$SPELL_SOURCE" ]; then
           for spell_file in "$SPELL_SOURCE"/*.{spl,sug}; do
             if [ -f "$spell_file" ]; then
-              ln -sf "$spell_file" "$TEMP_CONFIG_DIR/spell/$(basename "$spell_file")" 2>/dev/null || true
+              cp -f "$spell_file" "$TEMP_CONFIG_DIR/spell/$(basename "$spell_file")" 2>/dev/null || true
             fi
           done
         fi
-
-        # Stelle die Verbindung zur LazyVim-Konfiguration her (via Symlink)
-        ln -sfn "${lazyvim-config}/lua" "$TEMP_CONFIG_DIR/lua"
-
-        # Erstelle eine minimale init.lua, die deine Konfiguration lädt
-        cat > "$TEMP_CONFIG_DIR/init.lua" << 'EOF'
-        -- Diese init.lua lädt deine LazyVim-Konfiguration
-        -- Setze XDG-Variablen, damit Plugins in der devShell installiert werden
-        vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
-        vim.env.XDG_STATE_HOME = vim.env.HOME .. "/.local/state/nvim-dev"
-        vim.env.XDG_CACHE_HOME = vim.env.HOME .. "/.cache/nvim-dev"
-
-        -- Stellen sicher, dass Spell-Dateien gefunden werden
-        vim.opt.runtimepath:append(vim.env.HOME .. "/.config/nvim-dev")
         
-        -- Standard LazyVim-Bootstrap-Code
-        local lazypath = vim.env.XDG_DATA_HOME .. "/lazy/lazy.nvim"
-        if not vim.loop.fs_stat(lazypath) then
-          vim.fn.system({
-            "git",
-            "clone",
-            "--filter=blob:none",
-            "https://github.com/folke/lazy.nvim.git",
-            "--branch=stable",
-            lazypath,
-          })
-        end
-        vim.opt.rtp:prepend(lazypath)
-
-        -- Lade die Konfiguration aus dem Modul "config.lazy"
-        require("config.lazy")
-        EOF
-
-        # Erstelle das Spell-Verzeichnis in der Neovim-Konfiguration
-        mkdir -p "$TEMP_CONFIG_DIR/spell"
-        
-        # Kopiere die deutschen Spell-Dateien direkt aus dem Nix-Store in die Konfiguration
-        if [ -d "${lazyvim-config}/spell" ]; then
-          cp -f "${lazyvim-config}/spell/"*.{spl,sug} "$TEMP_CONFIG_DIR/spell/" 2>/dev/null || true
-        fi
+        # Stelle sicher, dass die Berechtigungen korrekt sind
+        chmod -R u+rw "$TEMP_CONFIG_DIR" "$TEMP_DATA_DIR" "$TEMP_STATE_DIR" "$TEMP_CACHE_DIR" 2>/dev/null || true
 
         # Starte Neovim mit der temporären Konfiguration
-        XDG_CONFIG_HOME="$HOME/.config" NVIM_APPNAME="nvim-dev" ${pkgs.neovim}/bin/nvim "$@"
+        XDG_CONFIG_HOME="$HOME/.config" NVIM_APPNAME="nvim-dev" LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib}/lib:$LD_LIBRARY_PATH ${pkgs.neovim}/bin/nvim "$@"
       '';
 
     in {
