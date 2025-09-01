@@ -257,6 +257,9 @@ EOF
           php81Packages.composer
           php82Packages.composer
           php83Packages.composer
+          php81Packages.phpstan
+          php82Packages.phpstan
+          php83Packages.phpstan 
           symfony-cli
           
           # DB-Clients für die Shell
@@ -301,11 +304,17 @@ EOF
           ln -sf ${pkgs.php81Packages.composer}/bin/composer $HOME/bin/composer-8.1
           ln -sf ${pkgs.php82Packages.composer}/bin/composer $HOME/bin/composer-8.2
           ln -sf ${pkgs.php83Packages.composer}/bin/composer $HOME/bin/composer-8.3
+
+# phpstan für jede PHP-Version
+          ln -sf ${pkgs.php81Packages.phpstan}/bin/phpstan $HOME/bin/phpstan-8.1
+          ln -sf ${pkgs.php82Packages.phpstan}/bin/phpstan $HOME/bin/phpstan-8.2
+          ln -sf ${pkgs.php83Packages.phpstan}/bin/phpstan $HOME/bin/phpstan-8.3
           
           # Standard ist PHP 8.3
-          if [ ! -e "$HOME/bin/php" ] || [ ! -e "$HOME/bin/composer" ]; then
+          if [ ! -e "$HOME/bin/php" ] || [ ! -e "$HOME/bin/composer" ]|| [ ! -e "$HOME/bin/phpstan" ]; then
             ln -sf $HOME/bin/php-8.3 $HOME/bin/php
             ln -sf $HOME/bin/composer-8.3 $HOME/bin/composer
+            ln -sf $HOME/bin/phpstan-8.3 $HOME/bin/phpstan
           fi
           
           # Einfaches Wechsel-Skript erstellen
@@ -315,16 +324,19 @@ EOF
             rm -f \$HOME/bin/php \$HOME/bin/composer
             ln -sf \$HOME/bin/php-8.1 \$HOME/bin/php
             ln -sf \$HOME/bin/composer-8.1 \$HOME/bin/composer
+            ln -sf \$HOME/bin/phpstan-8.1 \$HOME/bin/phpstan
             echo "PHP 8.1 aktiviert: \$(php -v | head -n 1)"
           elif [ "\$1" == "8.2" ] || [ "\$1" == "82" ]; then
             rm -f \$HOME/bin/php \$HOME/bin/composer
             ln -sf \$HOME/bin/php-8.2 \$HOME/bin/php
             ln -sf \$HOME/bin/composer-8.2 \$HOME/bin/composer
+            ln -sf \$HOME/bin/phpstan-8.2 \$HOME/bin/phpstan
             echo "PHP 8.2 aktiviert: \$(php -v | head -n 1)"
           elif [ "\$1" == "8.3" ] || [ "\$1" == "83" ]; then
             rm -f \$HOME/bin/php \$HOME/bin/composer
             ln -sf \$HOME/bin/php-8.3 \$HOME/bin/php
             ln -sf \$HOME/bin/composer-8.3 \$HOME/bin/composer
+            ln -sf \$HOME/bin/phpstan-8.3 \$HOME/bin/phpstan
             echo "PHP 8.3 aktiviert: \$(php -v | head -n 1)"
           else
             echo "Verwendung: php-switch <version>"
