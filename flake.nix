@@ -150,40 +150,15 @@
           
           # Verzeichnisse erstellen
           mkdir -p "$CONFIG_DIR/spell" "$DATA_DIR/site/spell" "$STATE_DIR" "$CACHE_DIR"
+
+          # Lösche alte Konfiguration
+          rm -rf "$CONFIG_DIR/lua" "$CONFIG_DIR/init.lua" 2>/dev/null || true
           
-# Im "setup-lazyvim" Teil, ersetze den aktuellen if-Block:
-
-# Prüfe, ob eine Aktualisierung notwendig ist (entweder nicht vorhanden oder veraltet)
-          CONFIG_TIMESTAMP="$CONFIG_DIR/.config_timestamp"
-          STORE_TIMESTAMP="${lazyvim-config}/.git/HEAD"  # Oder ein anderer zuverlässiger Marker für Änderungen
-
-          if [ ! -f "$CONFIG_TIMESTAMP" ] || \
-            [ "$(cat "$CONFIG_TIMESTAMP" 2>/dev/null)" != "$(cat "$STORE_TIMESTAMP" 2>/dev/null)" ]; then
-            echo "Aktualisiere LazyVim-Konfiguration..."
-            
-            # Backup der vorhandenen Konfiguration, falls vorhanden
-            if [ -d "$CONFIG_DIR/lua" ]; then
-              BACKUP_DIR="$CONFIG_DIR/backup_$(date +%Y%m%d_%H%M%S)"
-              mkdir -p "$BACKUP_DIR"
-              cp -r "$CONFIG_DIR/lua" "$BACKUP_DIR/" 2>/dev/null || true
-              cp "$CONFIG_DIR/init.lua" "$BACKUP_DIR/" 2>/dev/null || true
-              echo "Backup der alten Konfiguration erstellt in $BACKUP_DIR"
-            fi
-            
-            # Lösche alte Konfiguration
-            rm -rf "$CONFIG_DIR/lua" "$CONFIG_DIR/init.lua" 2>/dev/null || true
-            
-            # Kopiere die Konfiguration aus dem Nix-Store
-            cp -r "${lazyvim-config}/"* "$CONFIG_DIR/" 2>/dev/null || true
-            
-            # Mache alle Dateien beschreibbar
-            find "$CONFIG_DIR" -type f -exec chmod u+w {} \; 2>/dev/null || true
-            
-            # Aktualisiere den Timestamp-Marker
-            cat "$STORE_TIMESTAMP" > "$CONFIG_TIMESTAMP" 2>/dev/null || echo "$(date)" > "$CONFIG_TIMESTAMP"
-            
-            echo "LazyVim-Konfiguration erfolgreich aktualisiert!"
-          fi
+          # Kopiere die Konfiguration aus dem Nix-Store
+          cp -r "${lazyvim-config}/"* "$CONFIG_DIR/" 2>/dev/null || true
+          
+          # Mache alle Dateien beschreibbar
+          find "$CONFIG_DIR" -type f -exec chmod u+w {} \; 2>/dev/null || true
           
           # Spell-Dateien kopieren
           SPELL_SOURCE="$HOME/.config/nvim/spell"
@@ -195,47 +170,8 @@
             done
           fi
           
-          # Mason-Plugin-Konfiguration erstellen
-          mkdir -p "$CONFIG_DIR/lua/plugins/nixos"
-          cat > "$CONFIG_DIR/lua/plugins/nixos/01-mason.lua" << 'EOF'
-return {
-  -- Mason konfigurieren - wir deaktivieren es nicht, da einige Plugins es benötigen
-  {
-    "williamboman/mason.nvim",
-    opts = {
-      -- Installationspfad außerhalb des Nix-Store
-      install_root_dir = vim.fn.stdpath("data") .. "/mason",
-    },
-  },
-}
-EOF
-
-          # Init.lua anpassen/erstellen
-          cat > "$CONFIG_DIR/init.lua" << 'EOF'
--- XDG-Variablen für separate Konfiguration
-vim.env.XDG_DATA_HOME = vim.env.HOME .. "/.local/share/nvim-dev"
-vim.env.XDG_STATE_HOME = vim.env.HOME .. "/.local/state/nvim-dev"
-vim.env.XDG_CACHE_HOME = vim.env.HOME .. "/.cache/nvim-dev"
-
--- Stelle sicher, dass diese Konfiguration im Runtimepfad ist
-vim.opt.runtimepath:append(vim.env.HOME .. "/.config/nvim-dev")
-
--- Lazy.nvim-Konfiguration
-local lazypath = vim.env.XDG_DATA_HOME .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
-  vim.fn.system({
-    "git", "clone", "--filter=blob:none",
-    "https://github.com/folke/lazy.nvim.git", "--branch=stable", lazypath
-  })
-end
-vim.opt.rtp:prepend(lazypath)
-
--- LazyVim-Konfiguration laden
-require("config.lazy")
-EOF
-
-mkdir -p "$CONFIG_DIR"
-touch "$CONFIG_DIR/config.yml"
+          mkdir -p "$CONFIG_DIR"
+          touch "$CONFIG_DIR/config.yml"
           # Starte Neovim mit der richtigen Konfiguration
           exec env NVIM_APPNAME="nvim-dev" XDG_CONFIG_HOME="$HOME/.config" nvim "$@"
         '';
@@ -295,9 +231,6 @@ touch "$CONFIG_DIR/config.yml"
         ];
 
         shellHook = ''
-          echo
-          echo "LazyVim DevShell aktiv mit FHS-Umgebung für Neovim."
-
           # Oh-My-Posh Theme
           export OMP_CONFIG="''${OMP_CONFIG:-$HOME/.cache/oh-my-posh/themes/amro.omp.json}"
 
@@ -324,7 +257,7 @@ touch "$CONFIG_DIR/config.yml"
           ln -sf ${pkgs.php82Packages.composer}/bin/composer $HOME/bin/composer-8.2
           ln -sf ${pkgs.php83Packages.composer}/bin/composer $HOME/bin/composer-8.3
 
-# phpstan für jede PHP-Version
+          # phpstan für jede PHP-Version
           ln -sf ${pkgs.php81Packages.phpstan}/bin/phpstan $HOME/bin/phpstan-8.1
           ln -sf ${pkgs.php82Packages.phpstan}/bin/phpstan $HOME/bin/phpstan-8.2
           ln -sf ${pkgs.php83Packages.phpstan}/bin/phpstan $HOME/bin/phpstan-8.3
@@ -362,7 +295,7 @@ touch "$CONFIG_DIR/config.yml"
             echo "Verfügbare Versionen: 8.1, 8.2, 8.3"
             echo "Aktuelle PHP-Version: \$(php -v | head -n 1)"
           fi
-          EOF
+EOF
           chmod +x $HOME/bin/php-switch
 
           # Node corepack etc.
@@ -377,11 +310,6 @@ touch "$CONFIG_DIR/config.yml"
             rustup component add rust-analyzer >/dev/null 2>&1 || true
           fi
 
-          echo
-          echo "FHS-Umgebung für Neovim aktiviert:"
-          echo " - Starte Neovim mit 'nvim' (FHS-Wrapper)"
-          echo " - Dynamisch verlinkte Binaries funktionieren innerhalb der FHS-Umgebung"
-          echo " - Deine LazyVim-Konfiguration wird automatisch geladen"
           echo
           echo "Ruby:"
           echo "  asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git"
