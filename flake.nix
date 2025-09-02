@@ -151,11 +151,26 @@
           # Verzeichnisse erstellen
           mkdir -p "$CONFIG_DIR/spell" "$DATA_DIR/site/spell" "$STATE_DIR" "$CACHE_DIR"
           
-          # Konfiguration kopieren, wenn sie noch nicht existiert
-          if [ ! -f "$CONFIG_DIR/.config_copied" ]; then
-            echo "Kopiere LazyVim-Konfiguration..."
+# Im "setup-lazyvim" Teil, ersetze den aktuellen if-Block:
+
+# Prüfe, ob eine Aktualisierung notwendig ist (entweder nicht vorhanden oder veraltet)
+          CONFIG_TIMESTAMP="$CONFIG_DIR/.config_timestamp"
+          STORE_TIMESTAMP="${lazyvim-config}/.git/HEAD"  # Oder ein anderer zuverlässiger Marker für Änderungen
+
+          if [ ! -f "$CONFIG_TIMESTAMP" ] || \
+            [ "$(cat "$CONFIG_TIMESTAMP" 2>/dev/null)" != "$(cat "$STORE_TIMESTAMP" 2>/dev/null)" ]; then
+            echo "Aktualisiere LazyVim-Konfiguration..."
             
-            # Lösche alte Konfiguration, falls vorhanden
+            # Backup der vorhandenen Konfiguration, falls vorhanden
+            if [ -d "$CONFIG_DIR/lua" ]; then
+              BACKUP_DIR="$CONFIG_DIR/backup_$(date +%Y%m%d_%H%M%S)"
+              mkdir -p "$BACKUP_DIR"
+              cp -r "$CONFIG_DIR/lua" "$BACKUP_DIR/" 2>/dev/null || true
+              cp "$CONFIG_DIR/init.lua" "$BACKUP_DIR/" 2>/dev/null || true
+              echo "Backup der alten Konfiguration erstellt in $BACKUP_DIR"
+            fi
+            
+            # Lösche alte Konfiguration
             rm -rf "$CONFIG_DIR/lua" "$CONFIG_DIR/init.lua" 2>/dev/null || true
             
             # Kopiere die Konfiguration aus dem Nix-Store
@@ -164,8 +179,10 @@
             # Mache alle Dateien beschreibbar
             find "$CONFIG_DIR" -type f -exec chmod u+w {} \; 2>/dev/null || true
             
-            # Marker setzen
-            touch "$CONFIG_DIR/.config_copied"
+            # Aktualisiere den Timestamp-Marker
+            cat "$STORE_TIMESTAMP" > "$CONFIG_TIMESTAMP" 2>/dev/null || echo "$(date)" > "$CONFIG_TIMESTAMP"
+            
+            echo "LazyVim-Konfiguration erfolgreich aktualisiert!"
           fi
           
           # Spell-Dateien kopieren
