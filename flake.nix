@@ -62,6 +62,7 @@
           xorg.libXext
           xorg.libxcb
           ncurses
+          ruby.devEnv
           
           # .NET/Mono-Abhängigkeiten für marksman
           icu              # Internationalisierung (libicu)
@@ -82,7 +83,6 @@
           nodejs
           python3
           rustup
-          gcc
           lua-language-server
           nil
           ripgrep
