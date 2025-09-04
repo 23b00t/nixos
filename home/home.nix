@@ -200,6 +200,7 @@ in
   home.file.".config/kitty/startup".source = ./startup;
   
   programs.neovim = {
+    enable = true;
     extraPackages = with pkgs; [
       # LazyVim
       lua-language-server
