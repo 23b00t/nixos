@@ -242,6 +242,11 @@
           fi
           # Shims sicher in den PATH (falls asdf.sh das nicht schon getan hat)
           export PATH="$ASDF_DATA_DIR/shims:$PATH"
+          # Ruby native extension environment variables
+          export RUBY_CONFIGURE_OPTS="--with-openssl-dir=${pkgs.openssl.dev} --with-readline-dir=${pkgs.readline.dev}"
+          export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig:${pkgs.readline.dev}/lib/pkgconfig:${pkgs.zlib.dev}/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export CPPFLAGS="-I${pkgs.openssl.dev}/include -I${pkgs.readline.dev}/include -I${pkgs.zlib.dev}/include -I${pkgs.libyaml.dev}/include"
+          export LDFLAGS="-L${pkgs.openssl.out}/lib -L${pkgs.readline.out}/lib -L${pkgs.zlib.out}/lib -L${pkgs.libyaml.out}/lib"
 
           # PHP-Versionen mit Symlinks verwalten (NixOS-kompatibel)
           mkdir -p $HOME/bin
