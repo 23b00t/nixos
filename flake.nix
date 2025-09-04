@@ -7,17 +7,11 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    lazyvim-config = {
-      url = "github:23b00t/lazyvim";
-      flake = false;
-    };
   };
 
-  outputs = { self, nixpkgs, home-manager, lazyvim-config, ... }@inputs: {
+  outputs = { self, nixpkgs, home-manager, ... }@inputs: {
     nixosConfigurations.machine = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
-      
-      specialArgs = { inherit lazyvim-config; };
       
       modules = [
         ./machines/h/configuration.nix
@@ -28,9 +22,6 @@
           home-manager.users.nx = {
             nixpkgs.config.allowUnfree = true;
             imports = [ ./home/home.nix ];
-          };
-          home-manager.extraSpecialArgs = {
-            inherit lazyvim-config;
           };
         }
       ];
