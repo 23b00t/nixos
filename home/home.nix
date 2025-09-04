@@ -104,6 +104,8 @@ in
 
     postman
     jetbrains.phpstorm
+
+    devenv
   ];
 
   programs.gh = {
