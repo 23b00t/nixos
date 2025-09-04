@@ -1,10 +1,10 @@
 new_tab system
 layout vertical
-launch zsh -c "zellij"
+launch zsh -c "zellij --layout /home/nx/.config/zellij/layouts/tabs.kdl"
 
 new_tab dev
 layout vertical
-launch zsh -c "nix develop '/home/nx/nixos-config#dev' --command zellij --layout /home/nx/.config/zellij/layouts/tabs.kdl"
+launch zsh
 
 new_tab monitor
 layout horizontal

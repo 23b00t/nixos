@@ -209,6 +209,7 @@ in
       stylua
       # Telescope
       ripgrep
+      node
     ];
 
     plugins = with pkgs.vimPlugins; [

@@ -20,22 +20,6 @@
         "type": "github"
       }
     },
-    "lazyvim-config": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1756807863,
-        "narHash": "sha256-hOAT34d/dxKP7DDXriT76qeznBuN/eN6V7pfQnpUcfY=",
-        "owner": "23b00t",
-        "repo": "lazyvim",
-        "rev": "41eb8a03175dc167002db29b287fc736650e05c1",
-        "type": "github"
-      },
-      "original": {
-        "owner": "23b00t",
-        "repo": "lazyvim",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1756787288,
@@ -55,7 +39,6 @@
     "root": {
       "inputs": {
         "home-manager": "home-manager",
-        "lazyvim-config": "lazyvim-config",
         "nixpkgs": "nixpkgs"
       }
     }
