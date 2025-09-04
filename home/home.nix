@@ -370,7 +370,7 @@ in
       if vim.fn.filereadable(vim.fn.expand("~/.config/nvim/lua/config/commands.lua")) == 1 then
         require("config.commands")
       end
-    ''
+    '';
   };
 
   # https://github.com/nvim-treesitter/nvim-treesitter#i-get-query-error-invalid-node-type-at-position
