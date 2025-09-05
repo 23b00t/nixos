@@ -209,7 +209,7 @@ in
       stylua
       # Telescope
       ripgrep
-      node
+      nodePackages_latest.nodejs
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -411,6 +411,13 @@ in
   home.activation.createNeovimDirs = lib.hm.dag.entryAfter ["writeBoundary"] ''
     mkdir -p ${config.home.homeDirectory}/.local/share/nvim/site/spell
   '';
+
+  # direnv 
+  programs.direnv = {
+    enable = true;
+    # Diese Option ist sehr zu empfehlen, da sie die Integration mit nix-shell/nix develop verbessert
+    nix-direnv.enable = true;
+  };
 
   home.stateVersion = "25.05";
 }

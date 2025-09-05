@@ -3,37 +3,27 @@
 {
   # Keep useful parts from the default template
   env.GREET = "ruby-dev";
-  
-  packages = with pkgs; [
-    # git
-    # Ruby-specific packages
-    ruby
-    rubyPackages.solargraph
-    rubyPackages.rubocop
-    rubyPackages.byebug
-    rubyPackages.json
-    rubyPackages.nokogiri
-    rubyPackages.prism
-    rubyPackages.racc
-    rubyPackages.rbs
-    
-    # Web development
-    nodejs
-    nodePackages.prettier
-  ];
-
-  env.OMP_CONFIG = ''''${OMP_CONFIG:-$HOME/.cache/oh-my-posh/themes/amro.omp.json}'';
+  # env.OMP_CONFIG = ''''${OMP_CONFIG:-$HOME/.cache/oh-my-posh/themes/1_shell.omp.json}'';
 
   # Language support
-  languages.ruby.enable = true;
-  languages.ruby.version = "3.4.5";
+  languages.ruby = {
+    enable = true;
+    version = "3.4.5";
+    # gems = [
+    #   pkgs.rubyPackages.bond
+    #   pkgs.rubyPackages.hirb
+    #   pkgs.rubyPackages.wirble
+    # ];
+  };
   languages.javascript.enable = true;
   
   # Services
   # services.redis.enable = true;
-  services.postgres.enable = true; 
-  services.postgres.initialDatabases = [{ name = "test_db"; }];
-  services.postgres.listen_addresses = "127.0.0.1";
+  services.postgres = {
+    enable = true;
+    initialDatabases = [{ name = "dev_db"; }];
+    listen_addresses = "127.0.0.1";
+  };
 
   # Scripts
   scripts.hello.exec = ''
@@ -41,11 +31,16 @@
     echo "Ruby version: $(ruby --version)"
   '';
 
+  # scripts.irb_dev.exec = ''
+  #   ruby -r bond -r hirb -r pry -e '
+  #     Bond.start
+  #     Hirb.enable
+  #     Pry.start
+  #   '
+  # '';
+
   enterShell = ''
-    zsh
     hello
-    git --version
-    echo "Ruby environment ready!"
   '';
 
   # Tests for this environment
