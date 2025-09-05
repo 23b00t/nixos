@@ -210,6 +210,12 @@ in
       # Telescope
       ripgrep
       nodePackages_latest.nodejs
+      rust-analyzer
+      rustfmt
+      nodePackages.typescript-language-server
+      nodePackages.vscode-langservers-extracted
+      nodePackages.prettier
+      nodePackages.eslint_d
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -315,6 +321,9 @@ in
 
 # Terminal
           toggleterm-nvim           # Better terminal integration
+
+          typescript-tools-nvim
+          rustaceanvim
         ];
         mkEntryFromDrv = drv:
           if lib.isDerivation drv then
