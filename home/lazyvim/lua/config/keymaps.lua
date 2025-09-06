@@ -10,8 +10,8 @@
 
 -- vim.keymap.set({ "n" }, "<leader>bc", "<cmd>e #<cr>", { desc = "Switch to other buffer", silent = true })
 
-vim.keymap.set({ "n" }, "<leader>bb", "<cmd>BufferLineCyclePrev<cr>", { desc = "Buffer back", silent = true })
--- vim.api.nvim_set_keymap("n", "<leader>bb", "<cmd>BufferLineCyclePrev<cr>", { desc = "Buffer back", silent = true, noremap = true })
+-- vim.keymap.set({ "n" }, "<leader>bb", "<cmd>BufferLineCyclePrev<cr>", { desc = "Buffer back", silent = true })
+vim.api.nvim_set_keymap("n", "<leader>bb", "<cmd>BufferLineCyclePrev<cr>", { desc = "Buffer back", silent = true, noremap = true })
 vim.keymap.set({ "n" }, "<leader>bn", "<cmd>BufferLineCycleNext<cr>", { desc = "Buffer next", silent = true })
 vim.keymap.set({ "n" }, "<leader>bf", function()
   Snacks.picker.buffers()
