@@ -3,15 +3,15 @@
 -- Add any additional keymaps here
 
 
-vim.keymap.set('n', '<A-h>', '<C-w>h')
-vim.keymap.set('n', '<A-j>', '<C-w>j')
-vim.keymap.set('n', '<A-k>', '<C-w>k')
-vim.keymap.set('n', '<A-l>', '<C-w>l')
+-- vim.keymap.set('n', '<A-h>', '<C-w>h')
+-- vim.keymap.set('n', '<A-j>', '<C-w>j')
+-- vim.keymap.set('n', '<A-k>', '<C-w>k')
+-- vim.keymap.set('n', '<A-l>', '<C-w>l')
 
-vim.keymap.set({ "n" }, "<leader>bc", "<cmd>e #<cr>", { desc = "Switch to other buffer", silent = true })
+-- vim.keymap.set({ "n" }, "<leader>bc", "<cmd>e #<cr>", { desc = "Switch to other buffer", silent = true })
 
--- vim.keymap.set({ "n" }, "<leader>bb", "<cmd>BufferLineCyclePrev<cr>", { desc = "Buffer back", silent = true })
-vim.api.nvim_set_keymap("n", "<leader>bb", "<cmd>BufferLineCyclePrev<cr>", { desc = "Buffer back", silent = true, noremap = true })
+vim.keymap.set({ "n" }, "<leader>bb", "<cmd>BufferLineCyclePrev<cr>", { desc = "Buffer back", silent = true })
+-- vim.api.nvim_set_keymap("n", "<leader>bb", "<cmd>BufferLineCyclePrev<cr>", { desc = "Buffer back", silent = true, noremap = true })
 vim.keymap.set({ "n" }, "<leader>bn", "<cmd>BufferLineCycleNext<cr>", { desc = "Buffer next", silent = true })
 vim.keymap.set({ "n" }, "<leader>bf", function()
   Snacks.picker.buffers()
