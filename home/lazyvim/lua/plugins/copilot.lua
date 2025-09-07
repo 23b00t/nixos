@@ -18,7 +18,6 @@ return {
           dismiss = "<C-c>", -- Dismiss the current suggestion
           accept_word = "<A-w>", -- Accept the current word
           accept_line = "<A-l>", -- Accept the current line
-          accept_tab = false,
         },
       },
       panel = {
@@ -41,12 +40,7 @@ return {
 
     -- Update LazyVim's cmp.actions to handle Copilot suggestions
     LazyVim.cmp.actions.ai_accept = function()
-      local copilot = require("copilot.suggestion")
-      if copilot.is_visible() then
-        LazyVim.create_undo() -- Create undo point before accepting suggestion
-        copilot.accept() -- Accept the current Copilot suggestion
-        return true
-      end
+      return false
     end
   end,
 }
