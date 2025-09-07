@@ -216,6 +216,8 @@ in
       nodePackages.vscode-langservers-extracted
       nodePackages.prettier
       nodePackages.eslint_d
+      nil 
+      nixd
     ];
 
     plugins = with pkgs.vimPlugins; [

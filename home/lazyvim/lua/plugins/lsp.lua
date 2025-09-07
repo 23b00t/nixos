@@ -1,24 +1,24 @@
 return {
-  {
-    "neovim/nvim-lspconfig",
-    opts = {
-      servers = {
-        rust_analyzer = {
-          diagnostics = {
-            enable = true,
-            disabled = { "unresolved-proc-macro" },
-            enableExperimental = true,
-          },
-        },
-        -- Achtung: In neueren lspconfig-Versionen heißt tsserver oft "tsserver" (Alias zu ts_ls).
-        -- Falls LazyVim meldet "tsserver not found", versuch "ts_ls" statt "tsserver".
-        tsserver = {},
-        html = {},
-        cssls = {},
-        jsonls = {},
-        -- optional:
-        -- tailwindcss = {},
-      },
-    },
-  },
+  -- {
+  --   "neovim/nvim-lspconfig",
+  --   opts = {
+  --     servers = {
+  --       rust_analyzer = {
+  --         diagnostics = {
+  --           enable = true,
+  --           disabled = { "unresolved-proc-macro" },
+  --           enableExperimental = true,
+  --         },
+  --       },
+  --       -- Achtung: In neueren lspconfig-Versionen heißt tsserver oft "tsserver" (Alias zu ts_ls).
+  --       -- Falls LazyVim meldet "tsserver not found", versuch "ts_ls" statt "tsserver".
+  --       tsserver = {},
+  --       html = {},
+  --       cssls = {},
+  --       jsonls = {},
+  --       -- optional:
+  --       -- tailwindcss = {},
+  --     },
+  --   },
+  -- },
 }
