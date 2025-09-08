@@ -218,6 +218,7 @@ in
       nodePackages.eslint_d
       nil 
       nixd
+      watchexec
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -276,6 +277,12 @@ in
           { name = "mini.indentscope"; path = mini-nvim; }
           { name = "mini.pairs"; path = mini-nvim; }
           { name = "mini.surround"; path = mini-nvim; }
+          { name = "nvim-cmp"; path = nvim-cmp; }
+          { name = "cmp-nvim-lsp"; path = cmp-nvim-lsp; }
+          { name = "cmp-buffer"; path = cmp-buffer; }
+          { name = "cmp-path"; path = cmp-path; }
+          { name = "cmp_luasnip"; path = cmp_luasnip; }
+          { name = "friendly-snippets"; path = friendly-snippets; }
 # Database Tools
           vim-dadbod                # Database client
           vim-dadbod-ui             # UI for database client
