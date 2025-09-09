@@ -206,7 +206,11 @@ in
     defaultEditor = true;
     withNodeJs = true;
     withPython3 = true;
-    withRuby = true;
+    extraPackages = with pkgs; [
+      python3
+      nodejs
+    ];
+    # withRuby = true;
   };
 
   # direnv 
