@@ -214,20 +214,13 @@ in
       gcc
       gnumake
 
-      lua-language-server
-      stylua
-      nodePackages_latest.nodejs
-      rust-analyzer
-      rustfmt
-      nodePackages.typescript-language-server
-      nodePackages.vscode-langservers-extracted
-      nodePackages.prettier
-      nodePackages.eslint_d
-      nil 
-      nixd
+      nodejs
+      rustc
+      cargo
       watchexec
+
+      lua-language-server
     ];
-    # withRuby = true;
   };
 
   # direnv 
