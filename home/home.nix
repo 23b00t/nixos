@@ -208,7 +208,24 @@ in
     withPython3 = true;
     extraPackages = with pkgs; [
       python3
-      nodejs
+      fd
+      unzip
+
+      gcc
+      gnumake
+
+      lua-language-server
+      stylua
+      nodePackages_latest.nodejs
+      rust-analyzer
+      rustfmt
+      nodePackages.typescript-language-server
+      nodePackages.vscode-langservers-extracted
+      nodePackages.prettier
+      nodePackages.eslint_d
+      nil 
+      nixd
+      watchexec
     ];
     # withRuby = true;
   };
