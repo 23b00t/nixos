@@ -7,6 +7,12 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # add LazyVim-module
+    LazyVim = {
+      url = "github:matadaniel/LazyVim-module";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs: {
@@ -21,7 +27,10 @@
           home-manager.useGlobalPkgs = false;
           home-manager.users.nx = {
             nixpkgs.config.allowUnfree = true;
-            imports = [ ./home/home.nix ];
+            imports = [ 
+              ./home/home.nix 
+              inputs.LazyVim.homeManagerModules.default
+            ];
           };
         }
       ];
