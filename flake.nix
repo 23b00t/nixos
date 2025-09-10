@@ -7,9 +7,13 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-ld = {
+      url = "github:nix-community/nix-ld";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }@inputs: {
+  outputs = { self, nixpkgs, home-manager, nix-ld, ... }@inputs: {
     nixosConfigurations.machine = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       
@@ -24,6 +28,13 @@
             imports = [ ./home/home.nix ];
           };
         }
+
+        nix-ld.nixosModules.nix-ld
+        ./nix-ld-config.nix
+
+        # The module in this repository defines a new module under (programs.nix-ld.dev) instead of (programs.nix-ld)
+        # to not collide with the nixpkgs version.
+        # { programs.nix-ld.dev.enable = true; }
       ];
     };
 

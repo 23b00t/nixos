@@ -220,7 +220,12 @@ in
       watchexec
 
       lua-language-server
+      treesitter
     ];
+  };
+  home.sessionVariables = {
+    # Falls Sie spezifische Mason-Einstellungen benötigen
+    MASON_DIR = "$HOME/.local/share/nvim/mason";
   };
 
   # direnv 
