@@ -10,21 +10,21 @@
   languages.php = {
     enable = true;
     version = "8.2";
-    extensions = [
-      "pdo"
-      "pdo_mysql"
-      "mysqli"
-      "intl"
-      "mbstring"
-      "xml"
-      "zip"
-    ];
-    ini = ''
-      memory_limit = 256M
-      date.timezone = Europe/Berlin
-      display_errors = On
-      error_reporting = E_ALL
-    '';
+    # extensions = [
+    #   "pdo"
+    #   "pdo_mysql"
+    #   "mysqli"
+    #   "intl"
+    #   "mbstring"
+    #   "xml"
+    #   "zip"
+    # ];
+    # ini = ''
+    #   memory_limit = 256M
+    #   date.timezone = Europe/Berlin
+    #   display_errors = On
+    #   error_reporting = E_ALL
+    # '';
   };
 
   # PHP-Packages

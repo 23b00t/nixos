@@ -1,25 +1,31 @@
 # NixOS config
 
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   maxVMs = 8;
 in
 {
-  imports = [ 
-    ./hardware-configuration.nix 
+  imports = [
+    ./hardware-configuration.nix
     ../../vms/microvm-user-service.nix
   ];
 
   # Switch to minimal channel for host?
   system.stateVersion = "25.05";
-  
+
   # Bootloader EFI
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  boot.initrd.luks.devices."luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d".device = "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
+  boot.initrd.luks.devices."luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d".device =
+    "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
 
-  # boot.loader.efi.efiSysMountPoint = "/boot";  
+  # boot.loader.efi.efiSysMountPoint = "/boot";
   # boot.initrd.systemd.enable = true;
 
   # GNOME Wayland (with PaperWM)
@@ -31,10 +37,14 @@ in
   networking.hostName = "machine";
   networking.firewall = {
     enable = true;
+    allowedTCPPorts = [ 9003 ];
   };
 
   # Enable the Flakes feature and the accompanying new nix command-line tool
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
   environment.systemPackages = with pkgs; [
     # Flakes clones its dependencies through the git command,
     # so git must be installed first
@@ -65,20 +75,29 @@ in
 
   # programs.gnome-terminal.enable = true;
 
-  environment.gnome.excludePackages = (with pkgs; [
-    epiphany # web browser
-    gedit # text editor
-  ]);
+  environment.gnome.excludePackages = (
+    with pkgs;
+    [
+      epiphany # web browser
+      gedit # text editor
+    ]
+  );
 
   # User
-  users.groups.tun = {};
+  users.groups.tun = { };
 
   services.udev.extraRules = ''
     KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
   '';
   users.users.nx = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "libvirtd" "tun" "docker" ];
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+      "libvirtd"
+      "tun"
+      "docker"
+    ];
   };
 
   # Sound
@@ -109,16 +128,21 @@ in
 
   services.pipewire.wireplumber.extraConfig.bluetoothEnhancements = {
     "monitor.bluez.properties" = {
-        "bluez5.enable-sbc-xq" = true;
-        "bluez5.enable-msbc" = true;
-        "bluez5.enable-hw-volume" = true;
-        "bluez5.roles" = [ "hsp_hs" "hsp_ag" "hfp_hf" "hfp_ag" ];
+      "bluez5.enable-sbc-xq" = true;
+      "bluez5.enable-msbc" = true;
+      "bluez5.enable-hw-volume" = true;
+      "bluez5.roles" = [
+        "hsp_hs"
+        "hsp_ag"
+        "hfp_hf"
+        "hfp_ag"
+      ];
     };
   };
 
   networking.networkmanager.enable = true;
   # networking.wireless.enable = true;
-  
+
   # Time & Locals
   time.timeZone = "Europe/Berlin";
   i18n.defaultLocale = "en_US.UTF-8";
@@ -203,11 +227,14 @@ in
           "fec0::/128"
         ];
         # Setup routes to the VM
-        routes = [ {
-          Destination = "10.0.0.${toString index}/32";
-        } {
-          Destination = "fec0::${lib.toHexString index}/128";
-        } ];
+        routes = [
+          {
+            Destination = "10.0.0.${toString index}/32";
+          }
+          {
+            Destination = "fec0::${lib.toHexString index}/128";
+          }
+        ];
         # Enable routing
         networkConfig = {
           IPv4Forwarding = true;
@@ -236,12 +263,15 @@ in
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "microvm.cachix.org-1:oXnBs9THCoQI4PiXLm2ODWyptDIrQ2NYjmJfUfpGqMI="
       ];
-      trusted-users = [ "root" "nx" ];
+      trusted-users = [
+        "root"
+        "nx"
+      ];
     };
   };
 
   # net vm ssh config
-  # 
+  #
   programs.ssh.extraConfig = ''
     Host net-vm 
       HostName 10.0.0.1
@@ -281,9 +311,9 @@ in
         setSocketVariable = true;
       };
       # BuildX-Plugin aktivieren
-      enableOnBoot = true;  # Docker beim Systemstart starten
-      extraOptions = "--experimental";  # Experimentelle Features aktivieren
-      extraPackages = [ pkgs.docker-buildx ];  # BuildX-Plugin hinzufügen
+      enableOnBoot = true; # Docker beim Systemstart starten
+      extraOptions = "--experimental"; # Experimentelle Features aktivieren
+      extraPackages = [ pkgs.docker-buildx ]; # BuildX-Plugin hinzufügen
     };
     podman = {
       enable = true;
@@ -292,4 +322,3 @@ in
     };
   };
 }
-

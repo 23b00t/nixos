@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 let
   kittyConf = import ./kitty.nix;
 in
@@ -36,7 +41,7 @@ in
     "Xcursor.size" = 16;
     "Xft.dpi" = 172;
   };
-  
+
   nixpkgs.config.allowUnfree = true;
 
   # Packages that should be installed to the user profile.
@@ -67,7 +72,7 @@ in
     # with more details log output
     nix-output-monitor
 
-    btop  # replacement of htop/nmon
+    btop # replacement of htop/nmon
     iotop # io monitoring
     iftop # network monitoring
 
@@ -91,6 +96,8 @@ in
     nerd-fonts.droid-sans-mono
 
     firefox
+    hunspell
+    hunspellDicts.de_DE
     zoom-us
     discord
     lazygit
@@ -110,7 +117,9 @@ in
 
   programs.gh = {
     enable = true;
-    settings = { git_protocol = "ssh"; };
+    settings = {
+      git_protocol = "ssh";
+    };
     extensions = with pkgs; [ gh-copilot ];
   };
 
@@ -128,13 +137,13 @@ in
       package = pkgs.tela-icon-theme;
     };
   };
-  
+
   # dconf settings for gnome shell theme
   dconf.settings = {
     "org/gnome/shell" = {
-        enabled-extensions = [
-          "user-theme@gnome-shell-extensions.gcampax.github.com"
-          "paperwm@paperwm.github.com"
+      enabled-extensions = [
+        "user-theme@gnome-shell-extensions.gcampax.github.com"
+        "paperwm@paperwm.github.com"
       ];
     };
 
@@ -200,7 +209,7 @@ in
   home.file.".config/kitty/kitty.conf".text = kittyConf;
   home.file.".config/kitty/current-theme.conf".source = ./current-theme.conf;
   home.file.".config/kitty/startup".source = ./startup;
-  
+
   programs.neovim = {
     enable = true;
     defaultEditor = true;
@@ -220,7 +229,7 @@ in
       watchexec
 
       lua-language-server
-      treesitter
+      nixfmt
     ];
   };
   home.sessionVariables = {
@@ -228,7 +237,7 @@ in
     MASON_DIR = "$HOME/.local/share/nvim/mason";
   };
 
-  # direnv 
+  # direnv
   programs.direnv = {
     enable = true;
     # Diese Option ist sehr zu empfehlen, da sie die Integration mit nix-shell/nix develop verbessert

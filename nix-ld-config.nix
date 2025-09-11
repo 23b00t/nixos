@@ -6,6 +6,7 @@
       stdenv.cc.cc
       gcc
       glibc
+      icu
       
       # Build-Tools
       gnumake
