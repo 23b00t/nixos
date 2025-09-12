@@ -16,6 +16,7 @@
       pcmd = "cmd=$(fzf < ~/cmds); vared -p '> ' -c cmd; eval '$cmd'";
       containers = "nix develop '/home/nx/nixos-config#containers'";
       n = "nvim";
+      dc = "docker compose";
     };
 
     history.size = 10000;

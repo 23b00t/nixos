@@ -89,14 +89,6 @@ let
 	map ctrl+alt+7 goto_tab 7
 	map ctrl+alt+8 goto_tab 8
 	map ctrl+alt+9 goto_tab 9
-	map ctrl+alt+t goto_layout tall
-	map ctrl+alt+s goto_layout stack
-	map ctrl+alt+v goto_layout vertical 
-
-	map ctrl+alt+j neighboring_window down
-	map ctrl+alt+k neighboring_window up 
-	map ctrl+alt+l neighboring_window right 
-	map ctrl+alt+h neighboring_window left 
 
 	map ctrl+alt+enter launch --cwd=current
 	map ctrl+alt+w select_tab
