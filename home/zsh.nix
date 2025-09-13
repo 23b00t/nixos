@@ -17,6 +17,7 @@
       containers = "nix develop '/home/nx/nixos-config#containers'";
       n = "nvim";
       dc = "docker compose";
+      kk = "kitty @ kitten";
     };
 
     history.size = 10000;
