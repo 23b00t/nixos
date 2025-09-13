@@ -95,9 +95,6 @@ in
     tela-icon-theme
     nerd-fonts.droid-sans-mono
 
-    firefox
-    hunspell
-    hunspellDicts.de_DE
     zoom-us
     discord
     lazygit
@@ -114,6 +111,16 @@ in
 
     devenv
   ];
+
+  programs = {
+    firefox = {
+      enable = true;
+      languagePacks = [
+        "de"
+        "en-US"
+      ];
+    };
+  };
 
   programs.gh = {
     enable = true;
@@ -209,6 +216,9 @@ in
   home.file.".config/kitty/kitty.conf".text = kittyConf;
   home.file.".config/kitty/current-theme.conf".source = ./current-theme.conf;
   home.file.".config/kitty/startup".source = ./startup;
+
+  # zellij
+  home.file.".config/zellij".source = ./zellij;
 
   programs.neovim = {
     enable = true;

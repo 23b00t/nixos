@@ -60,8 +60,8 @@ let
 	# dynamic_background_opacity no
 	# background_tint 0.5
 
-	shell /etc/profiles/per-user/nx/bin/zsh
-	editor vim
+	shell zsh
+	editor nvim
 
 	close_on_child_death no
 

@@ -1,0 +1,44 @@
+layout {
+    default_tab_template name="main" {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=1 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+
+    tab name="nixos" cwd="/home/nx/nixos-config/" {
+        pane
+    }
+    tab name="user" cwd="/home/nx/" {
+        pane
+    }
+    tab name="config" cwd="/home/nx/.config" {
+        pane
+    }
+    tab name="code" cwd="/home/nx/code/" {
+        pane
+    }
+    tab name="il9" {
+      pane cwd="/home/nx/code/il_9/ilias_9/"
+      pane split_direction="vertical" {
+        pane cwd="/home/nx/code/il_9/"
+        pane cwd="/home/nx/code/il_9/"
+        pane cwd="/home/nx/code/il_9/"
+      }
+    }
+    tab name="ruby" cwd="/home/nx/nixos-config/devenv/ruby/" {
+        pane
+    }
+    tab name="artDB" cwd="/home/nx/code/Künstlerschmuck/EasyArtDB/" {
+        pane
+    }
+    tab name="tauri" cwd="/home/nx/code/rust/tauri/" {
+        pane
+    }
+    tab name="ap1" cwd="/home/nx/Documents/AP1/" {
+        pane
+    }
+}
