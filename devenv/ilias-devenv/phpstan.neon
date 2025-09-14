@@ -1,0 +1,26 @@
+parameters:
+    level: 6
+    bootstrapFiles:
+        - constants.php
+    excludePaths:
+        - '%currentWorkingDirectory%/vendor/*'
+        - '%currentWorkingDirectory%/CI/*'
+        - '%currentWorkingDirectory%/data/*'
+        - '%currentWorkingDirectory%/dicto/*'
+        - '%currentWorkingDirectory%/docs/*'
+        - '%currentWorkingDirectory%/lang/*'
+        - '%currentWorkingDirectory%/node_modules/*'
+        - '%currentWorkingDirectory%/templates/*'
+        - '%currentWorkingDirectory%/xml/*'
+        - '%currentWorkingDirectory%/.github/*'
+    earlyTerminatingMethodCalls:
+        ilCtrl:
+            - redirect
+            - redirectByClass
+            - redirectToURL
+        ilCtrlInterface:
+            - redirect
+            - redirectByClass
+            - redirectToURL
+        ILIAS\HTTP\RawHTTPServices:
+            - close

@@ -18,6 +18,7 @@
       n = "nvim";
       dc = "docker compose";
       kk = "kitty @ kitten";
+      ilinit = "$HOME/nixos-config/devenv/ilias-devenv/ilias-devenv-builder.sh";
     };
 
     history.size = 10000;
