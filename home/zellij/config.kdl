@@ -242,11 +242,18 @@ keybinds clear-defaults=true {
     shared_except "locked" {
         bind "n" {
             Run "bash" "-c" "~/nixos-config/devenv/ilias-devenv/zellij-layout/il-layout.sh" {
-                direction "Right";
                 floating true;
-                move_to_focused_tab true;
             }
             SwitchToMode "Locked"
+        }
+    }
+    shared_except "locked" {
+    // ...
+        bind "f" {
+            LaunchPlugin "filepicker" {
+                floating true // uncomment this to have the filepicker opened in a floating window
+                close_on_selection true // comment this out to have the filepicker remain open even after selecting a file
+            };
         }
     }
 }
