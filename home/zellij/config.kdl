@@ -239,6 +239,16 @@ keybinds clear-defaults=true {
             SwitchToMode "Locked"
         }
     }
+    shared_except "locked" {
+        bind "n" {
+            Run "bash" "-c" "~/nixos-config/devenv/ilias-devenv/zellij-layout/il-layout.sh" {
+                direction "Right";
+                floating true;
+                move_to_focused_tab true;
+            }
+            SwitchToMode "Locked"
+        }
+    }
 }
 
 // Plugin aliases - can be used to change the implementation of Zellij
