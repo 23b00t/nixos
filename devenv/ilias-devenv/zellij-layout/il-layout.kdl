@@ -9,8 +9,8 @@ layout {
       }
   }
   tab name="{{NAME}}" {
-    pane split_direction="vertical" cwd="{{PROJECT_PATH}}"
-    pane stacked=true {
+    pane split_direction="vertical" cwd="{{PROJECT_PATH}}" size="65%"
+    pane stacked=true size="35%" {
       pane cwd="{{BASE_PATH}}" expanded=true
       pane cwd="{{BASE_PATH}}"
       pane cwd="{{BASE_PATH}}"
