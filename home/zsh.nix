@@ -12,8 +12,8 @@
       edit = "sudo -e";
       update = "sudo nixos-rebuild switch";
       sc = "systemctl";
-      cmd = "eval $(fzf < ~/cmds)";
-      pcmd = "cmd=$(fzf < ~/cmds); vared -p '> ' -c cmd; eval '$cmd'";
+      cmd = "eval $(fzf < ~/nixos-config/home/cmds)";
+      pcmd = "cmd=$(fzf < ~/nixos-config/home/cmds); vared -p '> ' -c cmd; eval '$cmd'";
       containers = "nix develop '/home/nx/nixos-config#containers'";
       n = "nvim";
       dc = "docker compose";

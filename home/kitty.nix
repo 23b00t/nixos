@@ -78,6 +78,8 @@ let
 
 	allow_cloning ask
 
+  enabled_layouts stack,vertical
+
 	map ctrl+shift+c copy_to_clipboard
 	map ctrl+v paste_from_clipboard
 	map ctrl+alt+1 goto_tab 1
@@ -90,7 +92,7 @@ let
 	map ctrl+alt+8 goto_tab 8
 	map ctrl+alt+9 goto_tab 9
 
-	map ctrl+alt+enter launch --cwd=current
+	map ctrl+alt+enter launch --cwd=current --bias -10
 	map ctrl+alt+w select_tab
   '';
 in

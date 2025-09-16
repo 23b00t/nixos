@@ -1,0 +1,16 @@
+def ri(*args); system("ri", *args); end # Ruby: To make ri available in irb: ~/.irbrc
+
+## Nix
+nix flake update # Nixos: Update nixpkgs cache
+sudo nix-env --list-generations --profile /nix/var/nix/profiles/system # Nixos: List system generations
+sudo nix-env --delete-generations 1 2 3 4 --profile /nix/var/nix/profiles/system # Nixos: Delete old specific (1-4) system generations -> nix-collect-garbage
+sudo nix-collect-garbage # Nixos: Delete only not refferenced packages
+sudo nix-collect-garbage -d # Nixos: Delete all old system generations and unused packages
+sudo nixos-rebuild boot # Nixos: Rebuild boot configuration
+
+## Webserver
+nix shell "nixpkgs#python3" --command python -m http.server 8080 # Python: Simple webserver
+nix shell "nixpkgs#busybox" --command httpd -f -p 8080 # Busybox: CGI if -h -c, config in /etc/httpd.conf
+
+podman run --rm -e PUID=1000 -e PGID=1000 -e TZ=Europe/Berlin -e PASSWORD_ACCESS=true -e USER_NAME=user -e USER_PASSWORD=trash -p 2222:2222 ghcr.io/linuxserver/openssh-server ## SSH Server
+
