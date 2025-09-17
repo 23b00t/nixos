@@ -243,14 +243,12 @@ in
     ];
   };
   home.sessionVariables = {
-    # Falls Sie spezifische Mason-Einstellungen benötigen
     MASON_DIR = "$HOME/.local/share/nvim/mason";
   };
 
   # direnv
   programs.direnv = {
     enable = true;
-    # Diese Option ist sehr zu empfehlen, da sie die Integration mit nix-shell/nix develop verbessert
     nix-direnv.enable = true;
   };
 

@@ -1,3 +1,4 @@
+## Ruby
 def ri(*args); system("ri", *args); end # Ruby: To make ri available in irb: ~/.irbrc
 
 ## Nix
@@ -14,3 +15,8 @@ nix shell "nixpkgs#busybox" --command httpd -f -p 8080 # Busybox: CGI if -h -c, 
 
 podman run --rm -e PUID=1000 -e PGID=1000 -e TZ=Europe/Berlin -e PASSWORD_ACCESS=true -e USER_NAME=user -e USER_PASSWORD=trash -p 2222:2222 ghcr.io/linuxserver/openssh-server ## SSH Server
 
+## git
+nix shell nixpkgs#git-filter-repo # Install git-filter-repo
+git-filter-repo --path .devenv --invert-paths --force # Remove .devenv from git history
+## Afterwards git remote add origin <new-repo-url> and git push -u origin main --force
+git rm -r --cached .devenv/ # Remove .devenv from git index
