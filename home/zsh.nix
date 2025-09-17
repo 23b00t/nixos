@@ -10,7 +10,8 @@
       ll = "ls -l";
       la = "ls -la";
       edit = "sudo -e";
-      update = "sudo nixos-rebuild switch";
+      update = "nix flake update && sudo nixos-rebuild switch";
+      rebuild = "sudo nixos-rebuild switch";
       sc = "systemctl";
       cmd = "eval $(fzf < ~/nixos-config/home/cmds)";
       pcmd = "cmd=$(fzf < ~/nixos-config/home/cmds); vared -p '> ' -c cmd; eval '$cmd'";
