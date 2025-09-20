@@ -9,12 +9,13 @@
   languages.ruby = {
     enable = true;
     version = "3.4.5";
-    # gems = [
-    #   pkgs.rubyPackages.bond
-    #   pkgs.rubyPackages.hirb
-    #   pkgs.rubyPackages.wirble
-    # ];
+    bundler.enable = true;
   };
+
+  packages = [
+    pkgs.libyaml
+  ];
+
   languages.javascript.enable = true;
   
   # Services
@@ -31,16 +32,31 @@
     echo "Ruby version: $(ruby --version)"
   '';
 
-  # scripts.irb_dev.exec = ''
-  #   ruby -r bond -r hirb -r pry -e '
-  #     Bond.start
-  #     Hirb.enable
-  #     Pry.start
-  #   '
-  # '';
+  # Environment variables for Bundler and RubyGems
+  env.BUNDLE_PATH = lib.mkForce ".devenv/state/.bundle";
+  env.GEM_HOME = lib.mkForce ".devenv/state/.bundle/ruby/3.4.5";
+  env.GEM_PATH = lib.mkForce ".devenv/state/.bundle/ruby/3.4.5";
+  env.BUNDLE_BIN = lib.mkForce ".devenv/state/.bundle/ruby/3.4.5/bin";
+  env.PATH = [ "./bin" ];
+
+  scripts.gemenv.exec = ''
+    mkdir -p bin
+
+    for tool in ruby-lsp rubocop solargraph; do
+      if [ ! -x bin/$tool ]; then
+        cat > bin/$tool <<'EOF'
+#!/usr/bin/env bash
+# Wrapper executes the Bundler-generated binstub with Bundler preloaded
+exec ruby -rbundler/setup ".devenv/state/.bundle/ruby/3.4.5/bin/$(basename "$0")" "$@"
+EOF
+        chmod +x bin/$tool
+      fi
+    done
+  '';
 
   enterShell = ''
     hello
+    gemenv
   '';
 
   # Tests for this environment
