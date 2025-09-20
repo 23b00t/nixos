@@ -29,16 +29,13 @@ layout {
         pane cwd="/home/nx/code/il_9/"
       }
     }
-    tab name="ruby" cwd="/home/nx/nixos-config/devenv/ruby/" {
+    tab name="ruby" cwd="/home/nx/code/ruby/" {
         pane
     }
     tab name="artDB" cwd="/home/nx/code/Künstlerschmuck/EasyArtDB/" {
         pane
     }
     tab name="tauri" cwd="/home/nx/code/rust/tauri/" {
-        pane
-    }
-    tab name="ap1" cwd="/home/nx/Documents/AP1/" {
         pane
     }
 }
