@@ -97,6 +97,7 @@ in
 
     zoom-us
     discord
+    slack
     lazygit
     onlyoffice-bin
     gimp
@@ -240,6 +241,8 @@ in
 
       lua-language-server
       nixfmt
+
+      watchman
     ];
   };
   home.sessionVariables = {

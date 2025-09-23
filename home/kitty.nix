@@ -32,10 +32,10 @@ let
     	input_delay 3
 
     	sync_to_monitor yes
-    	enable_audio_bell no 
-    	visual_bell_duration 0.5
-    	visual_bell_color none
-    	window_alert_on_bell yes
+    	enable_audio_bell yes 
+    	# visual_bell_duration 0.5
+    	# visual_bell_color none
+    	# window_alert_on_bell yes
     	bell_on_tab "🔔 "
     	remember_window_size  yes
     	draw_minimal_borders yes
