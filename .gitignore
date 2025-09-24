@@ -2,3 +2,6 @@
 *.pid
 *.log
 *.qcow2
+
+# Ignore all results at any depth
+*result*

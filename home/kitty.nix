@@ -78,7 +78,7 @@ let
 
     	allow_cloning ask
 
-      enabled_layouts stack,vertical
+      enabled_layouts stack,vertical,horizontal
 
     	map ctrl+shift+c copy_to_clipboard
     	map ctrl+v paste_from_clipboard
