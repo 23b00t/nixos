@@ -1,3 +1,4 @@
+# Inspired by: https://discourse.nixos.org/t/how-to-wrap-all-my-electron-apps-with-args/17111/4
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.symlinkJoin {
