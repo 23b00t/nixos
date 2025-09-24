@@ -111,6 +111,8 @@ in
     jetbrains.phpstorm
 
     devenv
+
+    vectorcode
   ];
 
   programs = {
