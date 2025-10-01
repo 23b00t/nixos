@@ -11,6 +11,7 @@ in
   imports = [
     ./zsh.nix
     ./vim.nix
+    ./yazi.nix
   ];
 
   home.username = "nx";
@@ -46,6 +47,7 @@ in
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
+    ddate
     oh-my-posh
     neofetch
     nnn # terminal file manager
@@ -152,6 +154,8 @@ in
       enabled-extensions = [
         "user-theme@gnome-shell-extensions.gcampax.github.com"
         "paperwm@paperwm.github.com"
+        # NOTE: Have manually installed it just here for activation
+        "trayIconsReloaded@selfmade.pl"
       ];
     };
 
@@ -210,6 +214,10 @@ in
       init.defaultBranch = "main";
 
       gpg.program = "gpg";
+
+      # Add nvimdiff mergetool config
+      "mergetool.nvimdiff".cmd = ''nvim -d "$LOCAL" "$REMOTE" "$MERGED" -c "wincmd l"'';
+      merge.tool = "nvimdiff";
     };
   };
 
@@ -237,6 +245,7 @@ in
       nodejs
       rustc
       cargo
+      rust-analyzer
       watchexec
 
       lua-language-server
