@@ -38,9 +38,6 @@ in
           }
         ];
       };
-      flavor = {
-        dark = "tokyo-night";
-      };
     };
 
     plugins = {
@@ -71,4 +68,9 @@ in
     rev = "5f5636427f9bb16cc3f7c5e5693c60914c73f036";
     hash = "sha256-4aNPlO5aXP8c7vks6bTlLCuyUQZ4Hx3GWtGlRmbhdto=";
   };
+
+  home.file.".config/yazi/theme.toml".text = ''
+    [flavor]
+    dark = "tokyo-night"
+  '';
 }
