@@ -1,12 +1,11 @@
 {
-  config,
   pkgs,
-  lib,
+  yazi,
   ...
 }:
 let
   kittyConf = import ./kitty.nix;
-  yaziPkg = (import ../flake.nix).inputs.yazi.packages.${pkgs.system}.default.override {
+  yaziPkg = yazi.packages.${pkgs.system}.default.override {
     _7zz = pkgs._7zz-rar;
   };
 in
@@ -50,11 +49,11 @@ in
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
-    yaziPkg
+    # yaziPkg
+    zoxide
     ddate
     oh-my-posh
     neofetch
-    nnn # terminal file manager
 
     # archives
     zip
@@ -220,8 +219,9 @@ in
       gpg.program = "gpg";
 
       # Add nvimdiff mergetool config
-      "mergetool.nvimdiff".cmd = ''nvim -d "$LOCAL" "$REMOTE" "$MERGED" -c "wincmd l"'';
+      "mergetool.nvimdiff".cmd = ''kitty nvim -d "$LOCAL" "$MERGED" "$REMOTE" -c "wincmd l"'';
       merge.tool = "nvimdiff";
+      mergetool.keepBackup = false;
     };
   };
 

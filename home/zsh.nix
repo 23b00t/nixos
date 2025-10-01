@@ -59,6 +59,9 @@
     if command -v ${pkgs.gh}/bin/gh >/dev/null 2>&1; then
       eval "$(${pkgs.gh}/bin/gh copilot alias -- zsh)"
     fi
+    if command -v zoxide >/dev/null 2>&1; then
+      eval "$(zoxide init zsh)"
+    fi
 	'';
   };
 }

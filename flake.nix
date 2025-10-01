@@ -14,59 +14,70 @@
     yazi.url = "github:sxyazi/yazi";
   };
 
-  outputs = { self, nixpkgs, home-manager, nix-ld, ... }@inputs: {
-    nixosConfigurations.machine = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      
-      modules = [
-        ./machines/h/configuration.nix
-
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useGlobalPkgs = false;
-          home-manager.users.nx = {
-            nixpkgs.config.allowUnfree = true;
-            imports = [ ./home/home.nix ];
-          };
-        }
-
-        nix-ld.nixosModules.nix-ld
-        ./nix-ld-config.nix
-
-        # The module in this repository defines a new module under (programs.nix-ld.dev) instead of (programs.nix-ld)
-        # to not collide with the nixpkgs version.
-        # { programs.nix-ld.dev.enable = true; }
-      ];
-    };
-
-    # --- DevShells ---
-    devShells."x86_64-linux" = let
-      lib = nixpkgs.lib;
-      pkgs = import nixpkgs {
+  outputs =
+    {
+      self,
+      nixpkgs,
+      home-manager,
+      nix-ld,
+      ...
+    }@inputs:
+    {
+      nixosConfigurations.machine = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        config = {
-          allowUnfree = true;
-        };
+
+        modules = [
+          ./machines/h/configuration.nix
+
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = false;
+            home-manager.extraSpecialArgs = { inherit (inputs) yazi; };
+            home-manager.users.nx = {
+              nixpkgs.config.allowUnfree = true;
+              imports = [ ./home/home.nix ];
+            };
+          }
+
+          nix-ld.nixosModules.nix-ld
+          ./nix-ld-config.nix
+
+          # The module in this repository defines a new module under (programs.nix-ld.dev) instead of (programs.nix-ld)
+          # to not collide with the nixpkgs version.
+          # { programs.nix-ld.dev.enable = true; }
+        ];
       };
 
-    in {
-      # Separate Shell für Container-Tools
-      containers = pkgs.mkShell {
-        packages = with pkgs; [
-          lazydocker
-          dive
-          ctop
-          docker-slim
-          podman-tui
-          distrobox
-        ];
-        shellHook = ''
-          echo
-          echo "Container-Tools-Shell aktiv:"
-          echo "  lazydocker, dive, ctop, podman-tui im PATH."
-          echo
-        '';
-      };
+      # --- DevShells ---
+      devShells."x86_64-linux" =
+        let
+          lib = nixpkgs.lib;
+          pkgs = import nixpkgs {
+            system = "x86_64-linux";
+            config = {
+              allowUnfree = true;
+            };
+          };
+
+        in
+        {
+          # Separate Shell für Container-Tools
+          containers = pkgs.mkShell {
+            packages = with pkgs; [
+              lazydocker
+              dive
+              ctop
+              docker-slim
+              podman-tui
+              distrobox
+            ];
+            shellHook = ''
+              echo
+              echo "Container-Tools-Shell aktiv:"
+              echo "  lazydocker, dive, ctop, podman-tui im PATH."
+              echo
+            '';
+          };
+        };
     };
-  };
 }

@@ -1,12 +1,18 @@
-{ pkgs, ... }:
+{ pkgs, yazi, ... }:
 let
-  yazi-plugins = pkgs.fetchgit {
-    url = "https://github.com/yazi-rs/plugins";
+  # nix shell "nixpkgs#nix-prefetch-git"
+  # nix-prefetch-git --url https://github.com/yazi-rs/plugins --rev d1c8baa
+  yazi-plugins = pkgs.fetchFromGitHub {
+    owner = "yazi-rs";
+    repo = "plugins";
+    rev = "d1c8baab86100afb708694d22b13901b9f9baf00";
+    hash = "sha256-52Zn6OSSsuNNAeqqZidjOvfCSB7qPqUeizYq/gO+UbE=";
   };
 in
 {
   programs.yazi = {
     enable = true;
+    package = yazi.packages.${pkgs.system}.default;
     enableZshIntegration = true;
     shellWrapperName = "y";
 
@@ -32,7 +38,9 @@ in
           }
         ];
       };
-      flavor = "tokyonight";
+      flavor = {
+        dark = "tokyo-night";
+      };
     };
 
     plugins = {
@@ -55,5 +63,12 @@ in
         }
       ];
     };
+  };
+
+  home.file.".config/yazi/flavors/tokyo-night.yazi".source = pkgs.fetchFromGitHub {
+    owner = "BennyOe";
+    repo = "tokyo-night.yazi";
+    rev = "5f5636427f9bb16cc3f7c5e5693c60914c73f036";
+    hash = "sha256-4aNPlO5aXP8c7vks6bTlLCuyUQZ4Hx3GWtGlRmbhdto=";
   };
 }
