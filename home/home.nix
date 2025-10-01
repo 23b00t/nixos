@@ -6,6 +6,9 @@
 }:
 let
   kittyConf = import ./kitty.nix;
+  yaziPkg = (import ../flake.nix).inputs.yazi.packages.${pkgs.system}.default.override {
+    _7zz = pkgs._7zz-rar;
+  };
 in
 {
   imports = [
@@ -47,6 +50,7 @@ in
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
+    yaziPkg
     ddate
     oh-my-posh
     neofetch

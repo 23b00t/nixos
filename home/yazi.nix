@@ -1,6 +1,6 @@
 { pkgs, ... }:
 let
-  yazi-plugins = pkgs.fetchGit {
+  yazi-plugins = pkgs.fetchgit {
     url = "https://github.com/yazi-rs/plugins";
   };
 in
