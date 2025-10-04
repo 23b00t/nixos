@@ -51,7 +51,7 @@
     # _omp_cfg="''${OMP_CONFIG:-''${POSH_THEME:-$_omp_default}}"
 
     if command -v oh-my-posh >/dev/null 2>&1; then
-      eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/1_shell.omp.json")"
+      eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/montys.omp.json")"
     fi
     # unset _omp_cfg _omp_default
 

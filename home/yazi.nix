@@ -19,11 +19,12 @@ in
     settings = {
       mgr = {
         show_hidden = true;
+        linemode = "permissions";
       };
-      preview = {
-        max_width = 1000;
-        max_height = 1000;
-      };
+      # preview = {
+      #   max_width = 1000;
+      #   max_height = 1000;
+      # };
       plugin = {
         prepend_fetchers = [
           {
@@ -44,6 +45,8 @@ in
       full-border = "${yazi-plugins}/full-border.yazi";
       git = "${yazi-plugins}/git.yazi";
       mount = "${yazi-plugins}/mount.yazi";
+      chmod = "${yazi-plugins}/chmod.yazi";
+      "jump-to-char" = "${yazi-plugins}/jump-to-char.yazi";
     };
 
     initLua = ''
@@ -57,6 +60,19 @@ in
           on = "M";
           run = "plugin mount";
           desc = "Maximize or restore the preview pane";
+        }
+        {
+          on = [
+            "c"
+            "m"
+          ];
+          run = "plugin chmod";
+          desc = "Chmod on selected files";
+        }
+        {
+          on = "F";
+          run = "plugin jump-to-char";
+          desc = "Jump to char";
         }
       ];
     };
