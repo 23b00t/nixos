@@ -217,11 +217,6 @@ in
       init.defaultBranch = "main";
 
       gpg.program = "gpg";
-
-      # Add nvimdiff mergetool config
-      "mergetool.nvimdiff".cmd = ''kitty nvim -d "$LOCAL" "$MERGED" "$REMOTE" -c "wincmd l"'';
-      merge.tool = "nvimdiff";
-      mergetool.keepBackup = false;
     };
   };
 

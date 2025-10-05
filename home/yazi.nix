@@ -19,7 +19,7 @@ in
     settings = {
       mgr = {
         show_hidden = true;
-        linemode = "permissions";
+        linemode = "size";
       };
       # preview = {
       #   max_width = 1000;
