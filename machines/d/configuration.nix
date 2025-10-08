@@ -160,12 +160,18 @@
   system.autoUpgrade = {
     enable = true;
     flake = inputs.self.outPath;
-    postUpgrade = "nix-collect-garbage -d";
+    flags = [
+      "-L" # print build logs
+    ];
+    dates = "02:00";
+    randomizedDelaySec = "45min";
   };
 
   nix.gc = {
     automatic = true;
-    dates = "weekly";
+    persistent = true;
+    dates = "02:00";
+    randomizedDelaySec = "45min";
   };
 
   boot.loader.systemd-boot.configurationLimit = 3;
