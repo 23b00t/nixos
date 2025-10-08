@@ -7,6 +7,13 @@
     syntaxHighlighting.enable = true;
 
     shellAliases = {
+      ll = "ls -l";
+      la = "ls -la";
+      edit = "sudo -e";
+      update = "nix flake update && sudo nixos-rebuild switch";
+      rebuild = "sudo nixos-rebuild switch";
+      sc = "systemctl";
+      ddate = "nix run 'nixpkgs#ddate'";
     };
 
     history.size = 10000;
