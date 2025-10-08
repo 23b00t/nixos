@@ -1,43 +1,19 @@
 {
   pkgs,
-  yazi,
   ...
 }:
-let
-  kittyConf = import ./kitty.nix;
-  yaziPkg = yazi.packages.${pkgs.system}.default.override {
-    _7zz = pkgs._7zz-rar;
-  };
-in
 {
   imports = [
     ./zsh.nix
-    ./vim.nix
-    ./yazi.nix
   ];
 
-  home.username = "nx";
-  home.homeDirectory = "/home/nx";
+  home.username = "yula";
+  home.homeDirectory = "/home/yula";
 
-  home.sessionVariables.LANG = "en_US.UTF-8";
+  home.sessionVariables.LANG = "de_DE.UTF-8";
 
   # enable gnome-shell (to make paperwm work)
   programs.gnome-shell.enable = true;
-
-  # link the configuration file in current directory to the specified location in home directory
-  # home.file.".config/i3/wallpaper.jpg".source = ./wallpaper.jpg;
-
-  # link all files in `./scripts` to `~/.config/i3/scripts`
-  # home.file.".config/i3/scripts" = {
-  #   source = ./scripts;
-  #   recursive = true;   # link recursively
-  #   executable = true;  # make all files executable
-  # };
-
-  # encode the file content in nix configuration file directly
-  # home.file.".xxx".text = ''
-  #     xxx
-  # '';
 
   # set cursor size and dpi for 4k monitor
   xresources.properties = {
@@ -49,9 +25,6 @@ in
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
-    # yaziPkg
-    zoxide
-    # ddate
     oh-my-posh
     neofetch
 
@@ -93,8 +66,6 @@ in
     pciutils # lspci
     usbutils # lsusb
 
-    # Gnome stuff
-    gnomeExtensions.paperwm
     gnomeExtensions.user-themes
     dracula-theme
     tela-icon-theme
@@ -102,8 +73,6 @@ in
 
     zoom-us
     discord
-    slack
-    lazygit
     onlyoffice-bin
     gimp
     vlc
@@ -111,11 +80,14 @@ in
     google-chrome
     pinta
     pdfarranger
+    geany
 
-    postman
-    jetbrains.phpstorm
+    tor-browser
 
-    devenv
+    superTuxKart
+    superTux
+
+    inkscape-with-extensions
   ];
 
   programs = {
@@ -126,14 +98,6 @@ in
         "en-US"
       ];
     };
-  };
-
-  programs.gh = {
-    enable = true;
-    settings = {
-      git_protocol = "ssh";
-    };
-    extensions = with pkgs; [ gh-copilot ];
   };
 
   # Icons and theme
@@ -156,111 +120,12 @@ in
     "org/gnome/shell" = {
       enabled-extensions = [
         "user-theme@gnome-shell-extensions.gcampax.github.com"
-        "paperwm@paperwm.github.com"
-        # NOTE: Have manually installed it just here for activation
-        "trayIconsReloaded@selfmade.pl"
       ];
     };
 
     "org/gnome/shell/extensions/user-theme" = {
       name = "Dracula";
     };
-  };
-
-  # git
-  programs.git = {
-    enable = true;
-    userName = "Daniel Kipp";
-    userEmail = "daniel.kipp@gmail.com";
-    signing = {
-      key = "937A32679620DC68";
-      signByDefault = true;
-    };
-
-    extraConfig = {
-      color = {
-        branch = "auto";
-        diff = "auto";
-        interactive = "auto";
-        status = "auto";
-        ui = "auto";
-      };
-
-      "color \"branch\"" = {
-        current = "green";
-        remote = "yellow";
-      };
-
-      alias = {
-        co = "checkout";
-        st = "status -sb";
-        br = "branch";
-        ci = "commit";
-        fo = "fetch origin";
-        d = "!git --no-pager diff";
-        dt = "difftool";
-        stat = "!git --no-pager diff --stat";
-        remoteSetHead = "remote set-head origin --auto";
-        defaultBranch = "!git symbolic-ref refs/remotes/origin/HEAD | cut -d'/' -f4";
-        sweep = "!git branch --merged $(git defaultBranch) | grep -E -v \" $(git defaultBranch)$\" | xargs -r git branch -d && git remote prune origin";
-        lg = "log --graph --all --pretty=format:'%Cred%h%Creset - %s %Cgreen(%cr) %C(bold blue)%an%Creset %C(yellow)%d%Creset'";
-        serve = "!git daemon --reuseaddr --verbose  --base-path=. --export-all ./.git";
-        m = "!git checkout $(git defaultBranch)";
-        unstage = "reset HEAD --";
-      };
-
-      help.autocorrect = 1;
-      push.default = "simple";
-      pull.rebase = false;
-
-      "branch \"main\"".mergeoptions = "--no-edit";
-      init.defaultBranch = "main";
-
-      gpg.program = "gpg";
-    };
-  };
-
-  # programs.kitty.enable = true;
-  home.file.".config/kitty/kitty.conf".text = kittyConf;
-  home.file.".config/kitty/current-theme.conf".source = ./current-theme.conf;
-  home.file.".config/kitty/startup".source = ./startup;
-
-  # zellij
-  home.file.".config/zellij".source = ./zellij;
-
-  programs.neovim = {
-    enable = true;
-    defaultEditor = true;
-    withNodeJs = true;
-    withPython3 = true;
-    extraPackages = with pkgs; [
-      python3
-      fd
-      unzip
-
-      gcc
-      gnumake
-
-      nodejs
-      rustc
-      cargo
-      rust-analyzer
-      watchexec
-
-      lua-language-server
-      nixfmt
-
-      watchman
-    ];
-  };
-  home.sessionVariables = {
-    MASON_DIR = "$HOME/.local/share/nvim/mason";
-  };
-
-  # direnv
-  programs.direnv = {
-    enable = true;
-    nix-direnv.enable = true;
   };
 
   home.stateVersion = "25.05";
