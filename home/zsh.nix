@@ -20,7 +20,7 @@
       dc = "docker compose";
       kk = "kitty @ kitten";
       ilinit = "$HOME/nixos-config/devenv/ilias-devenv/ilias-devenv-builder.sh";
-      ddate = "nix run 'nixpkgs#ddate'";
+      # ddate = "nix run 'nixpkgs#ddate'";
     };
 
     history.size = 10000;
