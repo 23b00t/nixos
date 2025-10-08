@@ -19,7 +19,10 @@
   services.displayManager.gdm.enable = true;
   services.displayManager.gdm.wayland = true;
   services.desktopManager.gnome.enable = true;
-  services.gnome.gcr-ssh-agent.enable = false;
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "yula";
+  };
 
   networking.hostName = "machine";
   networking.firewall = {
