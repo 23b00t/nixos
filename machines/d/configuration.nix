@@ -16,9 +16,10 @@
   # boot.initrd.systemd.enable = true;
 
   # GNOME Wayland (with PaperWM)
-  services.displayManager.gdm.enable = true;
+  # services.displayManager.gdm.enable = true;
   services.displayManager.gdm.wayland = true;
-  services.desktopManager.gnome.enable = true;
+  services.xserver.desktopManager.gnome.enable = true;
+  services.xserver.displayManager.gdm.enable = true;
   services.displayManager.autoLogin = {
     enable = true;
     user = "yula";
