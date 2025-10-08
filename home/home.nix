@@ -51,7 +51,7 @@ in
   home.packages = with pkgs; [
     # yaziPkg
     zoxide
-    ddate
+    # ddate
     oh-my-posh
     neofetch
 

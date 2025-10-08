@@ -21,4 +21,7 @@ git-filter-repo --path .devenv --invert-paths --force # Remove .devenv from git 
 ## Afterwards git remote add origin <new-repo-url> and git push -u origin main --force
 git rm -r --cached .devenv/ # Remove .devenv from git index
 
+gh repo create your-repo-name --public --source=. --remote=origin # Create new public GitHub repo
+gh repo create your-repo-name --private --source=. --remote=origin # Create new private GitHub repo
+
 nvim $HOME/nixos-config/home/cmds # Edit this file - update cmds

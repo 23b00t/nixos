@@ -78,15 +78,15 @@ in
     };
   };
 
-  home.file.".config/yazi/flavors/tokyo-night.yazi".source = pkgs.fetchFromGitHub {
-    owner = "BennyOe";
-    repo = "tokyo-night.yazi";
-    rev = "5f5636427f9bb16cc3f7c5e5693c60914c73f036";
-    hash = "sha256-4aNPlO5aXP8c7vks6bTlLCuyUQZ4Hx3GWtGlRmbhdto=";
-  };
-
-  home.file.".config/yazi/theme.toml".text = ''
-    [flavor]
-    dark = "tokyo-night"
-  '';
+  # home.file.".config/yazi/flavors/tokyo-night.yazi".source = pkgs.fetchFromGitHub {
+  #   owner = "BennyOe";
+  #   repo = "tokyo-night.yazi";
+  #   rev = "5f5636427f9bb16cc3f7c5e5693c60914c73f036";
+  #   hash = "sha256-4aNPlO5aXP8c7vks6bTlLCuyUQZ4Hx3GWtGlRmbhdto=";
+  # };
+  #
+  # home.file.".config/yazi/theme.toml".text = ''
+  #   [flavor]
+  #   dark = "tokyo-night"
+  # '';
 }
