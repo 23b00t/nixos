@@ -51,7 +51,7 @@ in
   home.packages = with pkgs; [
     # yaziPkg
     zoxide
-    ddate
+    # ddate
     oh-my-posh
     neofetch
 
@@ -82,8 +82,8 @@ in
     iftop # network monitoring
 
     # system call monitoring
-    strace # system call monitoring
-    ltrace # library call monitoring
+    # strace # system call monitoring
+    # ltrace # library call monitoring
     lsof # list open files
 
     # system tools
@@ -113,7 +113,7 @@ in
     pdfarranger
 
     postman
-    jetbrains.phpstorm
+    # jetbrains.phpstorm
 
     devenv
   ];
