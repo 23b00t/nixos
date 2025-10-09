@@ -194,4 +194,6 @@
     # To stop:
     #   sudo systemctl stop sshd
   };
+
+  networking.firewall.allowedTCPPorts = [ 22 ];
 }
