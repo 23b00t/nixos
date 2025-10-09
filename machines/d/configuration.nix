@@ -178,4 +178,20 @@
   };
 
   boot.loader.systemd-boot.configurationLimit = 3;
+
+  services.openssh = {
+    enable = true; # Service is available, but will not autostart
+    startWhenNeeded = false; # Prevent autostart, manual start only
+    allowSFTP = false;
+    settings = {
+      PermitRootLogin = "no";
+      PasswordAuthentication = false;
+      ChallengeResponseAuthentication = false;
+      AllowUsers = [ "yula" ];
+    };
+    # Service will not start automatically. To start manually:
+    #   sudo systemctl start sshd
+    # To stop:
+    #   sudo systemctl stop sshd
+  };
 }
