@@ -114,8 +114,9 @@ in
 
     postman
     # jetbrains.phpstorm
-
     devenv
+
+    tiny
   ];
 
   programs = {

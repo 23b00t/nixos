@@ -63,6 +63,9 @@
     if command -v zoxide >/dev/null 2>&1; then
       eval "$(zoxide init zsh)"
     fi
+
+    # Load custom functions
+    [ -f "$HOME/.config/home-manager/paste_functions.zsh" ] && source "$HOME/.config/home-manager/paste_functions.zsh"
 	'';
   };
 }
