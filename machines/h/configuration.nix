@@ -321,20 +321,4 @@ in
       dockerCompat = false;
     };
   };
-
-
-  # Make toggle-internal-keyboard.sh available and executable
-  environment.etc."local/bin/toggle-internal-keyboard.sh".source = ./toggle-internal-keyboard.sh;
-  environment.etc."local/bin/toggle-internal-keyboard.sh".mode = "0755";
-
-  # Optional: systemd service to toggle the internal keyboard manually
-  systemd.services.toggle-internal-keyboard = {
-    description = "Toggle internal (AT Translated Set 2) keyboard on/off";
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "/etc/local/bin/toggle-internal-keyboard.sh";
-    };
-    # Don't start automatically
-    wantedBy = [];
-  };
 }
