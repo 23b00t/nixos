@@ -5,9 +5,6 @@
 }:
 let
   kittyConf = import ./kitty.nix;
-  yaziPkg = yazi.packages.${pkgs.system}.default.override {
-    _7zz = pkgs._7zz-rar;
-  };
 in
 {
   imports = [
