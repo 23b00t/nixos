@@ -1,4 +1,4 @@
-{ pkgs, yazi, ... }:
+{ pkgs, inputs, ... }:
 let
   # nix shell "nixpkgs#nix-prefetch-git"
   # nix-prefetch-git --url https://github.com/yazi-rs/plugins --rev d1c8baa
@@ -9,7 +9,7 @@ let
     hash = "sha256-52Zn6OSSsuNNAeqqZidjOvfCSB7qPqUeizYq/gO+UbE=";
   };
 
-  yaziPkg = yazi.packages.${pkgs.system}.default.override {
+  yaziPkg = inputs.yazi.packages.${pkgs.system}.default.override {
     _7zz = pkgs._7zz-rar;
   };
 in
@@ -83,15 +83,15 @@ in
     };
   };
 
-  home.file.".config/yazi/flavors/tokyo-night.yazi".source = pkgs.fetchFromGitHub {
-    owner = "BennyOe";
-    repo = "tokyo-night.yazi";
-    rev = "5f5636427f9bb16cc3f7c5e5693c60914c73f036";
-    hash = "sha256-4aNPlO5aXP8c7vks6bTlLCuyUQZ4Hx3GWtGlRmbhdto=";
-  };
-
-  home.file.".config/yazi/theme.toml".text = ''
-    [flavor]
-    dark = "tokyo-night"
-  '';
+  # home.file.".config/yazi/flavors/tokyo-night.yazi".source = pkgs.fetchFromGitHub {
+  #   owner = "BennyOe";
+  #   repo = "tokyo-night.yazi";
+  #   rev = "5f5636427f9bb16cc3f7c5e5693c60914c73f036";
+  #   hash = "sha256-4aNPlO5aXP8c7vks6bTlLCuyUQZ4Hx3GWtGlRmbhdto=";
+  # };
+  #
+  # home.file.".config/yazi/theme.toml".text = ''
+  #   [flavor]
+  #   dark = "tokyo-night"
+  # '';
 }

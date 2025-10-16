@@ -1,6 +1,7 @@
 new_tab zellij
-layout vertical
+layout stack 
 launch zsh -c "zellij --layout /home/nx/.config/zellij/layouts/tabs.kdl"
+launch zsh -c "zellij --layout /home/nx/.config/zellij/layouts/tiny.kdl"
 
 new_tab yazi
 layout vertical

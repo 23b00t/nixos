@@ -32,8 +32,8 @@ let
     	input_delay 3
 
     	sync_to_monitor yes
-    	enable_audio_bell yes 
-    	# visual_bell_duration 0.5
+    	enable_audio_bell no 
+    	visual_bell_duration 0.5
     	# visual_bell_color none
     	# window_alert_on_bell yes
     	bell_on_tab "🔔 "
@@ -81,7 +81,7 @@ let
       enabled_layouts stack,vertical,horizontal
 
     	map ctrl+shift+c copy_to_clipboard
-    	map ctrl+v paste_from_clipboard
+    	map ctrl+shift+v paste_from_clipboard
     	map ctrl+alt+1 goto_tab 1
     	map ctrl+alt+2 goto_tab 2
     	map ctrl+alt+3 goto_tab 3

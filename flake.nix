@@ -32,7 +32,7 @@
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = false;
-            home-manager.extraSpecialArgs = { inherit (inputs) yazi; };
+            home-manager.extraSpecialArgs = { inherit inputs; };
             home-manager.users.nx = {
               nixpkgs.config.allowUnfree = true;
               imports = [ ./home/home.nix ];
