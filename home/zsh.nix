@@ -21,6 +21,7 @@
       kk = "kitty @ kitten";
       ilinit = "$HOME/nixos-config/devenv/ilias-devenv/ilias-devenv-builder.sh";
       # ddate = "nix run 'nixpkgs#ddate'";
+      irc = "zellij a $(zellij ls --no-formatting | tail -n 2 | rg -v current | cut -d' ' -f 1)";
     };
 
     history.size = 10000;

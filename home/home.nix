@@ -114,6 +114,7 @@ in
     devenv
 
     tiny
+    wezterm
   ];
 
   programs = {
