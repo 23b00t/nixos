@@ -12,8 +12,6 @@ in
     ./vim.nix
     ./yazi.nix
     ./hyde.nix
-
-    inputs.hydenix.homeModules.default
   ];
 
   home.username = "nx";
@@ -45,7 +43,7 @@ in
     "Xft.dpi" = 172;
   };
 
-  nixpkgs.config.allowUnfree = true;
+  # nixpkgs.config.allowUnfree = true;
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
@@ -97,11 +95,11 @@ in
     gnomeExtensions.paperwm
     gnomeExtensions.user-themes
     dracula-theme
-    tela-icon-theme
+    # tela-icon-theme
     nerd-fonts.droid-sans-mono
 
     zoom-us
-    discord
+    # discord
     slack
     lazygit
     onlyoffice-bin

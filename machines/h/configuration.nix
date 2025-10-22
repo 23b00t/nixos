@@ -1,8 +1,5 @@
-# NixOS config
-
 {
   lib,
-  pkgs,
   inputs,
   ...
 }:
@@ -19,19 +16,21 @@ let
 in
 {
   nixpkgs.pkgs = pkgs; # Set pkgs for hydenix globally
-  imports = [
-    ./hardware-configuration.nix
 
-    # inputs.hydenix.inputs.home-manager.nixosModules.home-manager
+  imports = [
+    # hydenix inputs - Required modules, don't modify unless you know what you're doing
+    inputs.hydenix.inputs.home-manager.nixosModules.home-manager
     inputs.hydenix.nixosModules.default
+    ./hardware-configuration.nix # Auto-generated hardware config
+
+    # Hardware Configuration - Uncomment lines that match your hardware
+    # Run `lshw -short` or `lspci` to identify your hardware
 
     # GPU Configuration (choose one):
-    # inputs.nixos-hardware.nixosModules.common-gpu-nvidia # NVIDIA
     inputs.nixos-hardware.nixosModules.common-gpu-amd # AMD
 
     # CPU Configuration (choose one):
     inputs.nixos-hardware.nixosModules.common-cpu-amd # AMD CPUs
-    # inputs.nixos-hardware.nixosModules.common-cpu-intel # Intel CPUs
 
     # Additional Hardware Modules - Uncomment based on your system type:
     inputs.nixos-hardware.nixosModules.common-hidpi # High-DPI displays
@@ -39,26 +38,23 @@ in
     inputs.nixos-hardware.nixosModules.common-pc-ssd # SSD storage
   ];
 
-  # Switch to minimal channel for host?
-  system.stateVersion = "25.05";
+  # Home Manager Configuration - manages user-specific configurations (dotfiles, themes, etc.)
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    extraSpecialArgs = { inherit inputs; };
+    users."nx" =
+      { ... }:
+      {
+        imports = [
+          inputs.hydenix.homeModules.default
+          ../../home/home.nix # Your custom home-manager modules (configure hydenix.hm here!)
+        ];
+      };
+  };
 
-  # Bootloader EFI
-  # boot.loader.systemd-boot.enable = true;
-  # boot.loader.efi.canTouchEfiVariables = true;
-
-  boot.initrd.luks.devices."luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d".device =
-    "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
-
-  # boot.loader.efi.efiSysMountPoint = "/boot";
-  # boot.initrd.systemd.enable = true;
-
-  # GNOME Wayland (with PaperWM)
-  # services.displayManager.gdm.enable = true;
-  # services.displayManager.gdm.wayland = true;
-  # services.desktopManager.gnome.enable = true;
-  # services.gnome.gcr-ssh-agent.enable = false;
-
-  # networking.hostName = "machine";
+  # User Account Setup - REQUIRED: Change "hydenix" to your desired username (must match above)
+  networking.hostName = "machine";
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 9003 ];
@@ -79,8 +75,8 @@ in
     gnupg
     pinentry
     wget
-    # gnome-shell
-    # gnome-control-center
+    gnome-shell
+    gnome-control-center
     virt-manager
     libvirt
     qemu
@@ -88,7 +84,7 @@ in
     cloud-hypervisor
     virtiofsd
     zellij
-    # xwayland
+    xwayland
     waypipe
   ];
   # Set the default editor to vim
@@ -99,13 +95,13 @@ in
 
   # programs.gnome-terminal.enable = true;
 
-  # environment.gnome.excludePackages = (
-  #   with pkgs;
-  #   [
-  #     epiphany # web browser
-  #     gedit # text editor
-  #   ]
-  # );
+  environment.gnome.excludePackages = (
+    with pkgs;
+    [
+      epiphany # web browser
+      gedit # text editor
+    ]
+  );
 
   # User
   users.groups.tun = { };
@@ -170,7 +166,7 @@ in
 
   # Time & Locals
   time.timeZone = "Europe/Berlin";
-  # i18n.defaultLocale = "en_US.UTF-8";
+  i18n.defaultLocale = "en_US.UTF-8";
   # i18n.extraLocales = "de_DE.UTF-8/UTF-8";
   i18n.extraLocaleSettings = {
     LC_TIME = "de_DE.UTF-8";
@@ -323,11 +319,15 @@ in
     };
   };
 
+  # Hydenix Configuration - Main configuration for the Hydenix desktop environment
   hydenix = {
-    enable = true; # enable hydenix - required, default false
-    hostname = "machine"; # hostname
-    timezone = "Europe/Berlin"; # timezone
-    locale = "en_US.UTF-8"; # locale
-    # hm.enable = true;
+    enable = true; # Enable Hydenix modules
+    # Basic System Settings (REQUIRED):
+    hostname = "machine"; # REQUIRED: Set your computer's network name (change to something unique)
+    timezone = "Europe/Berlin"; # REQUIRED: Set timezone (examples: "America/New_York", "Europe/London", "Asia/Tokyo")
+    locale = "en_US.UTF-8"; # REQUIRED: Set locale/language (examples: "en_US.UTF-8", "en_GB.UTF-8", "de_DE.UTF-8")
   };
+
+  # System Version - Don't change unless you know what you're doing (helps with system upgrades and compatibility)
+  system.stateVersion = "25.05";
 }
