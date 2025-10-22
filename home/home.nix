@@ -1,6 +1,5 @@
 {
   pkgs,
-  inputs,
   ...
 }:
 let
@@ -11,6 +10,7 @@ in
     ./zsh.nix
     ./vim.nix
     ./yazi.nix
+    ./hyde.nix
   ];
 
   home.username = "nx";

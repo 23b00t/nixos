@@ -12,6 +12,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     yazi.url = "github:sxyazi/yazi";
+    hydenix = {
+      url = "github:richen604/hydenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -20,6 +24,7 @@
       nixpkgs,
       home-manager,
       nix-ld,
+      hydenix,
       ...
     }@inputs:
     {
@@ -38,6 +43,8 @@
               imports = [ ./home/home.nix ];
             };
           }
+
+          hydenix.nixosModules.default
 
           nix-ld.nixosModules.nix-ld
           ./nix-ld-config.nix

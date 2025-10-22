@@ -11,15 +11,14 @@ in
 {
   imports = [
     ./hardware-configuration.nix
-    ../../vms/microvm-user-service.nix
   ];
 
   # Switch to minimal channel for host?
   system.stateVersion = "25.05";
 
   # Bootloader EFI
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  # boot.loader.systemd-boot.enable = true;
+  # boot.loader.efi.canTouchEfiVariables = true;
 
   boot.initrd.luks.devices."luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d".device =
     "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
@@ -28,10 +27,10 @@ in
   # boot.initrd.systemd.enable = true;
 
   # GNOME Wayland (with PaperWM)
-  services.displayManager.gdm.enable = true;
-  services.displayManager.gdm.wayland = true;
-  services.desktopManager.gnome.enable = true;
-  services.gnome.gcr-ssh-agent.enable = false;
+  # services.displayManager.gdm.enable = true;
+  # services.displayManager.gdm.wayland = true;
+  # services.desktopManager.gnome.enable = true;
+  # services.gnome.gcr-ssh-agent.enable = false;
 
   networking.hostName = "machine";
   networking.firewall = {
@@ -54,8 +53,8 @@ in
     gnupg
     pinentry
     wget
-    gnome-shell
-    gnome-control-center
+    # gnome-shell
+    # gnome-control-center
     virt-manager
     libvirt
     qemu
@@ -63,7 +62,7 @@ in
     cloud-hypervisor
     virtiofsd
     zellij
-    xwayland
+    # xwayland
     waypipe
   ];
   # Set the default editor to vim
@@ -74,13 +73,13 @@ in
 
   # programs.gnome-terminal.enable = true;
 
-  environment.gnome.excludePackages = (
-    with pkgs;
-    [
-      epiphany # web browser
-      gedit # text editor
-    ]
-  );
+  # environment.gnome.excludePackages = (
+  #   with pkgs;
+  #   [
+  #     epiphany # web browser
+  #     gedit # text editor
+  #   ]
+  # );
 
   # User
   users.groups.tun = { };
@@ -296,5 +295,13 @@ in
       # Keine Docker-Kompatibilität, wenn Docker selbst installiert ist
       dockerCompat = false;
     };
+  };
+
+  hydenix = {
+    enable = true; # enable hydenix - required, default false
+    hostname = "hydenix"; # hostname
+    timezone = "Europe/Berlin"; # timezone
+    locale = "de_DE.UTF-8"; # locale
+    # hm.enable = true;
   };
 }
