@@ -3,14 +3,40 @@
 {
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
+  system = "x86_64-linux";
+  pkgs = import inputs.nixpkgs {
+    inherit system;
+    config.allowUnfree = true;
+    overlays = [
+      inputs.hydenix.overlays.default
+    ];
+  };
   maxVMs = 8;
 in
 {
+  nixpkgs.pkgs = pkgs; # Set pkgs for hydenix globally
   imports = [
     ./hardware-configuration.nix
+
+    # inputs.hydenix.inputs.home-manager.nixosModules.home-manager
+    inputs.hydenix.nixosModules.default
+
+    # GPU Configuration (choose one):
+    # inputs.nixos-hardware.nixosModules.common-gpu-nvidia # NVIDIA
+    inputs.nixos-hardware.nixosModules.common-gpu-amd # AMD
+
+    # CPU Configuration (choose one):
+    inputs.nixos-hardware.nixosModules.common-cpu-amd # AMD CPUs
+    # inputs.nixos-hardware.nixosModules.common-cpu-intel # Intel CPUs
+
+    # Additional Hardware Modules - Uncomment based on your system type:
+    inputs.nixos-hardware.nixosModules.common-hidpi # High-DPI displays
+    inputs.nixos-hardware.nixosModules.common-pc-laptop # Laptops
+    inputs.nixos-hardware.nixosModules.common-pc-ssd # SSD storage
   ];
 
   # Switch to minimal channel for host?
