@@ -32,27 +32,53 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import /../net-config.nix { inherit lib index mac; })
-            {
-              networking.hostName = "basic-vm";
+            (import ../net-config.nix { inherit lib index mac; })
+            (
+              { config, ... }:
+              {
+                networking.hostName = "basic-vm";
 
-              users.groups.nx = {};
-              users.users.nx = {
-                isNormalUser = true;
-                group = "nx";
-                extraGroups = [ "wheel" ];
-              };
-              services.getty.autologinUser = "nx";
-              security.sudo = {
-                enable = true;
-                wheelNeedsPassword = false;
-              };
+                users.groups.nx = { };
+                users.users.nx = {
+                  isNormalUser = true;
+                  group = "nx";
+                  extraGroups = [ "wheel" ];
+                };
+                services.getty.autologinUser = "nx";
+                security.sudo = {
+                  enable = true;
+                  wheelNeedsPassword = false;
+                };
 
-              environment.systemPackages = with pkgs; [
-                btop
-              ];
-              system.stateVersion = "25.11";
-            }
+                microvm = {
+                  writableStoreOverlay = "/nix/.rw-store";
+                  volumes = [
+                    {
+                      mountPoint = "/home/nx";
+                      image = "home_basic.img";
+                      size = 1024;
+                    }
+                    {
+                      image = "nix-store-overlay.img";
+                      mountPoint = config.microvm.writableStoreOverlay;
+                      size = 8192;
+                    }
+                  ];
+                  shares = [
+                    {
+                      tag = "ro-store";
+                      source = "/nix/store";
+                      mountPoint = "/nix/.ro-store";
+                    }
+                  ];
+                };
+
+                environment.systemPackages = with pkgs; [
+                  btop
+                ];
+                system.stateVersion = "25.11";
+              }
+            )
           ];
         };
       };
