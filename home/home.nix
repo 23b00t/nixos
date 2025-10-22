@@ -1,5 +1,6 @@
 {
   pkgs,
+  inputs,
   ...
 }:
 let
@@ -11,6 +12,8 @@ in
     ./vim.nix
     ./yazi.nix
     ./hyde.nix
+
+    inputs.hydenix.homeModules.default
   ];
 
   home.username = "nx";
@@ -136,35 +139,35 @@ in
   };
 
   # Icons and theme
-  gtk = {
-    enable = true;
-
-    theme = {
-      name = "Dracula";
-      package = pkgs.dracula-theme;
-    };
-
-    iconTheme = {
-      name = "Tela-dracula-dark";
-      package = pkgs.tela-icon-theme;
-    };
-  };
+  # gtk = {
+  #   enable = true;
+  #
+  #   theme = {
+  #     name = "Dracula";
+  #     package = pkgs.dracula-theme;
+  #   };
+  #
+  #   iconTheme = {
+  #     name = "Tela-dracula-dark";
+  #     package = pkgs.tela-icon-theme;
+  #   };
+  # };
 
   # dconf settings for gnome shell theme
-  dconf.settings = {
-    "org/gnome/shell" = {
-      enabled-extensions = [
-        "user-theme@gnome-shell-extensions.gcampax.github.com"
-        "paperwm@paperwm.github.com"
-        # NOTE: Have manually installed it just here for activation
-        "trayIconsReloaded@selfmade.pl"
-      ];
-    };
-
-    "org/gnome/shell/extensions/user-theme" = {
-      name = "Dracula";
-    };
-  };
+  # dconf.settings = {
+  #   "org/gnome/shell" = {
+  #     enabled-extensions = [
+  #       "user-theme@gnome-shell-extensions.gcampax.github.com"
+  #       "paperwm@paperwm.github.com"
+  #       # NOTE: Have manually installed it just here for activation
+  #       "trayIconsReloaded@selfmade.pl"
+  #     ];
+  #   };
+  #
+  #   "org/gnome/shell/extensions/user-theme" = {
+  #     name = "Dracula";
+  #   };
+  # };
 
   # git
   programs.git = {

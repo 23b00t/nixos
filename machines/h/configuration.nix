@@ -32,7 +32,7 @@ in
   # services.desktopManager.gnome.enable = true;
   # services.gnome.gcr-ssh-agent.enable = false;
 
-  networking.hostName = "machine";
+  # networking.hostName = "machine";
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 9003 ];
@@ -144,7 +144,7 @@ in
 
   # Time & Locals
   time.timeZone = "Europe/Berlin";
-  i18n.defaultLocale = "en_US.UTF-8";
+  # i18n.defaultLocale = "en_US.UTF-8";
   # i18n.extraLocales = "de_DE.UTF-8/UTF-8";
   i18n.extraLocaleSettings = {
     LC_TIME = "de_DE.UTF-8";
@@ -198,7 +198,7 @@ in
   };
 
   # ssh
-  programs.ssh.startAgent = true;
+  # programs.ssh.startAgent = true;
   # security.pam.sshAgentAuth.enable = true;
 
   # microvm network
@@ -299,9 +299,9 @@ in
 
   hydenix = {
     enable = true; # enable hydenix - required, default false
-    hostname = "hydenix"; # hostname
+    hostname = "machine"; # hostname
     timezone = "Europe/Berlin"; # timezone
-    locale = "de_DE.UTF-8"; # locale
+    locale = "en_US.UTF-8"; # locale
     # hm.enable = true;
   };
 }

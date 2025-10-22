@@ -47,44 +47,12 @@
           hydenix.nixosModules.default
 
           nix-ld.nixosModules.nix-ld
-          ./nix-ld-config.nix
+          # ./nix-ld-config.nix
 
           # The module in this repository defines a new module under (programs.nix-ld.dev) instead of (programs.nix-ld)
           # to not collide with the nixpkgs version.
           # { programs.nix-ld.dev.enable = true; }
         ];
       };
-
-      # --- DevShells ---
-      devShells."x86_64-linux" =
-        let
-          lib = nixpkgs.lib;
-          pkgs = import nixpkgs {
-            system = "x86_64-linux";
-            config = {
-              allowUnfree = true;
-            };
-          };
-
-        in
-        {
-          # Separate Shell für Container-Tools
-          containers = pkgs.mkShell {
-            packages = with pkgs; [
-              lazydocker
-              dive
-              ctop
-              docker-slim
-              podman-tui
-              distrobox
-            ];
-            shellHook = ''
-              echo
-              echo "Container-Tools-Shell aktiv:"
-              echo "  lazydocker, dive, ctop, podman-tui im PATH."
-              echo
-            '';
-          };
-        };
     };
 }
