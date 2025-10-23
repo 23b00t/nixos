@@ -89,6 +89,7 @@ in
     devenv
 
     tiny
+    wl-screenrec
   ];
 
   programs = {
