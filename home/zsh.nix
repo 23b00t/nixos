@@ -22,6 +22,7 @@
       ilinit = "$HOME/nixos-config/devenv/ilias-devenv/ilias-devenv-builder.sh";
       # ddate = "nix run 'nixpkgs#ddate'";
       irc = "zellij a $(zellij ls --no-formatting | tail -n 2 | rg -v current | cut -d' ' -f 1)";
+      h = "hydectl";
     };
 
     history.size = 10000;
@@ -66,8 +67,9 @@
     fi
 
     # Load custom functions
-    [ -f "$HOME/.config/home-manager/paste_functions.zsh" ] && source "$HOME/.config/home-manager/paste_functions.zsh"
-    [ -f "$HOME/.config/home-manager/hydectl.zsh" ] && source "$HOME/.config/home-manager/hydectl.zsh"
+    [ -f "$HOME/nixos-config/home/paste_functions.zsh" ] && source "$HOME/nixos-config/home/paste_functions.zsh"
+    [ -f "$HOME/nixos-config/home/hydectl.zsh" ] && source "$HOME/nixos-config/home/hydectl.zsh"
+    compdef _hydectl hydectl
 	'';
   };
 }

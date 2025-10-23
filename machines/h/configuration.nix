@@ -105,8 +105,9 @@ in
     xwayland
     waypipe
     shadow
-    linuxKernel.packages.linux_zen.cpupower
   ];
+
+  services.power-profiles-daemon.enable = true;
 
   programs.vim.enable = true;
   environment.variables.EDITOR = "nvim";

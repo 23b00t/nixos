@@ -27,6 +27,7 @@
         enable = true; # enable keybindings configurations
         extraConfig = ''
           bind = SUPER, F, exec, firefox
+          bind = SUPER SHIFT, K, exec, keybinds_hint.sh
         ''; # additional keybindings configuration
         overrideConfig = null; # complete keybindings configuration override (null or lib.types.lines)
       };
