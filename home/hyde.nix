@@ -2,13 +2,7 @@
 {
   hydenix.hm = {
     enable = true;
-    editors = {
-      enable = true; # enable editors module
-      neovim = false;
-      vscode.enable = false;
-      vim.enable = false;
-      default = "nvim"; # default text editor
-    };
+    editors.enable = false;
     git.enable = false;
     shell.enable = false;
     terminals.enable = false;
@@ -17,7 +11,7 @@
         enable = true;
         overrideConfig = ''
           monitor=HDMI-A-1,1920x1080@60,0x0,1
-          monitor=eDP-1,1920x1080@60,1920x0,1.5
+          monitor=eDP-1,1920x1080@60,1920x0,1
         '';
       };
 

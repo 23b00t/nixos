@@ -104,21 +104,9 @@ in
     waypipe
     shadow
   ];
-  # Set the default editor to vim
+
   programs.vim.enable = true;
-  environment.variables.EDITOR = "vim";
-  # Set vim as default Editor
-  programs.vim.defaultEditor = true;
-
-  # programs.gnome-terminal.enable = true;
-
-  environment.gnome.excludePackages = (
-    with pkgs;
-    [
-      epiphany # web browser
-      gedit # text editor
-    ]
-  );
+  environment.variables.EDITOR = "nvim";
 
   # User
   users.groups.tun = { };
