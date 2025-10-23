@@ -15,6 +15,22 @@ let
   maxVMs = 8;
 in
 {
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  boot.initrd = {
+    systemd.enable = true;
+    kernelModules = [
+      "nvme"
+      "sd_mod"
+      "dm-crypt"
+      "dm-mod"
+    ];
+    services.lvm.enable = true;
+  };
+  boot.kernelPackages = pkgs.linuxPackages_zen;
+  boot.initrd.luks.devices."luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d".device =
+    "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
+
   nixpkgs.pkgs = pkgs; # Set pkgs for hydenix globally
 
   imports = [
@@ -326,6 +342,22 @@ in
     hostname = "machine"; # REQUIRED: Set your computer's network name (change to something unique)
     timezone = "Europe/Berlin"; # REQUIRED: Set timezone (examples: "America/New_York", "Europe/London", "Asia/Tokyo")
     locale = "en_US.UTF-8"; # REQUIRED: Set locale/language (examples: "en_US.UTF-8", "en_GB.UTF-8", "de_DE.UTF-8")
+
+    audio.enable = true; # enable audio module
+    boot = {
+      enable = false; # enable boot module
+      # useSystemdBoot = true; # disable for GRUB
+      # grubTheme = "Retroboot"; # or "Pochita"
+      # grubExtraConfig = ""; # additional GRUB configuration
+      # kernelPackages = pkgs.linuxPackages_zen; # default zen kernel
+    };
+    gaming.enable = true; # enable gaming module
+    hardware.enable = true; # enable hardware module
+    network.enable = true; # enable network module
+    nix.enable = true; # enable nix module
+    sddm.enable = true; # enable sddm module
+
+    system.enable = true; # enable system module
   };
 
   # System Version - Don't change unless you know what you're doing (helps with system upgrades and compatibility)
