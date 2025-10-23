@@ -21,11 +21,6 @@
           kb_variant = intl
           kb_options = grp:alt_shift_toggle
         }
-
-        # Set wallpaper per workspace using exec-on-workspace
-        exec-on-workspace = 1, swww img ~/nixos-config/wallpapers/1.png
-        exec-on-workspace = 3, swww img ~/nixos-config/wallpapers/3.png
-        exec-on-workspace = 4, swww img ~/nixos-config/wallpapers/5.png
       '';
 
       keybindings = {

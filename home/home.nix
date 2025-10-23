@@ -25,6 +25,7 @@ in
     ddate
     oh-my-posh
     neofetch
+    fastfetch
 
     # archives
     zip

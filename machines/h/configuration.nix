@@ -31,6 +31,8 @@ in
   boot.initrd.luks.devices."luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d".device =
     "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
 
+  powerManagement.cpuFreqGovernor = "performance";
+
   nixpkgs.pkgs = pkgs; # Set pkgs for hydenix globally
 
   imports = [
@@ -103,6 +105,7 @@ in
     xwayland
     waypipe
     shadow
+    linuxKernel.packages.linux_zen.cpupower
   ];
 
   programs.vim.enable = true;
@@ -335,10 +338,6 @@ in
     audio.enable = true; # enable audio module
     boot = {
       enable = false; # enable boot module
-      # useSystemdBoot = true; # disable for GRUB
-      # grubTheme = "Retroboot"; # or "Pochita"
-      # grubExtraConfig = ""; # additional GRUB configuration
-      # kernelPackages = pkgs.linuxPackages_zen; # default zen kernel
     };
     gaming.enable = true; # enable gaming module
     hardware.enable = true; # enable hardware module

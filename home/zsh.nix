@@ -67,6 +67,7 @@
 
     # Load custom functions
     [ -f "$HOME/.config/home-manager/paste_functions.zsh" ] && source "$HOME/.config/home-manager/paste_functions.zsh"
+    [ -f "$HOME/.config/home-manager/hydectl.zsh" ] && source "$HOME/.config/home-manager/hydectl.zsh"
 	'';
   };
 }
