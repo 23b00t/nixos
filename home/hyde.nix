@@ -2,7 +2,13 @@
 {
   hydenix.hm = {
     enable = true;
-    editors.enable = false;
+    editors = {
+      enable = true; # enable editors module
+      neovim = false;
+      vscode.enable = false;
+      vim.enable = false;
+      default = "nvim"; # default text editor
+    };
     git.enable = false;
     shell.enable = false;
     terminals.enable = false;
@@ -22,6 +28,14 @@
           kb_options = grp:alt_shift_toggle
         }
       '';
+
+      keybindings = {
+        enable = true; # enable keybindings configurations
+        extraConfig = ''
+          bind = SUPER, F, exec, firefox
+        ''; # additional keybindings configuration
+        overrideConfig = null; # complete keybindings configuration override (null or lib.types.lines)
+      };
     };
 
     firefox.enable = false;
