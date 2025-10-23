@@ -14,7 +14,16 @@
           monitor=eDP-1,1920x1080@60,1920x0,1.5
         '';
       };
+
+      extraConfig = ''
+        input {
+          kb_layout = us,de
+          kb_variant = intl
+          kb_options = grp:alt_shift_toggle
+        }
+      '';
     };
+
     firefox.enable = false;
   };
 }

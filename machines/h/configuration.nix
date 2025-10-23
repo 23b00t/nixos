@@ -102,6 +102,7 @@ in
     zellij
     xwayland
     waypipe
+    shadow
   ];
   # Set the default editor to vim
   programs.vim.enable = true;

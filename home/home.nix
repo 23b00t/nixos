@@ -1,6 +1,5 @@
 {
   pkgs,
-  inputs,
   ...
 }:
 let
@@ -18,32 +17,6 @@ in
   home.homeDirectory = "/home/nx";
 
   home.sessionVariables.LANG = "en_US.UTF-8";
-
-  # enable gnome-shell (to make paperwm work)
-  programs.gnome-shell.enable = true;
-
-  # link the configuration file in current directory to the specified location in home directory
-  # home.file.".config/i3/wallpaper.jpg".source = ./wallpaper.jpg;
-
-  # link all files in `./scripts` to `~/.config/i3/scripts`
-  # home.file.".config/i3/scripts" = {
-  #   source = ./scripts;
-  #   recursive = true;   # link recursively
-  #   executable = true;  # make all files executable
-  # };
-
-  # encode the file content in nix configuration file directly
-  # home.file.".xxx".text = ''
-  #     xxx
-  # '';
-
-  # set cursor size and dpi for 4k monitor
-  xresources.properties = {
-    "Xcursor.size" = 16;
-    "Xft.dpi" = 172;
-  };
-
-  # nixpkgs.config.allowUnfree = true;
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
@@ -115,7 +88,6 @@ in
     devenv
 
     tiny
-    wezterm
   ];
 
   programs = {
@@ -135,37 +107,6 @@ in
     };
     extensions = with pkgs; [ gh-copilot ];
   };
-
-  # Icons and theme
-  # gtk = {
-  #   enable = true;
-  #
-  #   theme = {
-  #     name = "Dracula";
-  #     package = pkgs.dracula-theme;
-  #   };
-  #
-  #   iconTheme = {
-  #     name = "Tela-dracula-dark";
-  #     package = pkgs.tela-icon-theme;
-  #   };
-  # };
-
-  # dconf settings for gnome shell theme
-  # dconf.settings = {
-  #   "org/gnome/shell" = {
-  #     enabled-extensions = [
-  #       "user-theme@gnome-shell-extensions.gcampax.github.com"
-  #       "paperwm@paperwm.github.com"
-  #       # NOTE: Have manually installed it just here for activation
-  #       "trayIconsReloaded@selfmade.pl"
-  #     ];
-  #   };
-  #
-  #   "org/gnome/shell/extensions/user-theme" = {
-  #     name = "Dracula";
-  #   };
-  # };
 
   # git
   programs.git = {
@@ -221,9 +162,14 @@ in
   };
 
   # programs.kitty.enable = true;
-  home.file.".config/kitty/kitty.conf".text = kittyConf;
+  home.file.".config/kitty/kitty.conf" = {
+    text = kittyConf;
+    force = true;
+  };
   home.file.".config/kitty/current-theme.conf".source = ./current-theme.conf;
   home.file.".config/kitty/startup".source = ./startup;
+
+  xdg.configFile."mimeapps.list".force = true;
 
   # zellij
   home.file.".config/zellij".source = ./zellij;
