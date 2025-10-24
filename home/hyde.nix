@@ -17,9 +17,9 @@
 
       extraConfig = ''
         input {
-          kb_layout = "us,de"
-          kb_variant = "altgr-intl,"
-          kb_options = "grp:alt_shift_toggle"
+          kb_layout = us,de
+          kb_variant = altgr-intl, 
+          kb_options = grp:alt_shift_toggle
         }
         exec-once = .local/lib/hyde/wallpaper.sh -s ~/nixos-config/wallpapers/edger_lucy_neon.jpg
       '';
