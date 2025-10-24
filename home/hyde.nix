@@ -21,7 +21,10 @@
           kb_variant = altgr-intl, 
           kb_options = grp:alt_shift_toggle
         }
-        exec-once = .local/lib/hyde/wallpaper.sh -s ~/nixos-config/wallpapers/edger_lucy_neon.jpg
+        # exec-once = .local/lib/hyde/wallpaper.sh -s ~/nixos-config/wallpapers/edger_lucy_neon.jpg
+        # exec-once = swww img -o HDMI-A-1 ~/nixos-config/wallpapers/edger_lucy_neon.jpg
+        # exec-once = swww img -o eDP-1 ~/nixos-config/wallpapers/1.png
+        exec-once = ~/nixos-config/home/set-wallpapers.sh
       '';
 
       keybindings = {
@@ -34,8 +37,23 @@
       };
     };
 
+    waybar = {
+      enable = true; # enable waybar module
+      userStyle = ''
+        * {
+          font-size: 14px;
+        }
+      '';
+      # custom waybar user-style.css
+    };
     theme.active = "Tokyo Night";
 
     firefox.enable = false;
   };
+
+  # home.file.".config/waybar/user-style.css".text = ''
+  #   * {
+  #     font-size: 14px;
+  #   }
+  # '';
 }

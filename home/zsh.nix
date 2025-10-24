@@ -23,6 +23,7 @@
       # ddate = "nix run 'nixpkgs#ddate'";
       irc = "zellij a $(zellij ls --no-formatting | tail -n 2 | rg -v current | cut -d' ' -f 1)";
       h = "hydectl";
+      hs = "hyde-shell";
     };
 
     history.size = 10000;
