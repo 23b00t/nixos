@@ -9,11 +9,17 @@
     inputs.nixpkgs.follows = "nixpkgs";
   };
 
+  inputs.home-manager = {
+    url = "github:nix-community/home-manager";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+
   outputs =
-    {
+      {
       self,
       nixpkgs,
       microvm,
+      home-manager,
     }:
     let
       system = "x86_64-linux";
@@ -33,16 +39,15 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
-            (
-              { config, ... }:
-              {
+              home-manager.nixosModules.home-manager
+              ({ config, pkgs, ... }: {
                 networking.hostName = "nvim-vm";
 
-                users.groups.vim = { };
-                users.users.vim = {
+                users.groups.nvim = { };
+                users.users.nvim = {
                   password = "trash";
                   isNormalUser = true;
-                  group = "vim";
+                  group = "nvim";
                   extraGroups = [ "wheel" ];
                 };
                 security.sudo = {
@@ -56,7 +61,7 @@
                   hypervisor = "cloud-hypervisor";
                   volumes = [
                     {
-                      mountPoint = "/home/vim";
+                      mountPoint = "/home/nvim";
                       image = "home.img";
                       size = 8192;
                     }
@@ -78,42 +83,47 @@
                 };
 
                 environment.systemPackages = with pkgs; [
+                  git
                 ];
 
-                programs.neovim = {
-                  enable = true;
-                  defaultEditor = true;
-                  withNodeJs = true;
-                  withPython3 = true;
-                  extraPackages = with pkgs; [
-                    python3
-                    fd
-                    unzip
+                  home-manager.users.nvim = {
+                    home.stateVersion = "25.11";
+                    programs.neovim = {
+                      enable = true;
+                      defaultEditor = true;
+                      withNodeJs = true;
+                      withPython3 = true;
+                      extraPackages = with pkgs; [
+                        python3
+                        fd
+                        unzip
 
-                    gcc
-                    gnumake
+                        gcc
+                        gnumake
 
-                    nodejs
-                    rustc
-                    cargo
-                    rust-analyzer
-                    watchexec
+                        nodejs
+                        rustc
+                        cargo
+                        rust-analyzer
+                        watchexec
 
-                    lua-language-server
-                    nixfmt
+                        lua-language-server
+                        nixfmt
 
-                    watchman
-                  ];
-                };
-                home.sessionVariables = {
-                  MASON_DIR = "$HOME/.local/share/nvim/mason";
-                };
+                        watchman
+                      ];
+                    };
+                    home.sessionVariables = {
+                      MASON_DIR = "$HOME/.local/share/nvim/mason";
+                    };
 
-                # direnv
-                programs.direnv = {
-                  enable = true;
-                  nix-direnv.enable = true;
-                };
+                    # direnv
+                    programs.direnv = {
+                      enable = true;
+                      nix-direnv.enable = true;
+                    };
+                  };
+
                 system.stateVersion = "25.11";
               }
             )
