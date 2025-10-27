@@ -15,7 +15,7 @@
   };
 
   outputs =
-      {
+    {
       self,
       nixpkgs,
       microvm,
@@ -39,8 +39,10 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
-              home-manager.nixosModules.home-manager
-              ({ config, pkgs, ... }: {
+            home-manager.nixosModules.home-manager
+            (
+              { config, pkgs, ... }:
+              {
                 networking.hostName = "nvim-vm";
 
                 users.groups.nvim = { };
@@ -83,46 +85,48 @@
                 };
 
                 environment.systemPackages = with pkgs; [
-                  git
+                  devenv
                 ];
 
-                  home-manager.users.nvim = {
-                    home.stateVersion = "25.11";
-                    programs.neovim = {
-                      enable = true;
-                      defaultEditor = true;
-                      withNodeJs = true;
-                      withPython3 = true;
-                      extraPackages = with pkgs; [
-                        python3
-                        fd
-                        unzip
+                home-manager.users.nvim = {
+                  home.stateVersion = "25.11";
+                  programs.neovim = {
+                    enable = true;
+                    defaultEditor = true;
+                    withNodeJs = true;
+                    withPython3 = true;
+                    extraPackages = with pkgs; [
+                      python3
+                      fd
+                      unzip
 
-                        gcc
-                        gnumake
+                      gcc
+                      gnumake
 
-                        nodejs
-                        rustc
-                        cargo
-                        rust-analyzer
-                        watchexec
+                      nodejs
+                      rustc
+                      cargo
+                      rust-analyzer
+                      watchexec
 
-                        lua-language-server
-                        nixfmt
+                      lua-language-server
+                      nixfmt
 
-                        watchman
-                      ];
-                    };
-                    home.sessionVariables = {
-                      MASON_DIR = "$HOME/.local/share/nvim/mason";
-                    };
+                      watchman
+                    ];
 
-                    # direnv
-                    programs.direnv = {
-                      enable = true;
-                      nix-direnv.enable = true;
-                    };
+                    imports = [ ../../home/shared.nix ];
                   };
+                  home.sessionVariables = {
+                    MASON_DIR = "$HOME/.local/share/nvim/mason";
+                  };
+
+                  # direnv
+                  programs.direnv = {
+                    enable = true;
+                    nix-direnv.enable = true;
+                  };
+                };
 
                 system.stateVersion = "25.11";
               }
