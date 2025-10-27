@@ -39,6 +39,7 @@ in
     # hydenix inputs - Required modules, don't modify unless you know what you're doing
     inputs.hydenix.inputs.home-manager.nixosModules.home-manager
     inputs.hydenix.nixosModules.default
+    inputs.microvm.nixosModules.host
     ./hardware-configuration.nix # Auto-generated hardware config
 
     # Hardware Configuration - Uncomment lines that match your hardware
@@ -115,9 +116,9 @@ in
   # User
   users.groups.tun = { };
 
-  services.udev.extraRules = ''
-    KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
-  '';
+  # services.udev.extraRules = ''
+  #   KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
+  # '';
   users.users.nx = {
     isNormalUser = true;
     extraGroups = [
@@ -226,6 +227,23 @@ in
       default-cache-ttl = 3600;
       max-cache-ttl = 7200;
     };
+  };
+
+  # MicroVM Configuration
+  microvm.host.enable = true;
+
+  microvm.vms = {
+    irc = {
+      flake = inputs.irc-vm;
+    };
+  };
+
+  programs.ssh = {
+    extraConfig = ''
+      Host 10.0.0.*
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+    '';
   };
 
   # ssh

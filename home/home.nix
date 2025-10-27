@@ -90,6 +90,7 @@ in
 
     tiny
     wl-screenrec
+    wine
   ];
 
   programs = {

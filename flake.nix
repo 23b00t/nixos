@@ -5,6 +5,11 @@
     # Your nixpkgs
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
+    microvm = {
+      url = "github:microvm-nix/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    irc-vm.url = "path:./vms/irc";
     # Hydenix
     hydenix = {
       # Available inputs:

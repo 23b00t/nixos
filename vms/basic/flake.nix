@@ -24,11 +24,11 @@
     in
     {
       packages.${system} = {
-        default = self.packages.${system}.net-vm;
-        net-vm = self.nixosConfigurations.net-vm.config.microvm.declaredRunner;
+        default = self.packages.${system}.basic;
+        basic = self.nixosConfigurations.net-vm.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
-        net-vm = nixpkgs.lib.nixosSystem {
+        basic = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
@@ -41,10 +41,10 @@
                 users.groups.nx = { };
                 users.users.nx = {
                   isNormalUser = true;
+                  password = "trash";
                   group = "nx";
                   extraGroups = [ "wheel" ];
                 };
-                services.getty.autologinUser = "nx";
                 security.sudo = {
                   enable = true;
                   wheelNeedsPassword = false;

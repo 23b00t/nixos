@@ -2,7 +2,7 @@
   # In this example, index 5, we need to run:
   # sudo ip tuntap add vm5 mode tap user nx
   # to get the tap device working rootless.
-  description = "IRC MicroVM";
+  description = "nvim MicroVM";
 
   inputs.microvm = {
     url = "github:astro/microvm.nix";
@@ -19,16 +19,16 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       lib = nixpkgs.lib;
-      index = 5;
-      mac = "00:00:00:00:00:05";
+      index = 6;
+      mac = "00:00:00:00:00:06";
     in
     {
       packages.${system} = {
-        default = self.packages.${system}.irc;
-        irc = self.nixosConfigurations.irc.config.microvm.declaredRunner;
+        default = self.packages.${system}.nvim;
+        nvim = self.nixosConfigurations.irc.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
-        irc = nixpkgs.lib.nixosSystem {
+        nvim = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
@@ -36,13 +36,13 @@
             (
               { config, ... }:
               {
-                networking.hostName = "irc-vm";
+                networking.hostName = "nvim-vm";
 
-                users.groups.irc = { };
-                users.users.irc = {
+                users.groups.vim = { };
+                users.users.vim = {
                   password = "trash";
                   isNormalUser = true;
-                  group = "irc";
+                  group = "vim";
                   extraGroups = [ "wheel" ];
                 };
                 security.sudo = {
@@ -55,13 +55,8 @@
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
                   volumes = [
-                    # {
-                    #   mountPoint = "/var";
-                    #   image = "var.img";
-                    #   size = 8192;
-                    # }
                     {
-                      mountPoint = "/home/irc";
+                      mountPoint = "/home/vim";
                       image = "home.img";
                       size = 8192;
                     }
@@ -83,8 +78,42 @@
                 };
 
                 environment.systemPackages = with pkgs; [
-                  tiny
                 ];
+
+                programs.neovim = {
+                  enable = true;
+                  defaultEditor = true;
+                  withNodeJs = true;
+                  withPython3 = true;
+                  extraPackages = with pkgs; [
+                    python3
+                    fd
+                    unzip
+
+                    gcc
+                    gnumake
+
+                    nodejs
+                    rustc
+                    cargo
+                    rust-analyzer
+                    watchexec
+
+                    lua-language-server
+                    nixfmt
+
+                    watchman
+                  ];
+                };
+                home.sessionVariables = {
+                  MASON_DIR = "$HOME/.local/share/nvim/mason";
+                };
+
+                # direnv
+                programs.direnv = {
+                  enable = true;
+                  nix-direnv.enable = true;
+                };
                 system.stateVersion = "25.11";
               }
             )
