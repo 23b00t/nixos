@@ -90,46 +90,17 @@
                   devenv
                 ];
 
-                home-manager.users.nvim = {
-                  imports = [ ../../home/shared.nix ];
-                  nixpkgs.config.allowUnfree = true;
-                  home.stateVersion = "25.05";
-                  programs.neovim = {
-                    enable = true;
-                    defaultEditor = true;
-                    withNodeJs = true;
-                    withPython3 = true;
-                    extraPackages = with pkgs; [
-                      python3
-                      fd
-                      unzip
-
-                      gcc
-                      gnumake
-
-                      nodejs
-                      rustc
-                      cargo
-                      rust-analyzer
-                      watchexec
-
-                      lua-language-server
-                      nixfmt
-
-                      watchman
-                    ];
-                  };
-                  home.sessionVariables = {
-                    MASON_DIR = "$HOME/.local/share/nvim/mason";
-                  };
-
-                  # direnv
-                  programs.direnv = {
-                    enable = true;
-                    nix-direnv.enable = true;
-                  };
+                home-manager = {
+                  useGlobalPkgs = true;
+                  useUserPackages = true;
+                  users."nvim" =
+                    { ... }:
+                    {
+                      imports = [
+                        ./nvim-home.nix
+                      ];
+                    };
                 };
-
                 system.stateVersion = "25.05";
               }
             )
