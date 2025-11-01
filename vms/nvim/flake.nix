@@ -59,6 +59,7 @@
                 };
 
                 microvm = {
+                  registerClosure = false;
                   # vsock.cid = 3;
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
@@ -90,6 +91,8 @@
                 ];
 
                 home-manager.users.nvim = {
+                  imports = [ ../../home/shared.nix ];
+                  nixpkgs.config.allowUnfree = true;
                   home.stateVersion = "25.05";
                   programs.neovim = {
                     enable = true;
@@ -120,9 +123,6 @@
                     MASON_DIR = "$HOME/.local/share/nvim/mason";
                   };
 
-                  imports = [ ../../home/shared.nix ];
-
-                  nixpkgs.config.allowUnfree = true;
                   # direnv
                   programs.direnv = {
                     enable = true;
