@@ -3,10 +3,6 @@
   ...
 }:
 {
-  imports = [
-    ./shared.nix
-  ];
-
   home.username = "nvim";
   home.homeDirectory = "/home/nvim";
 
@@ -39,12 +35,6 @@
   };
   home.sessionVariables = {
     MASON_DIR = "$HOME/.local/share/nvim/mason";
-  };
-
-  # direnv
-  programs.direnv = {
-    enable = true;
-    nix-direnv.enable = true;
   };
   home.stateVersion = "25.05";
 }

@@ -32,7 +32,7 @@
       nixpkgs.pkgs = pkgs;
       packages.${system} = {
         default = self.packages.${system}.nvim;
-        nvim = self.nixosConfigurations.irc.config.microvm.declaredRunner;
+        nvim = self.nixosConfigurations.nvim.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
         nvim = nixpkgs.lib.nixosSystem {
@@ -44,7 +44,11 @@
             (
               { config, pkgs, ... }:
               {
+                nixpkgs.config.allowUnfree = true;
                 networking.hostName = "nvim-vm";
+
+                programs.zsh.enable = true;
+                users.defaultUserShell = pkgs.zsh;
 
                 users.groups.nvim = { };
                 users.users.nvim = {
@@ -52,6 +56,7 @@
                   isNormalUser = true;
                   group = "nvim";
                   extraGroups = [ "wheel" ];
+                  shell = pkgs.zsh;
                 };
                 security.sudo = {
                   enable = true;
@@ -64,11 +69,11 @@
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
                   volumes = [
-                    {
-                      mountPoint = "/home/nvim";
-                      image = "home.img";
-                      size = 8192;
-                    }
+                    # {
+                    #   mountPoint = "/home/nvim";
+                    #   image = "home.img";
+                    #   size = 8192;
+                    # }
                     {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
@@ -82,6 +87,12 @@
                       source = "/nix/store";
                       mountPoint = "/nix/.ro-store";
                     }
+                    {
+                      proto = "virtiofs";
+                      tag = "home";
+                      source = "/home/nx";
+                      mountPoint = "/home/nvim";
+                    }
                   ];
                   mem = 4096;
                 };
@@ -93,13 +104,7 @@
                 home-manager = {
                   useGlobalPkgs = true;
                   useUserPackages = true;
-                  users."nvim" =
-                    { ... }:
-                    {
-                      imports = [
-                        ./nvim-home.nix
-                      ];
-                    };
+                  users.nvim = import ./nvim-home.nix;
                 };
                 system.stateVersion = "25.05";
               }

@@ -41,12 +41,12 @@
         "atoftegaard-git/zsh-omz-autocomplete"
         "MichaelAquilina/zsh-you-should-use"
         "zap-zsh/magic-enter"
-        # "chivalryq/git-alias"
+        "chivalryq/git-alias"
         "zap-zsh/vim"
         "zap-zsh/sudo"
         "wintermi/zsh-oh-my-posh"
         "kutsan/zsh-system-clipboard"
-        "ohmyzsh/ohmyzsh path:plugins/git"
+        # "ohmyzsh/ohmyzsh path:plugins/git"
       ];
     };
 	initContent = ''
