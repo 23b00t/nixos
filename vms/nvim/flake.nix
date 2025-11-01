@@ -29,6 +29,7 @@
       mac = "00:00:00:00:00:06";
     in
     {
+      nixpkgs.pkgs = pkgs;
       packages.${system} = {
         default = self.packages.${system}.nvim;
         nvim = self.nixosConfigurations.irc.config.microvm.declaredRunner;
@@ -89,7 +90,7 @@
                 ];
 
                 home-manager.users.nvim = {
-                  home.stateVersion = "25.11";
+                  home.stateVersion = "25.05";
                   programs.neovim = {
                     enable = true;
                     defaultEditor = true;
@@ -114,13 +115,14 @@
 
                       watchman
                     ];
-
-                    imports = [ ../../home/shared.nix ];
                   };
                   home.sessionVariables = {
                     MASON_DIR = "$HOME/.local/share/nvim/mason";
                   };
 
+                  imports = [ ../../home/shared.nix ];
+
+                  nixpkgs.config.allowUnfree = true;
                   # direnv
                   programs.direnv = {
                     enable = true;
@@ -128,7 +130,7 @@
                   };
                 };
 
-                system.stateVersion = "25.11";
+                system.stateVersion = "25.05";
               }
             )
           ];

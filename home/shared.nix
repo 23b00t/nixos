@@ -5,7 +5,6 @@
 {
   imports = [
     ./zsh.nix
-    ./vim.nix
   ];
 
   # Packages that should be installed to the user profile.

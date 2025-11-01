@@ -7,7 +7,6 @@ let
 in
 {
   imports = [
-    ./zsh.nix
     ./vim.nix
     ./yazi.nix
     ./hyde.nix
