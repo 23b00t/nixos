@@ -65,10 +65,6 @@ in
     pciutils # lspci
     usbutils # lsusb
 
-    # Gnome stuff
-    gnomeExtensions.paperwm
-    gnomeExtensions.user-themes
-    dracula-theme
     # tela-icon-theme
     nerd-fonts.droid-sans-mono
 
@@ -209,6 +205,10 @@ in
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
+  };
+
+  programs.himalaya = {
+    enable = true;
   };
 
   home.stateVersion = "25.05";
