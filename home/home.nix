@@ -72,7 +72,7 @@ in
     # discord
     slack
     lazygit
-    onlyoffice-bin
+    onlyoffice-desktopeditors
     gimp
     vlc
     telegram-desktop
@@ -109,14 +109,15 @@ in
   # git
   programs.git = {
     enable = true;
-    userName = "Daniel Kipp";
-    userEmail = "daniel.kipp@gmail.com";
     signing = {
       key = "937A32679620DC68";
       signByDefault = true;
     };
 
-    extraConfig = {
+    settings = {
+      user.name = "Daniel Kipp";
+      user.email = "daniel.kipp@gmail.com";
+
       color = {
         branch = "auto";
         diff = "auto";
@@ -192,6 +193,7 @@ in
       watchexec
 
       lua-language-server
+      lua52Packages.luarocks
       nixfmt
 
       watchman

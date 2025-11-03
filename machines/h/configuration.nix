@@ -91,7 +91,7 @@ in
     git
     vim
     gnupg
-    pinentry
+    pinentry-curses
     wget
     gnome-shell
     gnome-control-center
