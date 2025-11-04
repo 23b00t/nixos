@@ -193,7 +193,8 @@ in
       watchexec
 
       lua-language-server
-      lua52Packages.luarocks
+      lua51Packages.lua
+      lua51Packages.luarocks
       nixfmt
 
       watchman
