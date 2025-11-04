@@ -57,8 +57,10 @@
 
     in
     {
-      nixosConfigurations.hydenix = hydenixConfig;
-      nixosConfigurations.default = hydenixConfig;
-      nixosConfigurations.machine = hydenixConfig;
+      nixosConfigurations = {
+        hydenix = hydenixConfig;
+        default = hydenixConfig;
+        machine = hydenixConfig;
+      };
     };
 }

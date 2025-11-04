@@ -15,21 +15,23 @@ let
   maxVMs = 8;
 in
 {
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.initrd = {
-    systemd.enable = true;
-    kernelModules = [
-      "nvme"
-      "sd_mod"
-      "dm-crypt"
-      "dm-mod"
-    ];
-    services.lvm.enable = true;
+  boot = {
+    loader.systemd-boot.enable = true;
+    loader.efi.canTouchEfiVariables = true;
+    initrd = {
+      systemd.enable = true;
+      kernelModules = [
+        "nvme"
+        "sd_mod"
+        "dm-crypt"
+        "dm-mod"
+      ];
+      services.lvm.enable = true;
+    };
+    kernelPackages = pkgs.linuxPackages_zen;
+    initrd.luks.devices."luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d".device =
+      "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
   };
-  boot.kernelPackages = pkgs.linuxPackages_zen;
-  boot.initrd.luks.devices."luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d".device =
-    "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
 
   powerManagement.cpuFreqGovernor = "performance";
 

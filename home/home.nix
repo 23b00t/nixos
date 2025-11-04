@@ -13,10 +13,11 @@ in
     ./hyde.nix
   ];
 
-  home.username = "nx";
-  home.homeDirectory = "/home/nx";
-
-  home.sessionVariables.LANG = "en_US.UTF-8";
+  home = {
+    username = "nx";
+    homeDirectory = "/home/nx";
+    sessionVariables.LANG = "en_US.UTF-8";
+  };
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
@@ -86,6 +87,8 @@ in
 
     tiny
     wl-screenrec
+
+    wine
   ];
 
   programs = {
@@ -196,6 +199,7 @@ in
       lua51Packages.lua
       lua51Packages.luarocks
       nixfmt
+      statix
 
       watchman
     ];
