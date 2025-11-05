@@ -44,6 +44,25 @@
         specialArgs = {
           inherit inputs;
         };
+        extraModules = [
+          (
+            { pkgs, ... }:
+            {
+              nixpkgs.overlays = [
+                (final: prev: {
+                  # ERSETZE DAS PROBLEMATISCHE PAKET KOMPLETT
+                  # Dies verhindert, dass es überhaupt versucht wird, zu bauen,
+                  # und umgeht damit die Anforderung der fehlerhaften Rust-Version.
+                  hyde-ipc = prev.runCommand "hyde-ipc-dummy" { } ''
+                    mkdir -p $out/bin
+                    echo "echo hyde-ipc is disabled" > $out/bin/hyde-ipc
+                    chmod +x $out/bin/hyde-ipc
+                  '';
+                })
+              ];
+            }
+          )
+        ];
         modules = [
           ./machines/h/configuration.nix
         ];
@@ -51,8 +70,10 @@
 
     in
     {
-      nixosConfigurations.hydenix = hydenixConfig;
-      nixosConfigurations.default = hydenixConfig;
-      nixosConfigurations.machine = hydenixConfig;
+      nixosConfigurations = {
+        hydenix = hydenixConfig;
+        default = hydenixConfig;
+        machine = hydenixConfig;
+      };
     };
 }

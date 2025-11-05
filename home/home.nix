@@ -13,10 +13,11 @@ in
     ./hyde.nix
   ];
 
-  home.username = "nx";
-  home.homeDirectory = "/home/nx";
-
-  home.sessionVariables.LANG = "en_US.UTF-8";
+  home = {
+    username = "nx";
+    homeDirectory = "/home/nx";
+    sessionVariables.LANG = "en_US.UTF-8";
+  };
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
@@ -71,7 +72,7 @@ in
     # discord
     slack
     lazygit
-    onlyoffice-bin
+    onlyoffice-desktopeditors
     gimp
     vlc
     telegram-desktop
@@ -85,6 +86,8 @@ in
 
     tiny
     wl-screenrec
+
+    wine
   ];
 
   programs = {
@@ -108,14 +111,15 @@ in
   # git
   programs.git = {
     enable = true;
-    userName = "Daniel Kipp";
-    userEmail = "daniel.kipp@gmail.com";
     signing = {
       key = "937A32679620DC68";
       signByDefault = true;
     };
 
-    extraConfig = {
+    settings = {
+      user.name = "Daniel Kipp";
+      user.email = "daniel.kipp@gmail.com";
+
       color = {
         branch = "auto";
         diff = "auto";
@@ -191,7 +195,10 @@ in
       watchexec
 
       lua-language-server
+      lua51Packages.lua
+      lua51Packages.luarocks
       nixfmt
+      statix
 
       watchman
     ];
@@ -204,6 +211,10 @@ in
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
+  };
+
+  programs.himalaya = {
+    enable = true;
   };
 
   home.stateVersion = "25.05";

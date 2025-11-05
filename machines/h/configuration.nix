@@ -15,21 +15,21 @@ let
   maxVMs = 8;
 in
 {
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.initrd = {
-    systemd.enable = true;
-    kernelModules = [
-      "nvme"
-      "sd_mod"
-      "dm-crypt"
-      "dm-mod"
-    ];
-    services.lvm.enable = true;
+  boot = {
+    loader.systemd-boot.enable = true;
+    loader.efi.canTouchEfiVariables = true;
+    initrd = {
+      systemd.enable = true;
+      kernelModules = [
+        "nvme"
+        "sd_mod"
+        "dm-crypt"
+        "dm-mod"
+      ];
+      services.lvm.enable = true;
+    };
+    kernelPackages = pkgs.linuxPackages_zen;
   };
-  boot.kernelPackages = pkgs.linuxPackages_zen;
-  boot.initrd.luks.devices."luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d".device =
-    "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
 
   powerManagement.cpuFreqGovernor = "performance";
 
@@ -92,7 +92,7 @@ in
     git
     vim
     gnupg
-    pinentry
+    pinentry-curses
     wget
     gnome-shell
     gnome-control-center
@@ -116,9 +116,6 @@ in
   # User
   users.groups.tun = { };
 
-  # services.udev.extraRules = ''
-  #   KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
-  # '';
   users.users.nx = {
     isNormalUser = true;
     extraGroups = [
@@ -128,6 +125,7 @@ in
       "tun"
       "docker"
       "kvm"
+      "input"
     ];
   };
 
@@ -369,6 +367,30 @@ in
 
     system.enable = true; # enable system module
   };
+
+  services.udev.extraRules = ''
+    KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
+  '';
+
+  services.udev.packages = [
+    (pkgs.writeTextFile {
+      name = "kaleidoskope-udev-rules";
+      destination = "/etc/udev/rules.d/50-kaleidoskope.rules";
+      text = ''
+        # Kaleidoscope keyboards
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2303", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2302", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2301", SYMLINK+="Model01",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2300", SYMLINK+="Model01",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="0006", SYMLINK+="Model100",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="0005", SYMLINK+="Model100",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="00a1", SYMLINK+="Preonic",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="00a3", SYMLINK+="Preonic",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="00a0", SYMLINK+="Preonic",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="00a3", SYMLINK+="Preonic",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+      '';
+    })
+  ];
 
   # System Version - Don't change unless you know what you're doing (helps with system upgrades and compatibility)
   system.stateVersion = "25.05";

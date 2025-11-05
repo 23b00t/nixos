@@ -21,9 +21,6 @@
           kb_variant = altgr-intl, 
           kb_options = grp:alt_shift_toggle
         }
-        # exec-once = .local/lib/hyde/wallpaper.sh -s ~/nixos-config/wallpapers/edger_lucy_neon.jpg
-        # exec-once = swww img -o HDMI-A-1 ~/nixos-config/wallpapers/edger_lucy_neon.jpg
-        # exec-once = swww img -o eDP-1 ~/nixos-config/wallpapers/1.png
         exec-once = ~/nixos-config/home/set-wallpapers.sh
       '';
 
