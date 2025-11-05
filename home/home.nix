@@ -218,5 +218,13 @@ in
     enable = true;
   };
 
+  services.keyd = {
+    enable = true;
+    keyboards.atreus = {
+      ids = [ "*" ];
+      settings.main.debounce = 50;
+    };
+  };
+
   home.stateVersion = "25.05";
 }
