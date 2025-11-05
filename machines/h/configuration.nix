@@ -361,6 +361,14 @@ in
     system.enable = true; # enable system module
   };
 
+  services.keyd = {
+    enable = true;
+    keyboards.atreus = {
+      ids = [ "*" ];
+      settings.main.debounce = 50;
+    };
+  };
+
   # System Version - Don't change unless you know what you're doing (helps with system upgrades and compatibility)
   system.stateVersion = "25.05";
 }
