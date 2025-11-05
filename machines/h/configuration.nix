@@ -27,21 +27,9 @@ in
         "dm-mod"
       ];
       services.lvm.enable = true;
-      # Beide LUKS-Devices definieren
-      luks.devices = {
-        "luks-f527905f-02d6-4128-bc21-4f3f2f1eda46" = {
-          device = "/dev/disk/by-uuid/f527905f-02d6-4128-bc21-4f3f2f1eda46";
-        };
-        "luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d" = {
-          device = "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
-        };
-      };
     };
     kernelPackages = pkgs.linuxPackages_zen;
   };
-  swapDevices = [
-    { device = "/dev/mapper/luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d"; }
-  ];
 
   powerManagement.cpuFreqGovernor = "performance";
 

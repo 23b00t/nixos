@@ -29,8 +29,14 @@
     fsType = "ext4";
   };
 
-  boot.initrd.luks.devices."luks-f527905f-02d6-4128-bc21-4f3f2f1eda46".device =
-    "/dev/disk/by-uuid/f527905f-02d6-4128-bc21-4f3f2f1eda46";
+  boot.initrd.luks.devices = {
+    "luks-f527905f-02d6-4128-bc21-4f3f2f1eda46" = {
+      device = "/dev/disk/by-uuid/f527905f-02d6-4128-bc21-4f3f2f1eda46";
+    };
+    "luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d" = {
+      device = "/dev/disk/by-uuid/1d537a05-447a-4a7d-b5c0-2813b4a6de1d";
+    };
+  };
 
   fileSystems."/boot" = {
     device = "/dev/disk/by-uuid/D0D7-F25F";
@@ -41,7 +47,9 @@
     ];
   };
 
-  swapDevices = [ ]; # Wird in configuration.nix definiert
+  swapDevices = [
+    { device = "/dev/mapper/luks-1d537a05-447a-4a7d-b5c0-2813b4a6de1d"; }
+  ];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
   # (the default) this is the recommended approach. When using systemd-networkd it's
