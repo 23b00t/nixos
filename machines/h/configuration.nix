@@ -10,6 +10,12 @@ let
     config.allowUnfree = true;
     overlays = [
       inputs.hydenix.overlays.default
+      # Webcord with new Electron version
+      (final: prev: {
+        webcord = prev.webcord.override {
+          electron_36 = prev.electron_38;
+        };
+      })
     ];
   };
   maxVMs = 8;

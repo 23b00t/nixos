@@ -9,6 +9,9 @@ sudo nix-collect-garbage # Nixos: Delete only not refferenced packages
 sudo nix-collect-garbage -d # Nixos: Delete all old system generations and unused packages
 sudo nixos-rebuild boot # Nixos: Rebuild boot configuration
 
+nix why-depends /run/current-system "nixpkgs#electron_36" # find which package depends on electron_36
+nix eval "nixpkgs#electron.version" # find latest version
+
 ## Webserver
 nix shell "nixpkgs#python3" --command python -m http.server 8080 # Python: Simple webserver
 nix shell "nixpkgs#busybox" --command httpd -f -p 8080 # Busybox: CGI if -h -c, config in /etc/httpd.conf
