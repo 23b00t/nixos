@@ -11,6 +11,7 @@ sudo nixos-rebuild boot # Nixos: Rebuild boot configuration
 
 nix why-depends /run/current-system "nixpkgs#electron_36" # find which package depends on electron_36
 nix eval "nixpkgs#electron.version" # find latest version
+nix-store --query --deriver /nix/store/iy5fr9xni0b310qb3c5nvgwln77a5bfz-mimeapps.list # find which package installed mimeapps.list
 
 ## Webserver
 nix shell "nixpkgs#python3" --command python -m http.server 8080 # Python: Simple webserver

@@ -1,5 +1,6 @@
 {
   pkgs,
+  lib,
   ...
 }:
 let
@@ -171,7 +172,7 @@ in
   home.file.".config/kitty/current-theme.conf".source = ./current-theme.conf;
   home.file.".config/kitty/startup".source = ./startup;
 
-  xdg.configFile."mimeapps.list".force = true;
+  xdg.mimeApps.enable = lib.mkForce false;
 
   # zellij
   home.file.".config/zellij".source = ./zellij;
