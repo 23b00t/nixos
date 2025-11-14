@@ -208,9 +208,7 @@ in
     after = [ "libvirtd.service" ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.libvirt}/bin/virsh net-start default";
-      # Doesn't work as expected. Should only start the service if it is not running
-      # ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.libvirt}/bin/virsh net-info default | grep -q active || ${pkgs.libvirt}/bin/virsh net-start default'";
+      ExecStart = "-${pkgs.libvirt}/bin/virsh net-start default";
       RemainAfterExit = true;
     };
   };
