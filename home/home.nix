@@ -90,6 +90,8 @@ in
     wl-screenrec
 
     wine
+
+    pass
   ];
 
   programs = {
