@@ -149,26 +149,26 @@ keybinds clear-defaults=true {
         }
     }
     shared_among "normal" "locked" {
-        bind "Alt left" { MoveFocusOrTab "left"; }
-        bind "Alt down" { MoveFocus "down"; }
-        bind "Alt up" { MoveFocus "up"; }
-        bind "Alt right" { MoveFocusOrTab "right"; }
+        // bind "Alt left" { MoveFocusOrTab "left"; }
+        // bind "Alt down" { MoveFocus "down"; }
+        // bind "Alt up" { MoveFocus "up"; }
+        // bind "Alt right" { MoveFocusOrTab "right"; }
         bind "Alt +" { Resize "Increase"; }
         bind "Alt -" { Resize "Decrease"; }
-        bind "Alt =" { Resize "Increase"; }
+        // bind "Alt =" { Resize "Increase"; }
         bind "Alt [" { PreviousSwapLayout; }
         bind "Alt ]" { NextSwapLayout; }
-        bind "Alt f" { ToggleFloatingPanes; }
-        bind "Alt Ctrl h" { MoveFocusOrTab "left"; }
+        bind "Alt Ctrl f" { ToggleFloatingPanes; }
+        bind "Alt Ctrl o" { MoveTab "right"; }
         bind "Alt Ctrl i" { MoveTab "left"; }
+        bind "Alt Ctrl h" { MoveFocusOrTab "left"; }
         bind "Alt Ctrl j" { MoveFocus "down"; }
         bind "Alt Ctrl k" { MoveFocus "up"; }
         bind "Alt Ctrl l" { MoveFocusOrTab "right"; }
-        bind "Alt n" { NewPane; }
-        bind "Alt Ctrl o" { MoveTab "right"; }
-        bind "Alt p" { TogglePaneInGroup; }
-        bind "Alt Shift p" { ToggleGroupMarking; }
-        bind "Alt Shift f" { ToggleFocusFullscreen; }
+        bind "Alt Ctrl n" { NewPane; }
+        // bind "Alt p" { TogglePaneInGroup; }
+        // bind "Alt Shift p" { ToggleGroupMarking; }
+        // bind "Alt Shift f" { ToggleFocusFullscreen; }
         bind "Alt /" { TogglePanePinned; }
     }
     shared_except "locked" "renametab" "renamepane" {
