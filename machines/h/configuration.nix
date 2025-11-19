@@ -399,10 +399,8 @@ in
     system.enable = true; # enable system module
   };
 
-  # boot.kernelParams = [ "net.ifnames=0" ]; ??
   services.udev.extraRules = ''
     KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
-    SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="4c:e1:73:42:2d:5f", NAME="internet0"
   '';
 
   services.udev.packages = [
