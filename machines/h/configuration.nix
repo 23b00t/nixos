@@ -122,17 +122,22 @@ in
   # User
   users.groups.tun = { };
 
-  users.users.nx = {
-    isNormalUser = true;
-    extraGroups = [
-      "wheel"
-      "networkmanager"
-      "libvirtd"
-      "tun"
-      "docker"
-      "kvm"
-      "input"
-    ];
+  users.users = {
+    nx = {
+      isNormalUser = true;
+      extraGroups = [
+        "wheel"
+        "networkmanager"
+        "libvirtd"
+        "tun"
+        "docker"
+        "kvm"
+        "input"
+      ];
+    };
+    microvm = {
+      extraGroups = [ "tun" ];
+    };
   };
 
   # Sound
@@ -254,21 +259,15 @@ in
   # ssh
   # programs.ssh.startAgent = true;
   # security.pam.sshAgentAuth.enable = true;
-
   # microvm network
   # networking.interfaces."vm-net".ipv4.addresses = [{
   # address = "192.168.100.1";
   # prefixLength = 24;
   # }];
-
-  # networking.nat.enable = true;
-  # networking.nat.internalInterfaces = [ "vm-net" ];
-  # networking.nat.externalInterface = "enp0s20f0u2u3";
   # boot.kernel.sysctl."net.ipv4.ip_forward" = true;
-
   # networking.firewall.allowedTCPPorts = [ 22 ];
-  # networking.useNetworkd = true;
 
+  networking.useNetworkd = true;
   systemd.network.networks = builtins.listToAttrs (
     map (index: {
       name = "30-vm${toString index}";
@@ -301,23 +300,35 @@ in
   networking.nat = {
     enable = true;
     internalIPs = [ "10.0.0.0/24" ];
-    # Fallback
-    externalInterface = "fallback0";
-    extraCommands = ''
-      # Check if internet0 is up, otherwise fallback to wlo1
-      if /run/current-system/sw/bin/ip link show internet0 up | grep -q "state UP"; then
-        extif="internet0"
-      elif /run/current-system/sw/bin/ip link show wlo1 up | grep -q "state UP"; then
-        extif="wlo1"
-      else
-        echo "No externalInterface present!" >&2
-        exit 1
-      fi
-
-      # Set $extif as external interface
-      iptables -t nat -A POSTROUTING -o "$extif" -j MASQUERADE
-    '';
+    # externalInterface = "wlo1";
   };
+  # systemd.services.nat-dynamic = {
+  #   description = "Set NAT MASQUERADE dynamically on available outbound interface";
+  #   after = [ "network-online.target" ];
+  #   wantedBy = [ "multi-user.target" ];
+  #   serviceConfig.Type = "oneshot";
+  #   script = ''
+  #     EXT_IF=""
+  #     if /run/current-system/sw/bin/ip link show internet0; then
+  #       EXT_IF="internet0"
+  #     else
+  #       EXT_IF="wlo1"
+  #     fi
+  #     if [ -n "$EXT_IF" ]; then
+  #       /run/current-system/sw/bin/iptables -t nat -C POSTROUTING -s 10.0.0.0/24 -o "$EXT_IF" -j MASQUERADE 2>/dev/null ||
+  #       /run/current-system/sw/bin/iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o "$EXT_IF" -j MASQUERADE
+  #       # Forward erlauben
+  #       /run/current-system/sw/bin/iptables -C FORWARD -i "$EXT_IF" -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null ||
+  #       /run/current-system/sw/bin/iptables -A FORWARD -i "$EXT_IF" -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+  #
+  #       /run/current-system/sw/bin/iptables -C FORWARD -i eth0 -o "$EXT_IF" -j ACCEPT 2>/dev/null ||
+  #       /run/current-system/sw/bin/iptables -A FORWARD -i eth0 -o "$EXT_IF" -j ACCEPT
+  #     else
+  #       echo "Kein externes Interface verfügbar!"
+  #       exit 1
+  #     fi
+  #   '';
+  # };
 
   systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
 
