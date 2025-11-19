@@ -84,6 +84,7 @@
 
                 environment.systemPackages = with pkgs; [
                   tiny
+                  pass
                 ];
                 system.stateVersion = "25.11";
               }

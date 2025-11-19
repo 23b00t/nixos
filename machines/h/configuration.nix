@@ -238,9 +238,9 @@ in
     irc = {
       flake = inputs.irc-vm;
     };
-    nvim = {
-      flake = inputs.nvim-vm;
-    };
+    # nvim = {
+    #   flake = inputs.nvim-vm;
+    # };
   };
 
   programs.ssh = {
@@ -267,7 +267,7 @@ in
   # boot.kernel.sysctl."net.ipv4.ip_forward" = true;
 
   # networking.firewall.allowedTCPPorts = [ 22 ];
-  networking.useNetworkd = true;
+  # networking.useNetworkd = true;
 
   systemd.network.networks = builtins.listToAttrs (
     map (index: {
@@ -296,13 +296,29 @@ in
       };
     }) (lib.genList (i: i + 1) maxVMs)
   );
+
+  # NAT for microVMs
   networking.nat = {
     enable = true;
     internalIPs = [ "10.0.0.0/24" ];
-    # Change this to the interface with upstream Internet access
-    externalInterface = "enp0s20f0u2u3";
-    # externalInterface = "wlo1";
+    # Fallback
+    externalInterface = "fallback0";
+    extraCommands = ''
+      # Check if internet0 is up, otherwise fallback to wlo1
+      if /run/current-system/sw/bin/ip link show internet0 up | grep -q "state UP"; then
+        extif="internet0"
+      elif /run/current-system/sw/bin/ip link show wlo1 up | grep -q "state UP"; then
+        extif="wlo1"
+      else
+        echo "No externalInterface present!" >&2
+        exit 1
+      fi
+
+      # Set $extif as external interface
+      iptables -t nat -A POSTROUTING -o "$extif" -j MASQUERADE
+    '';
   };
+
   systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
 
   # use cache
@@ -372,8 +388,10 @@ in
     system.enable = true; # enable system module
   };
 
+  # boot.kernelParams = [ "net.ifnames=0" ]; ??
   services.udev.extraRules = ''
     KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
+    SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="4c:e1:73:42:2d:5f", NAME="internet0"
   '';
 
   services.udev.packages = [
