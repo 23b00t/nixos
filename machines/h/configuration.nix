@@ -268,6 +268,7 @@ in
   # networking.firewall.allowedTCPPorts = [ 22 ];
 
   networking.useNetworkd = true;
+  # Generiere Netzwerke für alle VMs außer VM5 (IRC)
   systemd.network.networks = builtins.listToAttrs (
     map (index: {
       name = "30-vm${toString index}";
@@ -293,7 +294,20 @@ in
           IPv6Forwarding = true;
         };
       };
-    }) (lib.genList (i: i + 1) maxVMs)
+    }) (lib.filter (i: i != 5) (lib.genList (i: i + 1) maxVMs))
+    # Füge VM5 mit Whonix-Bridge separat hinzu
+    ++ [
+      {
+        name = "30-vm5-whonix";
+        value = {
+          matchConfig.Name = "vm5";
+          networkConfig = {
+            Bridge = "virbr1";
+            IPv4Forwarding = true;
+          };
+        };
+      }
+    ]
   );
 
   # NAT for microVMs

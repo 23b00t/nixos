@@ -32,7 +32,7 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
+            (import ../whonix-net-config.nix { inherit lib index mac; })
             (
               { config, ... }:
               {
