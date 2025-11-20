@@ -38,6 +38,14 @@
               {
                 networking.hostName = "irc-vm";
 
+                services.openssh = {
+                  enable = true;
+                  settings = {
+                    PermitRootLogin = "no";
+                    PasswordAuthentication = true;
+                  };
+                };
+
                 users.groups.irc = { };
                 users.users.irc = {
                   password = "trash";

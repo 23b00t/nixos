@@ -1,4 +1,5 @@
-{ index, mac, ... }:
+# Whonix Workstation Network Configuration
+{ lib, index, mac, ... }:
 
 {
   microvm.interfaces = [{
@@ -8,18 +9,24 @@
   }];
 
   networking.useNetworkd = true;
+  services.openssh.enable = true;
 
-  systemd.network.networks."10-eth" = {
+  systemd.network.networks."11-eth" = {
     matchConfig.MACAddress = mac;
+    # Static IP configuration for Whonix Workstation
     address = [
-      "10.0.2.15/24"  # IP im Whonix External Network
+      "10.152.152.${toString (10 + index)}/18"  # netmask: 255.255.192.0
     ];
     routes = [{
+      # Default route via Whonix Gateway
       Destination = "0.0.0.0/0";
-      Gateway = "10.0.2.2";  # Whonix Gateway über virbr1
+      Gateway = "10.152.152.10";
     }];
     networkConfig.DNS = [
-      "10.0.2.2"  # DNS über Whonix
+      "9.9.9.9"
+      "149.112.112.112"
+      "2620:fe::fe"
+      "2620:fe::9"
     ];
   };
 }

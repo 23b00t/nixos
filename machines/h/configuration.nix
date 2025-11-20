@@ -250,7 +250,7 @@ in
 
   programs.ssh = {
     extraConfig = ''
-      Host 10.0.0.*
+      Host 10.*.*.*
           StrictHostKeyChecking no
           UserKnownHostsFile /dev/null
     '';
@@ -268,52 +268,82 @@ in
   # networking.firewall.allowedTCPPorts = [ 22 ];
 
   networking.useNetworkd = true;
-  # Generiere Netzwerke für alle VMs außer VM5 (IRC)
-  systemd.network.networks = builtins.listToAttrs (
-    map (index: {
-      name = "30-vm${toString index}";
-      value = {
-        matchConfig.Name = "vm${toString index}";
-        # Host's addresses
-        address = [
-          "10.0.0.0/32"
-          "fec0::/128"
-        ];
-        # Setup routes to the VM
-        routes = [
-          {
-            Destination = "10.0.0.${toString index}/32";
-          }
-          {
-            Destination = "fec0::${lib.toHexString index}/128";
-          }
-        ];
-        # Enable routing
-        networkConfig = {
-          IPv4Forwarding = true;
-          IPv6Forwarding = true;
-        };
-      };
-    }) (lib.filter (i: i != 5) (lib.genList (i: i + 1) maxVMs))
-    # Füge VM5 mit Whonix-Bridge separat hinzu
-    ++ [
-      {
-        name = "30-vm5-whonix";
+  # Generiere Netzwerke für alle VMs
+  # Netzwerke für Standard-VMs (10.0.0.x)
+  systemd.network.networks =
+    builtins.listToAttrs (
+      map (index: {
+        name = "30-vm${toString index}";
         value = {
-          matchConfig.Name = "vm5";
+          matchConfig.Name = "vm${toString index}";
+          # Host's addresses
+          address = [
+            "10.0.0.0/32"
+            "fec0::/128"
+          ];
+          # Setup routes to the VM
+          routes = [
+            {
+              Destination = "10.0.0.${toString index}/32";
+            }
+            {
+              Destination = "fec0::${lib.toHexString index}/128";
+            }
+          ];
+          # Enable routing
           networkConfig = {
-            Bridge = "virbr1";
             IPv4Forwarding = true;
+            IPv6Forwarding = true;
           };
         };
-      }
-    ]
-  );
+      }) (lib.genList (i: i + 1) maxVMs)
+    )
+    // {
+      "30-vm5-whonix" = {
+        matchConfig.Name = "vm5";
+      };
+    };
 
-  # NAT for microVMs
+  systemd.services.attach-vm5-to-virbr2 = {
+    description = "Attach vm5 tap interface to virbr2 bridge";
+    after = [
+      "sys-devices-virtual-net-vm5.device"
+      "libvirtd.service"
+    ];
+    requires = [ "libvirtd.service" ];
+    wantedBy = [ "multi-user.target" ];
+    path = [ pkgs.iproute2 ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      # Wait for vm5 to exist
+      for i in {1..30}; do
+        if ip link show vm5 >/dev/null 2>&1; then
+          break
+        fi
+        sleep 1
+      done
+
+      # Attach to bridge
+      ip link set vm5 master virbr2
+      ip link set vm5 up
+    '';
+  };
+  networking.interfaces.virbr2.ipv4.addresses = [
+    {
+      address = "10.152.152.11";
+      prefixLength = 18;
+    }
+  ];
+
+  # NAT für beide microVM-Netzwerke
   networking.nat = {
     enable = true;
-    internalIPs = [ "10.0.0.0/24" ];
+    internalIPs = [
+      "10.0.0.0/24"
+    ];
     # externalInterface = "wlo1";
   };
   # systemd.services.nat-dynamic = {
