@@ -76,12 +76,12 @@
                     {
                       mountPoint = "/home/irc";
                       image = "home.img";
-                      size = 8192;
+                      size = 512;
                     }
                     {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
-                      size = 8192;
+                      size = 2048;
                     }
                   ];
                   shares = [
@@ -92,7 +92,6 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  mem = 4096;
                 };
 
                 environment.systemPackages = with pkgs; [
