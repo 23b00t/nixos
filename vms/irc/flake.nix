@@ -32,10 +32,23 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../whonix-net-config.nix { inherit lib index mac; })
+            (import ../whonix-net-config.nix { inherit lib index; })
             (
               { config, ... }:
               {
+                # In vms/irc/flake.nix -> microvm.interfaces
+                microvm.interfaces = [
+                  {
+                    type = "tap";
+                    id = "vm5"; # -> Wird vom Host-Loop (Schritt 1) versorgt -> SSH
+                    mac = "02:00:00:00:00:05";
+                  }
+                  {
+                    type = "tap";
+                    id = "vm5-tor"; # -> Wird vom Service (Schritt 2) in die Bridge gehängt -> Internet
+                    mac = "02:00:00:00:00:06";
+                  }
+                ];
                 networking.hostName = "irc-vm";
 
                 services.openssh = {

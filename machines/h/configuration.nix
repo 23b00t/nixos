@@ -35,6 +35,12 @@ in
       services.lvm.enable = true;
     };
     kernelPackages = pkgs.linuxPackages_zen;
+
+    kernel.sysctl = {
+      "net.bridge.bridge-nf-call-ip6tables" = 0;
+      "net.bridge.bridge-nf-call-iptables" = 0;
+      "net.bridge.bridge-nf-call-arptables" = 0;
+    };
   };
 
   powerManagement.cpuFreqGovernor = "performance";
@@ -83,6 +89,9 @@ in
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 9003 ];
+
+    # Erlaubt Traffic auf der Bridge (nötig wegen Docker/br_netfilter)
+    trustedInterfaces = [ "virbr2" ];
   };
 
   # Enable the Flakes feature and the accompanying new nix command-line tool
@@ -271,72 +280,35 @@ in
   # Generiere Netzwerke für alle VMs
   # Netzwerke für Standard-VMs (10.0.0.x)
   systemd.network.networks =
-    builtins.listToAttrs (
+    (builtins.listToAttrs (
       map (index: {
         name = "30-vm${toString index}";
         value = {
           matchConfig.Name = "vm${toString index}";
-          # Host's addresses
+          # Host-Adresse für die P2P Verbindung
           address = [
             "10.0.0.0/32"
             "fec0::/128"
           ];
-          # Setup routes to the VM
+          # Route zur VM
           routes = [
-            {
-              Destination = "10.0.0.${toString index}/32";
-            }
-            {
-              Destination = "fec0::${lib.toHexString index}/128";
-            }
+            { Destination = "10.0.0.${toString index}/32"; }
+            { Destination = "fec0::${lib.toHexString index}/128"; }
           ];
-          # Enable routing
           networkConfig = {
             IPv4Forwarding = true;
             IPv6Forwarding = true;
           };
         };
       }) (lib.genList (i: i + 1) maxVMs)
-    )
+    ))
     // {
-      "30-vm5-whonix" = {
-        matchConfig.Name = "vm5";
+      # WICHTIG: Networkd soll dieses Interface ignorieren, wir machen das manuell per Service
+      "35-vm5-tor-ignore" = {
+        matchConfig.Name = "vm5-tor";
+        linkConfig.Unmanaged = "yes";
       };
     };
-
-  systemd.services.attach-vm5-to-virbr2 = {
-    description = "Attach vm5 tap interface to virbr2 bridge";
-    after = [
-      "sys-devices-virtual-net-vm5.device"
-      "libvirtd.service"
-    ];
-    requires = [ "libvirtd.service" ];
-    wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.iproute2 ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      # Wait for vm5 to exist
-      for i in {1..30}; do
-        if ip link show vm5 >/dev/null 2>&1; then
-          break
-        fi
-        sleep 1
-      done
-
-      # Attach to bridge
-      ip link set vm5 master virbr2
-      ip link set vm5 up
-    '';
-  };
-  networking.interfaces.virbr2.ipv4.addresses = [
-    {
-      address = "10.152.152.11";
-      prefixLength = 18;
-    }
-  ];
 
   # NAT für beide microVM-Netzwerke
   networking.nat = {
@@ -346,33 +318,6 @@ in
     ];
     # externalInterface = "wlo1";
   };
-  # systemd.services.nat-dynamic = {
-  #   description = "Set NAT MASQUERADE dynamically on available outbound interface";
-  #   after = [ "network-online.target" ];
-  #   wantedBy = [ "multi-user.target" ];
-  #   serviceConfig.Type = "oneshot";
-  #   script = ''
-  #     EXT_IF=""
-  #     if /run/current-system/sw/bin/ip link show internet0; then
-  #       EXT_IF="internet0"
-  #     else
-  #       EXT_IF="wlo1"
-  #     fi
-  #     if [ -n "$EXT_IF" ]; then
-  #       /run/current-system/sw/bin/iptables -t nat -C POSTROUTING -s 10.0.0.0/24 -o "$EXT_IF" -j MASQUERADE 2>/dev/null ||
-  #       /run/current-system/sw/bin/iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o "$EXT_IF" -j MASQUERADE
-  #       # Forward erlauben
-  #       /run/current-system/sw/bin/iptables -C FORWARD -i "$EXT_IF" -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null ||
-  #       /run/current-system/sw/bin/iptables -A FORWARD -i "$EXT_IF" -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-  #
-  #       /run/current-system/sw/bin/iptables -C FORWARD -i eth0 -o "$EXT_IF" -j ACCEPT 2>/dev/null ||
-  #       /run/current-system/sw/bin/iptables -A FORWARD -i eth0 -o "$EXT_IF" -j ACCEPT
-  #     else
-  #       echo "Kein externes Interface verfügbar!"
-  #       exit 1
-  #     fi
-  #   '';
-  # };
 
   systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
 
@@ -445,6 +390,8 @@ in
 
   services.udev.extraRules = ''
     KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
+    # NEU: Udev-Regel, die feuert, sobald vm5-tor auftaucht (Hotplug-sicher)
+    SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm5-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
   '';
 
   services.udev.packages = [
