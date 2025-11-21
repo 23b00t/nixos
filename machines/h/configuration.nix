@@ -35,12 +35,6 @@ in
       services.lvm.enable = true;
     };
     kernelPackages = pkgs.linuxPackages_zen;
-
-    # kernel.sysctl = {
-    #   "net.bridge.bridge-nf-call-ip6tables" = 0;
-    #   "net.bridge.bridge-nf-call-iptables" = 0;
-    #   "net.bridge.bridge-nf-call-arptables" = 0;
-    # };
   };
 
   powerManagement.cpuFreqGovernor = "performance";
@@ -85,13 +79,12 @@ in
   };
 
   # User Account Setup - REQUIRED: Change "hydenix" to your desired username (must match above)
-  networking.hostName = "machine";
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [ 9003 ];
-
-    # Erlaubt Traffic auf der Bridge (nötig wegen Docker/br_netfilter)
-    trustedInterfaces = [ "virbr2" ];
+  networking = {
+    hostName = "machine";
+    firewall = {
+      enable = true;
+      allowedTCPPorts = [ 9003 ];
+    };
   };
 
   # Enable the Flakes feature and the accompanying new nix command-line tool
@@ -393,7 +386,7 @@ in
 
   services.udev.extraRules = ''
     KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
-    # NEU: Udev-Regel, die feuert, sobald vm5-tor auftaucht (Hotplug-sicher)
+    # Udev-Regel, die feuert, sobald vm5-tor auftaucht (Hotplug-sicher)
     SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm5-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
   '';
 

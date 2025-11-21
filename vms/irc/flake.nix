@@ -18,9 +18,7 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      lib = nixpkgs.lib;
       index = 5;
-      mac = "00:00:00:00:00:05";
     in
     {
       packages.${system} = {
@@ -32,20 +30,19 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../whonix-net-config.nix { inherit lib index; })
+            (import ../whonix-net-config.nix { inherit index; })
             (
               { config, ... }:
               {
-                # In vms/irc/flake.nix -> microvm.interfaces
                 microvm.interfaces = [
                   {
                     type = "tap";
-                    id = "vm5"; # -> Wird vom Host-Loop (Schritt 1) versorgt -> SSH
+                    id = "vm5";
                     mac = "02:00:00:00:00:05";
                   }
                   {
                     type = "tap";
-                    id = "vm5-tor"; # -> Wird vom Service (Schritt 2) in die Bridge gehängt -> Internet
+                    id = "vm5-tor";
                     mac = "02:00:00:00:00:06";
                   }
                 ];
@@ -76,11 +73,6 @@
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
                   volumes = [
-                    # {
-                    #   mountPoint = "/var";
-                    #   image = "var.img";
-                    #   size = 8192;
-                    # }
                     {
                       mountPoint = "/home/irc";
                       image = "home.img";
@@ -106,6 +98,7 @@
                 environment.systemPackages = with pkgs; [
                   tiny
                   pass
+                  vim
                 ];
                 system.stateVersion = "25.11";
               }
