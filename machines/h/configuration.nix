@@ -36,11 +36,11 @@ in
     };
     kernelPackages = pkgs.linuxPackages_zen;
 
-    kernel.sysctl = {
-      "net.bridge.bridge-nf-call-ip6tables" = 0;
-      "net.bridge.bridge-nf-call-iptables" = 0;
-      "net.bridge.bridge-nf-call-arptables" = 0;
-    };
+    # kernel.sysctl = {
+    #   "net.bridge.bridge-nf-call-ip6tables" = 0;
+    #   "net.bridge.bridge-nf-call-iptables" = 0;
+    #   "net.bridge.bridge-nf-call-arptables" = 0;
+    # };
   };
 
   powerManagement.cpuFreqGovernor = "performance";
@@ -303,18 +303,21 @@ in
       }) (lib.genList (i: i + 1) maxVMs)
     ))
     // {
-      # WICHTIG: Networkd soll dieses Interface ignorieren, wir machen das manuell per Service
+      # IMPORTANT: Ignore Tor interfaces for VMs
       "35-vm5-tor-ignore" = {
         matchConfig.Name = "vm5-tor";
         linkConfig.Unmanaged = "yes";
       };
     };
 
-  # NAT für beide microVM-Netzwerke
+  # NAT only for 4 VMs
   networking.nat = {
     enable = true;
     internalIPs = [
-      "10.0.0.0/24"
+      "10.0.0.1/32"
+      "10.0.0.2/32"
+      "10.0.0.3/32"
+      "10.0.0.4/32"
     ];
     # externalInterface = "wlo1";
   };
