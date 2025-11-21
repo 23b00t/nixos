@@ -97,8 +97,16 @@
                 environment.systemPackages = with pkgs; [
                   tiny
                   pass
-                  vim
+                  gnupg
+                  pinentry-curses
+                  proxychains-ng
+                  openssl
                 ];
+
+                environment.etc."proxychains.conf".text = ''
+                  [ProxyList]
+                  socks5  10.152.152.10 9050
+                '';
                 system.stateVersion = "25.11";
               }
             )
