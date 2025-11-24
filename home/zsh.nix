@@ -21,10 +21,10 @@
       kk = "kitty @ kitten";
       ilinit = "$HOME/nixos-config/devenv/ilias-devenv/ilias-devenv-builder.sh";
       # ddate = "nix run 'nixpkgs#ddate'";
-      irc = "zellij a $(zellij ls --no-formatting | tail -n 2 | rg -v current | cut -d' ' -f 1)";
       h = "hydectl";
       hs = "hyde-shell";
       countdown = "$HOME/nixos-config/home/scripts/countdown.sh";
+      irc-vm = "kitten ssh -i /home/nx/.ssh/id_irc irc@10.0.0.5 -t";
     };
 
     history.size = 10000;

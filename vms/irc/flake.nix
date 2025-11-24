@@ -52,7 +52,7 @@
                   enable = true;
                   settings = {
                     PermitRootLogin = "no";
-                    PasswordAuthentication = true;
+                    PasswordAuthentication = false;
                   };
                 };
 
@@ -62,6 +62,9 @@
                   isNormalUser = true;
                   group = "irc";
                   extraGroups = [ "wheel" ];
+                  openssh.authorizedKeys.keys = [
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm"
+                  ];
                 };
                 security.sudo = {
                   enable = true;

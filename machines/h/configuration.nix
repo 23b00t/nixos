@@ -35,6 +35,12 @@ in
       services.lvm.enable = true;
     };
     kernelPackages = pkgs.linuxPackages_zen;
+
+    kernel.sysctl = {
+      "net.bridge.bridge-nf-call-ip6tables" = 0;
+      "net.bridge.bridge-nf-call-iptables" = 0;
+      "net.bridge.bridge-nf-call-arptables" = 0;
+    };
   };
 
   powerManagement.cpuFreqGovernor = "performance";
@@ -84,6 +90,8 @@ in
     firewall = {
       enable = true;
       allowedTCPPorts = [ 9003 ];
+      # Erlaubt Traffic auf der Bridge (nötig wegen Docker/br_netfilter)
+      trustedInterfaces = [ "virbr2" ];
     };
   };
 
@@ -382,6 +390,16 @@ in
     sddm.enable = true; # enable sddm module
 
     system.enable = true; # enable system module
+  };
+
+  systemd.services.retrigger-vm5-tor-udev = {
+    description = "Retrigger udev for vm5-tor after boot";
+    after = [ "multi-user.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.systemd}/bin/udevadm trigger --action=add /sys/class/net/vm5-tor";
+    };
   };
 
   services.udev.extraRules = ''
