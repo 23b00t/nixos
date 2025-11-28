@@ -9,15 +9,15 @@
       url = "github:microvm-nix/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    irc-vm.url = "path:./vms/irc";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # nvim-vm = {
-    #   url = "path:./vms/nvim";
-    #   inputs.home-manager.follows = "home-manager";
-    # };
+
+    # MicroVMs
+    irc-vm.url = "path:./vms/irc";
+    nvim-vm.url = "path:./vms/nvim";
+
     # Hydenix
     hydenix = {
       # Available inputs:

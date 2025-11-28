@@ -253,9 +253,9 @@ in
     irc = {
       flake = inputs.irc-vm;
     };
-    # nvim = {
-    #   flake = inputs.nvim-vm;
-    # };
+    nvim = {
+      flake = inputs.nvim-vm;
+    };
   };
 
   programs.ssh = {

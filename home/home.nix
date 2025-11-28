@@ -85,7 +85,6 @@ in
     # jetbrains.phpstorm
     devenv
 
-    tiny
     wl-screenrec
 
     wine
