@@ -25,6 +25,7 @@
       countdown = "$HOME/nixos-config/home/scripts/countdown.sh";
       irc-vm = "kitten ssh -i /home/nx/.ssh/id_irc irc@10.0.0.5 -t";
       n = "nvim_vm";
+      n-vm = "ssh -i /home/nx/.ssh/nvim-vm user@10.0.0.1 -t";
     };
 
     history.size = 10000;

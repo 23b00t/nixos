@@ -4,8 +4,7 @@ nvim_vm() {
   local args=()
 
   if [ $# -eq 0 ]; then
-    ssh -i /home/nx/.ssh/nvim-vm user@10.0.0.1 -t nvim 
-    exit 0
+    args=()
   else
     args=("$@")
   fi

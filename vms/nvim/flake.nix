@@ -135,6 +135,7 @@
                   oh-my-posh
 
                   tree-sitter
+                  vectorcode
                 ];
 
                 # for static linked binaries in nvim
@@ -171,21 +172,17 @@
                   shellInit = ''
                     export HISTIGNORE="rm *:cp *"
                     setopt HIST_IGNORE_ALL_DUPS
+                    export GPG_TTY=$(tty)
                     # Use antidote plugin manager
                     export ANTIDOTE_HOME="$HOME/.cache/antidote"
                     mkdir -p "$ANTIDOTE_HOME"
                     source ${pkgs.antidote}/share/antidote/antidote.zsh
 
-                    if [[ ! -f ~/.zsh_plugins.zsh || ~/.zsh_plugins.txt -nt ~/.zsh_plugins.zsh ]]; then
-                      antidote bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.zsh
-                    fi
-                    # antidote load ~/.zsh_plugins.zsh
+                    antidote bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.zsh
+                    antidote load
 
                     if command -v oh-my-posh >/dev/null 2>&1; then
                       eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/montys.omp.json")"
-                    fi
-                    if command -v zoxide >/dev/null 2>&1; then
-                      eval "$(zoxide init zsh)"
                     fi
                     if command -v gh >/dev/null 2>&1; then
                       if ! gh extension list | grep -q 'github/gh-copilot'; then
@@ -206,13 +203,17 @@
                   zap-zsh/vim
                   zap-zsh/sudo
                   wintermi/zsh-oh-my-posh
-                  kutsan/zsh-system-clipboard
+                '';
+
+                environment.etc."gpg-agent.conf".text = ''
+                  pinentry-program /run/current-system/sw/bin/pinentry-tty
                 '';
 
                 systemd.tmpfiles.rules = [
                   # Symlink /etc/zshrc nach /home/user/.zshrc, falls nicht vorhanden
                   "L+ /home/user/.zshrc - - - - /etc/zshrc"
                   "L+ /home/user/.zsh_plugins.txt - - - - /etc/zsh_plugins.txt"
+                  "L+ /home/user/.gnupg/gpg-agent.conf - - - - /etc/gpg-agent.conf"
                 ];
 
                 # git
