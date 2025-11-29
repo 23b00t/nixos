@@ -16,7 +16,6 @@
       cmd = "eval $(fzf < ~/nixos-config/home/cmds)";
       pcmd = "cmd=$(fzf < ~/nixos-config/home/cmds); vared -p '> ' -c cmd; eval '$cmd'";
       containers = "nix develop '/home/nx/nixos-config#containers'";
-      n = "nvim";
       dc = "docker compose";
       kk = "kitty @ kitten";
       ilinit = "$HOME/nixos-config/devenv/ilias-devenv/ilias-devenv-builder.sh";
@@ -25,6 +24,7 @@
       hs = "hyde-shell";
       countdown = "$HOME/nixos-config/home/scripts/countdown.sh";
       irc-vm = "kitten ssh -i /home/nx/.ssh/id_irc irc@10.0.0.5 -t";
+      n = "nvim_vm";
     };
 
     history.size = 10000;
@@ -71,6 +71,7 @@
     # Load custom functions
     [ -f "$HOME/nixos-config/home/paste_functions.zsh" ] && source "$HOME/nixos-config/home/paste_functions.zsh"
     [ -f "$HOME/nixos-config/home/hydectl.zsh" ] && source "$HOME/nixos-config/home/hydectl.zsh"
+    [ -f "$HOME/nixos-config/home/nvim.zsh" ] && source "$HOME/nixos-config/home/nvim.zsh"
     compdef _hydectl hydectl
 	'';
   };

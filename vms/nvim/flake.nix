@@ -48,6 +48,9 @@
                   isNormalUser = true;
                   group = "user";
                   extraGroups = [ "wheel" ];
+                  openssh.authorizedKeys.keys = [
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzJjZw0V2CdaWI/IBFcTQPwQhYtFn/31i5iNPSc1j8G nvim-vm"
+                  ];
                   shell = pkgs.zsh;
                 };
                 security.sudo = {
@@ -59,7 +62,7 @@
                   enable = true;
                   settings = {
                     PermitRootLogin = "no";
-                    PasswordAuthentication = true;
+                    PasswordAuthentication = false;
                   };
                 };
                 microvm = {
@@ -86,14 +89,15 @@
                       source = "/nix/store";
                       mountPoint = "/nix/.ro-store";
                     }
-                    # {
-                    #   proto = "virtiofs";
-                    #   tag = "home";
-                    #   source = "/home/nx";
-                    #   mountPoint = "/home/nvim";
-                    # }
+                    {
+                      proto = "virtiofs";
+                      tag = "host-home";
+                      source = "/home/nx";
+                      mountPoint = "/mnt/host";
+                    }
                   ];
-                  mem = 4096;
+                  mem = 8192;
+                  vcpu = 2;
                 };
 
                 environment.systemPackages = with pkgs; [
@@ -126,7 +130,15 @@
                   watchman
 
                   antidote
+                  ripgrep
+                  fzf
+                  oh-my-posh
+
+                  tree-sitter
                 ];
+
+                # for static linked binaries in nvim
+                programs.nix-ld.enable = true;
 
                 programs.neovim = {
                   enable = true;
@@ -151,12 +163,6 @@
                     la = "ls -la";
                     edit = "sudo -e";
                     sc = "systemctl";
-                    cmd = "eval $(fzf < ~/nixos-config/home/cmds)";
-                    pcmd = "cmd=$(fzf < ~/nixos-config/home/cmds); vared -p '> ' -c cmd; eval '$cmd'";
-                    n = "nvim";
-                    dc = "docker compose";
-                    kk = "kitty @ kitten";
-                    ilinit = "$HOME/nixos-config/devenv/ilias-devenv/ilias-devenv-builder.sh";
                   };
 
                   histSize = 10000;
@@ -170,48 +176,43 @@
                     mkdir -p "$ANTIDOTE_HOME"
                     source ${pkgs.antidote}/share/antidote/antidote.zsh
 
-                    # Plugins laden
-                    antidote bundle <<EOPLUGINS
-                    zsh-users/zsh-autosuggestions
-                    zap-zsh/supercharge
-                    zsh-users/zsh-syntax-highlighting
-                    atoftegaard-git/zsh-omz-autocomplete
-                    MichaelAquilina/zsh-you-should-use
-                    zap-zsh/magic-enter
-                    chivalryq/git-alias
-                    zap-zsh/vim
-                    zap-zsh/sudo
-                    wintermi/zsh-oh-my-posh
-                    kutsan/zsh-system-clipboard
-                    EOPLUGINS
-
-                    antidote load
-                    if command -v oh-my-posh >/dev/null 2>&1; then
-                      eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/slimfat.omp.json")"
+                    if [[ ! -f ~/.zsh_plugins.zsh || ~/.zsh_plugins.txt -nt ~/.zsh_plugins.zsh ]]; then
+                      antidote bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.zsh
                     fi
-                    # GitHub Copilot CLI Aliases
-                    if command -v ${pkgs.gh}/bin/gh >/dev/null 2>&1; then
-                      eval "$(${pkgs.gh}/bin/gh copilot alias -- zsh)"
+                    # antidote load ~/.zsh_plugins.zsh
+
+                    if command -v oh-my-posh >/dev/null 2>&1; then
+                      eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/montys.omp.json")"
                     fi
                     if command -v zoxide >/dev/null 2>&1; then
                       eval "$(zoxide init zsh)"
                     fi
                     if command -v gh >/dev/null 2>&1; then
-                      gh extension install github/gh-copilot || true
+                      if ! gh extension list | grep -q 'github/gh-copilot'; then
+                        gh extension install github/gh-copilot || true
+                      fi
                     fi
                   '';
                 };
 
-                # Set up gh config for the user
-                environment.etc."gh-config.yml".text = ''
-                  git_protocol: ssh
+                environment.etc."zsh_plugins.txt".text = ''
+                  zsh-users/zsh-autosuggestions
+                  zap-zsh/supercharge
+                  zsh-users/zsh-syntax-highlighting
+                  atoftegaard-git/zsh-omz-autocomplete
+                  MichaelAquilina/zsh-you-should-use
+                  zap-zsh/magic-enter
+                  chivalryq/git-alias
+                  zap-zsh/vim
+                  zap-zsh/sudo
+                  wintermi/zsh-oh-my-posh
+                  kutsan/zsh-system-clipboard
                 '';
 
                 systemd.tmpfiles.rules = [
-                  # Symlink to user's config directory (for user 'user')
-                  "L+ /home/user/.config/gh/config.yml - - - - /etc/gh-config.yml"
                   # Symlink /etc/zshrc nach /home/user/.zshrc, falls nicht vorhanden
                   "L+ /home/user/.zshrc - - - - /etc/zshrc"
+                  "L+ /home/user/.zsh_plugins.txt - - - - /etc/zsh_plugins.txt"
                 ];
 
                 # git

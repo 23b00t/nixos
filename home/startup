@@ -1,7 +1,7 @@
 new_tab zellij
 layout stack 
 launch zsh -c "zellij --layout /home/nx/.config/zellij/layouts/tabs.kdl"
-launch zsh -c "kitten ssh -i /home/nx/.ssh/id_irc irc@10.0.0.5 -t 'proxychains4 -q tiny'"
+launch zsh -c 'for i in {1..5}; do ssh -i /home/nx/.ssh/id_irc irc@10.0.0.5 -t "proxychains4 -q tiny" && break || sleep 5; done'
 
 new_tab yazi
 layout vertical
