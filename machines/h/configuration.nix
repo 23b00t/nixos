@@ -110,8 +110,8 @@ in
     gnupg
     pinentry-curses
     wget
-    gnome-shell
-    gnome-control-center
+    # gnome-shell
+    # gnome-control-center
     virt-manager
     libvirt
     qemu
@@ -120,8 +120,9 @@ in
     virtiofsd
     zellij
     xwayland
-    waypipe
+    # waypipe
     shadow
+    inputs.wprs.packages.${system}.default
   ];
 
   services.power-profiles-daemon.enable = true;
