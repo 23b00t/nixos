@@ -43,9 +43,9 @@
                   isNormalUser = true;
                   group = "user";
                   extraGroups = [ "wheel" ];
-                  # openssh.authorizedKeys.keys = [
-                  #   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzJjZw0V2CdaWI/IBFcTQPwQhYtFn/31i5iNPSc1j8G chat-vm"
-                  # ];
+                  openssh.authorizedKeys.keys = [
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm"
+                  ];
                 };
                 security.sudo = {
                   enable = true;
@@ -56,7 +56,7 @@
                   enable = true;
                   settings = {
                     PermitRootLogin = "no";
-                    PasswordAuthentication = true;
+                    PasswordAuthentication = false;
                   };
                 };
                 microvm = {
@@ -92,6 +92,8 @@
                   vesktop
                   telegram-desktop
                   slack
+                  wprs
+                  xwayland
                 ];
 
                 system.stateVersion = "25.05";

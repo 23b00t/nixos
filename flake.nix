@@ -19,9 +19,6 @@
     nvim-vm.url = "path:./vms/nvim";
     chat-vm.url = "path:./vms/chat";
 
-    # wprs
-    wprs.url = "path:./pkgs/wprs";
-
     # Hydenix
     hydenix = {
       # Available inputs:

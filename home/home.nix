@@ -12,6 +12,7 @@ in
     ./vim.nix
     ./yazi.nix
     ./hyde.nix
+    ./ssh.nix
   ];
 
   home = {
@@ -75,6 +76,7 @@ in
     lazygit
     onlyoffice-desktopeditors
     gimp
+    inkscape
     vlc
     telegram-desktop
     google-chrome

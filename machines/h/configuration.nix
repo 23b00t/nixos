@@ -122,7 +122,7 @@ in
     xwayland
     # waypipe
     shadow
-    inputs.wprs.packages.${system}.default
+    wprs
   ];
 
   services.power-profiles-daemon.enable = true;
@@ -257,26 +257,11 @@ in
     nvim = {
       flake = inputs.nvim-vm;
     };
+    chat = {
+      flake = inputs.chat-vm;
+      autostart = false;
+    };
   };
-
-  programs.ssh = {
-    extraConfig = ''
-      Host 10.*.*.*
-          StrictHostKeyChecking no
-          UserKnownHostsFile /dev/null
-    '';
-  };
-
-  # ssh
-  # programs.ssh.startAgent = true;
-  # security.pam.sshAgentAuth.enable = true;
-  # microvm network
-  # networking.interfaces."vm-net".ipv4.addresses = [{
-  # address = "192.168.100.1";
-  # prefixLength = 24;
-  # }];
-  # boot.kernel.sysctl."net.ipv4.ip_forward" = true;
-  # networking.firewall.allowedTCPPorts = [ 22 ];
 
   networking.useNetworkd = true;
   # Generiere Netzwerke für alle VMs
@@ -428,6 +413,15 @@ in
       '';
     })
   ];
+
+  # Printer
+  services.printing.enable = true;
+
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+  };
 
   # System Version - Don't change unless you know what you're doing (helps with system upgrades and compatibility)
   system.stateVersion = "25.05";
