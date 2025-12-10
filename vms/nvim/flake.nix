@@ -106,7 +106,6 @@
                   gnupg
                   pinentry-curses
                   gh
-                  gh-copilot
 
                   python3
                   fd
@@ -136,6 +135,9 @@
 
                   tree-sitter
                   vectorcode
+
+                  nodejs
+                  nodePackages.npm
 
                   (writeShellScriptBin "lazygit" ''
                     export GPG_TTY=$(tty)
@@ -191,10 +193,8 @@
                     if command -v oh-my-posh >/dev/null 2>&1; then
                       eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/montys.omp.json")"
                     fi
-                    if command -v gh >/dev/null 2>&1; then
-                      if ! gh extension list | grep -q 'github/gh-copilot'; then
-                        gh extension install github/gh-copilot || true
-                      fi
+                    if ! command -v copilot >/dev/null; then
+                      npm install -g @github/copilot
                     fi
                   '';
                 };

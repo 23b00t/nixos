@@ -1,5 +1,5 @@
 {
-  description = "Chat MicroVM";
+  description = "Office MicroVM";
 
   inputs.microvm = {
     url = "github:astro/microvm.nix";
@@ -16,17 +16,17 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       lib = nixpkgs.lib;
-      index = 2;
-      mac = "00:00:00:00:00:02";
+      index = 3;
+      mac = "00:00:00:00:00:03";
     in
     {
       nixpkgs.pkgs = pkgs;
       packages.${system} = {
-        default = self.packages.${system}.chat;
-        chat = self.nixosConfigurations.chat.config.microvm.declaredRunner;
+        default = self.packages.${system}.office;
+        chat = self.nixosConfigurations.office.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
-        chat = nixpkgs.lib.nixosSystem {
+        office = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
@@ -35,7 +35,7 @@
               { config, pkgs, ... }:
               {
                 nixpkgs.config.allowUnfree = true;
-                networking.hostName = "chat-vm";
+                networking.hostName = "office-vm";
 
                 users.groups.user = { };
                 users.users.user = {
@@ -44,7 +44,7 @@
                   group = "user";
                   extraGroups = [ "wheel" ];
                   openssh.authorizedKeys.keys = [
-                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm"
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm"
                   ];
                 };
                 security.sudo = {
@@ -84,16 +84,18 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  mem = 8192;
-                  vcpu = 3;
+                  mem = 6144;
+                  vcpu = 2;
                 };
 
                 environment.systemPackages = with pkgs; [
-                  vesktop
-                  telegram-desktop
-                  slack
-                  zoom-us
-                  google-chrome
+                  termusic
+                  onlyoffice-desktopeditors
+                  gimp
+                  inkscape
+                  vlc
+                  pinta
+                  pdfarranger
                   wprs
                   xwayland
                 ];

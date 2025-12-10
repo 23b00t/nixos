@@ -18,6 +18,7 @@
     irc-vm.url = "path:./vms/irc";
     nvim-vm.url = "path:./vms/nvim";
     chat-vm.url = "path:./vms/chat";
+    office-vm.url = "path:./vms/office";
 
     # Hydenix
     hydenix = {

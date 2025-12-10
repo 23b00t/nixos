@@ -261,6 +261,10 @@ in
       flake = inputs.chat-vm;
       autostart = false;
     };
+    office = {
+      flake = inputs.office-vm;
+      autostart = false;
+    };
   };
 
   networking.useNetworkd = true;
