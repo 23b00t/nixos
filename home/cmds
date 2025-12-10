@@ -13,6 +13,9 @@ nix why-depends /run/current-system "nixpkgs#electron_36" # find which package d
 nix eval "nixpkgs#electron.version" # find latest version
 nix-store --query --deriver /nix/store/iy5fr9xni0b310qb3c5nvgwln77a5bfz-mimeapps.list # find which package installed mimeapps.list
 
+# Show trace...
+nix build --extra-experimental-features 'nix-command flakes' "/home/nx/nixos-config#nixosConfigurations."machine".config.system.build.toplevel" --no-link --show-trace
+
 ## Webserver
 nix shell "nixpkgs#python3" --command python -m http.server 8080 # Python: Simple webserver
 nix shell "nixpkgs#busybox" --command httpd -f -p 8080 # Busybox: CGI if -h -c, config in /etc/httpd.conf

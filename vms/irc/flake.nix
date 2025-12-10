@@ -110,7 +110,7 @@
                   [ProxyList]
                   socks5  10.152.152.10 9050
                 '';
-                system.stateVersion = "25.11";
+                system.stateVersion = "25.05";
               }
             )
           ];

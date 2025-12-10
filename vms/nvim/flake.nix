@@ -102,7 +102,7 @@
 
                 environment.systemPackages = with pkgs; [
                   devenv
-                  lazygit
+                  # lazygit
                   gnupg
                   pinentry-curses
                   gh
@@ -136,6 +136,12 @@
 
                   tree-sitter
                   vectorcode
+
+                  (writeShellScriptBin "lazygit" ''
+                    export GPG_TTY=$(tty)
+                    ${gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
+                    exec ${lazygit}/bin/lazygit "$@"
+                  '')
                 ];
 
                 # for static linked binaries in nvim
@@ -173,6 +179,7 @@
                     export HISTIGNORE="rm *:cp *"
                     setopt HIST_IGNORE_ALL_DUPS
                     export GPG_TTY=$(tty)
+
                     # Use antidote plugin manager
                     export ANTIDOTE_HOME="$HOME/.cache/antidote"
                     mkdir -p "$ANTIDOTE_HOME"
