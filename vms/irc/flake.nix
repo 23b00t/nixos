@@ -56,11 +56,11 @@
                   };
                 };
 
-                users.groups.irc = { };
-                users.users.irc = {
+                users.groups.user = { };
+                users.users.user = {
                   password = "trash";
                   isNormalUser = true;
-                  group = "irc";
+                  group = "user";
                   extraGroups = [ "wheel" ];
                   openssh.authorizedKeys.keys = [
                     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm"

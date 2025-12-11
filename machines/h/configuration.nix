@@ -18,7 +18,7 @@ let
       })
     ];
   };
-  maxVMs = 8;
+  maxVMs = 12;
 in
 {
   boot = {

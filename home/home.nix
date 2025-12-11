@@ -14,6 +14,7 @@ in
     ./hyde.nix
     ./ssh.nix
     ./desktop-entries.nix
+    ./vm-connect.nix
   ];
 
   home = {
@@ -73,16 +74,16 @@ in
 
     # zoom-us
     # discord
-    slack
+    # slack
     lazygit
-    onlyoffice-desktopeditors
-    gimp
-    inkscape
-    vlc
-    telegram-desktop
-    google-chrome
-    pinta
-    pdfarranger
+    # onlyoffice-desktopeditors
+    # gimp
+    # inkscape
+    # vlc
+    # telegram-desktop
+    # google-chrome
+    # pinta
+    # pdfarranger
 
     postman
     # jetbrains.phpstorm

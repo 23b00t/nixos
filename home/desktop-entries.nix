@@ -8,7 +8,7 @@ let
     VM_NAME="$2"
     BINARY="$3"
     shift 3
-    
+
     IP="10.0.0.$SUFFIX"
     SERVICE="microvm@$VM_NAME.service"
 
@@ -35,28 +35,38 @@ let
 
     # Anwendung via wprs starten
     # "$@" gibt eventuelle Argumente (wie URLs bei Zoom-Links) weiter
-    exec wprs "$IP" run "$BINARY" "$@"
+    exec wprs "$IP" run -- "$BINARY" "$@"
   '';
 
   # 2. Die Helper-Funktion
   # Sie transformiert unsere Custom-Daten in valides XDG-Format
-  mkVmEntry = { 
-    name, 
-    vmName, 
-    ipSuffix, 
-    binary, 
-    genericName ? name, 
-    categories ? [], 
-    mimeType ? [] 
-  }: {
-    "${name}" = {
-      inherit name genericName categories mimeType;
-      # Hier bauen wir den exec string zusammen
-      exec = "${lib.getExe vmRunner} ${toString ipSuffix} ${vmName} ${binary} %U";
-      terminal = false;
-      type = "Application";
+  mkVmEntry =
+    {
+      name,
+      vmName,
+      ipSuffix,
+      binary,
+      genericName ? name,
+      categories ? [ ],
+      mimeType ? [ ],
+      icon ? null,
+      args ? "",
+    }:
+    {
+      "${name}" = {
+        inherit
+          name
+          genericName
+          categories
+          mimeType
+          icon
+          ;
+        # Hier bauen wir den exec string zusammen
+        exec = "${lib.getExe vmRunner} ${toString ipSuffix} ${vmName} ${binary} ${args} %U";
+        terminal = false;
+        type = "Application";
+      };
     };
-  };
 
 in
 {
@@ -64,23 +74,195 @@ in
   home.packages = [ vmRunner ];
 
   xdg.desktopEntries = lib.mkMerge [
-    # Hier definieren wir Zoom
+    # --- Chat VM (10.0.0.2) ---
+
     (mkVmEntry {
       name = "zoom"; # Key im desktopEntries Set (wird zu zoom.desktop)
       genericName = "Zoom Video Chat";
       vmName = "chat";
       ipSuffix = 2;
       binary = "zoom-us";
-      categories = [ "Network" "VideoConference" ];
-      mimeType = [ "x-scheme-handler/zoommtg" "x-scheme-handler/zoomus" "application/x-zoom" ];
+      icon = "Zoom";
+      categories = [
+        "Network"
+        "VideoConference"
+      ];
+      mimeType = [
+        "x-scheme-handler/zoommtg"
+        "x-scheme-handler/zoomus"
+        "application/x-zoom"
+      ];
     })
 
-    # Beispiel für weitere App:
-    # (mkVmEntry {
-    #   name = "signal";
-    #   vmName = "chat";
-    #   ipSuffix = 2;
-    #   binary = "signal-desktop";
-    # })
+    (mkVmEntry {
+      name = "vesktop";
+      genericName = "Discord Client";
+      vmName = "chat";
+      ipSuffix = 2;
+      binary = "vesktop";
+      icon = "discord";
+      categories = [
+        "Network"
+        "InstantMessaging"
+        "Chat"
+      ];
+    })
+
+    (mkVmEntry {
+      name = "telegram-desktop";
+      genericName = "Telegram Desktop";
+      vmName = "chat";
+      ipSuffix = 2;
+      binary = "Telegram";
+      icon = "telegram";
+      categories = [
+        "Network"
+        "InstantMessaging"
+        "Chat"
+      ];
+      mimeType = [ "x-scheme-handler/tg" ];
+    })
+
+    (mkVmEntry {
+      name = "slack";
+      genericName = "Slack";
+      vmName = "chat";
+      ipSuffix = 2;
+      binary = "slack";
+      icon = "slack";
+      categories = [
+        "Network"
+        "InstantMessaging"
+        "Chat"
+      ];
+      mimeType = [ "x-scheme-handler/slack" ];
+    })
+
+    (mkVmEntry {
+      name = "google-chrome";
+      genericName = "Web Browser";
+      vmName = "chat";
+      ipSuffix = 2;
+      binary = "google-chrome-stable";
+      icon = "google-chrome";
+      categories = [
+        "Network"
+        "WebBrowser"
+      ];
+    })
+
+    (mkVmEntry {
+      name = "teams";
+      genericName = "Microsoft Teams (PWA)";
+      vmName = "chat";
+      ipSuffix = 2;
+      binary = "google-chrome-stable";
+      args = "--profile-directory=Default --app-id=cifhbcnohmdccbgoicgdjpfamggdegmo";
+      icon = "teams";
+      categories = [
+        "Network"
+        "InstantMessaging"
+        "Chat"
+      ];
+      mimeType = [ "x-scheme-handler/web+msteams" ];
+    })
+
+    # --- Office VM (10.0.0.3) ---
+
+    (mkVmEntry {
+      name = "onlyoffice-desktopeditors";
+      genericName = "Office Suite";
+      vmName = "office";
+      ipSuffix = 3;
+      binary = "onlyoffice-desktopeditors";
+      args = "--force-scale=1";
+      icon = "onlyoffice-desktopeditors";
+      categories = [
+        "Office"
+        "WordProcessor"
+        "Spreadsheet"
+        "Presentation"
+      ];
+      mimeType = [
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+      ];
+    })
+
+    (mkVmEntry {
+      name = "gimp";
+      genericName = "GNU Image Manipulation Program";
+      vmName = "office";
+      ipSuffix = 3;
+      binary = "gimp";
+      icon = "gimp";
+      categories = [
+        "Graphics"
+        "2DGraphics"
+        "RasterGraphics"
+      ];
+      mimeType = [
+        "image/jpeg"
+        "image/png"
+        "image/tiff"
+        "image/webp"
+      ];
+    })
+
+    (mkVmEntry {
+      name = "inkscape";
+      genericName = "Vector Graphics Editor";
+      vmName = "office";
+      ipSuffix = 3;
+      binary = "inkscape";
+      icon = "inkscape";
+      categories = [
+        "Graphics"
+        "VectorGraphics"
+      ];
+      mimeType = [
+        "image/svg+xml"
+        "application/pdf"
+      ];
+    })
+
+    (mkVmEntry {
+      name = "vlc";
+      genericName = "Media Player";
+      vmName = "office";
+      ipSuffix = 3;
+      binary = "vlc";
+      icon = "vlc";
+      categories = [
+        "AudioVideo"
+        "Player"
+        "Recorder"
+      ];
+    })
+
+    (mkVmEntry {
+      name = "pinta";
+      genericName = "Image Editor";
+      vmName = "office";
+      ipSuffix = 3;
+      binary = "pinta";
+      icon = "pinta";
+      categories = [
+        "Graphics"
+        "2DGraphics"
+      ];
+    })
+
+    (mkVmEntry {
+      name = "pdfarranger";
+      genericName = "PDF Arranger";
+      vmName = "office";
+      ipSuffix = 3;
+      binary = "pdfarranger";
+      icon = "pdfarranger";
+      categories = [ "Office" ];
+      mimeType = [ "application/pdf" ];
+    })
   ];
 }

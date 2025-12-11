@@ -6,6 +6,8 @@
     git.enable = false;
     shell.enable = false;
     terminals.enable = false;
+    social.enable = false;
+    spotify.enable = false;
     hyprland = {
       monitors = {
         enable = true;
