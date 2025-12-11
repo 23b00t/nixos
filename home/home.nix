@@ -13,6 +13,7 @@ in
     ./yazi.nix
     ./hyde.nix
     ./ssh.nix
+    ./desktop-entries.nix
   ];
 
   home = {
@@ -70,7 +71,7 @@ in
 
     nerd-fonts.droid-sans-mono
 
-    zoom-us
+    # zoom-us
     # discord
     slack
     lazygit
@@ -217,9 +218,10 @@ in
     nix-direnv.enable = true;
   };
 
-  programs.himalaya = {
-    enable = true;
-  };
+  # Email client
+  # programs.himalaya = {
+  #   enable = true;
+  # };
 
   home.stateVersion = "25.05";
 }

@@ -46,6 +46,7 @@
                   openssh.authorizedKeys.keys = [
                     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm"
                   ];
+                  linger = true;
                 };
                 security.sudo = {
                   enable = true;
@@ -88,8 +89,36 @@
                   vcpu = 2;
                 };
 
+                systemd.user.services.wprsd = {
+                  description = "wprsd instance";
+                  after = [ "network.target" ];
+                  serviceConfig = {
+                    Type = "simple";
+                    Environment = [
+                      "PATH=/run/current-system/sw/bin"
+                      "RUST_BACKTRACE=1"
+                    ];
+                    ExecStart = "/run/current-system/sw/bin/wprsd";
+                  };
+                  wantedBy = [ "default.target" ];
+                };
+
+                # Audio setup for termusic over PipeWire
+                services.pulseaudio.enable = false;
+                services.pipewire = {
+                  enable = true;
+                  pulse.enable = true;
+                  alsa.enable = true;
+                  alsa.support32Bit = true;
+                  jack.enable = true;
+                };
+                environment.sessionVariables = {
+                  PULSE_SERVER = "tcp:localhost:4713";
+                };
+
                 environment.systemPackages = with pkgs; [
                   termusic
+                  yt-dlp
                   onlyoffice-desktopeditors
                   gimp
                   inkscape

@@ -194,7 +194,7 @@
                       eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/montys.omp.json")"
                     fi
                     if ! command -v copilot >/dev/null; then
-                      npm install -g @github/copilot
+                      npm install @github/copilot
                     fi
                   '';
                 };
