@@ -33,6 +33,14 @@
             (import ../net-config.nix { inherit lib index mac; })
             (
               { config, pkgs, ... }:
+              # INFO: build termusic with mpv support to work with pulse and not enforce alsa
+              let
+                termusic-mpv = pkgs.termusic.overrideAttrs (old: {
+                  cargoBuildFlags = (old.cargoBuildFlags or [ ]) ++ [ "--features=mpv" ];
+                  nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
+                  buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.mpv ];
+                });
+              in
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "office-vm";
@@ -103,21 +111,17 @@
                   wantedBy = [ "default.target" ];
                 };
 
-                # Audio setup for termusic over PipeWire
-                services.pulseaudio.enable = false;
-                services.pipewire = {
-                  enable = true;
-                  pulse.enable = true;
-                  alsa.enable = true;
-                  alsa.support32Bit = true;
-                  jack.enable = true;
-                };
-                environment.sessionVariables = {
+                environment.variables = {
                   PULSE_SERVER = "tcp:localhost:4713";
                 };
 
                 environment.systemPackages = with pkgs; [
-                  termusic
+                  # INFO: set in .config/termusic/server.toml:
+                  # [player]
+                  # backend = "mpv"
+                  # [backends.mpv]
+                  # audio_device = "pulse"
+                  termusic-mpv
                   yt-dlp
                   onlyoffice-desktopeditors
                   gimp

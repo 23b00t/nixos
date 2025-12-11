@@ -42,7 +42,10 @@
                   password = "trash";
                   isNormalUser = true;
                   group = "user";
-                  extraGroups = [ "wheel" ];
+                  extraGroups = [
+                    "wheel"
+                    "video"
+                  ];
                   openssh.authorizedKeys.keys = [
                     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm"
                   ];
@@ -63,7 +66,7 @@
                   registerClosure = false;
                   # vsock.cid = 3;
                   writableStoreOverlay = "/nix/.rw-store";
-                  hypervisor = "cloud-hypervisor";
+                  hypervisor = "qemu";
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -84,8 +87,28 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
+                  devices = [
+                    {
+                      bus = "usb";
+                      path = "vendorid=0x0408,productid=0x5365,guest-reset=false"; # HP TrueVision HD Camera
+                    }
+                  ];
                   mem = 8192;
                   vcpu = 3;
+                };
+
+                systemd.user.services.wprsd = {
+                  description = "wprsd instance";
+                  after = [ "network.target" ];
+                  serviceConfig = {
+                    Type = "simple";
+                    Environment = [
+                      "PATH=/run/current-system/sw/bin"
+                      "RUST_BACKTRACE=1"
+                    ];
+                    ExecStart = "/run/current-system/sw/bin/wprsd";
+                  };
+                  wantedBy = [ "default.target" ];
                 };
 
                 environment.systemPackages = with pkgs; [

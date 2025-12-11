@@ -166,13 +166,13 @@ in
     # If you want to use JACK applications, uncomment this
     #jack.enable = true;
     # Netzwerk-Audio aktivieren
-    configPackages = [
-      (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
-        pulse.cmd = [
-          { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
-        ]
-      '')
-    ];
+    # configPackages = [
+    #   (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
+    #     pulse.cmd = [
+    #       { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
+    #     ]
+    #   '')
+    # ];
   };
 
   # Bluetooth
@@ -396,6 +396,8 @@ in
     KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
     # Udev-Regel, die feuert, sobald vm11-tor auftaucht (Hotplug-sicher)
     SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm11-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
+    # KVM Group Access for USB Devices for Webcam pass through to MicroVM
+    SUBSYSTEM=="usb", ATTR{idVendor}=="0408", ATTR{idProduct}=="5365", GROUP="kvm"
   '';
 
   services.udev.packages = [
