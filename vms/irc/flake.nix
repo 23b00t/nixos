@@ -18,7 +18,7 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      index = 5;
+      index = 11;
     in
     {
       packages.${system} = {
@@ -30,20 +30,23 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../whonix-net-config.nix { inherit index; })
+            (import ../whonix-net-config.nix {
+              inherit index;
+              lib = nixpkgs.lib;
+            })
             (
               { config, ... }:
               {
                 microvm.interfaces = [
                   {
                     type = "tap";
-                    id = "vm5";
-                    mac = "02:00:00:00:00:05";
+                    id = "vm${toString index}";
+                    mac = "02:00:00:00:00:0b";
                   }
                   {
                     type = "tap";
-                    id = "vm5-tor";
-                    mac = "02:00:00:00:00:06";
+                    id = "vm${toString index}-tor";
+                    mac = "02:00:00:00:00:0c";
                   }
                 ];
                 networking.hostName = "irc-vm";

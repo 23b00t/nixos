@@ -45,9 +45,9 @@
           IdentityAgent = "none";
         };
       };
-      "irc-vm 10.0.0.5" = {
+      "irc-vm 10.0.0.11" = {
         user = "irc";
-        identityFile = "~/.ssh/id_irc";
+        identityFile = "~/.ssh/irc-vm";
         identitiesOnly = true;
         extraOptions = {
           IdentityAgent = "none";

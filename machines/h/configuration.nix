@@ -295,8 +295,8 @@ in
     ))
     // {
       # IMPORTANT: Ignore Tor interfaces for VMs
-      "35-vm5-tor-ignore" = {
-        matchConfig.Name = "vm5-tor";
+      "35-vm11-tor-ignore" = {
+        matchConfig.Name = "vm11-tor";
         linkConfig.Unmanaged = "yes";
       };
     };
@@ -382,20 +382,20 @@ in
     system.enable = true; # enable system module
   };
 
-  systemd.services.retrigger-vm5-tor-udev = {
-    description = "Retrigger udev for vm5-tor after boot";
+  systemd.services.retrigger-vm11-tor-udev = {
+    description = "Retrigger udev for vm11-tor after boot";
     after = [ "multi-user.target" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.systemd}/bin/udevadm trigger --action=add /sys/class/net/vm5-tor";
+      ExecStart = "${pkgs.systemd}/bin/udevadm trigger --action=add /sys/class/net/vm11-tor";
     };
   };
 
   services.udev.extraRules = ''
     KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
-    # Udev-Regel, die feuert, sobald vm5-tor auftaucht (Hotplug-sicher)
-    SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm5-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
+    # Udev-Regel, die feuert, sobald vm11-tor auftaucht (Hotplug-sicher)
+    SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm11-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
   '';
 
   services.udev.packages = [

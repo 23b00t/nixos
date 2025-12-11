@@ -23,7 +23,7 @@ let
       "nvim"|"n")   IP="10.0.0.1" ;;
       "chat"|"c")   IP="10.0.0.2" ;;
       "office"|"o") IP="10.0.0.3" ;;
-      "irc"|"i")    IP="10.0.0.5" ;;
+      "irc"|"i")    IP="10.0.0.11" ;;
       *)
         echo "Error: Unknown VM '$NAME'"
         exit 1
