@@ -1,9 +1,16 @@
 {
   description = "Chat MicroVM";
 
-  inputs.microvm = {
-    url = "github:astro/microvm.nix";
-    inputs.nixpkgs.follows = "nixpkgs";
+  inputs = {
+    microvm = {
+      url = "github:astro/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    flatpaks = {
+      url = "github:in-a-dil-emma/declarative-flatpak";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -11,6 +18,8 @@
       self,
       nixpkgs,
       microvm,
+      flatpaks,
+      ...
     }:
     let
       system = "x86_64-linux";
@@ -29,6 +38,7 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
+            flatpaks.nixosModules.default
             (
               { config, pkgs, ... }:
               {
@@ -60,6 +70,32 @@
                     PasswordAuthentication = false;
                   };
                 };
+                xdg.portal.enable = true;
+                xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+                xdg.portal.config.common.default = "gtk";
+                services.flatpak = {
+                  enable = true;
+                  remotes = {
+                    "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+                  };
+                  packages = [
+                    "flathub:us.zoom.Zoom//stable"
+                  ];
+                  overrides = {
+                    "us.zoom.Zoom" = {
+                      Context = {
+                        devices = [ "all" ];
+                        sockets = [
+                          "wayland"
+                          "x11"
+                        ];
+                        features = [ "ipc" ];
+                        "talk-name" = [ "org.freedesktop.portal.PipeWire" ];
+                      };
+                    };
+                  };
+                };
+
                 microvm = {
                   registerClosure = false;
                   writableStoreOverlay = "/nix/.rw-store";
@@ -79,7 +115,7 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 1028;
+                      size = 4096;
                     }
                     {
                       image = "nix-store-overlay.img";
@@ -95,6 +131,12 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
+                  # devices = [
+                  #   {
+                  #     bus = "usb";
+                  #     path = "vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false";
+                  #   }
+                  # ];
                   mem = 8192;
                   vcpu = 6;
                 };
@@ -113,15 +155,24 @@
                   wantedBy = [ "default.target" ];
                 };
 
+                environment.variables = {
+                  # Weist Qt an, llvmpipe (einen schnellen CPU-basierten Renderer)
+                  # für OpenGL zu verwenden.
+                  GALLIUM_DRIVER = "llvmpipe";
+                };
+
                 environment.systemPackages = with pkgs; [
                   vesktop
                   telegram-desktop
                   slack
-                  zoom-us
+                  # zoom-us
                   google-chrome
                   wprs
                   xwayland
                   usbutils
+
+                  mesa
+                  vulkan-loader
                 ];
 
                 system.stateVersion = "25.05";

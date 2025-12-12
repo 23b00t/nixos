@@ -94,7 +94,10 @@ in
       genericName = "Zoom Video Chat";
       vmName = "chat";
       ipSuffix = 2;
-      binary = "zoom-us";
+      # binary = "zoom-us";
+      # args = "--disable-gpu";
+      binary = "flatpak";
+      args = "run us.zoom.Zoom";
       icon = "Zoom";
       categories = [
         "Network"
