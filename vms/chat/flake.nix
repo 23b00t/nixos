@@ -14,7 +14,7 @@
     }:
     let
       system = "x86_64-linux";
-      lib = nixpkgs.lib;
+      inherit (nixpkgs) lib;
       index = 2;
       mac = "00:00:00:00:00:02";
     in

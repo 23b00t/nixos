@@ -17,13 +17,11 @@
     }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-      lib = nixpkgs.lib;
+      inherit (nixpkgs) lib;
       index = 1;
       mac = "00:00:00:00:00:01";
     in
     {
-      nixpkgs.pkgs = pkgs;
       packages.${system} = {
         default = self.packages.${system}.nvim;
         nvim = self.nixosConfigurations.nvim.config.microvm.declaredRunner;

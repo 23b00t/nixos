@@ -14,13 +14,11 @@
     }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-      lib = nixpkgs.lib;
+      inherit (nixpkgs) lib;
       index = 3;
       mac = "00:00:00:00:00:03";
     in
     {
-      nixpkgs.pkgs = pkgs;
       packages.${system} = {
         default = self.packages.${system}.office;
         chat = self.nixosConfigurations.office.config.microvm.declaredRunner;
@@ -73,6 +71,7 @@
                   # vsock.cid = 3;
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
+                  optimize.enable = false;
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -94,7 +93,7 @@
                     }
                   ];
                   mem = 6144;
-                  vcpu = 2;
+                  vcpu = 4;
                 };
 
                 systemd.user.services.wprsd = {

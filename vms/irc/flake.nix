@@ -17,7 +17,6 @@
     }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
       index = 11;
     in
     {
@@ -35,7 +34,7 @@
               lib = nixpkgs.lib;
             })
             (
-              { config, ... }:
+              { config, pkgs, ... }:
               {
                 microvm.interfaces = [
                   {
