@@ -63,27 +63,53 @@
                   };
                 };
                 microvm = {
-                  runner.qemu = import ./qemu-runner.nix {
-                    inherit pkgs;
-                    microvmConfig = config.microvm // {
-                      inherit (config.networking) hostName;
-                      hypervisor = "qemu";
-                    };
-                    toplevel = config.system.build.toplevel;
-                  };
+                  runner.qemu = lib.mkForce (
+                    let
+                      runnerAttrs = import ./qemu-runner.nix {
+                        inherit pkgs;
+                        microvmConfig = config.microvm // {
+                          inherit (config.networking) hostName;
+                          hypervisor = "qemu";
+                        };
+                        toplevel = config.system.build.toplevel;
+                        macvtapFds =
+                          (microvm.lib.makeMacvtap {
+                            microvmConfig = config.microvm // {
+                              inherit (config.networking) hostName;
+                              hypervisor = "qemu";
+                            };
+                            hypervisorConfig = { };
+                          }).macvtapFds;
+                        withDriveLetters = microvm.lib.withDriveLetters;
+                      };
+                    in
+                    pkgs.runCommand "qemu-custom-runner"
+                      {
+                        passthru = {
+                          supportsNotifySocket = false;
+                          canShutdown = runnerAttrs.canShutdown or false;
+                        };
+                      }
+                      ''
+                        mkdir -p $out/bin
+                        echo "#!/bin/sh" > $out/bin/run
+                        echo 'exec ${runnerAttrs.command}' >> $out/bin/run
+                        chmod +x $out/bin/run
+                      ''
+                  );
                   registerClosure = false;
                   # vsock.cid = 3;
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "qemu";
                   # qemu.machine = "q35";
 
-                  qemu.extraArgs = [
-                    "-nodefaults"
-                    "-device"
-                    "usb-ehci,id=ehci"
-                    "-device"
-                    "usb-host,bus=ehci.0,vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false"
-                  ];
+                  # qemu.extraArgs = [
+                  #   "-nodefaults"
+                  #   "-device"
+                  #   "usb-ehci,id=ehci"
+                  #   "-device"
+                  #   "usb-host,bus=ehci.0,vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false"
+                  # ];
 
                   volumes = [
                     {
@@ -105,16 +131,16 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  # devices = [
-                  #   {
-                  #     bus = "usb";
-                  #     # HP TrueVision HD Camera
-                  #     path = "vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false";
-                  #     # qemu.bus = "ehci.0";
-                  #     # qemu.id  = "ehci";
-                  #     qemu.deviceExtraArgs = "-device usb-ehci";
-                  #   }
-                  # ];
+                  devices = [
+                    {
+                      bus = "usb";
+                      # HP TrueVision HD Camera
+                      path = "vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false";
+                      # qemu.bus = "ehci.0";
+                      # qemu.id  = "ehci";
+                      # qemu.deviceExtraArgs = "-device usb-ehci";
+                    }
+                  ];
                   mem = 8192;
                   vcpu = 6;
                 };
