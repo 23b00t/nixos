@@ -14,13 +14,11 @@
     }:
     let
       system = "x86_64-linux";
-      # pkgs = nixpkgs.legacyPackages.${system};
       lib = nixpkgs.lib;
       index = 2;
       mac = "00:00:00:00:00:02";
     in
     {
-      # nixpkgs.pkgs = pkgs;
       packages.${system} = {
         default = self.packages.${system}.chat;
         chat = self.nixosConfigurations.chat.config.microvm.declaredRunner;
@@ -63,53 +61,19 @@
                   };
                 };
                 microvm = {
-                  runner.qemu = lib.mkForce (
-                    let
-                      runnerAttrs = import ./qemu-runner.nix {
-                        inherit pkgs;
-                        microvmConfig = config.microvm // {
-                          inherit (config.networking) hostName;
-                          hypervisor = "qemu";
-                        };
-                        toplevel = config.system.build.toplevel;
-                        macvtapFds =
-                          (microvm.lib.makeMacvtap {
-                            microvmConfig = config.microvm // {
-                              inherit (config.networking) hostName;
-                              hypervisor = "qemu";
-                            };
-                            hypervisorConfig = { };
-                          }).macvtapFds;
-                        withDriveLetters = microvm.lib.withDriveLetters;
-                      };
-                    in
-                    pkgs.runCommand "qemu-custom-runner"
-                      {
-                        passthru = {
-                          supportsNotifySocket = false;
-                          canShutdown = runnerAttrs.canShutdown or false;
-                        };
-                      }
-                      ''
-                        mkdir -p $out/bin
-                        echo "#!/bin/sh" > $out/bin/run
-                        echo 'exec ${runnerAttrs.command}' >> $out/bin/run
-                        chmod +x $out/bin/run
-                      ''
-                  );
                   registerClosure = false;
-                  # vsock.cid = 3;
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "qemu";
+                  optimize.enable = false;
                   # qemu.machine = "q35";
 
-                  # qemu.extraArgs = [
-                  #   "-nodefaults"
-                  #   "-device"
-                  #   "usb-ehci,id=ehci"
-                  #   "-device"
-                  #   "usb-host,bus=ehci.0,vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false"
-                  # ];
+                  qemu.extraArgs = [
+                    "-nodefaults"
+                    "-device"
+                    "usb-ehci,id=ehci"
+                    "-device"
+                    "usb-host,bus=ehci.0,vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false"
+                  ];
 
                   volumes = [
                     {
@@ -120,7 +84,7 @@
                     {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
-                      size = 2048;
+                      size = 4096;
                     }
                   ];
                   shares = [
@@ -129,16 +93,6 @@
                       tag = "ro-store";
                       source = "/nix/store";
                       mountPoint = "/nix/.ro-store";
-                    }
-                  ];
-                  devices = [
-                    {
-                      bus = "usb";
-                      # HP TrueVision HD Camera
-                      path = "vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false";
-                      # qemu.bus = "ehci.0";
-                      # qemu.id  = "ehci";
-                      # qemu.deviceExtraArgs = "-device usb-ehci";
                     }
                   ];
                   mem = 8192;
@@ -167,6 +121,7 @@
                   google-chrome
                   wprs
                   xwayland
+                  usbutils
                 ];
 
                 system.stateVersion = "25.05";
