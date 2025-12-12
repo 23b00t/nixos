@@ -67,6 +67,15 @@
                   # vsock.cid = 3;
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "qemu";
+                  # qemu.machine = "q35";
+
+                  qemu.extraArgs = [
+                    "-global"
+                    "qemu-xhci.msi=off"
+                    "-global"
+                    "qemu-xhci.msix=off"
+                  ];
+
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -90,11 +99,13 @@
                   devices = [
                     {
                       bus = "usb";
-                      path = "vendorid=0x0408,productid=0x5365,guest-reset=false"; # HP TrueVision HD Camera
+                      # HP TrueVision HD Camera
+                      path = "vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false";
                     }
                   ];
+
                   mem = 8192;
-                  vcpu = 3;
+                  vcpu = 6;
                 };
 
                 systemd.user.services.wprsd = {
