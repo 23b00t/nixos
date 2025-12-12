@@ -4,6 +4,22 @@ let
   # 1. Das generische Wrapper-Skript
   # Es nimmt IP-Suffix, VM-Name und Binary entgegen.
   vmRunner = pkgs.writeShellScriptBin "vm-run" ''
+    #!/usr/bin/env bash
+
+    CLI_MODE=0
+
+    # Argumente parsen
+    while getopts "c" opt; do
+      case $opt in
+        c)
+          CLI_MODE=1
+          ;;
+        *)
+          ;;
+      esac
+    done
+    shift $((OPTIND -1))
+
     SUFFIX="$1"
     VM_NAME="$2"
     BINARY="$3"
@@ -14,13 +30,8 @@ let
 
     # Prüfen, ob der Service läuft
     if ! systemctl is-active --quiet "$SERVICE"; then
-      # Optional: Benachrichtigung senden
       ${pkgs.libnotify}/bin/notify-send "Starting VM: $VM_NAME" "Please wait..."
-      
-      # VM starten
       systemctl start "$SERVICE"
-      
-      # Warten bis Netzwerk da ist (Ping Loop)
       MAX_RETRIES=30
       COUNT=0
       while ! ping -c 1 -W 1 "$IP" &> /dev/null; do
@@ -33,9 +44,11 @@ let
       done
     fi
 
-    # Anwendung via wprs starten
-    # "$@" gibt eventuelle Argumente (wie URLs bei Zoom-Links) weiter
-    exec wprs "$IP" run -- "$BINARY" "$@"
+    if [ "$CLI_MODE" -eq 1 ]; then
+      exec ssh -i ~/.ssh/"$VM_NAME"-vm user@"$IP" -t -- "$BINARY" "$@"
+    else
+      exec wprs "$IP" run -- "$BINARY" "$@"
+    fi
   '';
 
   # 2. Die Helper-Funktion

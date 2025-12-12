@@ -164,15 +164,17 @@ in
     alsa.support32Bit = true;
     pulse.enable = true;
     # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
+    # jack.enable = true;
     # Netzwerk-Audio aktivieren
-    # configPackages = [
-    #   (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
-    #     pulse.cmd = [
-    #       { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
-    #     ]
-    #   '')
-    # ];
+    # NOTE: Problems? -> ss -tulpn | grep 4713 -> nothing? ->
+    # systemctl --user restart pipewire pipewire-pulse
+    configPackages = [
+      (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
+        pulse.cmd = [
+          { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
+        ]
+      '')
+    ];
   };
 
   # Bluetooth

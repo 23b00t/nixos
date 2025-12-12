@@ -122,6 +122,8 @@
                   # [backends.mpv]
                   # audio_device = "pulse"
                   termusic-mpv
+                  # pulseaudio
+                  # mpv
                   yt-dlp
                   onlyoffice-desktopeditors
                   gimp

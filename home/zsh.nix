@@ -24,6 +24,7 @@
       hs = "hyde-shell";
       countdown = "$HOME/nixos-config/home/scripts/countdown.sh";
       n = "nvim_vm";
+      tm = "vm-run -c 3 office termusic";
     };
 
     history.size = 10000;
