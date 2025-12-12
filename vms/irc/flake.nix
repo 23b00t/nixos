@@ -80,7 +80,7 @@
                   hypervisor = "cloud-hypervisor";
                   volumes = [
                     {
-                      mountPoint = "/home/irc";
+                      mountPoint = "/home/user";
                       image = "home.img";
                       size = 512;
                     }

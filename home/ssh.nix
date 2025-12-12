@@ -3,16 +3,16 @@
     enable = true;
     enableDefaultConfig = false;
     extraConfig = ''
+      Host nvim-vm 10.0.0.1
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
       Host chat-vm 10.0.0.2
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
       Host chat-vm 10.0.0.3
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
-      Host irc-vm 10.0.0.5
-        StrictHostKeyChecking no
-        UserKnownHostsFile /dev/null
-      Host nvim-vm 10.0.0.1
+      Host irc-vm 10.0.0.11
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
     '';
@@ -46,7 +46,7 @@
         };
       };
       "irc-vm 10.0.0.11" = {
-        user = "irc";
+        user = "user";
         identityFile = "~/.ssh/irc-vm";
         identitiesOnly = true;
         extraOptions = {
