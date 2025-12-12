@@ -14,13 +14,13 @@
     }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+      # pkgs = nixpkgs.legacyPackages.${system};
       lib = nixpkgs.lib;
       index = 2;
       mac = "00:00:00:00:00:02";
     in
     {
-      nixpkgs.pkgs = pkgs;
+      # nixpkgs.pkgs = pkgs;
       packages.${system} = {
         default = self.packages.${system}.chat;
         chat = self.nixosConfigurations.chat.config.microvm.declaredRunner;
@@ -63,6 +63,14 @@
                   };
                 };
                 microvm = {
+                  runner.qemu = import ./qemu-runner.nix {
+                    inherit pkgs;
+                    microvmConfig = config.microvm // {
+                      inherit (config.networking) hostName;
+                      hypervisor = "qemu";
+                    };
+                    toplevel = config.system.build.toplevel;
+                  };
                   registerClosure = false;
                   # vsock.cid = 3;
                   writableStoreOverlay = "/nix/.rw-store";
@@ -70,10 +78,11 @@
                   # qemu.machine = "q35";
 
                   qemu.extraArgs = [
-                    "-global"
-                    "qemu-xhci.msi=off"
-                    "-global"
-                    "qemu-xhci.msix=off"
+                    "-nodefaults"
+                    "-device"
+                    "usb-ehci,id=ehci"
+                    "-device"
+                    "usb-host,bus=ehci.0,vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false"
                   ];
 
                   volumes = [
@@ -96,14 +105,16 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  devices = [
-                    {
-                      bus = "usb";
-                      # HP TrueVision HD Camera
-                      path = "vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false";
-                    }
-                  ];
-
+                  # devices = [
+                  #   {
+                  #     bus = "usb";
+                  #     # HP TrueVision HD Camera
+                  #     path = "vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false";
+                  #     # qemu.bus = "ehci.0";
+                  #     # qemu.id  = "ehci";
+                  #     qemu.deviceExtraArgs = "-device usb-ehci";
+                  #   }
+                  # ];
                   mem = 8192;
                   vcpu = 6;
                 };
