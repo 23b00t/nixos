@@ -6,9 +6,8 @@
       url = "github:astro/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    flatpaks = {
-      url = "github:in-a-dil-emma/declarative-flatpak";
+    nix-flatpak = {
+      url = "github:gmodena/nix-flatpak/?ref=latest";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -18,7 +17,7 @@
       self,
       nixpkgs,
       microvm,
-      flatpaks,
+      nix-flatpak,
       ...
     }:
     let
@@ -38,7 +37,7 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
-            flatpaks.nixosModules.default
+            nix-flatpak.nixosModules.nix-flatpak
             (
               { config, pkgs, ... }:
               {
@@ -75,26 +74,32 @@
                 xdg.portal.config.common.default = "gtk";
                 services.flatpak = {
                   enable = true;
-                  remotes = {
-                    "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-                  };
                   packages = [
-                    "flathub:us.zoom.Zoom//stable"
+                    "us.zoom.Zoom"
                   ];
-                  overrides = {
-                    "us.zoom.Zoom" = {
-                      Context = {
-                        devices = [ "all" ];
-                        sockets = [
-                          "wayland"
-                          "x11"
-                        ];
-                        features = [ "ipc" ];
-                        "talk-name" = [ "org.freedesktop.portal.PipeWire" ];
-                      };
-                    };
-                  };
                 };
+                # services.flatpak = {
+                #   enable = true;
+                #   remotes = {
+                #     "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+                #   };
+                #   packages = [
+                #     "flathub:app/us.zoom.Zoom/x86_64/master"
+                #   ];
+                #   overrides = {
+                #     "us.zoom.Zoom" = {
+                #       Context = {
+                #         devices = [ "all" ];
+                #         sockets = [
+                #           "wayland"
+                #           "x11"
+                #         ];
+                #         features = [ "ipc" ];
+                #         "talk-name" = [ "org.freedesktop.portal.PipeWire" ];
+                #       };
+                #     };
+                #   };
+                # };
 
                 microvm = {
                   registerClosure = false;
