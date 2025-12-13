@@ -99,8 +99,6 @@
                 };
 
                 environment.systemPackages = with pkgs; [
-                  devenv
-                  # lazygit
                   gnupg
                   pinentry-curses
                   gh
@@ -112,19 +110,19 @@
 
                   gcc
                   gnumake
-
-                  nodejs
                   rustc
                   cargo
                   rust-analyzer
                   watchexec
-
                   lua-language-server
                   lua51Packages.lua
                   lua51Packages.luarocks
                   nixfmt
                   statix
-
+                  tree-sitter
+                  vectorcode
+                  nodejs
+                  nodePackages.npm
                   watchman
 
                   antidote
@@ -133,12 +131,8 @@
                   oh-my-posh
                   eza # A modern replacement for ‘ls’
                   zoxide
-
-                  tree-sitter
-                  vectorcode
-
-                  nodejs
-                  nodePackages.npm
+                  ddate
+                  cowsay
 
                   (writeShellScriptBin "lazygit" ''
                     export GPG_TTY=$(tty)
@@ -147,7 +141,8 @@
                   '')
 
                   postman
-                  ddate
+                  dbeaver-bin
+                  devenv
                   cowsay
                 ];
 

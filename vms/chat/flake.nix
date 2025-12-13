@@ -157,9 +157,14 @@
                       size = 4096;
                     }
                     {
+                      mountPoint = "/var/lib/flatpak";
+                      image = "flatpak.img";
+                      size = 4096;
+                    }
+                    {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
-                      size = 4096;
+                      size = 2048;
                     }
                   ];
                   shares = [
