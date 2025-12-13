@@ -42,6 +42,7 @@ let
           exit 1
         fi
       done
+      sleep 2 # short break to ensure VM is ready
     fi
 
     if [ "$CLI_MODE" -eq 1 ]; then

@@ -73,33 +73,67 @@
                 xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
                 xdg.portal.config.common.default = "gtk";
                 services.flatpak = {
+                  # 1. Basic configuration (keep this)
                   enable = true;
                   packages = [
+                    # The "full" format is more robust, but the short name will automatically resolve to the correct name after installation.
                     "us.zoom.Zoom"
                   ];
+
+                  # 2. Overrides: Adjustments for Zoom and global defaults
+                  overrides = {
+                    # Global settings for all Flatpak applications.
+                    # A good idea for a consistent system.
+                    global = {
+                      Context = {
+                        # Allows Wayland, but does not explicitly forbid it for X11 applications.
+                        # This is safer than forcing Wayland ("!x11").
+                        sockets = [ "wayland" ];
+                      };
+                      Environment = {
+                        # Fixes issues with the mouse cursor theme in Wayland.
+                        XCURSOR_PATH = "/run/host/user-share/icons:/run/host/share/icons";
+                      };
+                    };
+
+                    # Specific and very important overrides for Zoom
+                    "us.zoom.Zoom" = {
+                      Context = {
+                        # Necessary for screen sharing under Wayland.
+                        sockets = [
+                          "wayland"
+                          "x11"
+                          "pulseaudio"
+                        ];
+                        features = [ "ipc" ]; # Allows inter-process communication
+                        "talk-name" = [ "org.freedesktop.portal.PipeWire" ]; # PipeWire for screen casting
+
+                        # Allows access to all devices such as cameras and microphones.
+                        # This is the simplest way to ensure hardware is detected.
+                        devices = [ "all" ];
+
+                        # Optional: Access to the home directory to share files.
+                        # ":ro" means "read-only".
+                        filesystems = [ "xdg-home:ro" ];
+                      };
+                    };
+                  };
+
+                  # 3. Automatic updates when activating the NixOS generation
+                  # Keeps your Flatpaks in sync with your system updates.
+                  update.onActivation = true;
                 };
-                # services.flatpak = {
-                #   enable = true;
-                #   remotes = {
-                #     "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-                #   };
-                #   packages = [
-                #     "flathub:app/us.zoom.Zoom/x86_64/master"
-                #   ];
-                #   overrides = {
-                #     "us.zoom.Zoom" = {
-                #       Context = {
-                #         devices = [ "all" ];
-                #         sockets = [
-                #           "wayland"
-                #           "x11"
-                #         ];
-                #         features = [ "ipc" ];
-                #         "talk-name" = [ "org.freedesktop.portal.PipeWire" ];
-                #       };
-                #     };
-                #   };
-                # };
+
+                # 4. Automatic restart on installation errors
+                # If the Flatpak installation fails (e.g. due to network issues),
+                # it will be retried after 60 seconds. Very useful!
+                systemd.services.flatpak-managed-install = {
+                  restartTriggers = [ config.systemd.services.flatpak-managed-install.path ];
+                  serviceConfig = {
+                    Restart = "on-failure";
+                    RestartSec = "60s";
+                  };
+                };
 
                 microvm = {
                   registerClosure = false;
@@ -160,11 +194,11 @@
                   wantedBy = [ "default.target" ];
                 };
 
-                environment.variables = {
-                  # Weist Qt an, llvmpipe (einen schnellen CPU-basierten Renderer)
-                  # für OpenGL zu verwenden.
-                  GALLIUM_DRIVER = "llvmpipe";
-                };
+                # environment.variables = {
+                #   # Weist Qt an, llvmpipe (einen schnellen CPU-basierten Renderer)
+                #   # für OpenGL zu verwenden.
+                #   GALLIUM_DRIVER = "llvmpipe";
+                # };
 
                 environment.systemPackages = with pkgs; [
                   vesktop
