@@ -131,6 +131,8 @@
                   ripgrep
                   fzf
                   oh-my-posh
+                  eza # A modern replacement for ‘ls’
+                  zoxide
 
                   tree-sitter
                   vectorcode
@@ -143,6 +145,10 @@
                     ${gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
                     exec ${lazygit}/bin/lazygit "$@"
                   '')
+
+                  postman
+                  ddate
+                  cowsay
                 ];
 
                 # for static linked binaries in nvim

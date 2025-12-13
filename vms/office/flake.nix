@@ -136,6 +136,8 @@
                   vlc
                   pinta
                   pdfarranger
+                  wine
+
                   wprs
                   xwayland
                 ];
