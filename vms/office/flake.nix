@@ -1,9 +1,15 @@
 {
   description = "Office MicroVM";
 
-  inputs.microvm = {
-    url = "github:astro/microvm.nix";
-    inputs.nixpkgs.follows = "nixpkgs";
+  inputs = {
+    microvm = {
+      url = "github:astro/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    flatpaks = {
+      url = "github:in-a-dil-emma/declarative-flatpak/latest";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -11,6 +17,7 @@
       self,
       nixpkgs,
       microvm,
+      flatpaks,
     }:
     let
       system = "x86_64-linux";
@@ -29,6 +36,7 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
+            flatpaks.nixosModules.default
             (
               { config, pkgs, ... }:
               # INFO: build termusic with mpv support to work with pulse and not enforce alsa
@@ -43,11 +51,11 @@
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "office-vm";
 
-                users.groups.user = { };
+                users.groups.users = { };
                 users.users.user = {
                   password = "trash";
                   isNormalUser = true;
-                  group = "user";
+                  group = "users";
                   extraGroups = [ "wheel" ];
                   openssh.authorizedKeys.keys = [
                     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm"
@@ -83,6 +91,11 @@
                       mountPoint = config.microvm.writableStoreOverlay;
                       size = 2048;
                     }
+                    {
+                      mountPoint = "/var/lib/flatpak";
+                      image = "flatpak.img";
+                      size = 6000;
+                    }
                   ];
                   shares = [
                     {
@@ -99,7 +112,7 @@
                     }
                   ];
                   mem = 6144;
-                  vcpu = 4;
+                  vcpu = 6;
                 };
 
                 systemd.user.services.wprsd = {
@@ -120,6 +133,66 @@
                   PULSE_SERVER = "tcp:localhost:4713";
                 };
 
+                # Flatpak settings
+                # Enable XDG portal for Flatpak apps
+
+                xdg.portal = {
+                  enable = true;
+
+                  extraPortals = [
+                    pkgs.xdg-desktop-portal-xapp
+                    pkgs.xdg-desktop-portal-gtk
+                  ];
+
+                  config.common = {
+                    default = "xapp";
+                    "org.freedesktop.portal.FileChooser" = "xapp";
+                  };
+                };
+
+                services.flatpak = {
+                  enable = true;
+                  flatpakDir = "/var/lib/flatpak";
+                  remotes = {
+                    "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+                    "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
+                  };
+                  packages = [
+                    "flathub:app/org.onlyoffice.desktopeditors/x86_64/stable"
+                  ];
+                  overrides = {
+                    # "org.onlyoffice.desktopeditors" = {
+                    #   Context = {
+                    #     sockets = [
+                    #       "x11"
+                    #       "pulseaudio"
+                    #       "!wayland"
+                    #     ];
+                    #     filesystems = [ "host" ];
+                    #   };
+                    #   Environment = {
+                    #     "QT_QPA_PLATFORM" = "xcb";
+                    #     "QT_QUICK_BACKEND" = "software";
+                    #     "QT_GRAPHICSSYSTEM" = "software";
+                    #   };
+                    # };
+                    "org.onlyoffice.desktopeditors" = {
+                      Context = {
+                        sockets = [
+                          "wayland"
+                          "pulseaudio"
+                          "!x11"
+                        ];
+                        filesystems = [ "host" ];
+                      };
+                      Environment = {
+                        "QT_QPA_PLATFORM" = "wayland";
+                        "GDK_BACKEND" = "wayland";
+                      };
+                    };
+                  };
+                };
+
                 environment.systemPackages = with pkgs; [
                   # INFO: set in .config/termusic/server.toml:
                   # [player]
@@ -130,7 +203,7 @@
                   # pulseaudio
                   # mpv
                   yt-dlp
-                  onlyoffice-desktopeditors
+                  # onlyoffice-desktopeditors
                   gimp
                   inkscape
                   vlc
@@ -138,8 +211,11 @@
                   pdfarranger
                   wine
 
+                  adwaita-icon-theme
                   wprs
                   xwayland
+
+                  (import ./vm-connect.nix { inherit pkgs; })
                 ];
 
                 system.stateVersion = "25.05";

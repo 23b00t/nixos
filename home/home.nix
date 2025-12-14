@@ -25,6 +25,12 @@ in
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
+    (writeShellScriptBin "nvim" ''
+      #!${pkgs.bash}/bin/bash
+      # This script acts as a wrapper to redirect `nvim` calls to the nvim MicroVM.
+      # It passes all arguments it receives to the nvim_vm script.
+      exec nvim_vm "$@"
+    '')
     # yaziPkg
     zoxide
     # ddate

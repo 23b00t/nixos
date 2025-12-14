@@ -6,8 +6,12 @@
       url = "github:astro/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-flatpak = {
-      url = "github:gmodena/nix-flatpak/?ref=latest";
+    # nix-flatpak = {
+    #   url = "github:gmodena/nix-flatpak/?ref=latest";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+    flatpaks = {
+      url = "github:in-a-dil-emma/declarative-flatpak/latest";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -17,7 +21,8 @@
       self,
       nixpkgs,
       microvm,
-      nix-flatpak,
+      # nix-flatpak,
+      flatpaks,
       ...
     }:
     let
@@ -37,18 +42,19 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
-            nix-flatpak.nixosModules.nix-flatpak
+            # nix-flatpak.nixosModules.nix-flatpak
+            flatpaks.nixosModules.default
             (
               { config, pkgs, ... }:
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "chat-vm";
 
-                users.groups.user = { };
+                users.groups.users = { };
                 users.users.user = {
                   password = "trash";
                   isNormalUser = true;
-                  group = "user";
+                  group = "users";
                   extraGroups = [
                     "wheel"
                     "video"
@@ -69,70 +75,22 @@
                     PasswordAuthentication = false;
                   };
                 };
+
+                # Flatpak settings
+                # Enable XDG portal for Flatpak apps
                 xdg.portal.enable = true;
                 xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
                 xdg.portal.config.common.default = "gtk";
                 services.flatpak = {
-                  # 1. Basic configuration (keep this)
                   enable = true;
+                  flatpakDir = "/var/lib/flatpak";
+                  remotes = {
+                    "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+                    "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
+                  };
                   packages = [
-                    # The "full" format is more robust, but the short name will automatically resolve to the correct name after installation.
-                    "us.zoom.Zoom"
+                    "flathub:app/us.zoom.Zoom/x86_64/stable"
                   ];
-
-                  # 2. Overrides: Adjustments for Zoom and global defaults
-                  overrides = {
-                    # Global settings for all Flatpak applications.
-                    # A good idea for a consistent system.
-                    global = {
-                      Context = {
-                        # Allows Wayland, but does not explicitly forbid it for X11 applications.
-                        # This is safer than forcing Wayland ("!x11").
-                        sockets = [ "wayland" ];
-                      };
-                      Environment = {
-                        # Fixes issues with the mouse cursor theme in Wayland.
-                        XCURSOR_PATH = "/run/host/user-share/icons:/run/host/share/icons";
-                      };
-                    };
-
-                    # Specific and very important overrides for Zoom
-                    "us.zoom.Zoom" = {
-                      Context = {
-                        # Necessary for screen sharing under Wayland.
-                        sockets = [
-                          "wayland"
-                          "x11"
-                          "pulseaudio"
-                        ];
-                        features = [ "ipc" ]; # Allows inter-process communication
-                        "talk-name" = [ "org.freedesktop.portal.PipeWire" ]; # PipeWire for screen casting
-
-                        # Allows access to all devices such as cameras and microphones.
-                        # This is the simplest way to ensure hardware is detected.
-                        devices = [ "all" ];
-
-                        # Optional: Access to the home directory to share files.
-                        # ":ro" means "read-only".
-                        filesystems = [ "xdg-home:ro" ];
-                      };
-                    };
-                  };
-
-                  # 3. Automatic updates when activating the NixOS generation
-                  # Keeps your Flatpaks in sync with your system updates.
-                  update.onActivation = true;
-                };
-
-                # 4. Automatic restart on installation errors
-                # If the Flatpak installation fails (e.g. due to network issues),
-                # it will be retried after 60 seconds. Very useful!
-                systemd.services.flatpak-managed-install = {
-                  restartTriggers = [ config.systemd.services.flatpak-managed-install.path ];
-                  serviceConfig = {
-                    Restart = "on-failure";
-                    RestartSec = "60s";
-                  };
                 };
 
                 microvm = {
@@ -159,7 +117,7 @@
                     {
                       mountPoint = "/var/lib/flatpak";
                       image = "flatpak.img";
-                      size = 4096;
+                      size = 6000;
                     }
                     {
                       image = "nix-store-overlay.img";
@@ -199,12 +157,6 @@
                   wantedBy = [ "default.target" ];
                 };
 
-                # environment.variables = {
-                #   # Weist Qt an, llvmpipe (einen schnellen CPU-basierten Renderer)
-                #   # für OpenGL zu verwenden.
-                #   GALLIUM_DRIVER = "llvmpipe";
-                # };
-
                 environment.systemPackages = with pkgs; [
                   vesktop
                   telegram-desktop
@@ -217,6 +169,8 @@
 
                   mesa
                   vulkan-loader
+
+                  (import ./vm-connect.nix { inherit pkgs; })
                 ];
 
                 system.stateVersion = "25.05";

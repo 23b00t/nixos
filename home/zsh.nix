@@ -61,12 +61,12 @@
     # unset _omp_cfg _omp_default
 
     # GitHub Copilot CLI Aliases
-    if command -v ${pkgs.gh}/bin/gh >/dev/null 2>&1; then
-      eval "$(${pkgs.gh}/bin/gh copilot alias -- zsh)"
-    fi
-    if command -v zoxide >/dev/null 2>&1; then
-      eval "$(zoxide init zsh)"
-    fi
+    # if command -v ${pkgs.gh}/bin/gh >/dev/null 2>&1; then
+    #   eval "$(${pkgs.gh}/bin/gh copilot alias -- zsh)"
+    # fi
+    # if command -v zoxide >/dev/null 2>&1; then
+    #   eval "$(zoxide init zsh)"
+    # fi
 
     # Load custom functions
     [ -f "$HOME/nixos-config/home/paste_functions.zsh" ] && source "$HOME/nixos-config/home/paste_functions.zsh"

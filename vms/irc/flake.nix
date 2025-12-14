@@ -106,6 +106,8 @@
                   pinentry-curses
                   proxychains-ng
                   openssl
+
+                  (import ./vm-connect.nix { inherit pkgs; })
                 ];
 
                 environment.etc."proxychains.conf".text = ''

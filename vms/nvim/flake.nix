@@ -40,11 +40,11 @@
 
                 programs.zsh.enable = true;
                 users.defaultUserShell = pkgs.zsh;
-                users.groups.user = { };
+                users.groups.users = { };
                 users.users.user = {
                   password = "trash";
                   isNormalUser = true;
-                  group = "user";
+                  group = "users";
                   extraGroups = [ "wheel" ];
                   openssh.authorizedKeys.keys = [
                     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzJjZw0V2CdaWI/IBFcTQPwQhYtFn/31i5iNPSc1j8G nvim-vm"
@@ -95,7 +95,7 @@
                     }
                   ];
                   mem = 8192;
-                  vcpu = 2;
+                  vcpu = 4;
                 };
 
                 environment.systemPackages = with pkgs; [
@@ -125,6 +125,7 @@
                   nodePackages.npm
                   watchman
 
+                  zellij
                   antidote
                   ripgrep
                   fzf
@@ -144,8 +145,88 @@
                   dbeaver-bin
                   devenv
                   cowsay
-                ];
 
+
+                  (import ./vm-connect.nix { inherit pkgs; })
+                ];
+                programs.yazi = {
+                  enable = true;
+                  plugins = {
+                    inherit (pkgs.yaziPlugins)
+                      git
+                      chmod
+                      mount
+                      full-border
+                      jump-to-char
+                      compress
+                      smart-paste
+                      yatline-catppuccin
+                      ;
+                  };
+                  settings = {
+                    yazi = {
+                      mgr = {
+                        linemode = "size";
+                        show_hidden = true;
+                      };
+                      plugin = {
+                        prepend_fetchers = [
+                          {
+                            id = "git";
+                            name = "*";
+                            run = "git";
+                          }
+                          {
+                            id = "git";
+                            name = "*/";
+                            run = "git";
+                          }
+                        ];
+                      };
+                    };
+                    keymap = {
+                      mgr = {
+                        prepend_keymap = [
+                          {
+                            desc = "Maximize or restore the preview pane";
+                            on = "M";
+                            run = "plugin mount";
+                          }
+                          {
+                            desc = "Chmod on selected files";
+                            on = [
+                              "c"
+                              "m"
+                            ];
+                            run = "plugin chmod";
+                          }
+                          {
+                            desc = "Jump to char";
+                            on = "F";
+                            run = "plugin jump-to-char";
+                          }
+                          {
+                            desc = "Compress selected files";
+                            on = "z";
+                            run = "plugin compress";
+                          }
+                          {
+                            desc = "Smart Paste (context-aware paste)";
+                            on = "P";
+                            run = "plugin smart-paste";
+                          }
+                        ];
+                      };
+                    };
+                  };
+                  flavors = {
+                    inherit (pkgs.yaziPlugins) yatline-catppuccin;
+                  };
+                  initLua = builtins.toFile "init.lua" ''
+                    require("full-border"):setup()
+                    require("git"):setup()
+                  '';
+                };
                 # for static linked binaries in nvim
                 programs.nix-ld.enable = true;
 
@@ -213,11 +294,17 @@
                   pinentry-program /run/current-system/sw/bin/pinentry-tty
                 '';
 
+                environment.etc."init.lua".text = ''
+                  require("full-border"):setup()
+                  require("git"):setup()
+                '';
+
                 systemd.tmpfiles.rules = [
                   # Symlink /etc/zshrc nach /home/user/.zshrc, falls nicht vorhanden
                   "L+ /home/user/.zshrc - - - - /etc/zshrc"
                   "L+ /home/user/.zsh_plugins.txt - - - - /etc/zsh_plugins.txt"
                   "L+ /home/user/.gnupg/gpg-agent.conf - - - - /etc/gpg-agent.conf"
+                  "L+ /home/user/.config/yazi/init.lua - - - - /etc/init.lua"
                 ];
 
                 # git

@@ -120,9 +120,12 @@ in
     virtiofsd
     zellij
     xwayland
-    # waypipe
+    waypipe
     shadow
     wprs
+    xauth
+
+    (import ../../vms/vm-connect.nix { inherit pkgs; })
   ];
 
   services.power-profiles-daemon.enable = true;
