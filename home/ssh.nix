@@ -1,3 +1,4 @@
+{ pkgs, ... }:
 {
   programs.ssh = {
     enable = true;
@@ -9,7 +10,7 @@
       Host chat-vm 10.0.0.2
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
-      Host chat-vm 10.0.0.3
+      Host office-vm 10.0.0.3
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
       Host irc-vm 10.0.0.11
@@ -41,8 +42,8 @@
         identityFile = "~/.ssh/office-vm";
         identitiesOnly = true;
         extraOptions = {
-          RemoteForward = "4713 localhost:4713";
           IdentityAgent = "none";
+          RemoteForward = "4713 localhost:4713";
         };
       };
       "irc-vm 10.0.0.11" = {
@@ -53,6 +54,41 @@
           IdentityAgent = "none";
         };
       };
+    };
+  };
+
+  systemd.user.services.ssh-agent = {
+    Unit = {
+      Description = "SSH key agent";
+    };
+    Service = {
+      Type = "forking";
+      Environment = "SSH_AUTH_SOCK=%t/ssh-agent.socket";
+      ExecStart = "${pkgs.openssh}/bin/ssh-agent -a %t/ssh-agent.socket";
+    };
+    Install = {
+      WantedBy = [ "default.target" ];
+    };
+  };
+
+  systemd.user.services.ssh-add = {
+    Unit = {
+      Description = "Add SSH keys to agent";
+      After = [ "ssh-agent.service" ];
+    };
+    Service = {
+      Type = "oneshot";
+      Environment = "SSH_AUTH_SOCK=%t/ssh-agent.socket";
+      ExecStart = ''
+        ${pkgs.openssh}/bin/ssh-add \
+          %h/.ssh/nvim-vm \
+          %h/.ssh/chat-vm \
+          %h/.ssh/office-vm \
+          %h/.ssh/irc-vm
+      '';
+    };
+    Install = {
+      WantedBy = [ "default.target" ];
     };
   };
 }

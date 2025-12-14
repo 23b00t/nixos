@@ -140,7 +140,7 @@
                   #   }
                   # ];
                   mem = 8192;
-                  vcpu = 6;
+                  vcpu = 8;
                 };
 
                 systemd.user.services.wprsd = {
@@ -170,7 +170,7 @@
                   mesa
                   vulkan-loader
 
-                  (import ./vm-connect.nix { inherit pkgs; })
+                  (import ../copy-between-vms.nix { inherit pkgs; })
                 ];
 
                 system.stateVersion = "25.05";

@@ -147,7 +147,7 @@
                   cowsay
 
 
-                  (import ./vm-connect.nix { inherit pkgs; })
+                  (import ../copy-between-vms.nix { inherit pkgs; })
                 ];
                 programs.yazi = {
                   enable = true;

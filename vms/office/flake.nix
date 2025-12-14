@@ -56,7 +56,10 @@
                   password = "trash";
                   isNormalUser = true;
                   group = "users";
-                  extraGroups = [ "wheel" ];
+                  extraGroups = [
+                    "wheel"
+                    "docker"
+                  ];
                   openssh.authorizedKeys.keys = [
                     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm"
                   ];
@@ -84,12 +87,12 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 1028;
+                      size = 2048;
                     }
                     {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
-                      size = 2048;
+                      size = 8000;
                     }
                     {
                       mountPoint = "/var/lib/flatpak";
@@ -136,62 +139,56 @@
                 # Flatpak settings
                 # Enable XDG portal for Flatpak apps
 
-                xdg.portal = {
-                  enable = true;
+                # xdg.portal = {
+                #   enable = true;
+                #
+                #   extraPortals = [
+                #     pkgs.xdg-desktop-portal-xapp
+                #     pkgs.xdg-desktop-portal-gtk
+                #   ];
+                #
+                #   config.common = {
+                #     default = "xapp";
+                #     "org.freedesktop.portal.FileChooser" = "xapp";
+                #   };
+                # };
+                #
+                # services.flatpak = {
+                #   enable = true;
+                #   flatpakDir = "/var/lib/flatpak";
+                #   remotes = {
+                #     "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+                #     "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
+                #   };
+                #   packages = [
+                #     "flathub:app/org.onlyoffice.desktopeditors/x86_64/stable"
+                #   ];
+                #   overrides = {
+                #     "org.onlyoffice.desktopeditors" = {
+                #       Context = {
+                #         sockets = [
+                #           "x11"
+                #           "pulseaudio"
+                #           "!wayland"
+                #         ];
+                #         filesystems = [ "host" ];
+                #       };
+                #       Environment = {
+                #         "QT_QPA_PLATFORM" = "xcb";
+                #         "QT_QPA_PLATFORMTHEME" = "qt5ct";
+                #       };
+                #     };
+                #   };
+                # };
 
-                  extraPortals = [
-                    pkgs.xdg-desktop-portal-xapp
-                    pkgs.xdg-desktop-portal-gtk
-                  ];
+                networking.firewall.allowedTCPPorts = [ 3389 ];
 
-                  config.common = {
-                    default = "xapp";
-                    "org.freedesktop.portal.FileChooser" = "xapp";
-                  };
-                };
+                services.xrdp.enable = true;
+                services.xrdp.defaultWindowManager = "xfce4-session";
 
-                services.flatpak = {
-                  enable = true;
-                  flatpakDir = "/var/lib/flatpak";
-                  remotes = {
-                    "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-                    "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
-                  };
-                  packages = [
-                    "flathub:app/org.onlyoffice.desktopeditors/x86_64/stable"
-                  ];
-                  overrides = {
-                    # "org.onlyoffice.desktopeditors" = {
-                    #   Context = {
-                    #     sockets = [
-                    #       "x11"
-                    #       "pulseaudio"
-                    #       "!wayland"
-                    #     ];
-                    #     filesystems = [ "host" ];
-                    #   };
-                    #   Environment = {
-                    #     "QT_QPA_PLATFORM" = "xcb";
-                    #     "QT_QUICK_BACKEND" = "software";
-                    #     "QT_GRAPHICSSYSTEM" = "software";
-                    #   };
-                    # };
-                    "org.onlyoffice.desktopeditors" = {
-                      Context = {
-                        sockets = [
-                          "wayland"
-                          "pulseaudio"
-                          "!x11"
-                        ];
-                        filesystems = [ "host" ];
-                      };
-                      Environment = {
-                        "QT_QPA_PLATFORM" = "wayland";
-                        "GDK_BACKEND" = "wayland";
-                      };
-                    };
-                  };
-                };
+                services.xserver.enable = true;
+                services.xserver.displayManager.lightdm.enable = true;
+                services.xserver.desktopManager.xfce.enable = true;
 
                 environment.systemPackages = with pkgs; [
                   # INFO: set in .config/termusic/server.toml:
@@ -203,7 +200,7 @@
                   # pulseaudio
                   # mpv
                   yt-dlp
-                  # onlyoffice-desktopeditors
+                  onlyoffice-desktopeditors
                   gimp
                   inkscape
                   vlc
@@ -214,8 +211,11 @@
                   adwaita-icon-theme
                   wprs
                   xwayland
-
-                  (import ./vm-connect.nix { inherit pkgs; })
+                  waypipe
+                  mesa
+                  vulkan-loader
+                  nx-libs
+                  (import ../copy-between-vms.nix { inherit pkgs; })
                 ];
 
                 system.stateVersion = "25.05";

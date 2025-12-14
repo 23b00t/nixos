@@ -82,7 +82,7 @@ in
     # discord
     # slack
     # lazygit
-    # onlyoffice-desktopeditors
+    onlyoffice-desktopeditors
     # gimp
     # inkscape
     # vlc

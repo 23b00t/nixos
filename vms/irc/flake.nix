@@ -107,7 +107,7 @@
                   proxychains-ng
                   openssl
 
-                  (import ./vm-connect.nix { inherit pkgs; })
+                  (import ../copy-between-vms.nix { inherit pkgs; })
                 ];
 
                 environment.etc."proxychains.conf".text = ''

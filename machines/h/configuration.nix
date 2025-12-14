@@ -123,9 +123,11 @@ in
     waypipe
     shadow
     wprs
-    xauth
+    # xauth
+    # x2goclient
+    remmina
 
-    (import ../../vms/vm-connect.nix { inherit pkgs; })
+    (import ../../vms/copy-between-vms.nix { inherit pkgs; })
   ];
 
   services.power-profiles-daemon.enable = true;
