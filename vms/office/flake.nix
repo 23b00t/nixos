@@ -6,10 +6,6 @@
       url = "github:astro/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    flatpaks = {
-      url = "github:in-a-dil-emma/declarative-flatpak/latest";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -17,7 +13,6 @@
       self,
       nixpkgs,
       microvm,
-      flatpaks,
     }:
     let
       system = "x86_64-linux";
@@ -36,7 +31,6 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
-            flatpaks.nixosModules.default
             (
               { config, pkgs, ... }:
               # INFO: build termusic with mpv support to work with pulse and not enforce alsa
@@ -58,7 +52,7 @@
                   group = "users";
                   extraGroups = [
                     "wheel"
-                    "docker"
+                    "video"
                   ];
                   openssh.authorizedKeys.keys = [
                     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm"
@@ -92,12 +86,7 @@
                     {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
-                      size = 8000;
-                    }
-                    {
-                      mountPoint = "/var/lib/flatpak";
-                      image = "flatpak.img";
-                      size = 6000;
+                      size = 2048;
                     }
                   ];
                   shares = [
@@ -118,6 +107,11 @@
                   vcpu = 6;
                 };
 
+                console.keyMap = "us";
+                services.xserver.xkb.layout = "us,de";
+                services.xserver.xkb.variant = "intl";
+                services.xserver.xkb.options = "grp:alt_shift_toggle";
+
                 systemd.user.services.wprsd = {
                   description = "wprsd instance";
                   after = [ "network.target" ];
@@ -132,63 +126,54 @@
                   wantedBy = [ "default.target" ];
                 };
 
+                # For termusic
                 environment.variables = {
                   PULSE_SERVER = "tcp:localhost:4713";
                 };
 
-                # Flatpak settings
-                # Enable XDG portal for Flatpak apps
-
-                # xdg.portal = {
-                #   enable = true;
-                #
-                #   extraPortals = [
-                #     pkgs.xdg-desktop-portal-xapp
-                #     pkgs.xdg-desktop-portal-gtk
-                #   ];
-                #
-                #   config.common = {
-                #     default = "xapp";
-                #     "org.freedesktop.portal.FileChooser" = "xapp";
-                #   };
+                # NOTE: Hyprland experiment (no success yet, no rdp server running)
+                # grdctl --headless needs to be setup completly
+                # programs.hyprland.enable = true;
+                # services.greetd.enable = true;
+                # services.greetd.settings.default_session = {
+                #   command = "${pkgs.hyprland}/bin/Hyprland";
+                #   user = "user";
                 # };
-                #
-                # services.flatpak = {
-                #   enable = true;
-                #   flatpakDir = "/var/lib/flatpak";
-                #   remotes = {
-                #     "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-                #     "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
-                #   };
-                #   packages = [
-                #     "flathub:app/org.onlyoffice.desktopeditors/x86_64/stable"
-                #   ];
-                #   overrides = {
-                #     "org.onlyoffice.desktopeditors" = {
-                #       Context = {
-                #         sockets = [
-                #           "x11"
-                #           "pulseaudio"
-                #           "!wayland"
-                #         ];
-                #         filesystems = [ "host" ];
-                #       };
-                #       Environment = {
-                #         "QT_QPA_PLATFORM" = "xcb";
-                #         "QT_QPA_PLATFORMTHEME" = "qt5ct";
-                #       };
-                #     };
-                #   };
+                # services.gnome.gnome-remote-desktop.enable = true;
+                # systemd.services.gnome-remote-desktop = {
+                #   wantedBy = [ "graphical.target" ];
                 # };
+                # services.gnome.gnome-keyring.enable = true;
+                # services.dbus.enable = true;
 
+                # NOTE: Working Xfce4 + xrdp setup
+                # services.xrdp.enable = true;
+                # services.xrdp.defaultWindowManager = "xfce4-session";
+                # services.xserver.enable = true;
+                # services.xserver.displayManager.lightdm.enable = true;
+                # services.xserver.desktopManager.xfce.enable = true;
+
+                # Setup xrdp with fluxbox
                 networking.firewall.allowedTCPPorts = [ 3389 ];
-
+                networking.firewall.allowedUDPPorts = [ 3389 ];
                 services.xrdp.enable = true;
-                services.xrdp.defaultWindowManager = "xfce4-session";
-
+                services.xrdp.defaultWindowManager = "fluxbox";
                 services.xserver.enable = true;
-                services.xserver.displayManager.lightdm.enable = true;
-                services.xserver.desktopManager.xfce.enable = true;
+                services.xserver.windowManager.fluxbox.enable = true;
+
+                # Doesn't work
+                # systemd.tmpfiles.rules = [
+                #   ''
+                #     w /home/user/.fluxbox/startup 0755 user users - \
+                #     #!/bin/sh
+                #     setxkbmap -layout "us,de" -variant "intl" -option "grp:alt_shift_toggle"
+                #     exec fluxbox -no-toolbar &
+                #     fbpid=$!
+                #     sleep 1
+                #     onlyoffice-desktopeditors &
+                #     wait $fbpid
+                #   ''
+                # ];
 
                 environment.systemPackages = with pkgs; [
                   # INFO: set in .config/termusic/server.toml:
@@ -211,10 +196,15 @@
                   adwaita-icon-theme
                   wprs
                   xwayland
-                  waypipe
-                  mesa
-                  vulkan-loader
-                  nx-libs
+                  # waypipe
+                  # mesa
+                  # vulkan-loader
+                  # nx-libs
+                  # kitty
+                  # gnome-remote-desktop
+                  # gnome-keyring
+                  openssl
+
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ];
 

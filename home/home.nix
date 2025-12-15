@@ -29,7 +29,7 @@ in
       #!${pkgs.bash}/bin/bash
       # This script acts as a wrapper to redirect `nvim` calls to the nvim MicroVM.
       # It passes all arguments it receives to the nvim_vm script.
-      exec nvim_vm "$@"
+      exec zsh -c 'source /home/nx/nixos-config/home/nvim.zsh; nvim_vm "$@"' _ "$@"
     '')
     # yaziPkg
     zoxide
@@ -82,7 +82,7 @@ in
     # discord
     # slack
     # lazygit
-    onlyoffice-desktopeditors
+    # onlyoffice-desktopeditors
     # gimp
     # inkscape
     # vlc
