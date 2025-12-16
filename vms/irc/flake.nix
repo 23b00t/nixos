@@ -108,6 +108,7 @@
                   "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
                 ];
 
+                time.timeZone = "Europe/Berlin";
                 environment.systemPackages = with pkgs; [
                   vim
                   tiny

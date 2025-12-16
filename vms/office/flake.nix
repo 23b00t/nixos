@@ -118,6 +118,7 @@
                 services.xserver.xkb.layout = "us,de";
                 services.xserver.xkb.variant = "intl";
                 services.xserver.xkb.options = "grp:alt_shift_toggle";
+                time.timeZone = "Europe/Berlin";
 
                 systemd.user.services.wprsd = {
                   description = "wprsd instance";
@@ -168,22 +169,7 @@
                 services.xrdp = {
                   enable = true;
                   audio.enable = true;
-                  defaultWindowManager = "fluxbox";
-                };
-                services.xserver.enable = true;
-                services.xserver.windowManager.fluxbox.enable = true;
-
-                programs.bash = {
-                  enable = true;
-                  shellInit = ''
-                    # Only interactive shells
-                    case $- in
-                      *i*) ;;
-                      *) return ;;
-                    esac
-                    if [ -z "$DISPLAY" ]; then
-                      exec bash 
-                    fi
+                  defaultWindowManager = ''
                     setxkbmap -layout "us" -variant "intl" -option "grp:alt_shift_toggle"
                     exec fluxbox -no-toolbar &
                     fbpid=$!
@@ -192,6 +178,8 @@
                     wait $fbpid
                   '';
                 };
+                services.xserver.enable = true;
+                services.xserver.windowManager.fluxbox.enable = true;
 
                 services.printing.enable = true;
                 systemd.services.host-printer-tunnel = {

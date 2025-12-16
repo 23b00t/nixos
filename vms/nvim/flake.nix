@@ -98,6 +98,7 @@
                   vcpu = 2;
                 };
 
+                time.timeZone = "Europe/Berlin";
                 environment.systemPackages = with pkgs; [
                   gnupg
                   pinentry-curses
