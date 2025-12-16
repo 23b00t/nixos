@@ -77,17 +77,19 @@ pkgs.writeShellScriptBin "cp-vm" ''
     exit 4
   fi
 
-  DEST="''${USERNAME}@''${IP}:~/"
+  RSYNC_OPTS="-av"
+  RSYNC_PATH="mkdir -p ~/incoming/$(hostname) && rsync"
+  DEST="''${USERNAME}@''${IP}:~/incoming/$(hostname)/"
 
   # Copy or move using rsync
   if [ $MOVE -eq 1 ]; then
-    rsync -av --remove-source-files "$FILE" "$DEST"
+    rsync $RSYNC_OPTS --rsync-path="$RSYNC_PATH" --remove-source-files "$FILE" "$DEST"
     # Remove empty source directories if moving
     if [ -d "$FILE" ]; then
       find "$FILE" -type d -empty -delete
     fi
   else
-    rsync -av "$FILE" "$DEST"
+    rsync $RSYNC_OPTS --rsync-path="$RSYNC_PATH" "$FILE" "$DEST"
   fi
 
   echo "Transfer to $TARGET ($IP) completed."
