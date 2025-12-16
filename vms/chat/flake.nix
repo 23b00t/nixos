@@ -143,19 +143,6 @@
                   vcpu = 4;
                 };
 
-                # Setup xrdp with fluxbox
-                # networking.firewall = {
-                #   allowedTCPPorts = [ 3389 ];
-                #   allowedUDPPorts = [ 3389 ];
-                # };
-                # services.xrdp = {
-                #   enable = true;
-                #   audio.enable = true;
-                #   defaultWindowManager = "fluxbox";
-                # };
-                # services.xserver.enable = true;
-                # services.xserver.windowManager.fluxbox.enable = true;
-
                 systemd.user.services.wprsd = {
                   description = "wprsd instance";
                   after = [ "network.target" ];
@@ -170,7 +157,17 @@
                   wantedBy = [ "default.target" ];
                 };
 
+                environment.etc."ssh_config".text = ''
+                  Host *
+                      StrictHostKeyChecking no
+                      UserKnownHostsFile /dev/null
+                '';
+                systemd.tmpfiles.rules = [
+                  "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
+                ];
+
                 environment.systemPackages = with pkgs; [
+                  vim
                   vesktop
                   telegram-desktop
                   slack

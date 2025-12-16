@@ -176,7 +176,11 @@
                 programs.bash = {
                   enable = true;
                   shellInit = ''
-                    #!/bin/sh
+                    # Only interactive shells
+                    case $- in
+                      *i*) ;;
+                      *) return ;;
+                    esac
                     if [ -z "$DISPLAY" ]; then
                       exec bash 
                     fi
@@ -234,6 +238,15 @@
                   '';
                 };
 
+                environment.etc."ssh_config".text = ''
+                  Host *
+                      StrictHostKeyChecking no
+                      UserKnownHostsFile /dev/null
+                '';
+                systemd.tmpfiles.rules = [
+                  "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
+                ];
+
                 environment.systemPackages = with pkgs; [
                   # INFO: set in .config/termusic/server.toml:
                   # [player]
@@ -260,6 +273,7 @@
                   # vulkan-loader
                   # nx-libs
                   kitty
+                  vim
                   # gnome-remote-desktop
                   # gnome-keyring
                   openssl

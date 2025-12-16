@@ -99,7 +99,17 @@
                   ];
                 };
 
+                environment.etc."ssh_config".text = ''
+                  Host *
+                      StrictHostKeyChecking no
+                      UserKnownHostsFile /dev/null
+                '';
+                systemd.tmpfiles.rules = [
+                  "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
+                ];
+
                 environment.systemPackages = with pkgs; [
+                  vim
                   tiny
                   pass
                   gnupg

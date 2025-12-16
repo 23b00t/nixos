@@ -147,7 +147,6 @@
                   devenv
                   cowsay
 
-
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ];
                 programs.yazi = {
@@ -260,6 +259,9 @@
                   histFile = "$HOME/.zsh_history";
 
                   shellInit = ''
+                    if [[ $- != *i* ]]; then
+                      return
+                    fi
                     export HISTIGNORE="rm *:cp *"
                     setopt HIST_IGNORE_ALL_DUPS
                     export GPG_TTY=$(tty)
@@ -300,12 +302,19 @@
                   require("git"):setup()
                 '';
 
+                environment.etc."ssh_config".text = ''
+                  Host *
+                      StrictHostKeyChecking no
+                      UserKnownHostsFile /dev/null
+                '';
+
                 systemd.tmpfiles.rules = [
                   # Symlink /etc/zshrc nach /home/user/.zshrc, falls nicht vorhanden
                   "L+ /home/user/.zshrc - - - - /etc/zshrc"
                   "L+ /home/user/.zsh_plugins.txt - - - - /etc/zsh_plugins.txt"
                   "L+ /home/user/.gnupg/gpg-agent.conf - - - - /etc/gpg-agent.conf"
                   "L+ /home/user/.config/yazi/init.lua - - - - /etc/init.lua"
+                  "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
                 ];
 
                 # git

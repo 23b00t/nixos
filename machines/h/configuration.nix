@@ -251,6 +251,8 @@ in
   # gpg
   programs.gnupg.agent = {
     enable = true;
+    # is set by hydenix to true
+    enableSSHSupport = lib.mkForce false;
     settings = {
       default-cache-ttl = 3600;
       max-cache-ttl = 7200;
@@ -276,7 +278,7 @@ in
       # autostart = false;
     };
   };
-
+  programs.ssh.startAgent = true;
   networking.useNetworkd = true;
   # Generiere Netzwerke für alle VMs
   # Netzwerke für Standard-VMs (10.0.0.x)
