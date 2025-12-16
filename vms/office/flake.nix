@@ -242,6 +242,8 @@
                   Host *
                       StrictHostKeyChecking no
                       UserKnownHostsFile /dev/null
+                      AllowTcpForwarding yes
+                      GatewayPorts yes
                 '';
                 systemd.tmpfiles.rules = [
                   "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
