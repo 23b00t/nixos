@@ -1,4 +1,5 @@
-{ pkgs, ...}: {
+{ pkgs, ... }:
+{
   # zsh
   programs.zsh = {
     enable = true;
@@ -25,13 +26,16 @@
       countdown = "$HOME/nixos-config/home/scripts/countdown.sh";
       n = "nvim_vm";
       tm = "vm-run -c 3 office termusic";
-      oo = "remmina --disable-toolbar -c ~/.local/share/remmina/group_rdp_onlyoffice_10-0-0-3.remmina";
+      oo = "remmina --disable-toolbar -c ~/.local/share/remmina/group_rdp_onlyoffice_10-0-0-3.remmina > /dev/null 2>&1 &";
     };
 
     history.size = 10000;
     history.ignoreAllDups = true;
     history.path = "$HOME/.zsh_history";
-    history.ignorePatterns = ["rm *" "cp *"];
+    history.ignorePatterns = [
+      "rm *"
+      "cp *"
+    ];
 
     # Use antidote plugin manager
     antidote = {
@@ -51,29 +55,29 @@
         # "ohmyzsh/ohmyzsh path:plugins/git"
       ];
     };
-	initContent = ''
-    # Oh My Posh: OMP_CONFIG (aus DevShell/Alias) > POSH_THEME > Default (1_shell)
-    # _omp_default="$HOME/.cache/oh-my-posh/themes/1_shell.omp.json"
-    # _omp_cfg="''${OMP_CONFIG:-''${POSH_THEME:-$_omp_default}}"
+    initContent = ''
+          # Oh My Posh: OMP_CONFIG (aus DevShell/Alias) > POSH_THEME > Default (1_shell)
+          # _omp_default="$HOME/.cache/oh-my-posh/themes/1_shell.omp.json"
+          # _omp_cfg="''${OMP_CONFIG:-''${POSH_THEME:-$_omp_default}}"
 
-    if command -v oh-my-posh >/dev/null 2>&1; then
-      eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/slimfat.omp.json")"
-    fi
-    # unset _omp_cfg _omp_default
+          if command -v oh-my-posh >/dev/null 2>&1; then
+            eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/slimfat.omp.json")"
+          fi
+          # unset _omp_cfg _omp_default
 
-    # GitHub Copilot CLI Aliases
-    # if command -v ${pkgs.gh}/bin/gh >/dev/null 2>&1; then
-    #   eval "$(${pkgs.gh}/bin/gh copilot alias -- zsh)"
-    # fi
-    # if command -v zoxide >/dev/null 2>&1; then
-    #   eval "$(zoxide init zsh)"
-    # fi
+          # GitHub Copilot CLI Aliases
+          # if command -v ${pkgs.gh}/bin/gh >/dev/null 2>&1; then
+          #   eval "$(${pkgs.gh}/bin/gh copilot alias -- zsh)"
+          # fi
+          # if command -v zoxide >/dev/null 2>&1; then
+          #   eval "$(zoxide init zsh)"
+          # fi
 
-    # Load custom functions
-    [ -f "$HOME/nixos-config/home/paste_functions.zsh" ] && source "$HOME/nixos-config/home/paste_functions.zsh"
-    [ -f "$HOME/nixos-config/home/hydectl.zsh" ] && source "$HOME/nixos-config/home/hydectl.zsh"
-    [ -f "$HOME/nixos-config/home/nvim.zsh" ] && source "$HOME/nixos-config/home/nvim.zsh"
-    compdef _hydectl hydectl
-	'';
+          # Load custom functions
+          [ -f "$HOME/nixos-config/home/paste_functions.zsh" ] && source "$HOME/nixos-config/home/paste_functions.zsh"
+          [ -f "$HOME/nixos-config/home/hydectl.zsh" ] && source "$HOME/nixos-config/home/hydectl.zsh"
+          [ -f "$HOME/nixos-config/home/nvim.zsh" ] && source "$HOME/nixos-config/home/nvim.zsh"
+          compdef _hydectl hydectl
+      	'';
   };
 }

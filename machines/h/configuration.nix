@@ -269,11 +269,11 @@ in
     };
     chat = {
       flake = inputs.chat-vm;
-      autostart = false;
+      # autostart = false;
     };
     office = {
       flake = inputs.office-vm;
-      autostart = false;
+      # autostart = false;
     };
   };
 

@@ -48,8 +48,11 @@ let
     if [ "$CLI_MODE" -eq 1 ]; then
       exec ssh -i ~/.ssh/"$VM_NAME"-vm user@"$IP" -t -- "$BINARY" "$@"
     else
-      wprs "$IP" run -- "$BINARY" "$@"
-      wprs "$IP" detach
+      wprs "$IP" run -- "$BINARY" "$@" &
+      WPRS_PID=$!
+      wait $WPRS_PID
+      # SSH-Session aufräumen
+      pkill -P $WPRS_PID ssh
     fi
   '';
 
@@ -185,6 +188,21 @@ in
       mimeType = [ "x-scheme-handler/web+msteams" ];
     })
 
+    (mkVmEntry {
+      name = "element";
+      genericName = "Element";
+      vmName = "chat";
+      ipSuffix = 2;
+      binary = "google-chrome-stable";
+      args = "--profile-directory=Default --app-id=ejhkdoiecgkmdpomoahkdihbcldkgjci";
+      icon = "element";
+      categories = [
+        "Network"
+        "InstantMessaging"
+        "Chat"
+      ];
+      mimeType = [ "x-scheme-handler/web+msteams" ];
+    })
     # --- Office VM (10.0.0.3) ---
 
     # (mkVmEntry {

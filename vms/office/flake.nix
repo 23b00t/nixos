@@ -86,6 +86,11 @@
                       size = 2048;
                     }
                     {
+                      mountPoint = "/root";
+                      image = "root.img";
+                      size = 128;
+                    }
+                    {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
                       size = 2048;
@@ -173,7 +178,7 @@
                   shellInit = ''
                     #!/bin/sh
                     if [ -z "$DISPLAY" ]; then
-                      return
+                      exec bash 
                     fi
                     setxkbmap -layout "us" -variant "intl" -option "grp:alt_shift_toggle"
                     exec fluxbox -no-toolbar &
@@ -183,6 +188,8 @@
                     wait $fbpid
                   '';
                 };
+
+                services.printing.enable = true;
                 systemd.services.host-printer-tunnel = {
                   description = "SSH Tunnel to Host CUPS";
                   after = [ "network-online.target" ]; # Wartet auf eine aktive Netzwerkverbindung
@@ -256,7 +263,6 @@
                   # gnome-remote-desktop
                   # gnome-keyring
                   openssl
-                  cups
 
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ];

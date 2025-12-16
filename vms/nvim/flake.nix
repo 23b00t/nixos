@@ -124,6 +124,7 @@
                   nodejs
                   nodePackages.npm
                   watchman
+                  icu
 
                   zellij
                   antidote
