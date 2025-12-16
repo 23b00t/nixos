@@ -75,6 +75,11 @@
                       size = 1028;
                     }
                     {
+                      mountPoint = "/var/log";
+                      image = "log.img";
+                      size = 1028;
+                    }
+                    {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
                       size = 2048;
