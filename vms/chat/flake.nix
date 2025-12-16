@@ -140,7 +140,7 @@
                   #   }
                   # ];
                   mem = 8192;
-                  vcpu = 8;
+                  vcpu = 4;
                 };
 
                 # Setup xrdp with fluxbox

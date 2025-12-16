@@ -95,7 +95,7 @@
                     }
                   ];
                   mem = 8192;
-                  vcpu = 4;
+                  vcpu = 2;
                 };
 
                 environment.systemPackages = with pkgs; [

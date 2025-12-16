@@ -111,7 +111,7 @@
                     }
                   ];
                   mem = 6144;
-                  vcpu = 6;
+                  vcpu = 2;
                 };
 
                 console.keyMap = "us";
