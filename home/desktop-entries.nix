@@ -48,7 +48,8 @@ let
     if [ "$CLI_MODE" -eq 1 ]; then
       exec ssh -i ~/.ssh/"$VM_NAME"-vm user@"$IP" -t -- "$BINARY" "$@"
     else
-      exec wprs "$IP" run -- "$BINARY" "$@"
+      wprs "$IP" run -- "$BINARY" "$@"
+      wprs "$IP" detach
     fi
   '';
 
@@ -186,26 +187,26 @@ in
 
     # --- Office VM (10.0.0.3) ---
 
-    (mkVmEntry {
-      name = "onlyoffice-desktopeditors";
-      genericName = "Office Suite";
-      vmName = "office";
-      ipSuffix = 3;
-      binary = "onlyoffice-desktopeditors";
-      args = "--force-scale=1";
-      icon = "onlyoffice-desktopeditors";
-      categories = [
-        "Office"
-        "WordProcessor"
-        "Spreadsheet"
-        "Presentation"
-      ];
-      mimeType = [
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-      ];
-    })
+    # (mkVmEntry {
+    #   name = "onlyoffice-desktopeditors";
+    #   genericName = "Office Suite";
+    #   vmName = "office";
+    #   ipSuffix = 3;
+    #   binary = "onlyoffice-desktopeditors";
+    #   args = "--force-scale=1";
+    #   icon = "onlyoffice-desktopeditors";
+    #   categories = [
+    #     "Office"
+    #     "WordProcessor"
+    #     "Spreadsheet"
+    #     "Presentation"
+    #   ];
+    #   mimeType = [
+    #     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    #     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    #     "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    #   ];
+    # })
 
     (mkVmEntry {
       name = "gimp";

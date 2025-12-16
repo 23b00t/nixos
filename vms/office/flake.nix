@@ -40,6 +40,8 @@
                   nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
                   buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.mpv ];
                 });
+
+                printer = import ./printer.nix { inherit pkgs; };
               in
               {
                 nixpkgs.config.allowUnfree = true;
@@ -154,26 +156,76 @@
                 # services.xserver.desktopManager.xfce.enable = true;
 
                 # Setup xrdp with fluxbox
-                networking.firewall.allowedTCPPorts = [ 3389 ];
-                networking.firewall.allowedUDPPorts = [ 3389 ];
-                services.xrdp.enable = true;
-                services.xrdp.defaultWindowManager = "fluxbox";
+                networking.firewall = {
+                  allowedTCPPorts = [ 3389 ];
+                  allowedUDPPorts = [ 3389 ];
+                };
+                services.xrdp = {
+                  enable = true;
+                  audio.enable = true;
+                  defaultWindowManager = "fluxbox";
+                };
                 services.xserver.enable = true;
                 services.xserver.windowManager.fluxbox.enable = true;
 
-                # Doesn't work
-                # systemd.tmpfiles.rules = [
-                #   ''
-                #     w /home/user/.fluxbox/startup 0755 user users - \
-                #     #!/bin/sh
-                #     setxkbmap -layout "us,de" -variant "intl" -option "grp:alt_shift_toggle"
-                #     exec fluxbox -no-toolbar &
-                #     fbpid=$!
-                #     sleep 1
-                #     onlyoffice-desktopeditors &
-                #     wait $fbpid
-                #   ''
-                # ];
+                programs.bash = {
+                  enable = true;
+                  shellInit = ''
+                    #!/bin/sh
+                    if [ -z "$DISPLAY" ]; then
+                      return
+                    fi
+                    setxkbmap -layout "us" -variant "intl" -option "grp:alt_shift_toggle"
+                    exec fluxbox -no-toolbar &
+                    fbpid=$!
+                    sleep 1
+                    onlyoffice-desktopeditors &
+                    wait $fbpid
+                  '';
+                };
+                systemd.services.host-printer-tunnel = {
+                  description = "SSH Tunnel to Host CUPS";
+                  after = [ "network-online.target" ]; # Wartet auf eine aktive Netzwerkverbindung
+                  wantedBy = [ "multi-user.target" ];
+
+                  # Schritt 2: Der Service ruft jetzt nur noch das saubere Skript auf.
+                  serviceConfig = {
+                    Type = "simple";
+                    ExecStart = "${printer.hostPrinterTunnelScript}/bin/host-printer-tunnel";
+                    Restart = "on-failure";
+                    RestartSec = 5;
+                  };
+
+                  # Bonus: Ein zweiter Service, der den Drucker hinzufügt, sobald der Tunnel steht.
+                  # Dies trennt die Verantwortlichkeiten sauber.
+                };
+
+                systemd.services.add-host-printer = {
+                  description = "Add CUPS printer via SSH tunnel";
+                  after = [ "host-printer-tunnel.service" ]; # Startet erst nach dem Tunnel-Service
+                  requires = [ "host-printer-tunnel.service" ];
+                  wantedBy = [ "multi-user.target" ];
+                  serviceConfig = {
+                    Type = "oneshot"; # Läuft nur einmal
+                    RemainAfterExit = true; # Bleibt als "erfolgreich" markiert
+                  };
+                  script = ''
+                    LP_NAME="HostPrinter"
+                    PRINTER_NAME="HP_LaserJet_M110w_42FA89"
+                    TUNNEL_PORT=1631
+
+                    # Warten, bis der Tunnel-Port wirklich offen ist
+                    while ! ${pkgs.lsof}/bin/lsof -i TCP:''${TUNNEL_PORT} >/dev/null 2>&1; do
+                        echo "Waiting for tunnel on port ''${TUNNEL_PORT}..."
+                        sleep 1
+                    done
+
+                    if ! ${pkgs.cups}/bin/lpstat -p | ${pkgs.gnugrep}/bin/grep -q "^printer ''${LP_NAME} "; then
+                        echo "Adding printer ''${LP_NAME}..."
+                        ${pkgs.cups}/bin/lpadmin -p ''${LP_NAME} -E -v ipp://localhost:''${TUNNEL_PORT}/printers/''${PRINTER_NAME} -m everywhere
+                    fi
+                  '';
+                };
 
                 environment.systemPackages = with pkgs; [
                   # INFO: set in .config/termusic/server.toml:
@@ -200,10 +252,11 @@
                   # mesa
                   # vulkan-loader
                   # nx-libs
-                  # kitty
+                  kitty
                   # gnome-remote-desktop
                   # gnome-keyring
                   openssl
+                  cups
 
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ];

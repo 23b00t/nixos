@@ -89,7 +89,10 @@ in
     hostName = "machine";
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 9003 ];
+      allowedTCPPorts = [
+        9003
+        631
+      ];
       # Erlaubt Traffic auf der Bridge (nötig wegen Docker/br_netfilter)
       trustedInterfaces = [ "virbr2" ];
     };
@@ -428,7 +431,9 @@ in
   ];
 
   # Printer
-  services.printing.enable = true;
+  services.printing = {
+    enable = true;
+  };
 
   services.avahi = {
     enable = true;

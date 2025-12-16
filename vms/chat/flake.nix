@@ -143,6 +143,19 @@
                   vcpu = 8;
                 };
 
+                # Setup xrdp with fluxbox
+                # networking.firewall = {
+                #   allowedTCPPorts = [ 3389 ];
+                #   allowedUDPPorts = [ 3389 ];
+                # };
+                # services.xrdp = {
+                #   enable = true;
+                #   audio.enable = true;
+                #   defaultWindowManager = "fluxbox";
+                # };
+                # services.xserver.enable = true;
+                # services.xserver.windowManager.fluxbox.enable = true;
+
                 systemd.user.services.wprsd = {
                   description = "wprsd instance";
                   after = [ "network.target" ];
@@ -166,6 +179,7 @@
                   wprs
                   xwayland
                   usbutils
+                  # kitty
 
                   mesa
                   vulkan-loader
