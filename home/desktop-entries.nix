@@ -79,13 +79,11 @@ let
           mimeType
           icon
           ;
-        # Hier bauen wir den exec string zusammen
         exec = "${lib.getExe vmRunner} ${toString ipSuffix} ${vmName} ${binary} ${args} %U";
         terminal = false;
         type = "Application";
       };
     };
-
 in
 {
   # Das Skript verfügbar machen (optional, gut zum Debuggen im Terminal: `vm-run 2 chat zoom-us`)
@@ -210,8 +208,8 @@ in
     #   genericName = "Office Suite";
     #   vmName = "office";
     #   ipSuffix = 3;
-    #   binary = "onlyoffice-desktopeditors";
-    #   args = "--force-scale=1";
+    #   binary = "bash";
+    #   args = "-c remmina --disable-toolbar -c /home/deinuser/.local/share/remmina/group_rdp_onlyoffice_10-0-0-3.remmina \> /dev/null 2\>\&1 \&";
     #   icon = "onlyoffice-desktopeditors";
     #   categories = [
     #     "Office"

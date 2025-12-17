@@ -175,10 +175,10 @@
                   enable = true;
                   audio.enable = true;
                   defaultWindowManager = ''
-                    setxkbmap -layout "us" -variant "intl" -option "grp:alt_shift_toggle"
                     exec fluxbox -no-toolbar &
                     fbpid=$!
-                    sleep 1
+                    sleep 2
+                    setxkbmap -layout "us" -variant "intl" -option "grp:alt_shift_toggle"
                     onlyoffice-desktopeditors &
                     wait $fbpid
                   '';
