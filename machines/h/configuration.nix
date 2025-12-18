@@ -37,9 +37,27 @@ in
     kernelPackages = pkgs.linuxPackages_zen;
 
     kernel.sysctl = {
+      # Disable bridge netfilter for Whonix Gateway compatibility
       "net.bridge.bridge-nf-call-ip6tables" = 0;
       "net.bridge.bridge-nf-call-iptables" = 0;
       "net.bridge.bridge-nf-call-arptables" = 0;
+
+      # Increase network buffer sizes to improve performance for WPRS
+      # see: https://github.com/wayland-transpositor/wprs?tab=readme-ov-file#system-tuning
+      # and: https://wiki.archlinux.org/title/Sysctl#Increase_the_memory_dedicated_to_the_network_interfaces
+      "net.core.rmem_default" = 1048576; # Default receive buffer: 1 MB
+      "net.core.rmem_max" = 16777216; # Max receive buffer: 16 MB
+      "net.core.wmem_default" = 1048576; # Default send buffer: 1 MB
+      "net.core.wmem_max" = 16777216; # Max send buffer: 16 MB
+      "net.core.optmem_max" = 65536; # Max ancillary buffer: 64 KB
+
+      # TCP buffer settings
+      "net.ipv4.tcp_rmem" = "4096 1048576 2097152"; # Min, default, max TCP receive buffer
+      "net.ipv4.tcp_wmem" = "4096 65536 16777216"; # Min, default, max TCP send buffer
+
+      # UDP buffer settings
+      "net.ipv4.udp_rmem_min" = 8192; # Min UDP receive buffer
+      "net.ipv4.udp_wmem_min" = 8192; # Min UDP send buffer
     };
   };
 

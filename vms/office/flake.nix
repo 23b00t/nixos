@@ -241,40 +241,36 @@
                   "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
                 ];
 
-                environment.systemPackages = with pkgs; [
-                  # INFO: set in .config/termusic/server.toml:
-                  # [player]
-                  # backend = "mpv"
-                  # [backends.mpv]
-                  # audio_device = "pulse"
-                  termusic-mpv
-                  # pulseaudio
-                  # mpv
-                  yt-dlp
-                  onlyoffice-desktopeditors
-                  gimp
-                  inkscape
-                  vlc
-                  pinta
-                  pdfarranger
-                  wine
+                environment.systemPackages =
+                  with pkgs;
+                  [
+                    # INFO: set in .config/termusic/server.toml:
+                    # [player]
+                    # backend = "mpv"
+                    # [backends.mpv]
+                    # audio_device = "pulse"
+                    termusic-mpv
+                    # pulseaudio
+                    # mpv
+                    yt-dlp
+                    onlyoffice-desktopeditors
+                    gimp
+                    inkscape
+                    vlc
+                    pinta
+                    pdfarranger
+                    wine
 
-                  adwaita-icon-theme
-                  wprs
-                  xwayland
-                  dconf
-                  # waypipe
-                  # mesa
-                  # vulkan-loader
-                  # nx-libs
-                  # gnome-remote-desktop
-                  # gnome-keyring
-                  # openssl
-                  kitty
-                  # vim
+                    adwaita-icon-theme
+                    wprs
+                    xwayland
+                    kitty
 
-                  (import ../copy-between-vms.nix { inherit pkgs; })
-                ] ++ defaultPkgs;
+                    dconf # to fix onlyoffice errors
+
+                    (import ../copy-between-vms.nix { inherit pkgs; })
+                  ]
+                  ++ defaultPkgs;
 
                 system.stateVersion = "25.05";
               }
