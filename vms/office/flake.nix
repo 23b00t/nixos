@@ -17,6 +17,7 @@
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
+      inherit (nixpkgs) pkgs;
       index = 3;
       mac = "00:00:00:00:00:03";
     in
@@ -35,6 +36,7 @@
               inherit lib;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm";
             })
+            (import ../yazi-config.nix { inherit pkgs; })
             (
               { config, pkgs, ... }:
               # INFO: build termusic with mpv support to work with pulse and not enforce alsa
@@ -53,6 +55,7 @@
                 networking.hostName = "office-vm";
 
                 users.users.user = {
+                  password = "trash";
                   linger = true;
                   extraGroups = lib.mkAfter [ "video" ];
                 };
