@@ -44,6 +44,10 @@
             (import ../net-config.nix { inherit lib index mac; })
             # nix-flatpak.nixosModules.nix-flatpak
             flatpaks.nixosModules.default
+            (import ../common-config.nix {
+              inherit lib;
+              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
+            })
             (
               { config, pkgs, ... }:
               let
@@ -53,31 +57,7 @@
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "chat-vm";
 
-                users.groups.users = { };
-                users.users.user = {
-                  password = "trash";
-                  isNormalUser = true;
-                  group = "users";
-                  extraGroups = [
-                    "wheel"
-                    "video"
-                  ];
-                  openssh.authorizedKeys.keys = [
-                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm"
-                  ];
-                };
-                security.sudo = {
-                  enable = true;
-                  wheelNeedsPassword = false;
-                };
-
-                services.openssh = {
-                  enable = true;
-                  settings = {
-                    PermitRootLogin = "no";
-                    PasswordAuthentication = false;
-                  };
-                };
+                users.users.user.extraGroups = lib.mkAfter [ "video" ];
 
                 # Flatpak settings
                 # Enable XDG portal for Flatpak apps
@@ -174,21 +154,23 @@
                   "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
                 ];
 
-                time.timeZone = "Europe/Berlin";
-                environment.systemPackages = with pkgs; [
-                  vesktop
-                  telegram-desktop
-                  slack
-                  # zoom-us
-                  google-chrome
-                  wprs
-                  xwayland
+                environment.systemPackages =
+                  with pkgs;
+                  [
+                    vesktop
+                    telegram-desktop
+                    slack
+                    # zoom-us
+                    google-chrome
+                    wprs
+                    xwayland
 
-                  mesa
-                  vulkan-loader
+                    mesa
+                    vulkan-loader
 
-                  (import ../copy-between-vms.nix { inherit pkgs; })
-                ] ++ defaultPkgs;
+                    (import ../copy-between-vms.nix { inherit pkgs; })
+                  ]
+                  ++ defaultPkgs;
 
                 system.stateVersion = "25.05";
               }

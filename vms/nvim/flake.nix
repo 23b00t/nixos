@@ -32,6 +32,10 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
+            (import ../common-config.nix {
+              inherit lib;
+              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzJjZw0V2CdaWI/IBFcTQPwQhYtFn/31i5iNPSc1j8G nvim-vm";
+            })
             (
               { config, pkgs, ... }:
               let
@@ -43,29 +47,8 @@
 
                 programs.zsh.enable = true;
                 users.defaultUserShell = pkgs.zsh;
-                users.groups.users = { };
-                users.users.user = {
-                  password = "trash";
-                  isNormalUser = true;
-                  group = "users";
-                  extraGroups = [ "wheel" ];
-                  openssh.authorizedKeys.keys = [
-                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzJjZw0V2CdaWI/IBFcTQPwQhYtFn/31i5iNPSc1j8G nvim-vm"
-                  ];
-                  shell = pkgs.zsh;
-                };
-                security.sudo = {
-                  enable = true;
-                  wheelNeedsPassword = false;
-                };
+                users.users.user.shell = pkgs.zsh;
 
-                services.openssh = {
-                  enable = true;
-                  settings = {
-                    PermitRootLogin = "no";
-                    PasswordAuthentication = false;
-                  };
-                };
                 microvm = {
                   registerClosure = false;
                   # vsock.cid = 3;
@@ -106,7 +89,6 @@
                   vcpu = 2;
                 };
 
-                time.timeZone = "Europe/Berlin";
                 environment.systemPackages = with pkgs; [
                   gnupg
                   pinentry-curses

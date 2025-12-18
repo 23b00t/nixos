@@ -31,6 +31,10 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
+            (import ../common-config.nix {
+              inherit lib;
+              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm";
+            })
             (
               { config, pkgs, ... }:
               # INFO: build termusic with mpv support to work with pulse and not enforce alsa
@@ -48,32 +52,11 @@
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "office-vm";
 
-                users.groups.users = { };
                 users.users.user = {
-                  password = "trash";
-                  isNormalUser = true;
-                  group = "users";
-                  extraGroups = [
-                    "wheel"
-                    "video"
-                  ];
-                  openssh.authorizedKeys.keys = [
-                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm"
-                  ];
                   linger = true;
-                };
-                security.sudo = {
-                  enable = true;
-                  wheelNeedsPassword = false;
+                  extraGroups = lib.mkAfter [ "video" ];
                 };
 
-                services.openssh = {
-                  enable = true;
-                  settings = {
-                    PermitRootLogin = "no";
-                    PasswordAuthentication = false;
-                  };
-                };
                 microvm = {
                   registerClosure = false;
                   # vsock.cid = 3;
@@ -119,12 +102,6 @@
                   mem = 6144;
                   vcpu = 2;
                 };
-
-                console.keyMap = "us";
-                services.xserver.xkb.layout = "us,de";
-                services.xserver.xkb.variant = "intl";
-                services.xserver.xkb.options = "grp:alt_shift_toggle";
-                time.timeZone = "Europe/Berlin";
 
                 systemd.user.services.wprsd = {
                   description = "wprsd instance";
@@ -200,9 +177,6 @@
                     Restart = "on-failure";
                     RestartSec = 5;
                   };
-
-                  # Bonus: Ein zweiter Service, der den Drucker hinzufügt, sobald der Tunnel steht.
-                  # Dies trennt die Verantwortlichkeiten sauber.
                 };
 
                 systemd.services.add-host-printer = {

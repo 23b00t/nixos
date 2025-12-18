@@ -17,6 +17,7 @@
     }:
     let
       system = "x86_64-linux";
+      inherit (nixpkgs) lib;
       index = 11;
     in
     {
@@ -31,7 +32,11 @@
             microvm.nixosModules.microvm
             (import ../whonix-net-config.nix {
               inherit index;
-              lib = nixpkgs.lib;
+              inherit lib;
+            })
+            (import ../common-config.nix {
+              inherit lib;
+              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm";
             })
             (
               { config, pkgs, ... }:
@@ -52,29 +57,6 @@
                   }
                 ];
                 networking.hostName = "irc-vm";
-
-                services.openssh = {
-                  enable = true;
-                  settings = {
-                    PermitRootLogin = "no";
-                    PasswordAuthentication = false;
-                  };
-                };
-
-                users.groups.user = { };
-                users.users.user = {
-                  password = "trash";
-                  isNormalUser = true;
-                  group = "user";
-                  extraGroups = [ "wheel" ];
-                  openssh.authorizedKeys.keys = [
-                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm"
-                  ];
-                };
-                security.sudo = {
-                  enable = true;
-                  wheelNeedsPassword = false;
-                };
 
                 microvm = {
                   # vsock.cid = 3;
@@ -116,7 +98,6 @@
                   "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
                 ];
 
-                time.timeZone = "Europe/Berlin";
                 environment.systemPackages = with pkgs; [
                   tiny
                   pass
