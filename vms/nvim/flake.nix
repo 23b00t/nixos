@@ -18,7 +18,7 @@
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
-      inherit (nixpkgs) pkgs;
+      pkgs = import nixpkgs { inherit system; };
       index = 1;
       mac = "00:00:00:00:00:01";
     in
@@ -91,56 +91,59 @@
                   vcpu = 2;
                 };
 
-                environment.systemPackages = with pkgs; [
-                  gnupg
-                  pinentry-curses
-                  gh
-                  github-copilot-cli
+                environment.systemPackages =
+                  with pkgs;
+                  [
+                    gnupg
+                    pinentry-curses
+                    gh
+                    github-copilot-cli
 
-                  python3
-                  fd
-                  unzip
+                    python3
+                    fd
+                    unzip
 
-                  gcc
-                  gnumake
-                  rustc
-                  cargo
-                  rust-analyzer
-                  watchexec
-                  lua-language-server
-                  lua51Packages.lua
-                  lua51Packages.luarocks
-                  nixfmt
-                  statix
-                  tree-sitter
-                  vectorcode
-                  nodejs
-                  nodePackages.npm
-                  watchman
-                  icu
+                    gcc
+                    gnumake
+                    rustc
+                    cargo
+                    rust-analyzer
+                    watchexec
+                    lua-language-server
+                    lua51Packages.lua
+                    lua51Packages.luarocks
+                    nixfmt
+                    statix
+                    tree-sitter
+                    vectorcode
+                    nodejs
+                    nodePackages.npm
+                    watchman
+                    icu
 
-                  zellij
-                  antidote
-                  ripgrep
-                  fzf
-                  oh-my-posh
-                  eza # A modern replacement for ‘ls’
-                  zoxide
-                  ddate
-                  cowsay
+                    zellij
+                    antidote
+                    ripgrep
+                    fzf
+                    oh-my-posh
+                    eza # A modern replacement for ‘ls’
+                    zoxide
+                    ddate
+                    cowsay
 
-                  (writeShellScriptBin "lazygit" ''
-                    export GPG_TTY=$(tty)
-                    ${gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
-                    exec ${lazygit}/bin/lazygit "$@"
-                  '')
+                    (writeShellScriptBin "lazygit" ''
+                      export GPG_TTY=$(tty)
+                      ${gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
+                      exec ${lazygit}/bin/lazygit "$@"
+                    '')
 
-                  postman
-                  dbeaver-bin
-                  devenv
+                    postman
+                    dbeaver-bin
+                    devenv
 
-                  (import ../copy-between-vms.nix { inherit pkgs; })
-                ] ++ defaultPkgs;
+                    (import ../copy-between-vms.nix { inherit pkgs; })
+                  ]
+                  ++ defaultPkgs;
                 # for static linked binaries in nvim
                 programs.nix-ld.enable = true;
 

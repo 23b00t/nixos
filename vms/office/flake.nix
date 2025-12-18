@@ -17,7 +17,7 @@
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
-      inherit (nixpkgs) pkgs;
+      pkgs = import nixpkgs { inherit system; };
       index = 3;
       mac = "00:00:00:00:00:03";
     in
