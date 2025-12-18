@@ -34,6 +34,9 @@
             (import ../net-config.nix { inherit lib index mac; })
             (
               { config, pkgs, ... }:
+              let
+                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
+              in
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "nvim-vm";
@@ -151,10 +154,9 @@
                   postman
                   dbeaver-bin
                   devenv
-                  cowsay
 
                   (import ../copy-between-vms.nix { inherit pkgs; })
-                ];
+                ] ++ defaultPkgs;
                 programs.yazi = {
                   enable = true;
                   plugins = {

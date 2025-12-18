@@ -46,6 +46,9 @@
             flatpaks.nixosModules.default
             (
               { config, pkgs, ... }:
+              let
+                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
+              in
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "chat-vm";
@@ -173,7 +176,6 @@
 
                 time.timeZone = "Europe/Berlin";
                 environment.systemPackages = with pkgs; [
-                  vim
                   vesktop
                   telegram-desktop
                   slack
@@ -181,14 +183,12 @@
                   google-chrome
                   wprs
                   xwayland
-                  usbutils
-                  # kitty
 
                   mesa
                   vulkan-loader
 
                   (import ../copy-between-vms.nix { inherit pkgs; })
-                ];
+                ] ++ defaultPkgs;
 
                 system.stateVersion = "25.05";
               }

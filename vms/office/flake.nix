@@ -42,6 +42,7 @@
                 });
 
                 printer = import ./printer.nix { inherit pkgs; };
+                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
               in
               {
                 nixpkgs.config.allowUnfree = true;
@@ -235,8 +236,6 @@
                   Host *
                       StrictHostKeyChecking no
                       UserKnownHostsFile /dev/null
-                      AllowTcpForwarding yes
-                      GatewayPorts yes
                 '';
                 systemd.tmpfiles.rules = [
                   "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
@@ -263,18 +262,19 @@
                   adwaita-icon-theme
                   wprs
                   xwayland
+                  dconf
                   # waypipe
                   # mesa
                   # vulkan-loader
                   # nx-libs
-                  kitty
-                  vim
                   # gnome-remote-desktop
                   # gnome-keyring
-                  openssl
+                  # openssl
+                  kitty
+                  # vim
 
                   (import ../copy-between-vms.nix { inherit pkgs; })
-                ];
+                ] ++ defaultPkgs;
 
                 system.stateVersion = "25.05";
               }

@@ -35,6 +35,9 @@
             })
             (
               { config, pkgs, ... }:
+              let
+                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
+              in
               {
                 microvm.interfaces = [
                   {
@@ -115,7 +118,6 @@
 
                 time.timeZone = "Europe/Berlin";
                 environment.systemPackages = with pkgs; [
-                  vim
                   tiny
                   pass
                   gnupg
@@ -124,7 +126,7 @@
                   openssl
 
                   (import ../copy-between-vms.nix { inherit pkgs; })
-                ];
+                ] ++ defaultPkgs;
 
                 environment.etc."proxychains.conf".text = ''
                   [ProxyList]

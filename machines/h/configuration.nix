@@ -113,12 +113,9 @@ in
     gnupg
     pinentry-curses
     wget
-    # gnome-shell
-    # gnome-control-center
     virt-manager
     libvirt
     qemu
-    pciutils
     cloud-hypervisor
     virtiofsd
     zellij
@@ -126,8 +123,6 @@ in
     waypipe
     shadow
     wprs
-    # xauth
-    # x2goclient
     remmina
 
     (import ../../vms/copy-between-vms.nix { inherit pkgs; })
