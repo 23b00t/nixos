@@ -22,7 +22,7 @@
     music-vm.url = "path:./vms/music";
     net-vm.url = "path:./vms/net";
     net-private-vm.url = "path:./vms/net-private";
-    wine-vm = "path:./vms/wine";
+    wine-vm.url = "path:./vms/wine";
 
     # Hydenix
     hydenix = {

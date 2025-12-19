@@ -28,8 +28,24 @@ let
         IP="10.0.0.2"
         FULL_NAME="chat"
         ;;
+      "music"|"m")
+        IP="10.0.0.4"
+        FULL_NAME="music"
+        ;;
+      "net")
+        IP="10.0.0.5"
+        FULL_NAME="net"
+        ;;
+      "net-private"|"np")
+        IP="10.0.0.6"
+        FULL_NAME="net-private"
+        ;;
+      "wine"|"w")
+        IP="10.0.0.7"
+        FULL_NAME="wine"
+        ;;
       "office"|"o")
-        IP="10.0.0.3"
+        IP="10.0.0.9"
         FULL_NAME="office"
         ;;
       "irc"|"i")

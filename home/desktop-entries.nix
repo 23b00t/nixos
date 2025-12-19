@@ -201,7 +201,7 @@ in
       ];
       mimeType = [ "x-scheme-handler/web+msteams" ];
     })
-    # --- Office VM (10.0.0.3) ---
+    # --- Office VM (10.0.0.9) ---
 
     # (mkVmEntry {
     #   name = "onlyoffice-desktopeditors";
@@ -228,7 +228,7 @@ in
       name = "gimp";
       genericName = "GNU Image Manipulation Program";
       vmName = "office";
-      ipSuffix = 3;
+      ipSuffix = 9;
       binary = "gimp";
       icon = "gimp";
       categories = [
@@ -248,7 +248,7 @@ in
       name = "inkscape";
       genericName = "Vector Graphics Editor";
       vmName = "office";
-      ipSuffix = 3;
+      ipSuffix = 9;
       binary = "inkscape";
       icon = "inkscape";
       categories = [
@@ -265,7 +265,7 @@ in
       name = "vlc";
       genericName = "Media Player";
       vmName = "office";
-      ipSuffix = 3;
+      ipSuffix = 9;
       binary = "vlc";
       icon = "vlc";
       categories = [
@@ -279,7 +279,7 @@ in
       name = "pinta";
       genericName = "Image Editor";
       vmName = "office";
-      ipSuffix = 3;
+      ipSuffix = 9;
       binary = "pinta";
       icon = "pinta";
       categories = [
@@ -292,7 +292,7 @@ in
       name = "pdfarranger";
       genericName = "PDF Arranger";
       vmName = "office";
-      ipSuffix = 3;
+      ipSuffix = 9;
       binary = "pdfarranger";
       icon = "pdfarranger";
       categories = [ "Office" ];
