@@ -73,12 +73,13 @@
     flavors = {
       inherit (pkgs.yaziPlugins) yatline-catppuccin;
     };
-    initLua = builtins.toFile "init.lua" ''
-      require("full-border"):setup()
-      require("git"):setup()
-    '';
-    systemd.tmpfiles.rules = [
-      "L+ /home/user/.config/yazi/init.lua - - - - /etc/init.lua"
-    ];
   };
+
+  initLua = builtins.toFile "init.lua" ''
+    require("full-border"):setup()
+    require("git"):setup()
+  '';
+  systemd.tmpfiles.rules = [
+    "L+ /home/user/.config/yazi/init.lua - - - - /etc/init.lua"
+  ];
 }

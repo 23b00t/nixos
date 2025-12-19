@@ -298,5 +298,39 @@ in
       categories = [ "Office" ];
       mimeType = [ "application/pdf" ];
     })
+
+    # --- Net VM
+    (mkVmEntry {
+      name = "Firefox Web Browser";
+      genericName = "Web Browser";
+      vmName = "net";
+      ipSuffix = 5;
+      binary = "firefox";
+      icon = "firefox";
+      categories = [ "Network;WebBrowser;" ];
+      mimeType = [
+        "text/html"
+        "application/xhtml+xml"
+        "application/xml"
+        "application/pdf"
+        "application/x-xpinstall"
+      ];
+    })
+    (mkVmEntry {
+      name = "Firefox Private Browser";
+      genericName = "Web Browser";
+      vmName = "net-private";
+      ipSuffix = 6;
+      binary = "firefox";
+      icon = "firefox";
+      categories = [ "Network;WebBrowser;" ];
+      mimeType = [
+        "text/html"
+        "application/xhtml+xml"
+        "application/xml"
+        "application/pdf"
+        "application/x-xpinstall"
+      ];
+    })
   ];
 }

@@ -77,22 +77,29 @@
                   vcpu = 2;
                 };
 
-                systemd.user.services.wprsd = {
-                  description = "wprsd instance";
-                  after = [ "network.target" ];
-                  serviceConfig = {
-                    Type = "simple";
-                    Environment = [
-                      "PATH=/run/current-system/sw/bin"
-                      "RUST_BACKTRACE=1"
-                    ];
-                    ExecStart = "/run/current-system/sw/bin/wprsd";
-                  };
-                  wantedBy = [ "default.target" ];
+                # Setup xrdp with fluxbox
+                networking.firewall = {
+                  allowedTCPPorts = [ 3389 ];
+                  allowedUDPPorts = [ 3389 ];
                 };
+                services.xrdp = {
+                  enable = true;
+                  audio.enable = true;
+                  defaultWindowManager = ''
+                    exec fluxbox -no-toolbar &
+                    fbpid=$!
+                    sleep 2
+                    setxkbmap -layout "us" -variant "intl" -option "grp:alt_shift_toggle"
+                    kitty &
+                    wait $fbpid
+                  '';
+                };
+                services.xserver.enable = true;
+                services.xserver.windowManager.fluxbox.enable = true;
 
                 environment.systemPackages = [
                   pkgs.wine
+                  pkgs.kitty
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ]
                 ++ defaultPkgs;
