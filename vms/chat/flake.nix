@@ -6,10 +6,6 @@
       url = "github:astro/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # nix-flatpak = {
-    #   url = "github:gmodena/nix-flatpak/?ref=latest";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
     flatpaks = {
       url = "github:in-a-dil-emma/declarative-flatpak/latest";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -21,7 +17,6 @@
       self,
       nixpkgs,
       microvm,
-      # nix-flatpak,
       flatpaks,
       ...
     }:
@@ -42,7 +37,6 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
-            # nix-flatpak.nixosModules.nix-flatpak
             flatpaks.nixosModules.default
             (import ../common-config.nix {
               inherit lib;
@@ -145,22 +139,12 @@
                   wantedBy = [ "default.target" ];
                 };
 
-                environment.etc."ssh_config".text = ''
-                  Host *
-                      StrictHostKeyChecking no
-                      UserKnownHostsFile /dev/null
-                '';
-                systemd.tmpfiles.rules = [
-                  "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
-                ];
-
                 environment.systemPackages =
                   with pkgs;
                   [
                     vesktop
                     telegram-desktop
                     slack
-                    # zoom-us
                     google-chrome
                     wprs
                     xwayland

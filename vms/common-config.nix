@@ -1,4 +1,7 @@
-{ lib, sshKey ? null }:
+{
+  lib,
+  sshKey ? null,
+}:
 {
   time.timeZone = "Europe/Berlin";
   i18n.defaultLocale = "en_US.UTF-8";
@@ -61,4 +64,13 @@
     # Only set authorizedKeys if sshKey is provided
     openssh.authorizedKeys.keys = lib.mkIf (sshKey != null) [ sshKey ];
   };
+
+  environment.etc."ssh_config".text = ''
+    Host *
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
+  '';
+  systemd.tmpfiles.rules = [
+    "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
+  ];
 }

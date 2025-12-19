@@ -109,15 +109,18 @@ in
       };
   };
 
+  # TODO: Use nftables - check rules
   # User Account Setup - REQUIRED: Change "hydenix" to your desired username (must match above)
   networking = {
     hostName = "machine";
+    # nftables.enable = true;
     firewall = {
       enable = true;
       allowedTCPPorts = [
         9003
         631
       ];
+      # TODO: Test to remove after Docker has been removed
       # Erlaubt Traffic auf der Bridge (nötig wegen Docker/br_netfilter)
       trustedInterfaces = [ "virbr2" ];
     };
@@ -128,6 +131,7 @@ in
     "nix-command"
     "flakes"
   ];
+  # TODO: Check what should be done by home-manager
   environment.systemPackages = with pkgs; [
     # Flakes clones its dependencies through the git command,
     # so git must be installed first
@@ -261,6 +265,7 @@ in
   };
   programs.virt-manager.enable = true;
 
+  # TODO: Check if this is done in home-manager already
   # zsh
   programs.zsh.enable = true;
   users.extraUsers.nx = {
@@ -291,11 +296,24 @@ in
     };
     chat = {
       flake = inputs.chat-vm;
-      # autostart = false;
     };
     office = {
       flake = inputs.office-vm;
-      # autostart = false;
+      autostart = false;
+    };
+    music = {
+      flake = inputs.music-vm;
+    };
+    net = {
+      flake = inputs.net-vm;
+    };
+    net-private = {
+      flake = inputs.net-private-vm;
+      autostart = false;
+    };
+    wine = {
+      flake = inputs.wine-vm;
+      autostart = false;
     };
   };
   programs.ssh.startAgent = true;
@@ -339,8 +357,11 @@ in
     internalIPs = [
       "10.0.0.1/32"
       "10.0.0.2/32"
-      "10.0.0.3/32"
+      # "10.0.0.3/32"
       "10.0.0.4/32"
+      "10.0.0.5/32"
+      "10.0.0.6/32"
+      "10.0.0.7/32"
     ];
     # externalInterface = "wlo1";
   };
@@ -373,6 +394,7 @@ in
   #   permissions = "0755";
   # };
 
+  # TODO: Move to nvim-vm
   virtualisation = {
     docker = {
       enable = true;

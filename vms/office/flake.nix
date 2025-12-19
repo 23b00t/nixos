@@ -18,8 +18,8 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 3;
-      mac = "00:00:00:00:00:03";
+      index = 9;
+      mac = "00:00:00:00:00:09";
     in
     {
       packages.${system} = {
@@ -39,14 +39,7 @@
             (import ../yazi-config.nix { inherit pkgs; })
             (
               { config, pkgs, ... }:
-              # INFO: build termusic with mpv support to work with pulse and not enforce alsa
               let
-                termusic-mpv = pkgs.termusic.overrideAttrs (old: {
-                  cargoBuildFlags = (old.cargoBuildFlags or [ ]) ++ [ "--features=mpv" ];
-                  nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
-                  buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.mpv ];
-                });
-
                 printer = import ./printer.nix { inherit pkgs; };
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
               in
@@ -70,7 +63,7 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 2048;
+                      size = 8000;
                     }
                     {
                       mountPoint = "/root";
@@ -95,12 +88,6 @@
                       source = "/nix/store";
                       mountPoint = "/nix/.ro-store";
                     }
-                    {
-                      proto = "virtiofs";
-                      tag = "host-home";
-                      source = "/home/nx";
-                      mountPoint = "/mnt/host";
-                    }
                   ];
                   mem = 6144;
                   vcpu = 2;
@@ -118,11 +105,6 @@
                     ExecStart = "/run/current-system/sw/bin/wprsd";
                   };
                   wantedBy = [ "default.target" ];
-                };
-
-                # For termusic
-                environment.variables = {
-                  PULSE_SERVER = "tcp:localhost:4713";
                 };
 
                 # NOTE: Hyprland experiment (no success yet, no rdp server running)
@@ -209,34 +191,15 @@
                   '';
                 };
 
-                environment.etc."ssh_config".text = ''
-                  Host *
-                      StrictHostKeyChecking no
-                      UserKnownHostsFile /dev/null
-                '';
-                systemd.tmpfiles.rules = [
-                  "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
-                ];
-
                 environment.systemPackages =
                   with pkgs;
                   [
-                    # INFO: set in .config/termusic/server.toml:
-                    # [player]
-                    # backend = "mpv"
-                    # [backends.mpv]
-                    # audio_device = "pulse"
-                    termusic-mpv
-                    # pulseaudio
-                    # mpv
-                    yt-dlp
                     onlyoffice-desktopeditors
                     gimp
                     inkscape
                     vlc
                     pinta
                     pdfarranger
-                    wine
 
                     adwaita-icon-theme
                     wprs

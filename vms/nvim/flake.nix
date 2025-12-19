@@ -60,7 +60,7 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 1028;
+                      size = 30000;
                     }
                     {
                       mountPoint = "/var/log";
@@ -83,7 +83,7 @@
                     {
                       proto = "virtiofs";
                       tag = "host-home";
-                      source = "/home/nx";
+                      source = "/home/nx/nixos-config";
                       mountPoint = "/mnt/host";
                     }
                   ];
@@ -214,24 +214,11 @@
                   pinentry-program /run/current-system/sw/bin/pinentry-tty
                 '';
 
-                environment.etc."init.lua".text = ''
-                  require("full-border"):setup()
-                  require("git"):setup()
-                '';
-
-                environment.etc."ssh_config".text = ''
-                  Host *
-                      StrictHostKeyChecking no
-                      UserKnownHostsFile /dev/null
-                '';
-
                 systemd.tmpfiles.rules = [
                   # Symlink /etc/zshrc nach /home/user/.zshrc, falls nicht vorhanden
                   "L+ /home/user/.zshrc - - - - /etc/zshrc"
                   "L+ /home/user/.zsh_plugins.txt - - - - /etc/zsh_plugins.txt"
                   "L+ /home/user/.gnupg/gpg-agent.conf - - - - /etc/gpg-agent.conf"
-                  "L+ /home/user/.config/yazi/init.lua - - - - /etc/init.lua"
-                  "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
                 ];
 
                 # git

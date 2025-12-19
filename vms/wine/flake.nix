@@ -1,12 +1,11 @@
 {
-  # In this example, index 5, we need to run:
-  # sudo ip tuntap add vm5 mode tap user nx
-  # to get the tap device working rootless.
-  description = "IRC MicroVM";
+  description = "Wine MicroVM";
 
-  inputs.microvm = {
-    url = "github:astro/microvm.nix";
-    inputs.nixpkgs.follows = "nixpkgs";
+  inputs = {
+    microvm = {
+      url = "github:astro/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -18,25 +17,23 @@
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
-      index = 11;
+      index = 7;
+      mac = "00:00:00:00:00:07";
     in
     {
       packages.${system} = {
-        default = self.packages.${system}.irc;
-        irc = self.nixosConfigurations.irc.config.microvm.declaredRunner;
+        default = self.packages.${system}.wine;
+        chat = self.nixosConfigurations.wine.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
-        irc = nixpkgs.lib.nixosSystem {
+        wine = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../whonix-net-config.nix {
-              inherit index;
-              inherit lib;
-            })
+            (import ../net-config.nix { inherit lib index mac; })
             (import ../common-config.nix {
               inherit lib;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm";
+              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRYiHWjGyucuX6XJq2U3ENx7MHACcX0t8YzB2JEgfyR wine-vm";
             })
             (
               { config, pkgs, ... }:
@@ -44,28 +41,18 @@
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
               in
               {
-                microvm.interfaces = [
-                  {
-                    type = "tap";
-                    id = "vm${toString index}";
-                    mac = "02:00:00:00:00:0b";
-                  }
-                  {
-                    type = "tap";
-                    id = "vm${toString index}-tor";
-                    mac = "02:00:00:00:00:0c";
-                  }
-                ];
-                networking.hostName = "irc-vm";
+                networking.hostName = "wine-vm";
 
                 microvm = {
+                  registerClosure = false;
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
+                  optimize.enable = false;
                   volumes = [
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 512;
+                      size = 2048;
                     }
                     {
                       mountPoint = "/var/log";
@@ -86,23 +73,30 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
+                  mem = 4048;
+                  vcpu = 2;
                 };
 
-                environment.systemPackages = with pkgs; [
-                  tiny
-                  pass
-                  gnupg
-                  pinentry-curses
-                  proxychains-ng
-                  openssl
+                systemd.user.services.wprsd = {
+                  description = "wprsd instance";
+                  after = [ "network.target" ];
+                  serviceConfig = {
+                    Type = "simple";
+                    Environment = [
+                      "PATH=/run/current-system/sw/bin"
+                      "RUST_BACKTRACE=1"
+                    ];
+                    ExecStart = "/run/current-system/sw/bin/wprsd";
+                  };
+                  wantedBy = [ "default.target" ];
+                };
 
+                environment.systemPackages = [
+                  pkgs.wine
                   (import ../copy-between-vms.nix { inherit pkgs; })
-                ] ++ defaultPkgs;
+                ]
+                ++ defaultPkgs;
 
-                environment.etc."proxychains.conf".text = ''
-                  [ProxyList]
-                  socks5  10.152.152.10 9050
-                '';
                 system.stateVersion = "25.05";
               }
             )
