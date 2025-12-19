@@ -307,7 +307,10 @@ in
       ipSuffix = 5;
       binary = "firefox";
       icon = "firefox";
-      categories = [ "Network;WebBrowser;" ];
+      categories = [
+        "Network"
+        "WebBrowser"
+      ];
       mimeType = [
         "text/html"
         "application/xhtml+xml"
@@ -323,13 +326,35 @@ in
       ipSuffix = 6;
       binary = "firefox";
       icon = "firefox";
-      categories = [ "Network;WebBrowser;" ];
+      categories = [
+        "Network"
+        "WebBrowser"
+      ];
       mimeType = [
         "text/html"
         "application/xhtml+xml"
         "application/xml"
         "application/pdf"
         "application/x-xpinstall"
+      ];
+    })
+
+    # ---- Vault VM
+    (mkVmEntry {
+      name = "KeePassXC";
+      genericName = "Password Manager";
+      vmName = "vault";
+      ipSuffix = 10;
+      binary = "keepassxc";
+      icon = "keepassxc";
+      categories = [
+        "Utility"
+        "Security"
+        "PasswordManager"
+      ];
+      mimeType = [
+        "application/x-keepass2"
+        "application/x-keepass"
       ];
     })
   ];

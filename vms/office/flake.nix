@@ -24,7 +24,7 @@
     {
       packages.${system} = {
         default = self.packages.${system}.office;
-        chat = self.nixosConfigurations.office.config.microvm.declaredRunner;
+        office = self.nixosConfigurations.office.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
         office = nixpkgs.lib.nixosSystem {

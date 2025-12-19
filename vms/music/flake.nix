@@ -23,7 +23,7 @@
     {
       packages.${system} = {
         default = self.packages.${system}.music;
-        chat = self.nixosConfigurations.music.config.microvm.declaredRunner;
+        music = self.nixosConfigurations.music.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
         music = nixpkgs.lib.nixosSystem {

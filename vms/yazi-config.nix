@@ -75,7 +75,7 @@
     };
   };
 
-  initLua = builtins.toFile "init.lua" ''
+  environment.etc."init.lua".text = ''
     require("full-border"):setup()
     require("git"):setup()
   '';

@@ -240,6 +240,25 @@
                   };
                 };
 
+                virtualisation = {
+                  docker = {
+                    enable = true;
+                    # Für rootless Docker (optional)
+                    rootless = {
+                      enable = true;
+                      setSocketVariable = true;
+                    };
+                    # BuildX-Plugin aktivieren
+                    enableOnBoot = true; # Docker beim Systemstart starten
+                    extraOptions = "--experimental"; # Experimentelle Features aktivieren
+                    extraPackages = [ pkgs.docker-buildx ]; # BuildX-Plugin hinzufügen
+                  };
+                  podman = {
+                    enable = true;
+                    # Keine Docker-Kompatibilität, wenn Docker selbst installiert ist
+                    dockerCompat = false;
+                  };
+                };
                 system.stateVersion = "25.05";
               }
             )

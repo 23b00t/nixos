@@ -23,6 +23,8 @@
     net-vm.url = "path:./vms/net";
     net-private-vm.url = "path:./vms/net-private";
     wine-vm.url = "path:./vms/wine";
+    kali-vm.url = "path:./vms/kali";
+    vault-vm.url = "path:./vms/vault";
 
     # Hydenix
     hydenix = {

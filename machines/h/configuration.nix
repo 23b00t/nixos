@@ -315,6 +315,14 @@ in
       flake = inputs.wine-vm;
       autostart = false;
     };
+    kali = {
+      flake = inputs.kali-vm;
+      autostart = false;
+    };
+    vault = {
+      flake = inputs.vault-vm;
+      autostart = false;
+    };
   };
   programs.ssh.startAgent = true;
   networking.useNetworkd = true;
@@ -362,6 +370,7 @@ in
       "10.0.0.5/32"
       "10.0.0.6/32"
       "10.0.0.7/32"
+      "10.0.0.8/32"
     ];
     # externalInterface = "wlo1";
   };
@@ -393,27 +402,6 @@ in
   #   group = "root";
   #   permissions = "0755";
   # };
-
-  # TODO: Move to nvim-vm
-  virtualisation = {
-    docker = {
-      enable = true;
-      # Für rootless Docker (optional)
-      rootless = {
-        enable = true;
-        setSocketVariable = true;
-      };
-      # BuildX-Plugin aktivieren
-      enableOnBoot = true; # Docker beim Systemstart starten
-      extraOptions = "--experimental"; # Experimentelle Features aktivieren
-      extraPackages = [ pkgs.docker-buildx ]; # BuildX-Plugin hinzufügen
-    };
-    podman = {
-      enable = true;
-      # Keine Docker-Kompatibilität, wenn Docker selbst installiert ist
-      dockerCompat = false;
-    };
-  };
 
   # Hydenix Configuration - Main configuration for the Hydenix desktop environment
   hydenix = {

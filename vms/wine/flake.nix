@@ -23,7 +23,7 @@
     {
       packages.${system} = {
         default = self.packages.${system}.wine;
-        chat = self.nixosConfigurations.wine.config.microvm.declaredRunner;
+        wine = self.nixosConfigurations.wine.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
         wine = nixpkgs.lib.nixosSystem {

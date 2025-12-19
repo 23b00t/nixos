@@ -23,7 +23,7 @@
     {
       packages.${system} = {
         default = self.packages.${system}.net-private;
-        chat = self.nixosConfigurations.net-private.config.microvm.declaredRunner;
+        net-private = self.nixosConfigurations.net-private.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
         net-private = nixpkgs.lib.nixosSystem {

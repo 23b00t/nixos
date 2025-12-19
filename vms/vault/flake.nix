@@ -1,5 +1,5 @@
 {
-  description = "Net MicroVM";
+  description = "Vault MicroVM";
 
   inputs = {
     microvm = {
@@ -17,31 +17,33 @@
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
-      index = 5;
-      mac = "00:00:00:00:00:05";
+      pkgs = import nixpkgs { inherit system; };
+      index = 10;
+      mac = "00:00:00:00:00:10";
     in
     {
       packages.${system} = {
-        default = self.packages.${system}.net;
-        net = self.nixosConfigurations.net.config.microvm.declaredRunner;
+        default = self.packages.${system}.vault;
+        vault = self.nixosConfigurations.vault.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
-        net = nixpkgs.lib.nixosSystem {
+        vault = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
             (import ../common-config.nix {
               inherit lib;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
+              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPbWqbgvB7bf39HteuS/bmSDqLuPiZn5AV63fjRXEVw+ag vault-vm";
             })
+            (import ../yazi-config.nix { inherit pkgs; })
             (
               { config, pkgs, ... }:
               let
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
               in
               {
-                networking.hostName = "net-vm";
+                networking.hostName = "vault-vm";
 
                 microvm = {
                   registerClosure = false;
@@ -73,8 +75,6 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  mem = 4048;
-                  vcpu = 2;
                 };
 
                 systemd.user.services.wprsd = {
@@ -91,18 +91,8 @@
                   wantedBy = [ "default.target" ];
                 };
 
-                # TODO: Mangage extensions declerativly by policies
-                programs = {
-                  firefox = {
-                    enable = true;
-                    languagePacks = [
-                      "de"
-                      "en-US"
-                    ];
-                  };
-                };
-
                 environment.systemPackages = [
+                  pkgs.keepassxc
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ]
                 ++ defaultPkgs;
