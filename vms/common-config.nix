@@ -65,6 +65,7 @@
     openssh.authorizedKeys.keys = lib.mkIf (sshKey != null) [ sshKey ];
   };
 
+  environment.sessionVariables.TERM = "xterm-256color";
   environment.etc."ssh_config".text = ''
     Host *
         StrictHostKeyChecking no
