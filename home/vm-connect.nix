@@ -44,9 +44,17 @@ let
         IP="10.0.0.7"
         FULL_NAME="wine"
         ;;
+      "kali"|"k")
+        IP="10.0.0.8"
+        FULL_NAME="kali"
+        ;;
       "office"|"o")
         IP="10.0.0.9"
         FULL_NAME="office"
+        ;;
+      "vault"|"v")
+        IP="10.0.0.10"
+        FULL_NAME="vault"
         ;;
       "irc"|"i")
         IP="10.0.0.11"

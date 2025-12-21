@@ -100,6 +100,8 @@
                 environment.systemPackages = [
                   pkgs.wine
                   pkgs.kitty
+                  pkgs.wprs
+                  pkgs.xwayland
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ]
                 ++ defaultPkgs;

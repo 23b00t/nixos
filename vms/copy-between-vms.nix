@@ -28,7 +28,13 @@ pkgs.writeShellScriptBin "cp-vm" ''
   host 192.168.178.200 nx
   nvim 10.0.0.1
   chat 10.0.0.2
-  office 10.0.0.3
+  music 10.0.0.4
+  net 10.0.0.5
+  net-private 10.0.0.6
+  wine 10.0.0.7
+  kali 10.0.0.8
+  office 10.0.0.9
+  vault 10.0.0.10
   irc 10.0.0.11
   '
 

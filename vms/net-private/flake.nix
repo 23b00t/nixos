@@ -102,6 +102,8 @@
                 };
 
                 environment.systemPackages = [
+                  pkgs.wprs
+                  pkgs.xwayland
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ]
                 ++ defaultPkgs;

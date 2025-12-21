@@ -26,7 +26,7 @@
       countdown = "$HOME/nixos-config/home/scripts/countdown.sh";
       n = "nvim_vm";
       tm = "vm-run -c 4 music termusic";
-      oo = "remmina --disable-toolbar -c ~/.local/share/remmina/group_rdp_onlyoffice_10-0-0-3.remmina > /dev/null 2>&1 &";
+      oo = "remmina --disable-toolbar -c ~/.local/share/remmina/group_rdp_onlyoffice_10-0-0-9.remmina > /dev/null 2>&1 &";
     };
 
     history.size = 10000;

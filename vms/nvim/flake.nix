@@ -60,7 +60,7 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 30000;
+                      size = 40000;
                     }
                     {
                       mountPoint = "/var/log";

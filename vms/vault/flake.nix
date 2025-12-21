@@ -34,7 +34,7 @@
             (import ../net-config.nix { inherit lib index mac; })
             (import ../common-config.nix {
               inherit lib;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPbWqbgvB7bf39HteuS/bmSDqLuPiZn5AV63fjRXEVw+ag vault-vm";
+              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPbWqbgvB7bf39HteuS/bmSDqLuPiZn5AV63fjRXEVw vault-vm";
             })
             (import ../yazi-config.nix { inherit pkgs; })
             (
@@ -92,6 +92,8 @@
                 };
 
                 environment.systemPackages = [
+                  pkgs.wprs
+                  pkgs.xwayland
                   pkgs.keepassxc
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ]

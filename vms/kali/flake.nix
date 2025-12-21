@@ -19,7 +19,7 @@
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
       index = 8;
-      mac = "00:00:00:00:00:8";
+      mac = "00:00:00:00:00:08";
     in
     {
       packages.${system} = {
@@ -34,7 +34,7 @@
             (import ../net-config.nix { inherit lib index mac; })
             (import ../common-config.nix {
               inherit lib;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV++ag kali-vm";
+              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
             })
             (import ../yazi-config.nix { inherit pkgs; })
             (
@@ -98,6 +98,8 @@
 
                 environment.systemPackages = [
                   pkgs.distrobox
+                  pkgs.wprs
+                  pkgs.xwayland
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ]
                 ++ defaultPkgs;
