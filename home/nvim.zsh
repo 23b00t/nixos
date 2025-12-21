@@ -1,5 +1,5 @@
 nvim_vm() {
-  local host_prefix="/home/nx"
+  local host_prefix="/home/nx/nixos-config"
   local vm_prefix="/mnt/host"
   
   # 1. Handle Working Directory

@@ -349,8 +349,6 @@ in
       icon = "keepassxc";
       categories = [
         "Utility"
-        "Security"
-        "PasswordManager"
       ];
       mimeType = [
         "application/x-keepass2"

@@ -109,10 +109,10 @@ in
       };
   };
 
-  # TODO: Use nftables - check rules
   # User Account Setup - REQUIRED: Change "hydenix" to your desired username (must match above)
   networking = {
     hostName = "machine";
+    # TODO: Use nftables - check rules
     # nftables.enable = true;
     firewall = {
       enable = true;
@@ -137,7 +137,6 @@ in
     # so git must be installed first
     kitty
     wl-clipboard
-    git
     vim
     gnupg
     pinentry-curses
@@ -149,7 +148,6 @@ in
     virtiofsd
     zellij
     xwayland
-    waypipe
     shadow
     wprs
     remmina
