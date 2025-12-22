@@ -17,9 +17,7 @@
       cmd = "eval $(fzf < ~/nixos-config/home/cmds)";
       pcmd = "cmd=$(fzf < ~/nixos-config/home/cmds); vared -p '> ' -c cmd; eval '$cmd'";
       containers = "nix develop '/home/nx/nixos-config#containers'";
-      dc = "docker compose";
       kk = "kitty @ kitten";
-      ilinit = "$HOME/nixos-config/devenv/ilias-devenv/ilias-devenv-builder.sh";
       # ddate = "nix run 'nixpkgs#ddate'";
       h = "hydectl";
       hs = "hyde-shell";

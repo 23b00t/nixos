@@ -1,8 +1,0 @@
-source 'https://rubygems.org'
-git_source(:github) { |repo| "https://github.com/#{repo}.git" }
-
-gem 'prism', '~> 1.4'
-gem 'pry-byebug'
-gem 'rubocop'
-gem 'ruby-lsp'
-gem 'solargraph'

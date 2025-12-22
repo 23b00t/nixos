@@ -9,6 +9,9 @@ layout {
         children
     }
 
+    tab name="user" cwd="~/" {
+        pane
+    }
     tab name="org" cwd="~/org" {
         pane
     }
