@@ -149,30 +149,18 @@
                   ]
                   ++ defaultPkgs;
 
-                networking.nftables = {
+                networking.firewall = {
                   enable = true;
-                  tables.filter = {
-                    name = "filter";
-                    family = "inet";
-                    enable = true;
-                    content = ''
-                      chain input {
-                        # Main input chain: filters all incoming packets
-                        type filter hook input priority 0;
-                        # Allow all traffic on the loopback interface (localhost)
-                        iif lo accept
-                        # Accept packets that are part of established or related connections
-                        ct state established,related accept
-                        # Allow TCP port 8080 only from source IP 10.0.0.5
-                        ip saddr 10.0.0.5 tcp dport 8080 accept
-                        # Allow TCP port range 8500-8523 only from source IP 10.0.0.5
-                        ip saddr 10.0.0.5 tcp dport 8500-8523 accept
-                        # Drop all other incoming packets
-                        drop
-                      }
-                    '';
-                  };
-
+                  allowedTCPPorts = [
+                    8080
+                    3000
+                  ];
+                  allowedTCPPortRanges = [
+                    {
+                      from = 8500;
+                      to = 8523;
+                    }
+                  ];
                 };
 
                 # for static linked binaries in nvim

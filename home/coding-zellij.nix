@@ -6,7 +6,7 @@ pkgs.writeShellScriptBin "coding-zellij" ''
 
   if [ "''${NO_SESSIONS}" -ge 2 ]; then
       vm-run -c 1 nvim zellij attach \
-      "$(echo "''${ZJ_SESSIONS}" | fzf)"
+      "$(echo "''${ZJ_SESSIONS}" | sk)"
   else
       vm-run -c 1 nvim zellij --layout /home/user/.config/zellij/layouts/tabs.kdl attach -c
   fi
