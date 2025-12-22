@@ -1,12 +1,14 @@
 { pkgs, ... }:
 pkgs.writeShellScriptBin "coding-zellij" ''
   #!/usr/bin/env bash
-  ZJ_SESSIONS="$(vm-run -c 1 nvim zellij list-sessions)"
+  ZJ_SESSIONS="$(vm-run -c 1 nvim zellij list-sessions \
+    | sed -r 's/\x1B\[[0-9;]*[mK]//g' \
+    | awk '{for(i=1;i<=NF;i++) if($i ~ /^[a-zA-Z][^ ]*/) {print $i; break}}')"
   NO_SESSIONS="$(echo "''${ZJ_SESSIONS}" | wc -l)"
 
   if [ "''${NO_SESSIONS}" -ge 2 ]; then
       vm-run -c 1 nvim zellij attach \
-      "$(echo "''${ZJ_SESSIONS}" | sk)"
+      "$(echo "''${ZJ_SESSIONS}" | fzf)"
   else
       vm-run -c 1 nvim zellij --layout /home/user/.config/zellij/layouts/tabs.kdl attach -c
   fi
