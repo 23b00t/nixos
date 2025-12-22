@@ -1,0 +1,41 @@
+layout {
+    default_tab_template name="main" {
+        // compact-bar at the top
+        pane size=1 borderless=true {
+            plugin location="zellij:compact-bar" {
+                tooltip "F1"
+            }
+        }
+        children
+    }
+
+    tab name="org" cwd="~/org" {
+        pane
+    }
+    tab name="code" cwd="~/code/" {
+        pane
+    }
+    tab name="il9" {
+      pane cwd="~/code/il_9/ilias_9/"
+      pane split_direction="vertical" {
+        pane cwd="~/code/il_9/"
+        pane cwd="~/code/il_9/"
+        pane cwd="~/code/il_9/"
+      }
+    }
+    tab name="ruby" cwd="~/code/ruby/" {
+        pane
+    }
+    tab name="artDB" cwd="~/code/Künstlerschmuck/EasyArtDB/" {
+        pane
+    }
+    tab name="tauri" cwd="~/code/rust/tauri/" {
+        pane
+    }
+    tab name="user" cwd="~/" {
+        pane
+    }
+    tab name="yazi" cwd="~/" {
+        pane command="yazi"
+    }
+}

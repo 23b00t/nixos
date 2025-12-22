@@ -37,7 +37,7 @@
       # uncomment the below if you know what you're doing, hydenix updates nixos-unstable every week or so
       # inputs.nixpkgs.follows = "nixpkgs";
     };
-    yazi.url = "github:sxyazi/yazi";
+    # yazi.url = "github:sxyazi/yazi";
 
     # Hardware Configuration's, used in ./configuration.nix. Feel free to remove if unused
     nixos-hardware.url = "github:nixos/nixos-hardware/master";
