@@ -1,6 +1,4 @@
-let
-  pkgs = import <nixpkgs> {};
-in
+{ pkgs, ... }:
 pkgs.writeShellScriptBin "coding-zellij" ''
   #!/usr/bin/env bash
   ZJ_SESSIONS="$(vm-run -c 1 nvim zellij list-sessions)"
@@ -10,6 +8,6 @@ pkgs.writeShellScriptBin "coding-zellij" ''
       vm-run -c 1 nvim zellij attach \
       "$(echo "''${ZJ_SESSIONS}" | fzf)"
   else
-      vm-run -c 1 nvim zellij attach -c
+      vm-run -c 1 nvim zellij --layout /home/user/.config/zellij/layouts/tabs.kdl attach -c
   fi
 ''

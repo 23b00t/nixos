@@ -3,7 +3,8 @@
   lib,
   ...
 }:
-let kittyConf = import ./kitty.nix;
+let
+  kittyConf = import ./kitty.nix;
 in
 {
   imports = [
@@ -98,6 +99,7 @@ in
 
     # wine
     # pass
+    (import ./coding-zellij.nix { inherit pkgs; })
   ];
 
   # programs.kitty.enable = true;

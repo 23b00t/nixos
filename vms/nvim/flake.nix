@@ -222,7 +222,11 @@
                   "L+ /home/user/.zshrc - - - - /etc/zshrc"
                   "L+ /home/user/.zsh_plugins.txt - - - - /etc/zsh_plugins.txt"
                   "L+ /home/user/.gnupg/gpg-agent.conf - - - - /etc/gpg-agent.conf"
-                  "L+ /home/user/.config/zellij - - - - /etc/zellij"
+                  # zellij config
+                  "d /home/user/.config/zellij 0755 user user -"
+                  "L+ /home/user/.config/zellij/config.kdl - - - - /etc/zellij/config.kdl"
+                  "L+ /home/user/.config/zellij/layouts - - - - /etc/zellij/layouts"
+                  "L+ /home/user/.config/zellij/plugins - - - - /etc/zellij/plugins"
                 ];
 
                 # git
