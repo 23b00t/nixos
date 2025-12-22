@@ -36,7 +36,8 @@
         enable = true; # enable keybindings configurations
         extraConfig = ''
           # bind = SUPER, F, exec, gtk-launch "Firefox Web Browser"
-          bind = SUPER, F, exec, vm-run 5 net firefox
+          unbind = SUPER, B
+          bind = SUPER, B, exec, vm-run 5 net firefox
         ''; # additional keybindings configuration
         overrideConfig = null; # complete keybindings configuration override (null or lib.types.lines)
       };

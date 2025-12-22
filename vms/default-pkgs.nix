@@ -7,4 +7,5 @@ with pkgs;
   file
   tree
   lsof
+  bibata-cursors
 ]

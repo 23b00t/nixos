@@ -65,7 +65,19 @@
     openssh.authorizedKeys.keys = lib.mkIf (sshKey != null) [ sshKey ];
   };
 
-  environment.sessionVariables.TERM = "xterm-256color";
+  environment.sessionVariables = {
+    # Solves bug with hosts xterm-kitty handed to the vms
+    TERM = "xterm-256color";
+    # Dark theme for vms
+    GTK_THEME = "Adwaita:dark";
+    QT_QPA_PLATFORMTHEME = "gtk2";
+    QT_STYLE_OVERRIDE = "Adwaita-Dark";
+    # FIXME: Cursor theme for vms doesn't work yet
+    GTK_CURSORS_THEME = "Bibata-Modern-Ice";
+    XCURSOR_THEME = "Bibata-Modern-Ice";
+    WAYLAND_CURSOR_THEME = "Bibata-Modern-Ice";
+  };
+
   environment.etc."ssh_config".text = ''
     Host *
         StrictHostKeyChecking no
