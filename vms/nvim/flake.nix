@@ -216,7 +216,7 @@
                 environment.etc."gpg-agent.conf".text = ''
                   pinentry-program /run/current-system/sw/bin/pinentry-tty
                 '';
-                environment.etc."zellij".source = ../zellij;
+                environment.etc."zellij".source = ./zellij;
                 systemd.tmpfiles.rules = [
                   # Symlink /etc/zshrc nach /home/user/.zshrc, falls nicht vorhanden
                   "L+ /home/user/.zshrc - - - - /etc/zshrc"

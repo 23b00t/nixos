@@ -92,7 +92,7 @@ in
 
     # postman
     # jetbrains.phpstorm
-    devenv
+    # devenv
 
     wl-screenrec
 
