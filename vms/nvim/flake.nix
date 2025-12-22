@@ -101,7 +101,10 @@
 
                     python3
                     fd
+                    zip
+                    xz
                     unzip
+                    p7zip
 
                     gcc
                     gnumake
