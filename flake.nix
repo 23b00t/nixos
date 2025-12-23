@@ -79,7 +79,7 @@
         #   )
         # ];
         modules = [
-          ./machines/h/configuration.nix
+          ./machines/configuration.nix
         ];
       };
 

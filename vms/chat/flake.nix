@@ -77,6 +77,7 @@
                   optimize.enable = false;
                   # qemu.machine = "q35";
 
+                  # TODO: Adjust to new hardware
                   qemu.extraArgs = [
                     "-nodefaults"
                     "-device"

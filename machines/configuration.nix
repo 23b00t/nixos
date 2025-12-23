@@ -83,16 +83,39 @@ in
     # Run `lshw -short` or `lspci` to identify your hardware
 
     # GPU Configuration (choose one):
-    inputs.nixos-hardware.nixosModules.common-gpu-amd # AMD
+    inputs.nixos-hardware.nixosModules.common-gpu-nvidia
 
     # CPU Configuration (choose one):
-    inputs.nixos-hardware.nixosModules.common-cpu-amd # AMD CPUs
+    inputs.nixos-hardware.nixosModules.common-cpu-intel # Intel CPUs
 
     # Additional Hardware Modules - Uncomment based on your system type:
     inputs.nixos-hardware.nixosModules.common-hidpi # High-DPI displays
     inputs.nixos-hardware.nixosModules.common-pc-laptop # Laptops
     inputs.nixos-hardware.nixosModules.common-pc-ssd # SSD storage
   ];
+
+  hardware.nvidia = {
+    open = true; # For newer cards, you may want open drivers
+    modesetting.enable = true;
+    # Enable the Nvidia settings menu,
+    # accessible via `nvidia-settings`.
+    nvidiaSettings = true;
+    #      # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
+    #      # Enable this if you have graphical corruption issues or application crashes after waking
+    #      # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead
+    #      # of just the bare essentials.
+    powerManagement.enable = false;
+
+    # Fine-grained power management. Turns off GPU when not in use.
+    # Experimental and only works on modern Nvidia GPUs (Turing or newer).
+    powerManagement.finegrained = false;
+    #   prime = { # For hybrid graphics (laptops), configure PRIME:
+    #     intelBusId = "PCI:0:2:0"; # if you have intel graphics
+    #     nvidiaBusId = "PCI:1:0:0";
+    #     offload.enable = false; # Or disable PRIME offloading if you don't care
+    #     sync.enable = true; # Enable PRIME sync for smoother rendering
+    #   };
+  };
 
   # Home Manager Configuration - manages user-specific configurations (dotfiles, themes, etc.)
   home-manager = {
