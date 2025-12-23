@@ -55,9 +55,9 @@ in
     };
 
     initLua = ''
-      			require("full-border"):setup()
-            require("git"):setup()
-      		'';
+      require("full-border"):setup()
+      require("git"):setup()
+    '';
 
     keymap = {
       mgr.prepend_keymap = [

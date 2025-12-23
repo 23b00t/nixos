@@ -10,7 +10,7 @@ in
   imports = [
     ./zsh.nix
     ./vim.nix
-    # ./yazi.nix
+    ./yazi.nix
     ./hyde.nix
     ./ssh.nix
     ./desktop-entries.nix

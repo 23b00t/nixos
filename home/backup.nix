@@ -113,7 +113,7 @@ pkgs.writeShellScriptBin "backup" ''
     echo "Starting backup of $TARGET ($IP)..."
     LOGFILE="$DESTINATION/backup-errors-$TARGET.log"
     mkdir -p "$DESTINATION/$TARGET"
-    rsync -a --delete --numeric-ids --relative -e ssh \
+    rsync -a --delete --no-group --no-owner --numeric-ids --relative -e ssh \
       --info=progress2 \
       --log-file="$LOGFILE" \
       "user@$IP:/home/user/" "$DESTINATION/$TARGET/"
