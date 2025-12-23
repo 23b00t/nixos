@@ -145,6 +145,9 @@
                     devenv
                     firefox
 
+                    wprs
+                    xwayland
+
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
                   ++ defaultPkgs;
@@ -287,6 +290,21 @@
                     dockerCompat = false;
                   };
                 };
+
+                systemd.user.services.wprsd = {
+                  description = "wprsd instance";
+                  after = [ "network.target" ];
+                  serviceConfig = {
+                    Type = "simple";
+                    Environment = [
+                      "PATH=/run/current-system/sw/bin"
+                      "RUST_BACKTRACE=1"
+                    ];
+                    ExecStart = "/run/current-system/sw/bin/wprsd";
+                  };
+                  wantedBy = [ "default.target" ];
+                };
+
                 system.stateVersion = "25.05";
               }
             )

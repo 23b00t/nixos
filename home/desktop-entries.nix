@@ -355,5 +355,54 @@ in
         "application/x-keepass"
       ];
     })
+
+    # ---- Coding VM
+    (mkVmEntry {
+      name = "postman";
+      genericName = "API Client";
+      vmName = "nvim";
+      ipSuffix = 1;
+      binary = "postman";
+      icon = "postman";
+      categories = [
+        "Development"
+        "Utility"
+      ];
+      mimeType = [ ];
+    })
+
+    (mkVmEntry {
+      name = "dbeaver";
+      genericName = "Database Manager";
+      vmName = "nvim";
+      ipSuffix = 1;
+      binary = "dbeaver";
+      icon = "dbeaver";
+      categories = [
+        "Development"
+        "Database"
+      ];
+      mimeType = [ ];
+    })
+
+    (mkVmEntry {
+      name = "firefox coding vm";
+      genericName = "Web Browser";
+      vmName = "nvim";
+      ipSuffix = 1;
+      binary = "firefox";
+      icon = "firefox";
+      categories = [
+        "Network"
+        "WebBrowser"
+      ];
+      mimeType = [
+        "text/html"
+        "application/xhtml+xml"
+        "application/xml"
+        "application/pdf"
+        "application/x-xpinstall"
+      ];
+    })
   ];
 }
