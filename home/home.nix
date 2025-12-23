@@ -100,6 +100,7 @@ in
     # wine
     # pass
     (import ./coding-zellij.nix { inherit pkgs; })
+    (import ./backup.nix { inherit pkgs; })
   ];
 
   # programs.kitty.enable = true;
