@@ -1,5 +1,10 @@
 # NixOS, Hyde.nix, microvm.nix
 
+## Create Symlink
+
+- mv /etc/nixos/ /etc/nixos.bak
+- ln -s /home/nx/nixos-config /etc/nixos
+
 ## VMs
 
 - .1 nvim
