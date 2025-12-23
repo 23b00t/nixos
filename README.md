@@ -29,3 +29,9 @@
 - in vm: gpg --import privat.asc and gpg --import public.asc
 - gh auth login
 - cp-vm nvim .cache/oh-my-posh/themes/montys.omp.json
+
+## libvirt
+
+- virsh list --all --name
+- virsh dumpxml mein-vm-name > /pfad/zu/deinem/backup/mein-vm-name.xml
+- RESTORE: virsh define /pfad/zu/deinem/backup/mein-vm-name.xml
