@@ -123,7 +123,7 @@
                   #   }
                   # ];
                   mem = 8192;
-                  vcpu = 4;
+                  vcpu = 6;
                 };
 
                 systemd.user.services.wprsd = {

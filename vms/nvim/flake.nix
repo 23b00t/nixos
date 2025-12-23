@@ -60,17 +60,17 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 40000;
+                      size = 80000;
                     }
                     {
                       mountPoint = "/var/log";
                       image = "log.img";
-                      size = 1028;
+                      size = 2048;
                     }
                     {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
-                      size = 2048;
+                      size = 4096;
                     }
                   ];
                   shares = [
@@ -88,7 +88,7 @@
                     }
                   ];
                   mem = 8192;
-                  vcpu = 2;
+                  vcpu = 6;
                 };
 
                 environment.systemPackages =

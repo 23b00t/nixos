@@ -63,12 +63,12 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 8000;
+                      size = 20000;
                     }
                     {
                       mountPoint = "/root";
                       image = "root.img";
-                      size = 128;
+                      size = 256;
                     }
                     {
                       mountPoint = "/var/log";
@@ -90,7 +90,7 @@
                     }
                   ];
                   mem = 6144;
-                  vcpu = 2;
+                  vcpu = 4;
                 };
 
                 systemd.user.services.wprsd = {

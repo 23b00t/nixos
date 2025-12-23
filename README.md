@@ -8,8 +8,8 @@
 - .4 music
 - .5 net
 - .6 net-private (no autostart)
-- .7 wine
-- .8 kali
+- .7 wine (no autostart)
+- .8 kali (no autstart)
 - .9 office (no net, no autostart)
 - .10 vault (no net, no autostart)
 - .11 irc

@@ -54,7 +54,7 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 10000;
+                      size = 20000;
                     }
                     {
                       mountPoint = "/var/log";
@@ -75,6 +75,8 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
+                  mem = 8192;
+                  vcpu = 6;
                 };
 
                 systemd.user.services.wprsd = {
