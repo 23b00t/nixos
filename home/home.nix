@@ -10,7 +10,7 @@ in
   imports = [
     ./zsh.nix
     ./vim.nix
-    # ./yazi.nix
+    ./yazi.nix
     ./hyde.nix
     ./ssh.nix
     ./desktop-entries.nix
@@ -100,6 +100,7 @@ in
     # wine
     # pass
     (import ./coding-zellij.nix { inherit pkgs; })
+    (import ./backup.nix { inherit pkgs; })
   ];
 
   # programs.kitty.enable = true;

@@ -53,7 +53,7 @@
 
                 microvm = {
                   registerClosure = false;
-                  # vsock.cid = 3;
+                  vsock.cid = index + 2;
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
                   volumes = [

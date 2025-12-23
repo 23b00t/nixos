@@ -83,7 +83,7 @@ pkgs.writeShellScriptBin "cp-vm" ''
     exit 4
   fi
 
-  RSYNC_OPTS="-av"
+  RSYNC_OPTS="-a --info=progress2 --no-group --no-owner"
   RSYNC_PATH="mkdir -p ~/incoming/$(hostname) && rsync"
   DEST="''${USERNAME}@''${IP}:~/incoming/$(hostname)/"
 

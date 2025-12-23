@@ -46,6 +46,7 @@
                 networking.hostName = "vault-vm";
 
                 microvm = {
+                  vsock.cid = index + 2;
                   registerClosure = false;
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
