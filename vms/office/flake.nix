@@ -150,46 +150,46 @@
                 services.xserver.windowManager.fluxbox.enable = true;
 
                 services.printing.enable = true;
-                systemd.services.host-printer-tunnel = {
-                  description = "SSH Tunnel to Host CUPS";
-                  after = [ "network-online.target" ]; # Wartet auf eine aktive Netzwerkverbindung
-                  wantedBy = [ "multi-user.target" ];
+#               systemd.services.host-printer-tunnel = {
+#                 description = "SSH Tunnel to Host CUPS";
+#                 after = [ "network-online.target" ]; # Wartet auf eine aktive Netzwerkverbindung
+#                 wantedBy = [ "multi-user.target" ];
 
-                  # Schritt 2: Der Service ruft jetzt nur noch das saubere Skript auf.
-                  serviceConfig = {
-                    Type = "simple";
-                    ExecStart = "${printer.hostPrinterTunnelScript}/bin/host-printer-tunnel";
-                    Restart = "on-failure";
-                    RestartSec = 5;
-                  };
-                };
+#                 # Schritt 2: Der Service ruft jetzt nur noch das saubere Skript auf.
+#                 serviceConfig = {
+#                   Type = "simple";
+#                   ExecStart = "${printer.hostPrinterTunnelScript}/bin/host-printer-tunnel";
+#                   Restart = "on-failure";
+#                   RestartSec = 5;
+#                 };
+#               };
 
-                systemd.services.add-host-printer = {
-                  description = "Add CUPS printer via SSH tunnel";
-                  after = [ "host-printer-tunnel.service" ]; # Startet erst nach dem Tunnel-Service
-                  requires = [ "host-printer-tunnel.service" ];
-                  wantedBy = [ "multi-user.target" ];
-                  serviceConfig = {
-                    Type = "oneshot"; # Läuft nur einmal
-                    RemainAfterExit = true; # Bleibt als "erfolgreich" markiert
-                  };
-                  script = ''
-                    LP_NAME="HostPrinter"
-                    PRINTER_NAME="HP_LaserJet_M110w_42FA89"
-                    TUNNEL_PORT=1631
+#               systemd.services.add-host-printer = {
+#                 description = "Add CUPS printer via SSH tunnel";
+#                 after = [ "host-printer-tunnel.service" ]; # Startet erst nach dem Tunnel-Service
+#                 requires = [ "host-printer-tunnel.service" ];
+#                 wantedBy = [ "multi-user.target" ];
+#                 serviceConfig = {
+#                   Type = "oneshot"; # Läuft nur einmal
+#                   RemainAfterExit = true; # Bleibt als "erfolgreich" markiert
+#                 };
+#                 script = ''
+#                   LP_NAME="HostPrinter"
+#                   PRINTER_NAME="HP_LaserJet_M110w_42FA89"
+#                   TUNNEL_PORT=1631
 
-                    # Warten, bis der Tunnel-Port wirklich offen ist
-                    while ! ${pkgs.lsof}/bin/lsof -i TCP:''${TUNNEL_PORT} >/dev/null 2>&1; do
-                        echo "Waiting for tunnel on port ''${TUNNEL_PORT}..."
-                        sleep 1
-                    done
+#                   # Warten, bis der Tunnel-Port wirklich offen ist
+#                   while ! ${pkgs.lsof}/bin/lsof -i TCP:''${TUNNEL_PORT} >/dev/null 2>&1; do
+#                       echo "Waiting for tunnel on port ''${TUNNEL_PORT}..."
+#                       sleep 1
+#                   done
 
-                    if ! ${pkgs.cups}/bin/lpstat -p | ${pkgs.gnugrep}/bin/grep -q "^printer ''${LP_NAME} "; then
-                        echo "Adding printer ''${LP_NAME}..."
-                        ${pkgs.cups}/bin/lpadmin -p ''${LP_NAME} -E -v ipp://localhost:''${TUNNEL_PORT}/printers/''${PRINTER_NAME} -m everywhere
-                    fi
-                  '';
-                };
+#                   if ! ${pkgs.cups}/bin/lpstat -p | ${pkgs.gnugrep}/bin/grep -q "^printer ''${LP_NAME} "; then
+#                       echo "Adding printer ''${LP_NAME}..."
+#                       ${pkgs.cups}/bin/lpadmin -p ''${LP_NAME} -E -v ipp://localhost:''${TUNNEL_PORT}/printers/''${PRINTER_NAME} -m everywhere
+#                   fi
+#                 '';
+#               };
 
                 environment.systemPackages =
                   with pkgs;

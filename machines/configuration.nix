@@ -33,6 +33,7 @@ in
         "dm-mod"
       ];
       services.lvm.enable = true;
+      luks.devices."luks-90b3e0c2-5fdb-48ac-b4b9-3ee6f5cb533e".device = "/dev/disk/by-uuid/90b3e0c2-5fdb-48ac-b4b9-3ee6f5cb533e";
     };
     kernelPackages = pkgs.linuxPackages_zen;
 
@@ -109,12 +110,12 @@ in
     # Fine-grained power management. Turns off GPU when not in use.
     # Experimental and only works on modern Nvidia GPUs (Turing or newer).
     powerManagement.finegrained = false;
-    #   prime = { # For hybrid graphics (laptops), configure PRIME:
-    #     intelBusId = "PCI:0:2:0"; # if you have intel graphics
-    #     nvidiaBusId = "PCI:1:0:0";
-    #     offload.enable = false; # Or disable PRIME offloading if you don't care
-    #     sync.enable = true; # Enable PRIME sync for smoother rendering
-    #   };
+       prime = { # For hybrid graphics (laptops), configure PRIME:
+         intelBusId = "PCI:0:2:0"; # if you have intel graphics
+         nvidiaBusId = "PCI:2:0:0";
+         offload.enable = false; # Or disable PRIME offloading if you don't care
+         sync.enable = true; # Enable PRIME sync for smoother rendering
+       };
   };
 
   # Home Manager Configuration - manages user-specific configurations (dotfiles, themes, etc.)
@@ -127,7 +128,7 @@ in
       {
         imports = [
           inputs.hydenix.homeModules.default
-          ../../home/home.nix # Your custom home-manager modules (configure hydenix.hm here!)
+          ../home/home.nix # Your custom home-manager modules (configure hydenix.hm here!)
         ];
       };
   };
@@ -175,13 +176,13 @@ in
     wprs
     remmina
 
-    (import ../../vms/copy-between-vms.nix { inherit pkgs; })
+    (import ../vms/copy-between-vms.nix { inherit pkgs; })
   ];
 
   services.power-profiles-daemon.enable = true;
 
   programs.vim.enable = true;
-  environment.variables.EDITOR = "nvim";
+  environment.variables.EDITOR = "vim";
 
   # User
   users.groups.tun = { };

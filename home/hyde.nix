@@ -12,8 +12,9 @@
       monitors = {
         enable = true;
         overrideConfig = ''
-          monitor=HDMI-A-1,1920x1080@60,0x0,1
-          monitor=eDP-1,1920x1080@60,1920x0,1
+          monitor=DP-1,1680x1050@59.88,0x0,1
+          monitor=HDMI-A-1,1920x1080@60.00,1680x0,1
+          monitor=eDP-1,2560x1600@60.00,3600x0,1.25
         '';
       };
 
