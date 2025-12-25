@@ -14,7 +14,7 @@
         overrideConfig = ''
           monitor=DP-1,1680x1050@59.88,0x0,1
           monitor=HDMI-A-1,1920x1080@60.00,1680x0,1
-          monitor=eDP-1,2560x1600@60.00,3600x0,1.5
+          monitor=eDP-1,1920x1200@60.00,3600x0,1
         '';
       };
 
@@ -26,8 +26,8 @@
 
       extraConfig = ''
         input {
-          kb_layout = us,de
-          kb_variant = altgr-intl, 
+          kb_layout = us
+          kb_variant = altgr-intl
           kb_options = grp:alt_shift_toggle
         }
         exec-once = ~/nixos-config/home/set-wallpapers.sh

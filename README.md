@@ -34,4 +34,5 @@
 
 - virsh list --all --name
 - virsh dumpxml mein-vm-name > /pfad/zu/deinem/backup/mein-vm-name.xml
-- RESTORE: virsh define /pfad/zu/deinem/backup/mein-vm-name.xml
+- RESTORE: sudo rsync -avh --progress --sparse /run/media/nx/Backup/nixos-host/tails-amd64-6.15.1.img /run/media/nx/Backup/nixos-host/Whonix-Gateway.qcow2 /var/lib/libvirt/images/
+- RESTORE: sudo virsh define /pfad/zu/deinem/backup/mein-vm-name.xml

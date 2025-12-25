@@ -25,7 +25,7 @@ pkgs.writeShellScriptBin "cp-vm" ''
 
   # Host table: <hostname> <ip> [username]
   HOSTTABLE='
-  host 192.168.178.200 nx
+  host 192.168.178.20 nx
   nvim 10.0.0.1
   chat 10.0.0.2
   music 10.0.0.4

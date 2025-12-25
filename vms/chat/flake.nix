@@ -77,13 +77,12 @@
                   optimize.enable = false;
                   # qemu.machine = "q35";
 
-                  # TODO: Adjust to new hardware
                   qemu.extraArgs = [
                     "-nodefaults"
                     "-device"
                     "usb-ehci,id=ehci"
                     "-device"
-                    "usb-host,bus=ehci.0,vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false"
+                    "usb-host,bus=ehci.0,vendorid=0x2b7e,productid=0xc906,guest-reset=false,pipeline=false"
                   ];
 
                   volumes = [

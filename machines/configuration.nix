@@ -83,7 +83,7 @@ in
       };
       powerManagement.cpuFreqGovernor = lib.mkForce "powersave";
       home-manager.users."nx".hydenix.hm.hyprland.monitors.overrideConfig = lib.mkForce ''
-        monitor=eDP-1,2560x1600@60.00,0x0,1.25
+        monitor=eDP-1,2560x1600@60.00,0x0,1
       '';
     };
   };
@@ -129,8 +129,10 @@ in
     powerManagement.finegrained = false;
     prime = {
       # For hybrid graphics (laptops), configure PRIME:
+      # nix shell "nixpkgs#lshw"; sudo lshw -c display (outputs hex, convert to decimal and strip leading zeros)
       intelBusId = "PCI:0:2:0"; # if you have intel graphics
       nvidiaBusId = "PCI:2:0:0";
+      # It is an either-or decision
       offload.enable = false; # Or disable PRIME offloading if you don't care
       sync.enable = true; # Enable PRIME sync for smoother rendering
     };
@@ -287,7 +289,7 @@ in
 
   # Keyboard layout
   console.keyMap = "us";
-  services.xserver.xkb.layout = "us,de";
+  services.xserver.xkb.layout = "us";
   services.xserver.xkb.variant = "intl";
   services.xserver.xkb.options = "grp:alt_shift_toggle";
 
@@ -479,7 +481,7 @@ in
     # Udev-Regel, die feuert, sobald vm11-tor auftaucht (Hotplug-sicher)
     SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm11-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
     # KVM Group Access for USB Devices for Webcam pass through to MicroVM
-    SUBSYSTEM=="usb", ATTR{idVendor}=="0408", ATTR{idProduct}=="5365", GROUP="kvm"
+    SUBSYSTEM=="usb", ATTR{idVendor}=="2b7e", ATTR{idProduct}=="c906", GROUP="kvm"
   '';
 
   services.udev.packages = [
@@ -511,6 +513,25 @@ in
     enable = true;
     nssmdns4 = true;
     openFirewall = true;
+  };
+
+  services.keyd = {
+    enable = true;
+    keyboards = {
+      internal = {
+        # IDs, wie z.B. ["0001:0001"] (Vendor:Product)
+        # journalctl -xeu keyd.service | grep -i keyboard
+        ids = [ "0001:0001" ];
+        settings = {
+          main = {
+            y = "z";
+            z = "y";
+            # leftctrl = "esc";
+            # esc = "leftctrl";
+          };
+        };
+      };
+    };
   };
 
   # System Version - Don't change unless you know what you're doing (helps with system upgrades and compatibility)
