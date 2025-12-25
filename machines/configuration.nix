@@ -33,7 +33,8 @@ in
         "dm-mod"
       ];
       services.lvm.enable = true;
-      luks.devices."luks-90b3e0c2-5fdb-48ac-b4b9-3ee6f5cb533e".device = "/dev/disk/by-uuid/90b3e0c2-5fdb-48ac-b4b9-3ee6f5cb533e";
+      luks.devices."luks-90b3e0c2-5fdb-48ac-b4b9-3ee6f5cb533e".device =
+        "/dev/disk/by-uuid/90b3e0c2-5fdb-48ac-b4b9-3ee6f5cb533e";
     };
     kernelPackages = pkgs.linuxPackages_zen;
 
@@ -70,6 +71,22 @@ in
   };
 
   powerManagement.cpuFreqGovernor = "performance";
+
+  # On battery specialisation
+  specialisation = {
+    on-the-go.configuration = {
+      system.nixos.tags = [ "on-the-go" ];
+      hardware.nvidia = {
+        prime.offload.enable = lib.mkForce true;
+        prime.offload.enableOffloadCmd = lib.mkForce true;
+        prime.sync.enable = lib.mkForce false;
+      };
+      powerManagement.cpuFreqGovernor = "powersave";
+      home-manager.users."nx".hydenix.hm.hyprland.monitors.overrideConfig = ''
+        monitor=eDP-1,2560x1600@60.00,0x0,1.25
+      '';
+    };
+  };
 
   nixpkgs.pkgs = pkgs; # Set pkgs for hydenix globally
 
@@ -110,12 +127,13 @@ in
     # Fine-grained power management. Turns off GPU when not in use.
     # Experimental and only works on modern Nvidia GPUs (Turing or newer).
     powerManagement.finegrained = false;
-       prime = { # For hybrid graphics (laptops), configure PRIME:
-         intelBusId = "PCI:0:2:0"; # if you have intel graphics
-         nvidiaBusId = "PCI:2:0:0";
-         offload.enable = false; # Or disable PRIME offloading if you don't care
-         sync.enable = true; # Enable PRIME sync for smoother rendering
-       };
+    prime = {
+      # For hybrid graphics (laptops), configure PRIME:
+      intelBusId = "PCI:0:2:0"; # if you have intel graphics
+      nvidiaBusId = "PCI:2:0:0";
+      offload.enable = false; # Or disable PRIME offloading if you don't care
+      sync.enable = true; # Enable PRIME sync for smoother rendering
+    };
   };
 
   # Home Manager Configuration - manages user-specific configurations (dotfiles, themes, etc.)

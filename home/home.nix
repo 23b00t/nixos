@@ -111,10 +111,14 @@ in
   home.file.".config/kitty/current-theme.conf".source = ./current-theme.conf;
   home.file.".config/kitty/startup".source = ./startup;
 
+  # TODO: Debug whats going on when enabled
   xdg.mimeApps.enable = lib.mkForce false;
 
   # zellij
   home.file.".config/zellij".source = ./zellij;
+
+  # oh-my-posh theme
+  home.file.".cache/oh-my-posh/themes/slimfat.omp.json".source = ./resources/slimfat.omp.json;
 
   # Email client
   # programs.himalaya = {
