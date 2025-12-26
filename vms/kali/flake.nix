@@ -34,6 +34,7 @@
             (import ../net-config.nix { inherit lib index mac; })
             (import ../common-config.nix {
               inherit lib;
+              inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
             })
             (import ../yazi-config.nix { inherit pkgs; })

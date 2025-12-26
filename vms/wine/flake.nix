@@ -17,6 +17,7 @@
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
+      pkgs = import nixpkgs { inherit system; };
       index = 7;
       mac = "00:00:00:00:00:07";
     in
@@ -33,6 +34,7 @@
             (import ../net-config.nix { inherit lib index mac; })
             (import ../common-config.nix {
               inherit lib;
+              inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRYiHWjGyucuX6XJq2U3ENx7MHACcX0t8YzB2JEgfyR wine-vm";
             })
             (

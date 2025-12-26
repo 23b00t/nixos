@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs,
   sshKey ? null,
 }:
 {
@@ -88,4 +89,14 @@
   systemd.tmpfiles.rules = [
     "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
   ];
+
+  systemd.services.socktop-agent = {
+    description = "Socktop Agent";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.socktop}/bin/socktop_agent";
+      Restart = "always";
+      User = "root";
+    };
+  };
 }

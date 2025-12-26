@@ -195,20 +195,8 @@ in
     shadow
     wprs
     remmina
-    (rustPlatform.buildRustPackage {
-      pname = "socktop";
-      version = "master";
-      src = fetchFromGitHub {
-        owner = "jasonwitty";
-        repo = "socktop";
-        rev = "master";
-        sha256 = "sha256-y+hgBeK88cVIxT+HxoWiq/JrvmPmXBNWhFhHH647jic=";
-      };
-      # lib.fakeHash
-      cargoHash = "sha256-570Eiu03c66RFB3Psy9UC/ab30GbrXg+f/dpOlLfGKo=";
-      nativeBuildInputs = [ pkgs.pkg-config ];
-      buildInputs = [ pkgs.libdrm ];
-    })
+
+    socktop
 
     (import ../vms/copy-between-vms.nix { inherit pkgs; })
   ];

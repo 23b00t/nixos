@@ -23,6 +23,7 @@
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
+      pkgs = import nixpkgs { inherit system; };
       index = 2;
       mac = "00:00:00:00:00:02";
     in
@@ -40,6 +41,7 @@
             flatpaks.nixosModules.default
             (import ../common-config.nix {
               inherit lib;
+              inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
             })
             (

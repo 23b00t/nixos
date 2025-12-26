@@ -18,6 +18,7 @@
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
+      pkgs = import nixpkgs { inherit system; };
       index = 11;
     in
     {
@@ -36,6 +37,7 @@
             })
             (import ../common-config.nix {
               inherit lib;
+              inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm";
             })
             (
