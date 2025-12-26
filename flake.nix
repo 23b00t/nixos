@@ -52,16 +52,16 @@
         specialArgs = {
           inherit inputs;
         };
-        extraModules = [
-          (
-            { pkgs, ... }:
-            {
-              nixpkgs.overlays = [
-                (import ./overlays/socktop.nix)
-              ];
-            }
-          )
-        ];
+        # extraModules = [
+        #   (
+        #     { pkgs, ... }:
+        #     {
+        #       nixpkgs.overlays = [
+        #         (import ./overlays/socktop.nix)
+        #       ];
+        #     }
+        #   )
+        # ];
         modules = [
           ./machines/configuration.nix
         ];

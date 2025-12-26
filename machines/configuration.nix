@@ -18,6 +18,9 @@ let
       })
     ];
   };
+  socktop-bundle = import ../pkgs/socktop-bundle.nix {
+    inherit (pkgs) stdenv rustPlatform fetchFromGitHub pkg-config libdrm;
+  };
   maxVMs = 12;
 in
 {
@@ -196,7 +199,7 @@ in
     wprs
     remmina
 
-    socktop
+    socktop-bundle
 
     (import ../vms/copy-between-vms.nix { inherit pkgs; })
   ];

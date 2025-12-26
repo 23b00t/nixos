@@ -1,4 +1,9 @@
 { pkgs }:
+let
+  socktop-bundle = import ../pkgs/socktop-bundle.nix {
+    inherit (pkgs) stdenv rustPlatform fetchFromGitHub pkg-config libdrm;
+  };
+in
 with pkgs;
 [
   btop
@@ -8,9 +13,5 @@ with pkgs;
   tree
   lsof
   bibata-cursors
-
-  (pkgs.runCommand "socktop_agent-only" { buildInputs = [ pkgs.socktop ]; } ''
-    mkdir -p $out/bin
-    ln -s ${pkgs.socktop}/bin/socktop_agent $out/bin/socktop_agent
-  '')
+  socktop-bundle
 ]
