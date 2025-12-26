@@ -98,6 +98,7 @@
                     pinentry-curses
                     gh
                     github-copilot-cli
+                    openssl
 
                     python3
                     fd
@@ -275,12 +276,12 @@
                   docker = {
                     enable = true;
                     # Für rootless Docker (optional)
-                    rootless = {
-                      enable = true;
-                      setSocketVariable = true;
-                    };
+                    # rootless = {
+                    #   enable = true;
+                    #   setSocketVariable = true;
+                    # };
                     # BuildX-Plugin aktivieren
-                    enableOnBoot = true; # Docker beim Systemstart starten
+                    # enableOnBoot = true; # Docker beim Systemstart starten
                     extraOptions = "--experimental"; # Experimentelle Features aktivieren
                     extraPackages = [ pkgs.docker-buildx ]; # BuildX-Plugin hinzufügen
                   };

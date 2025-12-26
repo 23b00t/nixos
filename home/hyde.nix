@@ -39,6 +39,10 @@
           # bind = SUPER, F, exec, gtk-launch "Firefox Web Browser"
           unbind = SUPER, B
           bind = SUPER, B, exec, vm-run 5 net firefox
+          unbind = ,XF86MonBrightnessUp
+          unbind = ,XF86MonBrightnessDown
+          bindel = ,XF86MonBrightnessUp, exec, brightnessctl -d intel_backlight -e4 -n2 set 5%+
+          bindel = ,XF86MonBrightnessDown, exec, brightnessctl -d intel_backlight -e4 -n2 set 5%-
         ''; # additional keybindings configuration
         overrideConfig = null; # complete keybindings configuration override (null or lib.types.lines)
       };
