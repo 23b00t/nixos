@@ -10,14 +10,8 @@ layout {
     }
 
     tab name="tiny" cwd="~/tiny_logs" {
-        pane command="proxychains4 -q tiny"
-        floating_panes {
-          pane {
-              x "60%"
-              y 0
-              width "40%"
-              height "95%"
-          }
+        pane command="proxychains4" {
+           args "-q" "tiny"
         }
     }
 }

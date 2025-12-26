@@ -15,6 +15,10 @@ let
   };
 in
 {
+  boot.kernelParams = [
+    "systemd.log_level=debug"
+    "systemd.device-timeout=5s"
+  ];
   time.timeZone = "Europe/Berlin";
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.extraLocaleSettings = {
@@ -46,7 +50,6 @@ in
       ClientAliveCountMax 3
       # Login-Beschleunigung
       UseDNS no
-      GSSAPIAuthentication no
     '';
   };
   security.pam.loginLimits = [
