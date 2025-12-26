@@ -370,6 +370,10 @@ in
       flake = inputs.vault-vm;
       autostart = false;
     };
+    test = {
+      flake = inputs.test-vm;
+      autostart = false;
+    };
   };
   programs.ssh.startAgent = true;
   networking.useNetworkd = true;

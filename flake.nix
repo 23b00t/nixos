@@ -25,6 +25,7 @@
     wine-vm.url = "path:./vms/wine";
     kali-vm.url = "path:./vms/kali";
     vault-vm.url = "path:./vms/vault";
+    test-vm.url = "path:./vms/test";
 
     # Hydenix
     hydenix = {
