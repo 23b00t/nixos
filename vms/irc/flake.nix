@@ -91,6 +91,15 @@
                   ];
                 };
 
+                environment.etc."zellij".source = ./zellij;
+                systemd.tmpfiles.rules = [
+                  # zellij config
+                  "d /home/user/.config/zellij 0755 user user -"
+                  "L+ /home/user/.config/zellij/config.kdl - - - - /etc/zellij/config.kdl"
+                  "L+ /home/user/.config/zellij/layouts - - - - /etc/zellij/layouts"
+                  "L+ /home/user/.config/zellij/plugins - - - - /etc/zellij/plugins"
+                ];
+
                 environment.systemPackages = with pkgs; [
                   tiny
                   pass
@@ -98,6 +107,7 @@
                   pinentry-curses
                   proxychains-ng
                   openssl
+                  zellij
 
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ] ++ defaultPkgs;

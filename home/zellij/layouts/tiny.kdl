@@ -1,6 +1,0 @@
-layout {
-    default_tab_template name="main" {
-        children
-    }
-    pane command="tiny"
-}

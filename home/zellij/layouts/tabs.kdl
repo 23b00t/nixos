@@ -19,7 +19,29 @@ layout {
         pane command="btop"
     }
     tab name="socktop" cwd="~/" {
-        pane
+        split_direction="Vertical"
+        children [
+            pane {
+                split_direction="Horizontal"
+                children [
+                    pane command="socktop ws://10.0.0.1:23000/ws"
+                    pane command="socktop ws://10.0.0.2:23000/ws"
+                    pane command="socktop ws://10.0.0.4:23000/ws"
+                    pane command="socktop ws://10.0.0.5:23000/ws"
+                    pane command="socktop ws://10.0.0.6:23000/ws"
+                ]
+            }
+            pane {
+                split_direction="Horizontal"
+                children [
+                    pane command="socktop ws://10.0.0.7:23000/ws"
+                    pane command="socktop ws://10.0.0.8:23000/ws"
+                    pane command="socktop ws://10.0.0.9:23000/ws"
+                    pane command="socktop ws://10.0.0.10:23000/ws"
+                    pane command="socktop ws://10.0.0.11:23000/ws"
+                ]
+            }
+        ]
     }
     tab name="music" cwd="~/" {
         pane

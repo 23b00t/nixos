@@ -99,7 +99,7 @@ in
 
     # wine
     # pass
-    (import ./coding-zellij.nix { inherit pkgs; })
+    (import ./remote-zellij.nix { inherit pkgs; })
     (import ./backup.nix { inherit pkgs; })
   ];
 
