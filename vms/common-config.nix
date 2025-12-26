@@ -3,6 +3,17 @@
   pkgs,
   sshKey ? null,
 }:
+let
+  socktop-bundle = import ../pkgs/socktop-bundle.nix {
+    inherit (pkgs)
+      stdenv
+      rustPlatform
+      fetchFromGitHub
+      pkg-config
+      libdrm
+      ;
+  };
+in
 {
   time.timeZone = "Europe/Berlin";
   i18n.defaultLocale = "en_US.UTF-8";
@@ -89,14 +100,20 @@
   systemd.tmpfiles.rules = [
     "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
   ];
-
   systemd.services.socktop-agent = {
     description = "Socktop Agent";
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
-      ExecStart = "${pkgs.socktop}/bin/socktop_agent";
+      ExecStart = "${socktop-bundle.socktop_agent}/bin/socktop_agent --port 23000";
       Restart = "always";
       User = "root";
     };
+  };
+
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [
+      23000
+    ];
   };
 }

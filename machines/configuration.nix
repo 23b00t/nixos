@@ -199,7 +199,7 @@ in
     wprs
     remmina
 
-    socktop-bundle
+    socktop-bundle.socktop
 
     (import ../vms/copy-between-vms.nix { inherit pkgs; })
   ];

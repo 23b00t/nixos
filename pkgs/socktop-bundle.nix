@@ -1,7 +1,7 @@
-{ stdenv, rustPlatform, fetchFromGitHub, pkg-config, libdrm }:
+{ rustPlatform, fetchFromGitHub, pkg-config, libdrm, stdenv }:
 
 let
-  socktop = rustPlatform.buildRustPackage {
+  socktopFull = rustPlatform.buildRustPackage {
     pname = "socktop";
     version = "master";
     src = fetchFromGitHub {
@@ -15,13 +15,26 @@ let
     buildInputs = [ libdrm ];
   };
 in
-stdenv.mkDerivation {
-  pname = "socktop-bundle";
-  version = "master";
-  buildInputs = [ socktop ];
-  installPhase = ''
-    mkdir -p $out/bin
-    cp ${socktop}/bin/socktop $out/bin/
-    cp ${socktop}/bin/socktop_agent $out/bin/
-  '';
+{
+  socktop = stdenv.mkDerivation {
+    pname = "socktop";
+    version = "master";
+    dontUnpack = true;
+    buildInputs = [ socktopFull ];
+    installPhase = ''
+      mkdir -p $out/bin
+      cp ${socktopFull}/bin/socktop $out/bin/
+    '';
+  };
+
+  socktop_agent = stdenv.mkDerivation {
+    pname = "socktop-agent";
+    version = "master";
+    dontUnpack = true;
+    buildInputs = [ socktopFull ];
+    installPhase = ''
+      mkdir -p $out/bin
+      cp ${socktopFull}/bin/socktop_agent $out/bin/
+    '';
+  };
 }
