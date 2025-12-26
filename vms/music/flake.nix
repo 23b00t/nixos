@@ -53,7 +53,7 @@
                 networking.hostName = "music-vm";
 
                 microvm = {
-                  vsock.cid = index + 2;
+
                   registerClosure = false;
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
@@ -66,7 +66,7 @@
                     {
                       mountPoint = "/var/log";
                       image = "log.img";
-                      size = 512;
+                      size = 1024;
                     }
                     {
                       image = "nix-store-overlay.img";

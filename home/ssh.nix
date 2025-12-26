@@ -2,6 +2,7 @@ let
   hosts = [
     { name = "nvim-vm"; ip = "10.0.0.1"; }
     { name = "chat-vm"; ip = "10.0.0.2"; }
+    { name = "test-vm"; ip = "10.0.0.3"; }
     { name = "music-vm"; ip = "10.0.0.4"; extraOptions = { RemoteForward = "4713 localhost:4713"; }; }
     { name = "net-vm"; ip = "10.0.0.5"; }
     { name = "net-private-vm"; ip = "10.0.0.6"; }

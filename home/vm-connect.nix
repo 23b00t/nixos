@@ -28,6 +28,10 @@ let
         IP="10.0.0.2"
         FULL_NAME="chat"
         ;;
+      "test"|"t")
+        IP="10.0.0.3"
+        FULL_NAME="test"
+        ;;
       "music"|"m")
         IP="10.0.0.4"
         FULL_NAME="music"

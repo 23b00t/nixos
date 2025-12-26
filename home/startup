@@ -1,4 +1,4 @@
-new_tab zellij
+new_tab host
 layout stack 
 launch zsh -c "zellij --layout /home/nx/.config/zellij/layouts/tabs.kdl"
 launch zsh -c 'for i in {1..10}; do ssh -i /home/nx/.ssh/irc-vm user@10.0.0.11 -t "proxychains4 -q tiny" && break || sleep 5; done'

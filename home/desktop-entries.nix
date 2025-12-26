@@ -92,6 +92,7 @@ in
   xdg.desktopEntries = lib.mkMerge [
     # --- Chat VM (10.0.0.2) ---
 
+    # FIXME: Doesn't work
     (mkVmEntry {
       name = "zoom"; # Key im desktopEntries Set (wird zu zoom.desktop)
       genericName = "Zoom Video Chat";

@@ -15,10 +15,10 @@ let
   };
 in
 {
-  boot.kernelParams = [
-    "systemd.log_level=debug"
-    "systemd.device-timeout=5s"
-  ];
+  # boot.kernelParams = [
+  #   "systemd.log_level=debug"
+  #   "systemd.device-timeout=5s"
+  # ];
   time.timeZone = "Europe/Berlin";
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.extraLocaleSettings = {
