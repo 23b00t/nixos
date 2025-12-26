@@ -44,6 +44,9 @@ in
       TCPKeepAlive yes
       ClientAliveInterval 60
       ClientAliveCountMax 3
+      # Login-Beschleunigung
+      UseDNS no
+      GSSAPIAuthentication no
     '';
   };
   security.pam.loginLimits = [
