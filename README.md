@@ -41,3 +41,8 @@
 
 vm: mpv http://192.168.178.20:8082/stream
 host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1video -b:v 3000k -bf 0 http://0.0.0.0:8082/stream
+
+## Wuthering Waves
+
+- https://steamcommunity.com/app/3513350/discussions/0/506216918922078642/
+- Properties -> launch options: SteamOS=1 %command% 

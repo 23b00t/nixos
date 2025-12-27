@@ -99,9 +99,9 @@ in
     Host *
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
-    Host 192.168.178.20
         IdentitiesOnly yes
   '';
+
   systemd.tmpfiles.rules = [
     "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
   ];

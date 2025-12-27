@@ -1,3 +1,4 @@
+# NOTE: ~/.ssh/host must be copied to /root/.ssh/host once.
 { pkgs, ... }:
 {
   hostPrinterTunnelScript = pkgs.writeShellScriptBin "host-printer-tunnel" ''
