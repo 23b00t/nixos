@@ -19,7 +19,13 @@ let
     ];
   };
   socktop-bundle = import ../pkgs/socktop-bundle.nix {
-    inherit (pkgs) stdenv rustPlatform fetchFromGitHub pkg-config libdrm;
+    inherit (pkgs)
+      stdenv
+      rustPlatform
+      fetchFromGitHub
+      pkg-config
+      libdrm
+      ;
   };
   maxVMs = 12;
 in
@@ -73,7 +79,16 @@ in
     };
   };
 
-  powerManagement.cpuFreqGovernor = "performance";
+  # services.power-profiles-daemon.enable = true;
+  # powerManagement.cpuFreqGovernor = "performance";
+  services.tlp = {
+    enable = true;
+    settings = {
+      #Optional helps save long term battery health
+      START_CHARGE_THRESH_BAT0 = 40; # 40 and below it starts to charge
+      STOP_CHARGE_THRESH_BAT0 = 80; # 80 and above it stops charging
+    };
+  };
 
   # On battery specialisation
   specialisation = {
@@ -84,7 +99,7 @@ in
         prime.offload.enableOffloadCmd = lib.mkForce true;
         prime.sync.enable = lib.mkForce false;
       };
-      powerManagement.cpuFreqGovernor = lib.mkForce "powersave";
+      # powerManagement.cpuFreqGovernor = lib.mkForce "powersave";
       home-manager.users."nx".hydenix.hm.hyprland.monitors.overrideConfig = lib.mkForce ''
         monitor=eDP-1,2560x1600@60.00,0x0,1
       '';
@@ -203,8 +218,6 @@ in
 
     (import ../vms/copy-between-vms.nix { inherit pkgs; })
   ];
-
-  services.power-profiles-daemon.enable = true;
 
   programs.vim.enable = true;
   environment.variables.EDITOR = "vim";
