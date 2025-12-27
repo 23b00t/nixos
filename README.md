@@ -36,3 +36,8 @@
 - virsh dumpxml mein-vm-name > /pfad/zu/deinem/backup/mein-vm-name.xml
 - RESTORE: sudo rsync -avh --progress --sparse /run/media/nx/Backup/nixos-host/tails-amd64-6.15.1.img /run/media/nx/Backup/nixos-host/Whonix-Gateway.qcow2 /var/lib/libvirt/images/
 - RESTORE: sudo virsh define /pfad/zu/deinem/backup/mein-vm-name.xml
+
+## screensharing
+
+vm: mpv http://192.168.178.20:8082/stream
+host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1video -b:v 3000k -bf 0 http://0.0.0.0:8082/stream

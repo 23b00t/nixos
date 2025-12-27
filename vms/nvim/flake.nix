@@ -158,6 +158,7 @@
                   enable = true;
                   allowedTCPPorts = [
                     8080
+                    8082
                     3000
                   ];
                   allowedTCPPortRanges = [

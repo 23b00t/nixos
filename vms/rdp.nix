@@ -13,8 +13,8 @@
     xserver.enable = true;
     xserver.windowManager.fluxbox.enable = true;
     pipewire.enable = false;
+    pulseaudio.enable = true;
   };
-  hardware.pulseaudio.enable = true;
 
   users.users.user = {
     password = "trash";
