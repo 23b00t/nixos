@@ -37,6 +37,7 @@
               inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRYiHWjGyucuX6XJq2U3ENx7MHACcX0t8YzB2JEgfyR wine-vm";
             })
+            (import ../rdp.nix { inherit lib; })
             (
               { config, pkgs, ... }:
               let
@@ -45,12 +46,7 @@
               {
                 networking.hostName = "wine-vm";
 
-                users.users.user = {
-                  password = "trash";
-                };
-
                 microvm = {
-
                   registerClosure = false;
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
@@ -85,13 +81,7 @@
                 };
 
                 # Setup xrdp with fluxbox
-                networking.firewall = {
-                  allowedTCPPorts = [ 3389 ];
-                  allowedUDPPorts = [ 3389 ];
-                };
                 services.xrdp = {
-                  enable = true;
-                  audio.enable = true;
                   defaultWindowManager = ''
                     exec fluxbox -no-toolbar &
                     fbpid=$!
@@ -101,8 +91,6 @@
                     wait $fbpid
                   '';
                 };
-                services.xserver.enable = true;
-                services.xserver.windowManager.fluxbox.enable = true;
 
                 environment.systemPackages = [
                   pkgs.wine

@@ -38,6 +38,7 @@
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm";
             })
             (import ../yazi-config.nix { inherit pkgs; })
+            (import ../rdp.nix { inherit lib; })
             (
               { config, pkgs, ... }:
               let
@@ -47,12 +48,6 @@
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "office-vm";
-
-                users.users.user = {
-                  password = "trash";
-                  linger = true;
-                  extraGroups = lib.mkAfter [ "video" ];
-                };
 
                 microvm = {
                   registerClosure = false;
@@ -108,36 +103,8 @@
                   wantedBy = [ "default.target" ];
                 };
 
-                # NOTE: Hyprland experiment (no success yet, no rdp server running)
-                # grdctl --headless needs to be setup completly
-                # programs.hyprland.enable = true;
-                # services.greetd.enable = true;
-                # services.greetd.settings.default_session = {
-                #   command = "${pkgs.hyprland}/bin/Hyprland";
-                #   user = "user";
-                # };
-                # services.gnome.gnome-remote-desktop.enable = true;
-                # systemd.services.gnome-remote-desktop = {
-                #   wantedBy = [ "graphical.target" ];
-                # };
-                # services.gnome.gnome-keyring.enable = true;
-                # services.dbus.enable = true;
-
-                # NOTE: Working Xfce4 + xrdp setup
-                # services.xrdp.enable = true;
-                # services.xrdp.defaultWindowManager = "xfce4-session";
-                # services.xserver.enable = true;
-                # services.xserver.displayManager.lightdm.enable = true;
-                # services.xserver.desktopManager.xfce.enable = true;
-
                 # Setup xrdp with fluxbox
-                networking.firewall = {
-                  allowedTCPPorts = [ 3389 ];
-                  allowedUDPPorts = [ 3389 ];
-                };
                 services.xrdp = {
-                  enable = true;
-                  audio.enable = true;
                   defaultWindowManager = ''
                     exec fluxbox -no-toolbar &
                     fbpid=$!
@@ -147,8 +114,6 @@
                     wait $fbpid
                   '';
                 };
-                services.xserver.enable = true;
-                services.xserver.windowManager.fluxbox.enable = true;
 
                 services.printing.enable = true;
 #               systemd.services.host-printer-tunnel = {

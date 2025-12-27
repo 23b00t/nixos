@@ -44,6 +44,7 @@
               inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
             })
+            (import ../rdp.nix { inherit lib; })
             (
               { config, pkgs, ... }:
               let
@@ -52,8 +53,6 @@
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "chat-vm";
-
-                users.users.user.extraGroups = lib.mkAfter [ "video" ];
 
                 # Flatpak settings
                 # Enable XDG portal for Flatpak apps
@@ -127,6 +126,17 @@
                   vcpu = 6;
                 };
 
+                services.xrdp = {
+                  defaultWindowManager = ''
+                    exec fluxbox -no-toolbar &
+                    fbpid=$!
+                    sleep 2
+                    setxkbmap -layout "us" -variant "intl" -option "grp:alt_shift_toggle"
+                    kitty &
+                    wait $fbpid
+                  '';
+                };
+
                 systemd.user.services.wprsd = {
                   description = "wprsd instance";
                   after = [ "network.target" ];
@@ -153,6 +163,8 @@
 
                     mesa
                     vulkan-loader
+
+                    kitty
 
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]

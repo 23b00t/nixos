@@ -77,7 +77,6 @@ in
     group = "users";
     extraGroups = [
       "wheel"
-      "video"
     ];
     # Only set authorizedKeys if sshKey is provided
     openssh.authorizedKeys.keys = lib.mkIf (sshKey != null) [ sshKey ];
