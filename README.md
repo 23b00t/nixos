@@ -46,3 +46,14 @@ host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1vide
 
 - https://steamcommunity.com/app/3513350/discussions/0/506216918922078642/
 - Properties -> launch options: SteamOS=1 %command% 
+
+## Probleme
+
+Dez 27 18:27:44 chat-vm nsncd[801]: Dec 27 17:27:44.153 ERRO error handling request, err: ESTALE: Stale file handle, request_type: GETPWBYNAME, thread: worker_2
+Dez 27 18:27:44 chat-vm sshd[1168]: Privilege separation user sshd does not exist
+Dez 27 18:28:06 chat-vm nsncd[801]: Dec 27 17:28:06.607 ERRO error handling request, err: ESTALE: Stale file handle, request_type: GETPWBYNAME, thread: worker_0
+Dez 27 18:28:06 chat-vm sshd[1169]: Privilege separation user sshd does not exist
+
+## No WiFi
+
+- sudo modprobe iwlwifi

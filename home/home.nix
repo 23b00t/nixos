@@ -93,7 +93,7 @@ in
 
     # postman
     # jetbrains.phpstorm
-    # devenv
+    devenv
 
     wl-screenrec
 
@@ -102,6 +102,11 @@ in
     (import ./remote-zellij.nix { inherit pkgs; })
     (import ./backup.nix { inherit pkgs; })
   ];
+
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+  };
 
   # programs.kitty.enable = true;
   home.file.".config/kitty/kitty.conf" = {

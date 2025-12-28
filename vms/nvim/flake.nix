@@ -71,7 +71,7 @@
                     {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
-                      size = 4096;
+                      size = 40000;
                     }
                   ];
                   shares = [
@@ -86,6 +86,12 @@
                       tag = "host-home";
                       source = "/home/nx/nixos-config";
                       mountPoint = "/mnt/host";
+                    }
+                    {
+                      proto = "virtiofs";
+                      tag = "host-code";
+                      source = "/home/nx/code";
+                      mountPoint = "/mnt/host-code";
                     }
                   ];
                   mem = 8192;
@@ -146,6 +152,8 @@
                     dbeaver-bin
                     devenv
                     firefox
+
+                    godot_4
 
                     wprs
                     xwayland
@@ -307,6 +315,11 @@
                   };
                   wantedBy = [ "default.target" ];
                 };
+
+                nix.settings.trusted-users = [
+                  "root"
+                  "user"
+                ];
 
                 system.stateVersion = "25.05";
               }

@@ -105,9 +105,9 @@ in
         prime.sync.enable = lib.mkForce false;
       };
       # powerManagement.cpuFreqGovernor = lib.mkForce "powersave";
-      home-manager.users."nx".hydenix.hm.hyprland.monitors.overrideConfig = lib.mkForce ''
-        monitor=eDP-1,2560x1600@60.00,0x0,1
-      '';
+      # home-manager.users."nx".hydenix.hm.hyprland.monitors.overrideConfig = lib.mkForce ''
+      #   monitor=eDP-1,2560x1600@60.00,0x0,1
+      # '';
     };
   };
 
