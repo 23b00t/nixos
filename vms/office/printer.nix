@@ -5,7 +5,7 @@
     #!${pkgs.runtimeShell}
     set -euo pipefail
 
-    HOST_IP="192.168.178.20"
+    HOST_IP="10.0.0.254"
     HOST_USER="nx"
     TUNNEL_PORT=1631
     SSH_KEY="/root/.ssh/host"
@@ -25,7 +25,7 @@
     #!${pkgs.runtimeShell}
     set -euo pipefail
 
-    HOST_IP="192.168.178.20"
+    HOST_IP="10.0.0.254"
     HOST_USER="nx"
     TUNNEL_PORT=1631
     SSH_KEY="/root/.ssh/host"

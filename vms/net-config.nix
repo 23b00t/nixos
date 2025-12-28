@@ -25,10 +25,14 @@
       "fec0::${lib.toHexString index}/128"
     ];
     routes = [
-      # {
-      #   Destination = "10.0.0.0/32";
-      #   GatewayOnLink = true;
-      # }
+      {
+        Destination = "10.0.0.254/32";
+        GatewayOnLink = true;
+      }
+      {
+        Destination = "fec0::ff/128";
+        GatewayOnLink = true;
+      }
       {
         Destination = "0.0.0.0/0";
         Gateway = "10.0.0.0";

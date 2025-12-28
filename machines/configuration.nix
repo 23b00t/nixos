@@ -405,8 +405,10 @@ in
           matchConfig.Name = "vm${toString index}";
           # Host-Adresse für die P2P Verbindung
           address = [
-            "10.0.0.0/32"
+            "10.0.0.0/32"                  # Host auf diesem Interface
+            "10.0.0.254/32"                # Feste Host-IP für alle VMs
             "fec0::/128"
+            "fec0::ff/128"                 # Feste Host-IPv6 für alle VMs
           ];
           # Route zur VM
           routes = [
