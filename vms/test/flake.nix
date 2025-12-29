@@ -40,23 +40,17 @@
             (
               { config, pkgs, ... }:
               let
-                # INFO: build tertest with mpv support to work with pulse and not enforce alsa
-                termusic-mpv = pkgs.termusic.overrideAttrs (old: {
-                  cargoBuildFlags = (old.cargoBuildFlags or [ ]) ++ [ "--features=mpv" ];
-                  nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
-                  buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.mpv ];
-                });
-
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
               in
               {
                 networking.hostName = "test-vm";
 
+                users.users.user.extraGroups = lib.mkAfter [ "video" ];
                 microvm = {
-
                   registerClosure = false;
                   writableStoreOverlay = "/nix/.rw-store";
-                  hypervisor = "cloud-hypervisor";
+                  # hypervisor = "cloud-hypervisor";
+                  graphics.enable = true;
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -84,23 +78,20 @@
                   ];
                 };
 
-                # For tertest
-                environment.variables = {
-                  PULSE_SERVER = "tcp:localhost:4713";
+                environment.sessionVariables = {
+                  WAYLAND_DISPLAY = "wayland-1";
+                  DISPLAY = ":0";
+                  QT_QPA_PLATFORM = "wayland"; # Qt Applications
+                  GDK_BACKEND = "wayland"; # GTK Applications
+                  XDG_SESSION_TYPE = "wayland"; # Electron Applications
+                  SDL_VIDEODRIVER = "wayland";
+                  CLUTTER_BACKEND = "wayland";
                 };
 
                 environment.systemPackages =
                   with pkgs;
                   [
-                    # INFO: set in .config/tertest/server.toml:
-                    # [player]
-                    # backend = "mpv"
-                    # [backends.mpv]
-                    # audio_device = "pulse"
-                    termusic-mpv
-                    # pulseaudio
-                    # mpv
-                    yt-dlp
+                    godot_4
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
                   ++ defaultPkgs;
