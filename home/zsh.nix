@@ -22,7 +22,7 @@
       h = "hydectl";
       hs = "hyde-shell";
       countdown = "$HOME/nixos-config/home/scripts/countdown.sh";
-      n = "nvim_vm";
+      n = "nvim";
       tm = "vm-run -c 4 music termusic";
       oo = "remmina --disable-toolbar -c ~/.local/share/remmina/group_rdp_onlyoffice_10-0-0-9.remmina > /dev/null 2>&1 &";
     };
@@ -74,7 +74,7 @@
           # Load custom functions
           [ -f "$HOME/nixos-config/home/paste_functions.zsh" ] && source "$HOME/nixos-config/home/paste_functions.zsh"
           [ -f "$HOME/nixos-config/home/hydectl.zsh" ] && source "$HOME/nixos-config/home/hydectl.zsh"
-          [ -f "$HOME/nixos-config/home/nvim.zsh" ] && source "$HOME/nixos-config/home/nvim.zsh"
+          # [ -f "$HOME/nixos-config/home/nvim.zsh" ] && source "$HOME/nixos-config/home/nvim.zsh"
           compdef _hydectl hydectl
       	'';
   };

@@ -153,8 +153,6 @@
                     devenv
                     firefox
 
-                    godot_4
-
                     wprs
                     xwayland
 

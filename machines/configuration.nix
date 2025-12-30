@@ -563,6 +563,10 @@ in
     };
   };
 
+  # for static linked binaries in nvim
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [ icu ];
+
   # System Version - Don't change unless you know what you're doing (helps with system upgrades and compatibility)
   system.stateVersion = "25.05";
 }
