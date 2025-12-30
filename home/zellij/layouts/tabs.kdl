@@ -12,6 +12,9 @@ layout {
     tab name="nixos" cwd="~/nixos-config/" {
         pane
     }
+    tab name="godot" cwd="~/code/the-game/godot/" {
+        pane
+    }
     tab name="user" cwd="~/" {
         pane
     }

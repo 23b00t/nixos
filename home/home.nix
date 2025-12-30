@@ -94,6 +94,7 @@ in
     # postman
     # jetbrains.phpstorm
     devenv
+    vectorcode
 
     wl-screenrec
     github-copilot-cli
