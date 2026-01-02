@@ -51,6 +51,23 @@
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "qemu";
                   optimize.enable = false;
+                  qemu.machine = "q35";
+                  qemu.extraArgs = [
+                    "-drive"
+                    "if=pflash,format=raw,readonly=on,file=${pkgs.OVMF.fd}/FV/OVMF_CODE.fd"
+                    "-drive"
+                    "if=pflash,format=raw,file=/var/lib/microvms/steam/OVMF_VARS.fd"
+
+                    # # USB-Controller
+                    # "-device"
+                    # "qemu-xhci,id=xhci"
+                    #
+                    # # USB-Passthrough an den XHCI-Bus
+                    # "-device"
+                    # "usb-host,vendorid=0x1209,productid=0x2303,bus=xhci.0"
+                    # "-device"
+                    # "usb-host,vendorid=0x093a,productid=0x2533,bus=xhci.0"
+                  ];
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -85,19 +102,25 @@
                       bus = "pci";
                       path = "0000:02:00.1";
                     } # NVIDIA Audio
-                    {
-                      bus = "usb";
-                      path = "vendorid=0x1209,productid=0x2303";
-                    } # Keyboard 1209:2303
-                    {
-                      bus = "usb";
-                      path = "vendorid=0x093a,productid=0x2533";
-                    } # Mouse 093a:2533
+                    # {
+                    #   bus = "usb";
+                    #   path = "vendorid=0x1209,productid=0x2303";
+                    # } # Keyboard 1209:2303
+                    # {
+                    #   bus = "usb";
+                    #   path = "vendorid=0x093a,productid=0x2533";
+                    # } # Mouse 093a:2533
                   ];
                   mem = 16384;
                   vcpu = 8;
                 };
-                hardware.opengl.enable = true; # Mesa/GL-Stack
+
+                systemd.tmpfiles.rules = [
+                  "d /var/lib/microvms/steam 0755 microvm kvm -"
+                  "C /var/lib/microvms/steam/OVMF_VARS.fd 0640 microvm kvm - ${pkgs.OVMF.fd}/FV/OVMF_VARS.fd"
+                  "Z /var/lib/microvms/steam/OVMF_VARS.fd 0640 microvm kvm -"
+                ];
+                hardware.graphics.enable = true; # Mesa/GL-Stack
                 services.xserver.videoDrivers = [ "nvidia" ];
                 hardware.nvidia = {
                   open = false;
