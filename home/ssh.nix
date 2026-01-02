@@ -11,6 +11,7 @@ let
     { name = "office-vm"; ip = "10.0.0.9"; }
     { name = "vault-vm"; ip = "10.0.0.10"; }
     { name = "irc-vm"; ip = "10.0.0.11"; }
+    { name = "steam-vm"; ip = "10.0.0.12"; }
   ];
 
   hostStrings = builtins.concatStringsSep "\n" (map (h:

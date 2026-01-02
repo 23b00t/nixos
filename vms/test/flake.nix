@@ -57,31 +57,31 @@
 
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
-                  volumes = [
-                    {
-                      mountPoint = "/home/user";
-                      image = "home.img";
-                      size = 10000;
-                    }
-                    {
-                      mountPoint = "/var/log";
-                      image = "log.img";
-                      size = 1028;
-                    }
-                    {
-                      image = "nix-store-overlay.img";
-                      mountPoint = config.microvm.writableStoreOverlay;
-                      size = 2048;
-                    }
-                  ];
-                  shares = [
-                    {
-                      proto = "virtiofs";
-                      tag = "ro-store";
-                      source = "/nix/store";
-                      mountPoint = "/nix/.ro-store";
-                    }
-                  ];
+                  # volumes = [
+                  #   {
+                  #     mountPoint = "/home/user";
+                  #     image = "home.img";
+                  #     size = 10000;
+                  #   }
+                  #   {
+                  #     mountPoint = "/var/log";
+                  #     image = "log.img";
+                  #     size = 1028;
+                  #   }
+                  #   {
+                  #     image = "nix-store-overlay.img";
+                  #     mountPoint = config.microvm.writableStoreOverlay;
+                  #     size = 2048;
+                  #   }
+                  # ];
+                  # shares = [
+                  #   {
+                  #     proto = "virtiofs";
+                  #     tag = "ro-store";
+                  #     source = "/nix/store";
+                  #     mountPoint = "/nix/.ro-store";
+                  #   }
+                  # ];
                   mem = 8192;
                   vcpu = 6;
                 };

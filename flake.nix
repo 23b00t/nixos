@@ -28,6 +28,7 @@
     kali-vm.url = "path:./vms/kali";
     vault-vm.url = "path:./vms/vault";
     test-vm.url = "path:./vms/test";
+    steam-vm.url = "path:./vms/steam";
 
     # Hydenix
     hydenix = {

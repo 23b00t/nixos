@@ -71,7 +71,7 @@
                     {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
-                      size = 40000;
+                      size = 20000;
                     }
                   ];
                   shares = [

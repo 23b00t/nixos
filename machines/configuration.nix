@@ -27,6 +27,10 @@ let
       libdrm
       ;
   };
+  devices = [
+    "10de:2d19" # NVIDIA RTX 5060 Max-Q (VGA)
+    "10de:22eb" # NVIDIA RTX 5060 Audio
+  ];
   maxVMs = 12;
 in
 {
@@ -40,6 +44,10 @@ in
         "sd_mod"
         "dm-crypt"
         "dm-mod"
+        # GPU passthrough
+        "vfio_pci"
+        "vfio"
+        "vfio_iommu_type1"
       ];
       services.lvm.enable = true;
       luks.devices."luks-90b3e0c2-5fdb-48ac-b4b9-3ee6f5cb533e".device =
@@ -51,9 +59,24 @@ in
     kernelParams = [
       "intel_iommu=on"
       "iommu=pt"
+      "vfio-pci.ids=${lib.concatStringsSep "," devices}"
+    ];
+    # NVIDIA-Treiber blacklisten, damit der Host die dGPU nicht bindet
+    extraModprobeConfig = ''
+      softdep nvidia pre: vfio-pci
+      softdep drm pre: vfio-pci
+      softdep nouveau pre: vfio-pci
+    '';
+    blacklistedKernelModules = [
+      "nouveau"
+      "nvidia"
+      "nvidia_drm"
+      "nvidia_modeset"
+      "i2c_nvidia_gpu"
     ];
 
-
+    # (Optional) Host-Display nur über iGPU: sicherstellen, dass i915 geladen wird
+    # kernelModules = [ "i915" ];
     kernel.sysctl = {
       # Disable bridge netfilter for Whonix Gateway compatibility
       "net.bridge.bridge-nf-call-ip6tables" = 0;
@@ -131,7 +154,7 @@ in
     # Run `lshw -short` or `lspci` to identify your hardware
 
     # GPU Configuration (choose one):
-    inputs.nixos-hardware.nixosModules.common-gpu-nvidia
+    # inputs.nixos-hardware.nixosModules.common-gpu-nvidia
 
     # CPU Configuration (choose one):
     inputs.nixos-hardware.nixosModules.common-cpu-intel # Intel CPUs
@@ -142,31 +165,31 @@ in
     inputs.nixos-hardware.nixosModules.common-pc-ssd # SSD storage
   ];
 
-  hardware.nvidia = {
-    open = true; # For newer cards, you may want open drivers
-    modesetting.enable = true;
-    # Enable the Nvidia settings menu,
-    # accessible via `nvidia-settings`.
-    nvidiaSettings = true;
-    #      # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
-    #      # Enable this if you have graphical corruption issues or application crashes after waking
-    #      # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead
-    #      # of just the bare essentials.
-    powerManagement.enable = false;
-
-    # Fine-grained power management. Turns off GPU when not in use.
-    # Experimental and only works on modern Nvidia GPUs (Turing or newer).
-    powerManagement.finegrained = false;
-    prime = {
-      # For hybrid graphics (laptops), configure PRIME:
-      # nix shell "nixpkgs#lshw"; sudo lshw -c display (outputs hex, convert to decimal and strip leading zeros)
-      intelBusId = "PCI:0:2:0"; # if you have intel graphics
-      nvidiaBusId = "PCI:2:0:0";
-      # It is an either-or decision
-      offload.enable = false; # Or disable PRIME offloading if you don't care
-      sync.enable = true; # Enable PRIME sync for smoother rendering
-    };
-  };
+  # hardware.nvidia = {
+  #   open = true; # For newer cards, you may want open drivers
+  #   modesetting.enable = true;
+  #   # Enable the Nvidia settings menu,
+  #   # accessible via `nvidia-settings`.
+  #   nvidiaSettings = true;
+  #   #      # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
+  #   #      # Enable this if you have graphical corruption issues or application crashes after waking
+  #   #      # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead
+  #   #      # of just the bare essentials.
+  #   powerManagement.enable = false;
+  #
+  #   # Fine-grained power management. Turns off GPU when not in use.
+  #   # Experimental and only works on modern Nvidia GPUs (Turing or newer).
+  #   powerManagement.finegrained = false;
+  #   prime = {
+  #     # For hybrid graphics (laptops), configure PRIME:
+  #     # nix shell "nixpkgs#lshw"; sudo lshw -c display (outputs hex, convert to decimal and strip leading zeros)
+  #     intelBusId = "PCI:0:2:0"; # if you have intel graphics
+  #     nvidiaBusId = "PCI:2:0:0";
+  #     # It is an either-or decision
+  #     offload.enable = false; # Or disable PRIME offloading if you don't care
+  #     sync.enable = true; # Enable PRIME sync for smoother rendering
+  #   };
+  # };
 
   # Home Manager Configuration - manages user-specific configurations (dotfiles, themes, etc.)
   home-manager = {
@@ -324,6 +347,8 @@ in
   services.xserver.xkb.options = "grp:alt_shift_toggle";
 
   virtualisation.libvirtd.enable = true;
+  # virtualisation.spiceUSBRedirection.enable = true;
+
   systemd.services."libvirt-default-net" = {
     description = "Start libvirt default network";
     wantedBy = [ "multi-user.target" ];
@@ -399,6 +424,10 @@ in
       flake = inputs.test-vm;
       autostart = false;
     };
+    steam = {
+      flake = inputs.steam-vm;
+      autostart = false;
+    };
   };
   programs.ssh.startAgent = true;
   networking.useNetworkd = true;
@@ -412,10 +441,10 @@ in
           matchConfig.Name = "vm${toString index}";
           # Host-Adresse für die P2P Verbindung
           address = [
-            "10.0.0.0/32"                  # Host auf diesem Interface
-            "10.0.0.254/32"                # Feste Host-IP für alle VMs
+            "10.0.0.0/32" # Host auf diesem Interface
+            "10.0.0.254/32" # Feste Host-IP für alle VMs
             "fec0::/128"
-            "fec0::ff/128"                 # Feste Host-IPv6 für alle VMs
+            "fec0::ff/128" # Feste Host-IPv6 für alle VMs
           ];
           # Route zur VM
           routes = [
@@ -518,8 +547,11 @@ in
     SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm11-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
     # KVM Group Access for USB Devices for Webcam pass through to MicroVM
     SUBSYSTEM=="usb", ATTR{idVendor}=="2b7e", ATTR{idProduct}=="c906", GROUP="kvm"
+    # Keyboard
+    SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
+    # Mouse
+    SUBSYSTEM=="usb", ATTR{idVendor}=="093a", ATTR{idProduct}=="2533", GROUP="kvm"
   '';
-
   services.udev.packages = [
     (pkgs.writeTextFile {
       name = "kaleidoskope-udev-rules";
