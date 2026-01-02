@@ -47,6 +47,13 @@ in
     };
     kernelPackages = pkgs.linuxPackages_zen;
 
+    # Enable IOMMU for device passthrough to MicroVMs
+    kernelParams = [
+      "intel_iommu=on"
+      "iommu=pt"
+    ];
+
+
     kernel.sysctl = {
       # Disable bridge netfilter for Whonix Gateway compatibility
       "net.bridge.bridge-nf-call-ip6tables" = 0;
@@ -96,20 +103,20 @@ in
   # };
 
   # On battery specialisation
-  specialisation = {
-    on-the-go.configuration = {
-      system.nixos.tags = [ "on-the-go" ];
-      hardware.nvidia = {
-        prime.offload.enable = lib.mkForce true;
-        prime.offload.enableOffloadCmd = lib.mkForce true;
-        prime.sync.enable = lib.mkForce false;
-      };
-      # powerManagement.cpuFreqGovernor = lib.mkForce "powersave";
-      # home-manager.users."nx".hydenix.hm.hyprland.monitors.overrideConfig = lib.mkForce ''
-      #   monitor=eDP-1,2560x1600@60.00,0x0,1
-      # '';
-    };
-  };
+  # specialisation = {
+  #   on-the-go.configuration = {
+  #     system.nixos.tags = [ "on-the-go" ];
+  #     hardware.nvidia = {
+  #       prime.offload.enable = lib.mkForce true;
+  #       prime.offload.enableOffloadCmd = lib.mkForce true;
+  #       prime.sync.enable = lib.mkForce false;
+  #     };
+  #     # powerManagement.cpuFreqGovernor = lib.mkForce "powersave";
+  #     # home-manager.users."nx".hydenix.hm.hyprland.monitors.overrideConfig = lib.mkForce ''
+  #     #   monitor=eDP-1,2560x1600@60.00,0x0,1
+  #     # '';
+  #   };
+  # };
 
   nixpkgs.pkgs = pkgs; # Set pkgs for hydenix globally
 

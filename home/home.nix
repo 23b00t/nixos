@@ -96,7 +96,7 @@ in
 
     # postman
     # jetbrains.phpstorm
-    devenv
+    # devenv
     vectorcode
 
     wl-screenrec
@@ -108,10 +108,10 @@ in
     (import ./backup.nix { inherit pkgs; })
   ];
 
-  programs.direnv = {
-    enable = true;
-    nix-direnv.enable = true;
-  };
+  # programs.direnv = {
+  #   enable = true;
+  #   nix-direnv.enable = true;
+  # };
 
   # programs.kitty.enable = true;
   home.file.".config/kitty/kitty.conf" = {
