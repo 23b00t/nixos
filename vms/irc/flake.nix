@@ -59,7 +59,7 @@
                 networking.hostName = "irc-vm";
 
                 microvm = {
-                  vsock.cid = index + 2;
+
                   writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
                   volumes = [
