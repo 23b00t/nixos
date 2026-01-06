@@ -37,6 +37,7 @@ in
   boot = {
     loader.systemd-boot.enable = true;
     loader.efi.canTouchEfiVariables = true;
+    plymouth.enable = true;
     initrd = {
       systemd.enable = true;
       kernelModules = [
@@ -217,11 +218,30 @@ in
         9003
         631
       ];
+      extraCommands = ''
+        iptables -A INPUT -p tcp --dport 22 -s 10.0.0.9 -j ACCEPT
+        iptables -A INPUT -p tcp --dport 22 -j DROP
+      '';
+      extraStopCommands = ''
+        iptables -D INPUT -p tcp --dport 22 -s 10.0.0.9 -j ACCEPT || true
+        iptables -D INPUT -p tcp --dport 22 -j DROP || true
+      '';
       # TODO: Test to remove after Docker has been removed
       # Erlaubt Traffic auf der Bridge (nötig wegen Docker/br_netfilter)
       trustedInterfaces = [ "virbr2" ];
     };
   };
+  services.openssh = {
+    enable = true;
+    listenAddresses = [
+      {
+        addr = "10.0.0.0";
+        port = 22;
+      }
+    ];
+    settings.permitRootLogin = "no";
+  };
+  services.fail2ban.enable = true;
 
   # Enable the Flakes feature and the accompanying new nix command-line tool
   nix.settings.experimental-features = [
@@ -424,8 +444,8 @@ in
       flake = inputs.test-vm;
       autostart = false;
     };
-    steam = {
-      flake = inputs.steam-vm;
+    onlyoffice = {
+      flake = inputs.onlyoffice-vm;
       autostart = false;
     };
   };

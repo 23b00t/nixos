@@ -19,7 +19,7 @@
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
       index = 10;
-      mac = "00:00:00:00:00:10";
+      mac = "00:00:00:00:00:0a";
     in
     {
       packages.${system} = {
