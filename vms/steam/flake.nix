@@ -26,7 +26,12 @@
       };
 
       steamModule =
-        { config, pkgs, lib, ... }:
+        {
+          config,
+          pkgs,
+          lib,
+          ...
+        }:
         {
           networking.hostName = "steam-vm";
           time.timeZone = "UTC";
@@ -138,25 +143,50 @@
       };
 
       # Build qcow2 via nixos-generators (no cptofs/LKL)
-      steamOsQcow2 =
-        nixos-generators.nixosGenerate {
-          inherit system;
-          pkgs = pkgs;
+      steamOsQcow2 = nixos-generators.nixosGenerate {
+        inherit system;
+        pkgs = pkgs;
 
-          modules = [ steamModule ];
+        modules = [ steamModule ];
 
-          format = "qcow";
+        format = "qcow";
 
-          # optional: label expectations; nixos-generators generally labels root "nixos"
-          # and ESP "ESP" on UEFI images. If labels differ, we can adapt fileSystems.
-        };
+        # optional: label expectations; nixos-generators generally labels root "nixos"
+        # and ESP "ESP" on UEFI images. If labels differ, we can adapt fileSystems.
+      };
+      steamOsQcow2Named = pkgs.runCommand "steam-os-qcow2" { } ''
+        set -euo pipefail
+        mkdir -p $out
+        # nixos-generators output kann je nach version nixos.qcow2 heißen
+        cp -v ${steamOsQcow2}/nixos.qcow2 $out/steam-os.qcow2
+      '';
+
+      steamDeployScript = pkgs.writeShellScript "deploy-steam-vm-image" ''
+        set -euo pipefail
+
+        src="${steamOsQcow2Named}/steam-os.qcow2"
+        dst_dir="/var/lib/libvirt/images"
+        dst="$dst_dir/steam-os.qcow2"
+
+        install -d -m 0755 "$dst_dir"
+        # atomar ersetzen
+        install -m 0644 "$src" "$dst"
+
+        # optional: ownership an libvirt-qemu, wenn vorhanden (NixOS variiert)
+        if id -u libvirt-qemu >/dev/null 2>&1; then
+          chown libvirt-qemu:kvm "$dst" || true
+        fi
+
+        echo "Deployed $dst from $src"
+      '';
     in
     {
       nixosConfigurations.steam-vm = steamSystem;
 
       packages.${system} = {
-        steam-os-qcow2 = steamOsQcow2;
-        default = steamOsQcow2;
+        steam-os-qcow2 = steamOsQcow2Named;
+        steam-os-deploy = steamDeployScript;
+        default = steamOsQcow2Named;
       };
     };
 }
