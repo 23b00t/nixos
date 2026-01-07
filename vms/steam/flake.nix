@@ -41,14 +41,25 @@
 
           # Back to UEFI
           boot.loader.systemd-boot.enable = true;
-          boot.loader.efi.canTouchEfiVariables = false;
+          boot.loader.efi.canTouchEfiVariables = true;
 
           # Don't use legacy GRUB in the image
           boot.loader.grub.enable = lib.mkForce false;
 
           services.xserver.enable = false;
 
-          boot.kernelParams = [ "nvidia-drm.modeset=1" ];
+          boot.kernelModules = [
+            "nvidia"
+            "nvidia_uvm"
+            "nvidia_modeset"
+            "nvidia_drm"
+          ];
+
+          boot.kernelParams = [
+            "nvidia-drm.modeset=1"
+            # optional
+            "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
+          ];
           boot.blacklistedKernelModules = [ "nouveau" ];
 
           hardware.graphics = {
@@ -96,7 +107,11 @@
             ];
           };
 
-          environment.systemPackages = with pkgs; [ mangohud ];
+          environment.systemPackages = with pkgs; [
+            mangohud
+            pciutils
+            linuxPackages.nvidia_x11.bin
+          ];
 
           services.pipewire = {
             enable = true;
@@ -114,6 +129,10 @@
             ];
             initialPassword = "user";
           };
+          security.sudo = {
+            enable = true;
+            wheelNeedsPassword = false;
+          };
 
           services.getty.autologinUser = "user";
 
@@ -124,7 +143,18 @@
 
           environment.loginShellInit = ''
             if [[ "$(tty)" = "/dev/tty1" ]]; then
-              set -xeuo pipefail
+              exec 1> >(tee -a /var/log/steam-autostart.log) 2>&1
+              set -x
+
+              for i in $(seq 1 100); do
+                [[ -e /dev/dri/card0 ]] && break
+                sleep 0.1
+              done
+
+              if [[ ! -e /dev/dri/card0 ]]; then
+                echo "No /dev/dri/card0 found; not starting gamescope."
+                exit 0
+              fi
 
               gamescopeArgs=( --adaptive-sync --hdr-enabled --mangoapp --rt --steam )
               steamArgs=( -pipewire-dmabuf -tenfoot )
@@ -132,6 +162,7 @@
 
               export MANGOHUD=1
               export MANGOHUD_CONFIG="$(IFS=,; echo "''${mangoConfig[*]}")"
+
               exec gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
             fi
           '';
@@ -165,14 +196,14 @@
         set -euo pipefail
 
         src="${steamOsQcow2Named}/steam-os.qcow2"
-        dst_dir="/var/lib/libvirt/images"
-        dst="$dst_dir/steam-os.qcow2"
+        dst="/var/lib/libvirt/images/steam-os.qcow2"
 
-        install -d -m 0755 "$dst_dir"
-        # atomar ersetzen
-        install -m 0644 "$src" "$dst"
+        install -d -m 0755 "$(dirname "$dst")"
 
-        # optional: ownership an libvirt-qemu, wenn vorhanden (NixOS variiert)
+        # overwrite in place (inode stable)
+        cp -f --reflink=auto "$src" "$dst"
+        sync
+
         if id -u libvirt-qemu >/dev/null 2>&1; then
           chown libvirt-qemu:kvm "$dst" || true
         fi
