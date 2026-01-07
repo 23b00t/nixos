@@ -239,13 +239,13 @@ in
   };
   services.openssh = {
     enable = true;
-    listenAddresses = [
-      {
-        addr = "10.0.0.0";
-        port = 22;
-      }
-    ];
-    settings.permitRootLogin = "no";
+    # listenAddresses = [
+    #   {
+    #     addr = "10.0.0.0";
+    #     port = 22;
+    #   }
+    # ];
+    permitRootLogin = "no";
   };
   services.fail2ban.enable = true;
 
