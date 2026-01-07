@@ -1,158 +1,117 @@
 {
-  description = "steam MicroVM";
+  description = "Steam VM (UEFI qcow2 for libvirt)";
 
-  inputs = {
-    microvm = {
-      url = "github:astro/microvm.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
+  # folgt deinem repo: nixos-unstable
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-  outputs =
-    {
-      self,
-      nixpkgs,
-      microvm,
-    }:
+  outputs = { self, nixpkgs, ... }:
     let
       system = "x86_64-linux";
-      inherit (nixpkgs) lib;
-      pkgs = import nixpkgs { inherit system; };
-      index = 12;
-      mac = "00:00:00:00:00:12";
-    in
-    {
-      packages.${system} = {
-        default = self.packages.${system}.steam;
-        steam = self.nixosConfigurations.steam.config.microvm.declaredRunner;
-      };
-      nixosConfigurations = {
-        steam = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = [
-            microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL steam-vm";
-            })
-            (
-              { config, pkgs, ... }:
-              let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-              in
-              {
-                nixpkgs.config.allowUnfree = true;
-                networking.hostName = "steam-vm";
+      pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
 
-                microvm = {
-                  registerClosure = false;
-                  writableStoreOverlay = "/nix/.rw-store";
-                  hypervisor = "qemu";
-                  optimize.enable = false;
-                  qemu.machine = "q35";
-                  qemu.extraArgs = [
-                    "-drive"
-                    "if=pflash,format=raw,readonly=on,file=${pkgs.OVMF.fd}/FV/OVMF_CODE.fd"
-                    "-drive"
-                    "if=pflash,format=raw,file=/var/lib/microvms/steam/OVMF_VARS.fd"
+      steamModule = { config, pkgs, lib, ... }: {
+        nixpkgs.config.allowUnfree = true;
 
-                    # # USB-Controller
-                    # "-device"
-                    # "qemu-xhci,id=xhci"
-                    #
-                    # # USB-Passthrough an den XHCI-Bus
-                    # "-device"
-                    # "usb-host,vendorid=0x1209,productid=0x2303,bus=xhci.0"
-                    # "-device"
-                    # "usb-host,vendorid=0x093a,productid=0x2533,bus=xhci.0"
-                  ];
-                  volumes = [
-                    {
-                      mountPoint = "/home/user";
-                      image = "home.img";
-                      size = 220000;
-                    }
-                    {
-                      mountPoint = "/var/log";
-                      image = "log.img";
-                      size = 1028;
-                    }
-                    {
-                      image = "nix-store-overlay.img";
-                      mountPoint = config.microvm.writableStoreOverlay;
-                      size = 2048;
-                    }
-                  ];
-                  shares = [
-                    {
-                      proto = "virtiofs";
-                      tag = "ro-store";
-                      source = "/nix/store";
-                      mountPoint = "/nix/.ro-store";
-                    }
-                  ];
-                  devices = [
-                    {
-                      bus = "pci";
-                      path = "0000:02:00.0";
-                    } # NVIDIA RTX 5060
-                    {
-                      bus = "pci";
-                      path = "0000:02:00.1";
-                    } # NVIDIA Audio
-                    # {
-                    #   bus = "usb";
-                    #   path = "vendorid=0x1209,productid=0x2303";
-                    # } # Keyboard 1209:2303
-                    # {
-                    #   bus = "usb";
-                    #   path = "vendorid=0x093a,productid=0x2533";
-                    # } # Mouse 093a:2533
-                  ];
-                  mem = 16384;
-                  vcpu = 8;
-                };
+        networking.hostName = "steam-vm";
+        time.timeZone = "UTC";
+        system.stateVersion = "24.05";
 
-                systemd.tmpfiles.rules = [
-                  "d /var/lib/microvms/steam 0755 microvm kvm -"
-                  "C /var/lib/microvms/steam/OVMF_VARS.fd 0640 microvm kvm - ${pkgs.OVMF.fd}/FV/OVMF_VARS.fd"
-                  "Z /var/lib/microvms/steam/OVMF_VARS.fd 0640 microvm kvm -"
-                ];
-                hardware.graphics.enable = true; # Mesa/GL-Stack
-                services.xserver.videoDrivers = [ "nvidia" ];
-                hardware.nvidia = {
-                  open = false;
-                  modesetting.enable = true;
-                  nvidiaSettings = true;
-                  powerManagement.enable = false;
-                  powerManagement.finegrained = false;
-                };
+        # libvirt guest integration
+        services.qemuGuest.enable = true;
 
-                programs.hyprland = {
-                  enable = true;
-                  withUWSM = true;
-                  xwayland.enable = true;
-                };
+        # UEFI boot
+        boot.loader.systemd-boot.enable = true;
+        boot.loader.efi.canTouchEfiVariables = false;
 
-                programs.steam = {
-                  enable = true;
-                  remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
-                  dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
-                  localNetworkGameTransfers.openFirewall = true; # Open ports in the firewall for Steam Local Network Game Transfers
-                };
+        services.xserver.enable = false;
 
-                environment.systemPackages = [
-                  (import ../copy-between-vms.nix { inherit pkgs; })
-                ]
-                ++ defaultPkgs;
+        boot.kernelParams = [ "nvidia-drm.modeset=1" ];
+        boot.blacklistedKernelModules = [ "nouveau" ];
 
-                system.stateVersion = "25.05";
-              }
-            )
-          ];
+        hardware.opengl = {
+          enable = true;
+          driSupport32Bit = true;
+        };
+
+        hardware.nvidia = {
+          modesetting.enable = true;
+          open = false;
+          nvidiaSettings = false;
+        };
+
+        programs.gamescope = {
+          enable = true;
+          capSysNice = true;
+        };
+        programs.steam = {
+          enable = true;
+          gamescopeSession.enable = true;
+        };
+
+        environment.systemPackages = with pkgs; [
+          mangohud
+        ];
+
+        services.pipewire = {
+          enable = true;
+          alsa.enable = true;
+          pulse.enable = true;
+        };
+
+        users.users.user = {
+          isNormalUser = true;
+          extraGroups = [ "wheel" "video" "input" "audio" ];
+          initialPassword = "user";
+        };
+        services.getty.autologinUser = "user";
+
+        environment.sessionVariables = {
+          WLR_NO_HARDWARE_CURSORS = "1";
+          NIXOS_OZONE_WL = "1";
+        };
+
+        environment.loginShellInit = ''
+          if [[ "$(tty)" = "/dev/tty1" ]]; then
+            set -xeuo pipefail
+
+            gamescopeArgs=( --adaptive-sync --hdr-enabled --mangoapp --rt --steam )
+            steamArgs=( -pipewire-dmabuf -tenfoot )
+            mangoConfig=( cpu_temp gpu_temp ram vram )
+
+            export MANGOHUD=1
+            export MANGOHUD_CONFIG="$(IFS=,; echo "''${mangoConfig[*]}")"
+            exec gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
+          fi
+        '';
+
+        # Persistente Steam library via 2. Disk (label STEAMDATA)
+        fileSystems."/mnt/steam" = {
+          device = "/dev/disk/by-label/STEAMDATA";
+          fsType = "ext4";
+          options = [ "nofail" "x-systemd.device-timeout=1" ];
         };
       };
+
+      steamSystem = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [ steamModule ];
+      };
+
+      makeDiskImage = import (nixpkgs + "/nixos/lib/make-disk-image.nix");
+    in
+    {
+      nixosConfigurations.steam-vm = steamSystem;
+
+      packages.${system}.steam-os-qcow2 = makeDiskImage {
+        inherit pkgs;
+        lib = pkgs.lib;
+
+        config = steamSystem.config;
+
+        format = "qcow2";
+        diskSize = 40 * 1024; # MiB => 40GiB OS disk
+      };
+
+      packages.${system}.default = self.packages.${system}.steam-os-qcow2;
     };
 }

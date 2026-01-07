@@ -164,7 +164,13 @@ in
     inputs.nixos-hardware.nixosModules.common-hidpi # High-DPI displays
     inputs.nixos-hardware.nixosModules.common-pc-laptop # Laptops
     inputs.nixos-hardware.nixosModules.common-pc-ssd # SSD storage
+    ../modules/steam-vm-image.nix
   ];
+
+  steamVmImage = {
+    enable = true;
+    dataDiskSize = "200G";
+  };
 
   # hardware.nvidia = {
   #   open = true; # For newer cards, you may want open drivers
