@@ -16,7 +16,6 @@ in
     ./ssh.nix
     ./desktop-entries.nix
     ./vm-connect.nix
-    inputs.flatpaks.homeModules.default
   ];
 
   home = {
@@ -34,7 +33,6 @@ in
     #   exec zsh -c 'source /home/nx/nixos-config/home/nvim.zsh; nvim_vm "$@"' _ "$@"
     # '')
     # yaziPkg
-    flatpak
     zoxide
     # ddate
     oh-my-posh
@@ -188,18 +186,6 @@ in
   };
   home.sessionVariables = {
     MASON_DIR = "$HOME/.local/share/nvim/mason";
-  };
-
-  services.flatpak = {
-    enable = true;
-    flatpakDir = "/home/nx/.local/share/flatpak";
-    remotes = {
-      "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-      "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
-    };
-    packages = [
-      "flathub:app/org.godotengine.Godot/x86_64/stable"
-    ];
   };
 
   home.stateVersion = "25.05";

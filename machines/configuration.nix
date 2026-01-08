@@ -11,11 +11,11 @@ let
     overlays = [
       inputs.hydenix.overlays.default
       # Webcord with new Electron version
-      (final: prev: {
-        webcord = prev.webcord.override {
-          electron_36 = prev.electron_38;
-        };
-      })
+      # (final: prev: {
+      #   webcord = prev.webcord.override {
+      #     electron_36 = prev.electron_38;
+      #   };
+      # })
     ];
   };
   socktop-bundle = import ../pkgs/socktop-bundle.nix {
@@ -165,6 +165,7 @@ in
     inputs.nixos-hardware.nixosModules.common-pc-laptop # Laptops
     inputs.nixos-hardware.nixosModules.common-pc-ssd # SSD storage
     # ../modules/steam-vm-image.nix
+    inputs.flatpaks.nixosModules.default
   ];
 
   # steamVmImage = {
@@ -276,6 +277,8 @@ in
     remmina
 
     socktop-bundle.socktop
+
+    flatpak
 
     (import ../vms/copy-between-vms.nix { inherit pkgs; })
   ];
@@ -633,6 +636,18 @@ in
   # for static linked binaries in nvim
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [ icu ];
+
+  services.flatpak = {
+    enable = true;
+    flatpakDir = "/home/nx/.local/share/flatpak";
+    remotes = {
+      "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+      "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
+    };
+    packages = [
+      "flathub:app/org.godotengine.Godot/x86_64/stable"
+    ];
+  };
 
   # System Version - Don't change unless you know what you're doing (helps with system upgrades and compatibility)
   system.stateVersion = "25.05";

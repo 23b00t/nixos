@@ -140,7 +140,7 @@
 
                 programs.gamescope = {
                   enable = true;
-                  # capSysNice = true;
+                  capSysNice = true;
                 };
 
                 programs.steam = {
@@ -185,14 +185,16 @@
                     set -xeuo pipefail
 
                     # Warte kurz, bis seatd Socket da ist und nutzbar
-                    for i in $(seq 1 50); do
-                      if [ -S /run/seatd.sock ] && [ -r /run/seatd.sock ] && [ -w /run/seatd.sock ]; then
-                        break
-                      fi
-                      sleep 0.1
-                    done
+                    # for i in $(seq 1 50); do
+                    #   if [ -S /run/seatd.sock ] && [ -r /run/seatd.sock ] && [ -w /run/seatd.sock ]; then
+                    #     break
+                    #   fi
+                    #   sleep 0.1
+                    # done
 
-                    exec dbus-run-session -- gamescope --adaptive-sync --mangoapp --rt --steam -- steam -tenfoot
+                    # exec dbus-run-session -- gamescope --adaptive-sync --mangoapp --rt --steam -- steam -tenfoot
+                    # exec dbus-run-session -- gamescope --steam -- steam -tenfoot
+                    exec gamescope --adaptive-sync --mangoapp --rt --steam -- steam -tenfoot
                   '';
                 };
 
