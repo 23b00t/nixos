@@ -57,20 +57,28 @@
 
           boot.kernelParams = [
             "nvidia-drm.modeset=1"
-            # optional
-            "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
           ];
           boot.blacklistedKernelModules = [ "nouveau" ];
+          # boot.kernelPackages = pkgs.linuxPackages_zen;
 
           hardware.graphics = {
             enable = true;
             enable32Bit = true;
           };
 
+          services.xserver.videoDrivers = [ "nvidia" ];
+
           hardware.nvidia = {
             modesetting.enable = true;
+
             open = false;
+
+            package = config.boot.kernelPackages.nvidiaPackages.latest;
+            # package = config.boot.kernelPackages.nvidiaPackages.beta;
+
             nvidiaSettings = false;
+            powerManagement.enable = false;
+            powerManagement.finegrained = false;
           };
 
           programs.gamescope = {

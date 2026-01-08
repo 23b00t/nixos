@@ -577,6 +577,8 @@ in
     SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
     # Mouse
     SUBSYSTEM=="usb", ATTR{idVendor}=="093a", ATTR{idProduct}=="2533", GROUP="kvm"
+    # Intel AX211 Bluetooth
+    SUBSYSTEM=="usb", ATTR{idVendor}=="8087", ATTR{idProduct}=="0033", GROUP="kvm", MODE="0660"
   '';
   services.udev.packages = [
     (pkgs.writeTextFile {

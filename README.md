@@ -64,3 +64,16 @@ Dez 27 18:28:06 chat-vm sshd[1169]: Privilege separation user sshd does not exis
 ## No WiFi
 
 - sudo modprobe iwlwifi
+
+## steam vm 
+
+lspci -nn | grep -E "VGA|3D|Audio"
+nvidia-smi || true
+ls -lah /dev/dri
+sudo dmesg -T | grep -iE "nvidia|drm|nouveau" | tail -n 200
+sudo cat /var/log/steam-autostart.log || true
+
+ ~#@❯ sudo cp -f --reflink=auto ./result-steam-qcow2/steam-os.qcow2 /var/lib/libvirt/images/steam-os.qcow2
+ ~#@❯ sudo sync
+ ~#@❯ sudo stat -c '%n inode=%i size=%s mtime=%y' /var/lib/libvirt/images/steam-os.qcow2
+/var/lib/libvirt/images/steam-os.qcow2 inode=32506532 size=9143189504 mtime=2026-01-07 15:40:27.739643137 +0100
