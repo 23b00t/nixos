@@ -64,9 +64,9 @@ let
         IP="10.0.0.11"
         FULL_NAME="irc"
         ;;
-      "onlyoffice"|"oo")
+      "steam"|"s")
         IP="10.0.0.12"
-        FULL_NAME="onlyoffice"
+        FULL_NAME="steam"
         ;;
       *)
         echo "Error: Unknown VM '$NAME'"

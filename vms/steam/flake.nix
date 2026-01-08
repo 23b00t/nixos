@@ -1,12 +1,9 @@
 {
-  description = "Steam VM (UEFI qcow2 for libvirt)";
+  description = "steam MicroVM";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-
-    # qcow2 builder, avoids make-disk-image/cptofs/LKL
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
+    microvm = {
+      url = "github:microvm-nix/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -15,217 +12,264 @@
     {
       self,
       nixpkgs,
-      nixos-generators,
-      ...
+      microvm,
     }:
     let
       system = "x86_64-linux";
-      pkgs = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-      };
-
-      steamModule =
-        {
-          config,
-          pkgs,
-          lib,
-          ...
-        }:
-        {
-          networking.hostName = "steam-vm";
-          time.timeZone = "UTC";
-          system.stateVersion = "24.05";
-
-          services.qemuGuest.enable = true;
-
-          # Back to UEFI
-          boot.loader.systemd-boot.enable = true;
-          boot.loader.efi.canTouchEfiVariables = true;
-
-          # Don't use legacy GRUB in the image
-          boot.loader.grub.enable = lib.mkForce false;
-
-          services.xserver.enable = false;
-
-          boot.kernelModules = [
-            "nvidia"
-            "nvidia_uvm"
-            "nvidia_modeset"
-            "nvidia_drm"
-          ];
-
-          boot.kernelParams = [
-            "nvidia-drm.modeset=1"
-          ];
-          boot.blacklistedKernelModules = [ "nouveau" ];
-          # boot.kernelPackages = pkgs.linuxPackages_zen;
-
-          hardware.graphics = {
-            enable = true;
-            enable32Bit = true;
-          };
-
-          services.xserver.videoDrivers = [ "nvidia" ];
-
-          hardware.nvidia = {
-            modesetting.enable = true;
-
-            open = false;
-
-            package = config.boot.kernelPackages.nvidiaPackages.latest;
-            # package = config.boot.kernelPackages.nvidiaPackages.beta;
-
-            nvidiaSettings = false;
-            powerManagement.enable = false;
-            powerManagement.finegrained = false;
-          };
-
-          programs.gamescope = {
-            enable = true;
-            capSysNice = true;
-          };
-
-          programs.steam = {
-            enable = true;
-            gamescopeSession.enable = true;
-          };
-
-          # Root filesystem (image root disk)
-          fileSystems."/" = {
-            device = "/dev/disk/by-label/nixos";
-            fsType = "ext4";
-          };
-
-          # EFI System Partition
-          fileSystems."/boot" = {
-            device = "/dev/disk/by-label/ESP";
-            fsType = "vfat";
-          };
-
-          swapDevices = [ ];
-
-          # Persistent Steam data disk
-          fileSystems."/mnt/steam" = {
-            device = "/dev/disk/by-label/STEAMDATA";
-            fsType = "ext4";
-            options = [
-              "nofail"
-              "x-systemd.device-timeout=1"
-            ];
-          };
-
-          environment.systemPackages = with pkgs; [
-            mangohud
-            pciutils
-            linuxPackages.nvidia_x11.bin
-          ];
-
-          services.pipewire = {
-            enable = true;
-            alsa.enable = true;
-            pulse.enable = true;
-          };
-
-          users.users.user = {
-            isNormalUser = true;
-            extraGroups = [
-              "wheel"
-              "video"
-              "input"
-              "audio"
-            ];
-            initialPassword = "user";
-          };
-          security.sudo = {
-            enable = true;
-            wheelNeedsPassword = false;
-          };
-
-          services.getty.autologinUser = "user";
-
-          environment.sessionVariables = {
-            WLR_NO_HARDWARE_CURSORS = "1";
-            NIXOS_OZONE_WL = "1";
-          };
-
-          environment.loginShellInit = ''
-            if [[ "$(tty)" = "/dev/tty1" ]]; then
-              exec 1> >(tee -a /var/log/steam-autostart.log) 2>&1
-              set -x
-
-              for i in $(seq 1 100); do
-                [[ -e /dev/dri/card0 ]] && break
-                sleep 0.1
-              done
-
-              if [[ ! -e /dev/dri/card0 ]]; then
-                echo "No /dev/dri/card0 found; not starting gamescope."
-                exit 0
-              fi
-
-              gamescopeArgs=( --adaptive-sync --hdr-enabled --mangoapp --rt --steam )
-              steamArgs=( -pipewire-dmabuf -tenfoot )
-              mangoConfig=( cpu_temp gpu_temp ram vram )
-
-              export MANGOHUD=1
-              export MANGOHUD_CONFIG="$(IFS=,; echo "''${mangoConfig[*]}")"
-
-              exec gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
-            fi
-          '';
-        };
-
-      steamSystem = nixpkgs.lib.nixosSystem {
-        inherit system;
-        modules = [ steamModule ];
-      };
-
-      # Build qcow2 via nixos-generators (no cptofs/LKL)
-      steamOsQcow2 = nixos-generators.nixosGenerate {
-        inherit system;
-        pkgs = pkgs;
-
-        modules = [ steamModule ];
-
-        format = "qcow";
-
-        # optional: label expectations; nixos-generators generally labels root "nixos"
-        # and ESP "ESP" on UEFI images. If labels differ, we can adapt fileSystems.
-      };
-      steamOsQcow2Named = pkgs.runCommand "steam-os-qcow2" { } ''
-        set -euo pipefail
-        mkdir -p $out
-        # nixos-generators output kann je nach version nixos.qcow2 heißen
-        cp -v ${steamOsQcow2}/nixos.qcow2 $out/steam-os.qcow2
-      '';
-
-      steamDeployScript = pkgs.writeShellScript "deploy-steam-vm-image" ''
-        set -euo pipefail
-
-        src="${steamOsQcow2Named}/steam-os.qcow2"
-        dst="/var/lib/libvirt/images/steam-os.qcow2"
-
-        install -d -m 0755 "$(dirname "$dst")"
-
-        # overwrite in place (inode stable)
-        cp -f --reflink=auto "$src" "$dst"
-        sync
-
-        if id -u libvirt-qemu >/dev/null 2>&1; then
-          chown libvirt-qemu:kvm "$dst" || true
-        fi
-
-        echo "Deployed $dst from $src"
-      '';
+      inherit (nixpkgs) lib;
+      pkgs = import nixpkgs { inherit system; };
+      index = 12;
+      mac = "00:00:00:00:00:0c";
     in
     {
-      nixosConfigurations.steam-vm = steamSystem;
-
       packages.${system} = {
-        steam-os-qcow2 = steamOsQcow2Named;
-        steam-os-deploy = steamDeployScript;
-        default = steamOsQcow2Named;
+        default = self.packages.${system}.steam;
+        steam = self.nixosConfigurations.steam.config.microvm.declaredRunner;
+      };
+      nixosConfigurations = {
+        steam = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            microvm.nixosModules.microvm
+            (import ../net-config.nix { inherit lib index mac; })
+            # (import ../common-config.nix {
+            #   inherit lib;
+            #   inherit pkgs;
+            #   sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA2091GSIL+SlR1BsWswg+6DZzrL+enxmXo74d/OSUwv steam-vm";
+            # })
+            (
+              { config, pkgs, ... }:
+              {
+                nixpkgs.config.allowUnfree = true;
+                networking.hostName = "steam-vm";
+
+                microvm = {
+                  registerClosure = false;
+
+                  writableStoreOverlay = "/nix/.rw-store";
+                  # hypervisor = "cloud-hypervisor";
+                  hypervisor = "qemu";
+                  optimize.enable = false;
+                  volumes = [
+                    {
+                      mountPoint = "/home/user";
+                      image = "home.img";
+                      size = 150000;
+                    }
+                    {
+                      image = "nix-store-overlay.img";
+                      mountPoint = config.microvm.writableStoreOverlay;
+                      size = 2048;
+                    }
+                  ];
+                  shares = [
+                    {
+                      proto = "virtiofs";
+                      tag = "ro-store";
+                      source = "/nix/store";
+                      mountPoint = "/nix/.ro-store";
+                    }
+                  ];
+                  devices = [
+                    {
+                      bus = "pci";
+                      path = "0000:02:00.0";
+                    }
+                    {
+                      bus = "pci";
+                      path = "0000:02:00.1";
+                    }
+                    # # Mouse
+                    # {
+                    #   bus = "usb";
+                    #   path = "vendorid=0x093a,productid=0x2533";
+                    # }
+                    #
+                    # # Keyboard (Atreus)
+                    # {
+                    #   bus = "usb";
+                    #   path = "vendorid=0x1209,productid=0x2303";
+                    # }
+                    #
+                    # # AX211 Bluetooth
+                    # {
+                    #   bus = "usb";
+                    #   path = "vendorid=0x8087,productid=0x0033";
+                    # }
+                  ];
+                  mem = 16384;
+                  vcpu = 12;
+                };
+
+                services.qemuGuest.enable = true;
+
+                # Back to UEFI
+                boot.loader.systemd-boot.enable = true;
+                boot.loader.efi.canTouchEfiVariables = true;
+
+                # Don't use legacy GRUB in the image
+                boot.loader.grub.enable = lib.mkForce false;
+
+                services.xserver.enable = false;
+
+                boot.kernelModules = [
+                  "nvidia"
+                  "nvidia_uvm"
+                  "nvidia_modeset"
+                  "nvidia_drm"
+                ];
+
+                hardware.graphics = {
+                  enable = true;
+                  enable32Bit = true;
+                };
+
+                services.xserver.videoDrivers = [ "nvidia" ];
+
+                hardware.nvidia = {
+                  modesetting.enable = true;
+
+                  open = true;
+
+                  package = config.boot.kernelPackages.nvidiaPackages.stable;
+
+                  nvidiaSettings = true;
+                  powerManagement.enable = false;
+                  powerManagement.finegrained = false;
+                };
+
+                programs.gamescope = {
+                  enable = true;
+                  # capSysNice = true;
+                };
+
+                programs.steam = {
+                  enable = true;
+                  gamescopeSession.enable = true;
+                };
+
+                services.getty.autologinUser = "user";
+
+                # environment.sessionVariables = {
+                #   WLR_NO_HARDWARE_CURSORS = "1";
+                #   NIXOS_OZONE_WL = "1";
+                # };
+                # seatd für gamescope
+                services.seatd = {
+                  enable = true;
+                  group = "seat";
+                };
+
+                # security.wrappers.bwrap = {
+                #   owner = "root";
+                #   group = "root";
+                #   setuid = true;
+                #   source = "${pkgs.bubblewrap}/bin/bwrap";
+                # };
+
+                # tty1 nicht von getty belegen lassen
+                systemd.services."getty@tty1".enable = false;
+                environment.loginShellInit = ''
+                  if [[ "$(tty)" = "/dev/tty1" ]]; then
+                    mkdir -p "$HOME/.local/state"
+                    exec > >(tee -a "$HOME/.local/state/steam-autostart.log") 2>&1
+                    set -x
+                    exec "$HOME/gs.sh"
+                  fi
+                '';
+
+                environment.etc."gs.sh" = {
+                  mode = "0755";
+                  text = ''
+                    #!/usr/bin/env bash
+                    set -xeuo pipefail
+
+                    # Warte kurz, bis seatd Socket da ist und nutzbar
+                    for i in $(seq 1 50); do
+                      if [ -S /run/seatd.sock ] && [ -r /run/seatd.sock ] && [ -w /run/seatd.sock ]; then
+                        break
+                      fi
+                      sleep 0.1
+                    done
+
+                    exec dbus-run-session -- gamescope --adaptive-sync --mangoapp --rt --steam -- steam -tenfoot
+                  '';
+                };
+
+                systemd.tmpfiles.rules = [
+                  "L+ /home/user/gs.sh - - - - /etc/gs.sh"
+                  "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
+                ];
+                environment.systemPackages = with pkgs; [
+                  mangohud
+                  pciutils
+                  dbus
+                  (import ../copy-between-vms.nix { inherit pkgs; })
+                ];
+                # D-Bus system service (sollte auf NixOS meist ohnehin an sein, aber explizit ist gut)
+                services.dbus.enable = true;
+
+                # Steam/GamepadUI erwartet NM für "active networks"
+                networking.networkmanager.enable = true;
+
+                # optional aber sinnvoll für "handheld-like" features
+                services.upower.enable = true;
+                time.timeZone = "Europe/Berlin";
+                i18n.defaultLocale = "en_US.UTF-8";
+                i18n.extraLocaleSettings = {
+                  LC_TIME = "de_DE.UTF-8";
+                  LC_MONETARY = "de_DE.UTF-8";
+                  LC_NUMERIC = "de_DE.UTF-8";
+                  LC_MEASUREMENT = "de_DE.UTF-8";
+                  LC_PAPER = "de_DE.UTF-8";
+                  LC_ADDRESS = "de_DE.UTF-8";
+                  LC_TELEPHONE = "de_DE.UTF-8";
+                  LC_NAME = "de_DE.UTF-8";
+                  LC_IDENTIFICATION = "de_DE.UTF-8";
+                };
+
+                services.openssh = {
+                  enable = true;
+                  settings = {
+                    PermitRootLogin = "no";
+                    PasswordAuthentication = false;
+                  };
+                };
+                security.sudo = {
+                  enable = true;
+                  wheelNeedsPassword = false;
+                };
+                users.groups.users = { };
+                users.groups.seat = { };
+
+                users.users.user = {
+                  isNormalUser = true;
+                  group = "users";
+                  extraGroups = [
+                    "wheel"
+                    "seat"
+                    "video"
+                    "render"
+                    "input"
+                  ];
+                  openssh.authorizedKeys.keys = [
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL steam-vm"
+                  ];
+                };
+
+                environment.etc."ssh_config".text = ''
+                  Host *
+                      StrictHostKeyChecking no
+                      UserKnownHostsFile /dev/null
+                  Host 10.0.0.254 
+                      IdentitiesOnly yes
+                '';
+
+                system.stateVersion = "25.05";
+              }
+            )
+          ];
+        };
       };
     };
 }

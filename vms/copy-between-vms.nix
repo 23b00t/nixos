@@ -36,7 +36,7 @@ pkgs.writeShellScriptBin "cp-vm" ''
   office 10.0.0.9
   vault 10.0.0.10
   irc 10.0.0.11
-  onlyoffice 10.0.0.12
+  steam 10.0.0.12
   '
 
   usage() {

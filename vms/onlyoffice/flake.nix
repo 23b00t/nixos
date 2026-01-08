@@ -20,8 +20,8 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 12;
-      mac = "00:00:00:00:00:0c";
+      index = 13;
+      mac = "00:00:00:00:00:0d";
     in
     {
       packages.${system} = {

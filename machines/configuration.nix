@@ -446,12 +446,12 @@ in
       flake = inputs.vault-vm;
       autostart = false;
     };
-    test = {
-      flake = inputs.test-vm;
-      autostart = false;
-    };
-    onlyoffice = {
-      flake = inputs.onlyoffice-vm;
+    # test = {
+    #   flake = inputs.test-vm;
+    #   autostart = false;
+    # };
+    steam = {
+      flake = inputs.steam-vm;
       autostart = false;
     };
   };
