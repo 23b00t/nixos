@@ -32,11 +32,6 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
-            # (import ../common-config.nix {
-            #   inherit lib;
-            #   inherit pkgs;
-            #   sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA2091GSIL+SlR1BsWswg+6DZzrL+enxmXo74d/OSUwv steam-vm";
-            # })
             (
               { config, pkgs, ... }:
               {
@@ -54,7 +49,7 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 150000;
+                      size = 220000;
                     }
                     {
                       image = "nix-store-overlay.img";
@@ -79,23 +74,22 @@
                       bus = "pci";
                       path = "0000:02:00.1";
                     }
-                    # # Mouse
-                    # {
-                    #   bus = "usb";
-                    #   path = "vendorid=0x093a,productid=0x2533";
-                    # }
-                    #
-                    # # Keyboard (Atreus)
-                    # {
-                    #   bus = "usb";
-                    #   path = "vendorid=0x1209,productid=0x2303";
-                    # }
-                    #
-                    # # AX211 Bluetooth
-                    # {
-                    #   bus = "usb";
-                    #   path = "vendorid=0x8087,productid=0x0033";
-                    # }
+                    # Mouse
+                    {
+                      bus = "usb";
+                      path = "vendorid=0x093a,productid=0x2533";
+                    }
+                    # Keyboard (Atreus)
+                    {
+                      bus = "usb";
+                      path = "vendorid=0x1209,productid=0x2303";
+                    }
+
+                    # AX211 Bluetooth
+                    {
+                      bus = "usb";
+                      path = "vendorid=0x8087,productid=0x0033";
+                    }
                   ];
                   mem = 16384;
                   vcpu = 12;
@@ -110,7 +104,7 @@
                 # Don't use legacy GRUB in the image
                 boot.loader.grub.enable = lib.mkForce false;
 
-                services.xserver.enable = false;
+                # services.xserver.enable = false;
 
                 boot.kernelModules = [
                   "nvidia"
@@ -145,15 +139,21 @@
 
                 programs.steam = {
                   enable = true;
+                  remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
+                  dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
+                  localNetworkGameTransfers.openFirewall = true; # Open ports in the firewall for Steam Local Network Game Transfers
                   gamescopeSession.enable = true;
                 };
 
+                programs.gamemode.enable = true;
+
                 services.getty.autologinUser = "user";
 
-                # environment.sessionVariables = {
-                #   WLR_NO_HARDWARE_CURSORS = "1";
-                #   NIXOS_OZONE_WL = "1";
-                # };
+                environment.sessionVariables = {
+                  WLR_NO_HARDWARE_CURSORS = "1";
+                  NIXOS_OZONE_WL = "1";
+                  # WLR_BACKENDS = "headless gamescope --headless";
+                };
                 # seatd für gamescope
                 services.seatd = {
                   enable = true;
@@ -168,7 +168,7 @@
                 # };
 
                 # tty1 nicht von getty belegen lassen
-                systemd.services."getty@tty1".enable = false;
+                # systemd.services."getty@tty1".enable = false;
                 environment.loginShellInit = ''
                   if [[ "$(tty)" = "/dev/tty1" ]]; then
                     mkdir -p "$HOME/.local/state"
@@ -184,17 +184,33 @@
                     #!/usr/bin/env bash
                     set -xeuo pipefail
 
-                    # Warte kurz, bis seatd Socket da ist und nutzbar
-                    # for i in $(seq 1 50); do
-                    #   if [ -S /run/seatd.sock ] && [ -r /run/seatd.sock ] && [ -w /run/seatd.sock ]; then
-                    #     break
-                    #   fi
-                    #   sleep 0.1
-                    # done
+                    gamescopeArgs=(
+                        --adaptive-sync # VRR support
+                        --hdr-enabled
+                        --mangoapp # performance overlay
+                        --rt
+                        --steam
+                    )
+                    steamArgs=(
+                        -pipewire-dmabuf
+                        -tenfoot
+                    )
+                    mangoConfig=(
+                        gpu_temp
+                        ram
+                        vram
+                    )
+                    mangoVars=(
+                        MANGOHUD=1
+                        MANGOHUD_CONFIG="$(IFS=,; echo "''${mangoConfig[*]}")"
+                    )
+
+                    export "''${mangoVars[@]}"
+                    exec dbus-run-session -- gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
 
                     # exec dbus-run-session -- gamescope --adaptive-sync --mangoapp --rt --steam -- steam -tenfoot
                     # exec dbus-run-session -- gamescope --steam -- steam -tenfoot
-                    exec gamescope --adaptive-sync --mangoapp --rt --steam -- steam -tenfoot
+                    # exec gamescope --adaptive-sync --mangoapp --rt --steam -- steam -tenfoot
                   '';
                 };
 
@@ -213,6 +229,9 @@
 
                 # Steam/GamepadUI erwartet NM für "active networks"
                 networking.networkmanager.enable = true;
+                networking.networkmanager.settings = {
+                  main.no-auto-default = "*";
+                };
 
                 # optional aber sinnvoll für "handheld-like" features
                 services.upower.enable = true;
@@ -266,6 +285,35 @@
                   Host 10.0.0.254 
                       IdentitiesOnly yes
                 '';
+
+                # NOTE: connect controller via ssh:
+                # bluetoothctl
+                # power on
+                # agent on
+                # default-agent
+                # scan on
+                # pair AA:BB:CC:DD:EE:FF
+                # trust AA:BB:CC:DD:EE:FF
+                # connect AA:BB:CC:DD:EE:FF
+                #
+                services.blueman.enable = true;
+                hardware.bluetooth = {
+                  enable = true;
+                  settings = {
+                    General = {
+                      AutoEnable = true;
+                      FastConnectable = true;
+                    };
+                  };
+                };
+                services.pulseaudio.enable = false;
+                security.rtkit.enable = true;
+                services.pipewire = {
+                  enable = true;
+                  alsa.enable = true;
+                  alsa.support32Bit = true;
+                  pulse.enable = true;
+                };
 
                 system.stateVersion = "25.05";
               }

@@ -507,6 +507,7 @@ in
       "10.0.0.6/32"
       "10.0.0.7/32"
       "10.0.0.8/32"
+      "10.0.0.12/32"
     ];
     # externalInterface = "wlo1";
   };
@@ -639,7 +640,7 @@ in
 
   services.flatpak = {
     enable = true;
-    flatpakDir = "/home/nx/.local/share/flatpak";
+    # flatpakDir = "/home/nx/.local/share/flatpak";
     remotes = {
       "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
       "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
