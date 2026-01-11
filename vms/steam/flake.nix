@@ -42,9 +42,31 @@
                   registerClosure = false;
 
                   writableStoreOverlay = "/nix/.rw-store";
-                  # hypervisor = "cloud-hypervisor";
                   hypervisor = "qemu";
+                  # qemu.machine = "q35";
                   optimize.enable = false;
+                  qemu.extraArgs = [
+                    # # QEMU XHCI USB3-Controller
+                    # "-device"
+                    # "qemu-xhci,id=usb1"
+                    #
+                    # # Maus
+                    # "-device"
+                    # "usb-host,bus=usb1.0,port=1,vendorid=0x093a,productid=0x2533"
+                    # # Keyboard (Atreus)
+                    # "-device"
+                    # "usb-host,bus=usb1.0,port=2,vendorid=0x1209,productid=0x2303"
+                    # # AX211 Bluetooth
+                    # "-device"
+                    # "usb-host,bus=usb1.0,port=3,vendorid=0x8087,productid=0x0033"
+                    # "-device"
+                    # "vfio-pci,host=0000:02:00.0,multifunction=on"
+                    # "-device"
+                    # "vfio-pci,host=0000:02:00.1"
+                    "-smp"
+                    "6,sockets=1,cores=6,threads=1"
+                    "-mem-prealloc"
+                  ];
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -91,8 +113,8 @@
                       path = "vendorid=0x8087,productid=0x0033";
                     }
                   ];
-                  mem = 16384;
-                  vcpu = 12;
+                  mem = 24576;
+                  vcpu = 6;
                 };
 
                 services.qemuGuest.enable = true;
@@ -111,7 +133,9 @@
                   "nvidia_uvm"
                   "nvidia_modeset"
                   "nvidia_drm"
+                  "uinput"
                 ];
+                boot.blacklistedKernelModules = [ "nouveau" ];
 
                 hardware.graphics = {
                   enable = true;
@@ -126,8 +150,9 @@
                   open = true;
 
                   package = config.boot.kernelPackages.nvidiaPackages.stable;
-
-                  nvidiaSettings = true;
+                  prime.offload.enable = false;
+                  prime.sync.enable = false;
+                  nvidiaSettings = false;
                   powerManagement.enable = false;
                   powerManagement.finegrained = false;
                 };
@@ -149,11 +174,10 @@
 
                 services.getty.autologinUser = "user";
 
-                environment.sessionVariables = {
-                  WLR_NO_HARDWARE_CURSORS = "1";
-                  NIXOS_OZONE_WL = "1";
-                  # WLR_BACKENDS = "headless gamescope --headless";
-                };
+                # environment.sessionVariables = {
+                #   WLR_NO_HARDWARE_CURSORS = "1";
+                #   NIXOS_OZONE_WL = "1";
+                # };
                 # seatd für gamescope
                 services.seatd = {
                   enable = true;
@@ -169,14 +193,14 @@
 
                 # tty1 nicht von getty belegen lassen
                 # systemd.services."getty@tty1".enable = false;
-                environment.loginShellInit = ''
-                  if [[ "$(tty)" = "/dev/tty1" ]]; then
-                    mkdir -p "$HOME/.local/state"
-                    exec > >(tee -a "$HOME/.local/state/steam-autostart.log") 2>&1
-                    set -x
-                    exec "$HOME/gs.sh"
-                  fi
-                '';
+                # environment.loginShellInit = ''
+                #   if [[ "$(tty)" = "/dev/tty1" ]]; then
+                #     mkdir -p "$HOME/.local/state"
+                #     exec > >(tee -a "$HOME/.local/state/steam-autostart.log") 2>&1
+                #     set -x
+                #     exec "$HOME/gs.sh"
+                #   fi
+                # '';
 
                 environment.etc."gs.sh" = {
                   mode = "0755";
@@ -186,10 +210,11 @@
 
                     gamescopeArgs=(
                         --adaptive-sync # VRR support
-                        --hdr-enabled
+                        # --hdr-enabled
                         --mangoapp # performance overlay
                         --rt
                         --steam
+                        # --framerate-limit 60
                     )
                     steamArgs=(
                         -pipewire-dmabuf
@@ -214,26 +239,73 @@
                   '';
                 };
 
+                services.udev.extraRules = ''
+                  KERNEL=="uinput", MODE="0660", GROUP="input", OPTIONS+="static_node=uinput"
+                '';
+
                 systemd.tmpfiles.rules = [
                   "L+ /home/user/gs.sh - - - - /etc/gs.sh"
                   "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
+                ];
+
+                programs.nix-ld.enable = true;
+                programs.nix-ld.libraries = with pkgs; [
+                  stdenv.cc.cc # libstdc++.so, libgcc_s.so, libc.so, etc.
+                  zlib # Komprimierung
+                  icu # Unicode/Internationale Zeichen - wie von dir genannt
+                  expat # XML-Parsing (Steam selbst, Proton, Wine, viele Launcher)
+                  openssl # OpenSSL (TLS/SSL)
+                  curl # (manchmal für Netzwerk-Downloads)
+                  pulseaudio # für Audio in vielen Games/Proton
+                  alsa-lib # für direkten ALSA-Support
+                  dbus # für Steam-GUI, Overlay, Controller, Proton
+
+                  mesa # libGL, libEGL, Mesa-GL-Implementierungen
+                  libglvnd # GL/Vulkan-Dispatch (klüger als einzelne libGL)
+                  vulkan-loader # libvulkan.so Loader
+                  vulkan-headers # oft von Spielen benötigt (Header werden von Binär-Dists mitgeladen)
+
+                  libvorbis # viele Spiele verwenden OGG/Opus-Audio
+                  libogg
+                  libopus
+
+                  libpng # viele GUIs/Games/Tools für PNG-Support
+                  libjpeg
+                  fontconfig # Fonts/DPI/Fallback etc.
+                  freetype # Spiele ohne fontconfig
+                  libuuid # IDs, oft bei Games & Launcher im Backend
+                  libxcb # X11 (für Fenstermodus, Overlay, XWayland)
+                  xorg.libX11
+                  xorg.libXext
+                  xorg.libXrandr
+                  xorg.libXcursor
+                  xorg.libXi
+                  xorg.libXtst
+                  xorg.libXinerama
+                  xorg.libXScrnSaver
+
+                  glib # GObject/GTK-Basics
+                  gtk3
                 ];
                 environment.systemPackages = with pkgs; [
                   mangohud
                   pciutils
                   dbus
+                  vim
+                  mesa
+                  mesa-demos # für glxinfo, glxgears
+                  vulkan-tools # für vulkaninfo
+                  vulkan-loader
+                  vulkan-validation-layers
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ];
-                # D-Bus system service (sollte auf NixOS meist ohnehin an sein, aber explizit ist gut)
                 services.dbus.enable = true;
 
-                # Steam/GamepadUI erwartet NM für "active networks"
                 networking.networkmanager.enable = true;
                 networking.networkmanager.settings = {
                   main.no-auto-default = "*";
                 };
 
-                # optional aber sinnvoll für "handheld-like" features
                 services.upower.enable = true;
                 time.timeZone = "Europe/Berlin";
                 i18n.defaultLocale = "en_US.UTF-8";
@@ -314,6 +386,14 @@
                   alsa.support32Bit = true;
                   pulse.enable = true;
                 };
+
+                environment.sessionVariables = {
+                  # Solves bug with hosts xterm-kitty handed to the vms
+                  TERM = "xterm-256color";
+                };
+                # environment.variables = {
+                #   PULSE_SERVER = "tcp:10.0.0.254:4713";
+                # };
 
                 system.stateVersion = "25.05";
               }

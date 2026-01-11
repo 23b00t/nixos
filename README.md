@@ -77,3 +77,45 @@ sudo cat /var/log/steam-autostart.log || true
  ~#@❯ sudo sync
  ~#@❯ sudo stat -c '%n inode=%i size=%s mtime=%y' /var/lib/libvirt/images/steam-os.qcow2
 /var/lib/libvirt/images/steam-os.qcow2 inode=32506532 size=9143189504 mtime=2026-01-07 15:40:27.739643137 +0100
+
+
+1. **Geräte vor VM-Start freigeben:**  
+   Sorge dafür, dass die USB- und PCI-Geräte vor dem VM-Start nicht vom Host verwendet werden.  
+   Prüfe mit:
+   ```
+   lsof /dev/bus/usb/*/*
+   fuser /dev/bus/usb/*/*
+   ```
+
+2. **Automatisches Unbinden der Geräte:**  
+   Füge ein Skript oder einen systemd-Service hinzu, der vor dem VM-Start die Geräte unbindet:
+   ```
+   echo '1-1' > /sys/bus/usb/drivers/usb/unbind
+   ```
+   (Passe die Busnummer an dein Gerät an.)
+
+3. **VFIO-Binding sicherstellen:**  
+   Stelle sicher, dass die PCI-Geräte vor dem VM-Start an VFIO gebunden sind:
+   ```
+   echo 0000:02:00.0 > /sys/bus/pci/devices/0000:02:00.0/driver/unbind
+   echo 8086 1234 > /sys/bus/pci/drivers/vfio-pci/new_id
+   echo 0000:02:00.0 > /sys/bus/pci/drivers/vfio-pci/bind
+   ```
+   (IDs und Pfade anpassen!)
+
+4. **systemd-Unit für sauberes Binding:**  
+   Erstelle eine systemd-Unit auf dem Host, die vor dem VM-Start die Geräte vorbereitet.
+
+
+### WuWa
+
+PROTON_ENABLE_NVAPI=1
+gamescope --steam --mangoapp --framerate-limit 60 
+mangoapp ist problematisch
+
+## Resize VM images 
+
+ ● Um ein .img-Image um 30GB zu vergrößern
+     truncate -s +30G dateiname.img
+
+ ● Nach dem Vergrößern des .img-Files das Dateisystem innerhalb der VM ebenfalls vergrößern, z.B. mit resize2fs für ext4. Starte die VM, öffne ein Terminal und führe dort (als root) resize2fs /dev/vdX aus, wobei /dev/vdX das gemountete Image ist.
