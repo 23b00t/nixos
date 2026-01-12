@@ -119,3 +119,10 @@ mangoapp ist problematisch
      truncate -s +30G dateiname.img
 
  ● Nach dem Vergrößern des .img-Files das Dateisystem innerhalb der VM ebenfalls vergrößern, z.B. mit resize2fs für ext4. Starte die VM, öffne ein Terminal und führe dort (als root) resize2fs /dev/vdX aus, wobei /dev/vdX das gemountete Image ist.
+
+## windowrule bug fix
+
+ ~#@❯ rm windowrules.conf
+ ~#@❯ ln -s /home/nx/nixos-config/home/windowrules.conf /home/nx/.local/share/hypr/windowrules.conf
+ ~#@❯ rm windowrules.conf
+ ~#@❯ ln -s /home/nx/nixos-config/home/windowrules.conf /home/nx/.config/hypr/windowrules.conf
