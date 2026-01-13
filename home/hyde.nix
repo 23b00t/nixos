@@ -16,16 +16,20 @@
         #   monitor=HDMI-A-1,1920x1080@60.00,1680x0,1
         #   monitor=eDP-1,1920x1200@60.00,3600x0,1
         # '';
+        # overrideConfig = ''
+        #   monitor=DP-1,1920x1080@60.00,1680x0,1
+        #   monitor=eDP-1,1920x1200@60.00,3600x0,1
+        # '';
         overrideConfig = ''
-          monitor=DP-1,1920x1080@60.00,1680x0,1
-          monitor=eDP-1,1920x1200@60.00,3600x0,1
+          monitor=,preferred,auto,1
+          monitor=eDP-1,1920x1200@60.00,auto,1
         '';
       };
 
       windowrules = {
         enable = true;
-#         overrideConfig = ''
-# ''
+        #         overrideConfig = ''
+        # ''
       };
 
       extraConfig = ''

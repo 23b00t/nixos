@@ -188,14 +188,5 @@ in
     MASON_DIR = "$HOME/.local/share/nvim/mason";
   };
 
-  home.file.".local/share/hypr/windowrules.conf" = {
-    force = true;
-    source = ./windowrules.conf;
-  };
-  home.file.".config/hypr/windowrules.conf" = {
-    force = true;
-    source = ./windowrules.conf;
-  };
-
   home.stateVersion = "25.05";
 }

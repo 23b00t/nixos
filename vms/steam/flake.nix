@@ -46,10 +46,13 @@
                   # qemu.machine = "q35";
                   optimize.enable = false;
                   qemu.extraArgs = [
+                    # "-nodefaults"
+                    # "-vga"
+                    # "none"
                     # # QEMU XHCI USB3-Controller
                     # "-device"
                     # "qemu-xhci,id=usb1"
-                    #
+
                     # # Maus
                     # "-device"
                     # "usb-host,bus=usb1.0,port=1,vendorid=0x093a,productid=0x2533"
@@ -64,7 +67,7 @@
                     # "-device"
                     # "vfio-pci,host=0000:02:00.1"
                     "-smp"
-                    "6,sockets=1,cores=6,threads=1"
+                    "8,sockets=1,cores=8,threads=1"
                     "-mem-prealloc"
                   ];
                   volumes = [
@@ -113,8 +116,8 @@
                       path = "vendorid=0x8087,productid=0x0033";
                     }
                   ];
-                  mem = 24576;
-                  vcpu = 6;
+                  mem = 16384;
+                  vcpu = 8;
                 };
 
                 services.qemuGuest.enable = true;
@@ -147,7 +150,7 @@
                 hardware.nvidia = {
                   modesetting.enable = true;
 
-                  open = false;
+                  open = true;
 
                   package = config.boot.kernelPackages.nvidiaPackages.stable;
                   prime.offload.enable = false;
@@ -248,45 +251,45 @@
                   "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
                 ];
 
-                # programs.nix-ld.enable = true;
-                # programs.nix-ld.libraries = with pkgs; [
-                #   stdenv.cc.cc # libstdc++.so, libgcc_s.so, libc.so, etc.
-                #   zlib # Komprimierung
-                #   icu # Unicode/Internationale Zeichen - wie von dir genannt
-                #   expat # XML-Parsing (Steam selbst, Proton, Wine, viele Launcher)
-                #   openssl # OpenSSL (TLS/SSL)
-                #   curl # (manchmal für Netzwerk-Downloads)
-                #   pulseaudio # für Audio in vielen Games/Proton
-                #   alsa-lib # für direkten ALSA-Support
-                #   dbus # für Steam-GUI, Overlay, Controller, Proton
-                #
-                #   mesa # libGL, libEGL, Mesa-GL-Implementierungen
-                #   libglvnd # GL/Vulkan-Dispatch (klüger als einzelne libGL)
-                #   vulkan-loader # libvulkan.so Loader
-                #   vulkan-headers # oft von Spielen benötigt (Header werden von Binär-Dists mitgeladen)
-                #
-                #   libvorbis # viele Spiele verwenden OGG/Opus-Audio
-                #   libogg
-                #   libopus
-                #
-                #   libpng # viele GUIs/Games/Tools für PNG-Support
-                #   libjpeg
-                #   fontconfig # Fonts/DPI/Fallback etc.
-                #   freetype # Spiele ohne fontconfig
-                #   libuuid # IDs, oft bei Games & Launcher im Backend
-                #   libxcb # X11 (für Fenstermodus, Overlay, XWayland)
-                #   xorg.libX11
-                #   xorg.libXext
-                #   xorg.libXrandr
-                #   xorg.libXcursor
-                #   xorg.libXi
-                #   xorg.libXtst
-                #   xorg.libXinerama
-                #   xorg.libXScrnSaver
-                #
-                #   glib # GObject/GTK-Basics
-                #   gtk3
-                # ];
+                programs.nix-ld.enable = true;
+                programs.nix-ld.libraries = with pkgs; [
+                  stdenv.cc.cc # libstdc++.so, libgcc_s.so, libc.so, etc.
+                  zlib # Komprimierung
+                  icu # Unicode/Internationale Zeichen - wie von dir genannt
+                  expat # XML-Parsing (Steam selbst, Proton, Wine, viele Launcher)
+                  openssl # OpenSSL (TLS/SSL)
+                  curl # (manchmal für Netzwerk-Downloads)
+                  pulseaudio # für Audio in vielen Games/Proton
+                  alsa-lib # für direkten ALSA-Support
+                  dbus # für Steam-GUI, Overlay, Controller, Proton
+
+                  mesa # libGL, libEGL, Mesa-GL-Implementierungen
+                  libglvnd # GL/Vulkan-Dispatch (klüger als einzelne libGL)
+                  vulkan-loader # libvulkan.so Loader
+                  vulkan-headers # oft von Spielen benötigt (Header werden von Binär-Dists mitgeladen)
+
+                  libvorbis # viele Spiele verwenden OGG/Opus-Audio
+                  libogg
+                  libopus
+
+                  libpng # viele GUIs/Games/Tools für PNG-Support
+                  libjpeg
+                  fontconfig # Fonts/DPI/Fallback etc.
+                  freetype # Spiele ohne fontconfig
+                  libuuid # IDs, oft bei Games & Launcher im Backend
+                  libxcb # X11 (für Fenstermodus, Overlay, XWayland)
+                  xorg.libX11
+                  xorg.libXext
+                  xorg.libXrandr
+                  xorg.libXcursor
+                  xorg.libXi
+                  xorg.libXtst
+                  xorg.libXinerama
+                  xorg.libXScrnSaver
+
+                  glib # GObject/GTK-Basics
+                  gtk3
+                ];
                 environment.systemPackages = with pkgs; [
                   mangohud
                   pciutils
