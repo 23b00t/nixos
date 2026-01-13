@@ -120,7 +120,7 @@ in
   home.file.".config/kitty/startup".source = ./startup;
 
   # TODO: Debug whats going on when enabled
-  xdg.mimeApps.enable = lib.mkForce false;
+  # xdg.mimeApps.enable = lib.mkForce false;
 
   # zellij
   home.file.".config/zellij".source = ./zellij;
