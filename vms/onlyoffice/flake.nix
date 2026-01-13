@@ -1,7 +1,7 @@
 {
   # Use: remote-viewer spice://127.0.0.1:5930 to connect to hyprland
   # nix shell "nixpkgs#virt-viewer"
-  description = "onlyoffice MicroVM";
+  description = "godot MicroVM";
 
   inputs = {
     microvm = {
@@ -25,11 +25,11 @@
     in
     {
       packages.${system} = {
-        default = self.packages.${system}.onlyoffice;
-        onlyoffice = self.nixosConfigurations.onlyoffice.config.microvm.declaredRunner;
+        default = self.packages.${system}.godot;
+        godot = self.nixosConfigurations.godot.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
-        onlyoffice = nixpkgs.lib.nixosSystem {
+        godot = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
@@ -37,7 +37,7 @@
             (import ../common-config.nix {
               inherit lib;
               inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAd0i0fi7JB5RqYggf9rYsiY5gqXxBUCaqTCBF9ozhSI onlyoffice-vm";
+              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhv6q3siBUASk16LN8tCa2nPUp4g2isRuwo1ndDPz7g godot-vm";
             })
             (import ../yazi-config.nix { inherit pkgs; })
             (
@@ -46,11 +46,10 @@
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
               in
               {
-                networking.hostName = "onlyoffice-vm";
+                networking.hostName = "godot-vm";
 
                 microvm = {
                   registerClosure = false;
-                  writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "qemu";
                   optimize.enable = false;
                   qemu.extraArgs = [
@@ -77,12 +76,7 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 1000;
-                    }
-                    {
-                      image = "nix-store-overlay.img";
-                      mountPoint = config.microvm.writableStoreOverlay;
-                      size = 2048;
+                      size = 20000;
                     }
                   ];
                   shares = [
@@ -93,8 +87,58 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  mem = 6000;
+                  devices = [
+                    {
+                      bus = "pci";
+                      path = "0000:02:00.0";
+                    }
+                    {
+                      bus = "pci";
+                      path = "0000:02:00.1";
+                    }
+                  ];
+                  mem = 6144;
                   vcpu = 6;
+                };
+
+                services.qemuGuest.enable = true;
+
+                # Back to UEFI
+                boot.loader.systemd-boot.enable = true;
+                boot.loader.efi.canTouchEfiVariables = true;
+
+                # Don't use legacy GRUB in the image
+                boot.loader.grub.enable = lib.mkForce false;
+
+                # To fix first startup bug
+                boot.kernelParams = [
+                  "vfio-pci.disable_idle_d3=1"
+                  "nvidia.NVreg_EnableGpuFirmware=0"
+                ];
+                boot.extraModprobeConfig = ''
+                  options vfio-pci disable_idle_d3=1
+                '';
+
+                boot.blacklistedKernelModules = [ "nouveau" ];
+
+                hardware.graphics = {
+                  enable = true;
+                  enable32Bit = true;
+                };
+
+                services.xserver.videoDrivers = [ "nvidia" ];
+
+                hardware.nvidia = {
+                  modesetting.enable = true;
+
+                  open = true;
+                  # forceFullCompositionPipeline = true;
+                  package = config.boot.kernelPackages.nvidiaPackages.stable;
+                  prime.offload.enable = false;
+                  prime.sync.enable = false;
+                  nvidiaSettings = true;
+                  powerManagement.enable = false;
+                  powerManagement.finegrained = false;
                 };
                 services.getty.autologinUser = "user";
 
@@ -122,6 +166,10 @@
                   "L+ /home/user/.config/hypr/hyprland.conf - - - - /etc/hyprland.conf"
                 ];
 
+                # for static linked binaries in nvim
+                programs.nix-ld.enable = true;
+                programs.nix-ld.libraries = with pkgs; [ icu ];
+
                 programs.neovim = {
                   enable = true;
                   defaultEditor = true;
@@ -133,9 +181,9 @@
                   with pkgs;
                   [
                     xdg-utils
-                    dconf # to fix onlyoffice errors
                     kitty
-                    onlyoffice-desktopeditors
+                    lazygit
+                    godot
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
                   ++ defaultPkgs;

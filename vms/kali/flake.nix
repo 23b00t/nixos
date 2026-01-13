@@ -47,9 +47,7 @@
                 networking.hostName = "kali-vm";
 
                 microvm = {
-
                   registerClosure = false;
-                  writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
                   optimize.enable = false;
                   volumes = [
@@ -62,11 +60,6 @@
                       mountPoint = "/var/log";
                       image = "log.img";
                       size = 1028;
-                    }
-                    {
-                      image = "nix-store-overlay.img";
-                      mountPoint = config.microvm.writableStoreOverlay;
-                      size = 2048;
                     }
                   ];
                   shares = [

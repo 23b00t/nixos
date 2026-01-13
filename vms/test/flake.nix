@@ -45,7 +45,6 @@
 
                 microvm = {
                   registerClosure = false;
-
                   writableStoreOverlay = "/nix/.rw-store";
                   # hypervisor = "cloud-hypervisor";
                   hypervisor = "qemu";

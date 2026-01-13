@@ -54,8 +54,6 @@
 
                 microvm = {
                   registerClosure = false;
-
-                  writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "cloud-hypervisor";
                   volumes = [
                     {
@@ -64,35 +62,35 @@
                       size = 80000;
                     }
                     {
+                      mountPoint = "/";
+                      image = "root.img";
+                      size = 30000;
+                    }
+                    {
                       mountPoint = "/var/log";
                       image = "log.img";
                       size = 2048;
                     }
-                    {
-                      image = "nix-store-overlay.img";
-                      mountPoint = config.microvm.writableStoreOverlay;
-                      size = 20000;
-                    }
                   ];
                   shares = [
-                    {
-                      proto = "virtiofs";
-                      tag = "ro-store";
-                      source = "/nix/store";
-                      mountPoint = "/nix/.ro-store";
-                    }
+                    # {
+                    #   proto = "virtiofs";
+                    #   tag = "ro-store";
+                    #   source = "/nix/store";
+                    #   mountPoint = "/nix/.ro-store";
+                    # }
                     {
                       proto = "virtiofs";
                       tag = "host-home";
                       source = "/home/nx/nixos-config";
                       mountPoint = "/mnt/host";
                     }
-                    {
-                      proto = "virtiofs";
-                      tag = "host-code";
-                      source = "/home/nx/code";
-                      mountPoint = "/mnt/host-code";
-                    }
+                    # {
+                    #   proto = "virtiofs";
+                    #   tag = "host-code";
+                    #   source = "/home/nx/code";
+                    #   mountPoint = "/mnt/host-code";
+                    # }
                   ];
                   mem = 8192;
                   vcpu = 6;

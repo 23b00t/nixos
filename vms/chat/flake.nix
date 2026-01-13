@@ -73,7 +73,6 @@
 
                 microvm = {
                   registerClosure = false;
-                  writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "qemu";
                   optimize.enable = false;
                   # qemu.machine = "q35";
@@ -101,11 +100,6 @@
                       mountPoint = "/var/lib/flatpak";
                       image = "flatpak.img";
                       size = 6000;
-                    }
-                    {
-                      image = "nix-store-overlay.img";
-                      mountPoint = config.microvm.writableStoreOverlay;
-                      size = 2048;
                     }
                   ];
                   shares = [
