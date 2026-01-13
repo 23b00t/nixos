@@ -38,7 +38,7 @@
           kb_variant = altgr-intl
           kb_options = grp:alt_shift_toggle
         }
-        exec-once = ~/nixos-config/home/set-wallpapers.sh
+        # exec-once = ~/nixos-config/home/set-wallpapers.sh
       '';
 
       keybindings = {

@@ -126,3 +126,7 @@ mangoapp ist problematisch
  ~#@❯ ln -s /home/nx/nixos-config/home/windowrules.conf /home/nx/.local/share/hypr/windowrules.conf
  ~#@❯ rm windowrules.conf
  ~#@❯ ln -s /home/nx/nixos-config/home/windowrules.conf /home/nx/.config/hypr/windowrules.conf
+
+## Misc
+
+- Check value of option: e.g. sudo nixos-option home-manager.users.nx.xdg.enable

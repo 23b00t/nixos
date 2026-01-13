@@ -41,31 +41,9 @@
                 microvm = {
                   registerClosure = false;
 
-                  writableStoreOverlay = "/nix/.rw-store";
                   hypervisor = "qemu";
-                  # qemu.machine = "q35";
                   optimize.enable = false;
                   qemu.extraArgs = [
-                    # "-nodefaults"
-                    # "-vga"
-                    # "none"
-                    # # QEMU XHCI USB3-Controller
-                    # "-device"
-                    # "qemu-xhci,id=usb1"
-
-                    # # Maus
-                    # "-device"
-                    # "usb-host,bus=usb1.0,port=1,vendorid=0x093a,productid=0x2533"
-                    # # Keyboard (Atreus)
-                    # "-device"
-                    # "usb-host,bus=usb1.0,port=2,vendorid=0x1209,productid=0x2303"
-                    # # AX211 Bluetooth
-                    # "-device"
-                    # "usb-host,bus=usb1.0,port=3,vendorid=0x8087,productid=0x0033"
-                    # "-device"
-                    # "vfio-pci,host=0000:02:00.0,multifunction=on"
-                    # "-device"
-                    # "vfio-pci,host=0000:02:00.1"
                     "-smp"
                     "8,sockets=1,cores=8,threads=1"
                     "-mem-prealloc"
@@ -75,11 +53,6 @@
                       mountPoint = "/home/user";
                       image = "home.img";
                       size = 220000;
-                    }
-                    {
-                      image = "nix-store-overlay.img";
-                      mountPoint = config.microvm.writableStoreOverlay;
-                      size = 2048;
                     }
                   ];
                   shares = [
@@ -128,16 +101,18 @@
 
                 # Don't use legacy GRUB in the image
                 boot.loader.grub.enable = lib.mkForce false;
+                # services.power-profiles-daemon.enable = true;
+                # powerManagement.cpuFreqGovernor = "performance";
 
-                # services.xserver.enable = false;
+                # To fix first startup bug
+                boot.kernelParams = [
+                  "vfio-pci.disable_idle_d3=1"
+                  "nvidia.NVreg_EnableGpuFirmware=0"
+                ];
+                boot.extraModprobeConfig = ''
+                  options vfio-pci disable_idle_d3=1
+                '';
 
-                # boot.kernelModules = [
-                #   "nvidia"
-                #   "nvidia_uvm"
-                #   "nvidia_modeset"
-                #   "nvidia_drm"
-                #   "uinput"
-                # ];
                 boot.blacklistedKernelModules = [ "nouveau" ];
 
                 hardware.graphics = {
@@ -151,7 +126,7 @@
                   modesetting.enable = true;
 
                   open = true;
-
+                  # forceFullCompositionPipeline = true;
                   package = config.boot.kernelPackages.nvidiaPackages.stable;
                   prime.offload.enable = false;
                   prime.sync.enable = false;
@@ -223,22 +198,7 @@
                         -pipewire-dmabuf
                         -tenfoot
                     )
-                    mangoConfig=(
-                        gpu_temp
-                        ram
-                        vram
-                    )
-                    mangoVars=(
-                        MANGOHUD=1
-                        MANGOHUD_CONFIG="$(IFS=,; echo "''${mangoConfig[*]}")"
-                    )
-
-                    export "''${mangoVars[@]}"
                     exec dbus-run-session -- gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
-
-                    # exec dbus-run-session -- gamescope --adaptive-sync --mangoapp --rt --steam -- steam -tenfoot
-                    # exec dbus-run-session -- gamescope --steam -- steam -tenfoot
-                    # exec gamescope --adaptive-sync --mangoapp --rt --steam -- steam -tenfoot
                   '';
                 };
 
@@ -251,55 +211,56 @@
                   "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
                 ];
 
-                programs.nix-ld.enable = true;
-                programs.nix-ld.libraries = with pkgs; [
-                  stdenv.cc.cc # libstdc++.so, libgcc_s.so, libc.so, etc.
-                  zlib # Komprimierung
-                  icu # Unicode/Internationale Zeichen - wie von dir genannt
-                  expat # XML-Parsing (Steam selbst, Proton, Wine, viele Launcher)
-                  openssl # OpenSSL (TLS/SSL)
-                  curl # (manchmal für Netzwerk-Downloads)
-                  pulseaudio # für Audio in vielen Games/Proton
-                  alsa-lib # für direkten ALSA-Support
-                  dbus # für Steam-GUI, Overlay, Controller, Proton
-
-                  mesa # libGL, libEGL, Mesa-GL-Implementierungen
-                  libglvnd # GL/Vulkan-Dispatch (klüger als einzelne libGL)
-                  vulkan-loader # libvulkan.so Loader
-                  vulkan-headers # oft von Spielen benötigt (Header werden von Binär-Dists mitgeladen)
-
-                  libvorbis # viele Spiele verwenden OGG/Opus-Audio
-                  libogg
-                  libopus
-
-                  libpng # viele GUIs/Games/Tools für PNG-Support
-                  libjpeg
-                  fontconfig # Fonts/DPI/Fallback etc.
-                  freetype # Spiele ohne fontconfig
-                  libuuid # IDs, oft bei Games & Launcher im Backend
-                  libxcb # X11 (für Fenstermodus, Overlay, XWayland)
-                  xorg.libX11
-                  xorg.libXext
-                  xorg.libXrandr
-                  xorg.libXcursor
-                  xorg.libXi
-                  xorg.libXtst
-                  xorg.libXinerama
-                  xorg.libXScrnSaver
-
-                  glib # GObject/GTK-Basics
-                  gtk3
-                ];
+                # programs.nix-ld.enable = true;
+                # programs.nix-ld.libraries = with pkgs; [
+                #   stdenv.cc.cc # libstdc++.so, libgcc_s.so, libc.so, etc.
+                #   zlib # Komprimierung
+                #   icu # Unicode/Internationale Zeichen - wie von dir genannt
+                #   expat # XML-Parsing (Steam selbst, Proton, Wine, viele Launcher)
+                #   openssl # OpenSSL (TLS/SSL)
+                #   curl # (manchmal für Netzwerk-Downloads)
+                #   pulseaudio # für Audio in vielen Games/Proton
+                #   alsa-lib # für direkten ALSA-Support
+                #   dbus # für Steam-GUI, Overlay, Controller, Proton
+                #
+                #   mesa # libGL, libEGL, Mesa-GL-Implementierungen
+                #   libglvnd # GL/Vulkan-Dispatch (klüger als einzelne libGL)
+                #   vulkan-loader # libvulkan.so Loader
+                #   vulkan-headers # oft von Spielen benötigt (Header werden von Binär-Dists mitgeladen)
+                #
+                #   libvorbis # viele Spiele verwenden OGG/Opus-Audio
+                #   libogg
+                #   libopus
+                #
+                #   libpng # viele GUIs/Games/Tools für PNG-Support
+                #   libjpeg
+                #   fontconfig # Fonts/DPI/Fallback etc.
+                #   freetype # Spiele ohne fontconfig
+                #   libuuid # IDs, oft bei Games & Launcher im Backend
+                #   libxcb # X11 (für Fenstermodus, Overlay, XWayland)
+                #   xorg.libX11
+                #   xorg.libXext
+                #   xorg.libXrandr
+                #   xorg.libXcursor
+                #   xorg.libXi
+                #   xorg.libXtst
+                #   xorg.libXinerama
+                #   xorg.libXScrnSaver
+                #
+                #   glib # GObject/GTK-Basics
+                #   gtk3
+                # ];
                 environment.systemPackages = with pkgs; [
                   mangohud
                   pciutils
                   dbus
                   vim
-                  mesa
-                  mesa-demos # für glxinfo, glxgears
-                  vulkan-tools # für vulkaninfo
-                  vulkan-loader
-                  vulkan-validation-layers
+                  btop
+                  # mesa
+                  # mesa-demos # für glxinfo, glxgears
+                  # vulkan-tools # für vulkaninfo
+                  # vulkan-loader
+                  # vulkan-validation-layers
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ];
                 services.dbus.enable = true;
@@ -310,19 +271,20 @@
                 };
 
                 services.upower.enable = true;
-                time.timeZone = "Europe/Berlin";
-                i18n.defaultLocale = "en_US.UTF-8";
-                i18n.extraLocaleSettings = {
-                  LC_TIME = "de_DE.UTF-8";
-                  LC_MONETARY = "de_DE.UTF-8";
-                  LC_NUMERIC = "de_DE.UTF-8";
-                  LC_MEASUREMENT = "de_DE.UTF-8";
-                  LC_PAPER = "de_DE.UTF-8";
-                  LC_ADDRESS = "de_DE.UTF-8";
-                  LC_TELEPHONE = "de_DE.UTF-8";
-                  LC_NAME = "de_DE.UTF-8";
-                  LC_IDENTIFICATION = "de_DE.UTF-8";
-                };
+
+                # time.timeZone = "Europe/Berlin";
+                # i18n.defaultLocale = "en_US.UTF-8";
+                # i18n.extraLocaleSettings = {
+                #   LC_TIME = "de_DE.UTF-8";
+                #   LC_MONETARY = "de_DE.UTF-8";
+                #   LC_NUMERIC = "de_DE.UTF-8";
+                #   LC_MEASUREMENT = "de_DE.UTF-8";
+                #   LC_PAPER = "de_DE.UTF-8";
+                #   LC_ADDRESS = "de_DE.UTF-8";
+                #   LC_TELEPHONE = "de_DE.UTF-8";
+                #   LC_NAME = "de_DE.UTF-8";
+                #   LC_IDENTIFICATION = "de_DE.UTF-8";
+                # };
 
                 services.openssh = {
                   enable = true;
@@ -381,6 +343,7 @@
                     };
                   };
                 };
+
                 services.pulseaudio.enable = false;
                 security.rtkit.enable = true;
                 services.pipewire = {
@@ -394,9 +357,6 @@
                   # Solves bug with hosts xterm-kitty handed to the vms
                   TERM = "xterm-256color";
                 };
-                # environment.variables = {
-                #   PULSE_SERVER = "tcp:10.0.0.254:4713";
-                # };
 
                 system.stateVersion = "25.05";
               }
