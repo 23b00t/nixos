@@ -1,7 +1,7 @@
 {
   # Use: remote-viewer spice://127.0.0.1:5930 to connect to hyprland
   # nix shell "nixpkgs#virt-viewer"
-  description = "godot MicroVM";
+  description = "Godot MicroVM";
 
   inputs = {
     microvm = {
@@ -69,6 +69,10 @@
                     "spicevmc,id=spicechannel0,name=vdagent"
                     "-device"
                     "virtserialport,chardev=spicechannel0,name=com.redhat.spice.0"
+                    "-device"
+                    "ich9-intel-hda"
+                    "-device"
+                    "hda-duplex"
                     "-spice"
                     "port=5930,addr=127.0.0.1,disable-ticketing=on,image-compression=off,jpeg-wan-compression=never,zlib-glz-wan-compression=never"
                   ];
@@ -162,10 +166,6 @@
 
                 environment.etc."hyprland.conf".source = ./hypr.conf;
 
-                systemd.tmpfiles.rules = [
-                  "L+ /home/user/.config/hypr/hyprland.conf - - - - /etc/hyprland.conf"
-                ];
-
                 # for static linked binaries in nvim
                 programs.nix-ld.enable = true;
                 programs.nix-ld.libraries = with pkgs; [ icu ];
@@ -182,11 +182,141 @@
                   [
                     xdg-utils
                     kitty
-                    lazygit
                     godot
+
+                    gnupg
+                    pinentry-curses
+                    gh
+                    github-copilot-cli
+                    openssl
+
+                    watchexec
+                    lua-language-server
+                    lua51Packages.lua
+                    lua51Packages.luarocks
+                    tree-sitter
+                    vectorcode
+                    nodejs
+                    nodePackages.npm
+                    watchman
+                    icu
+
+                    zellij
+                    antidote
+                    ripgrep
+                    fzf
+                    oh-my-posh
+                    eza # A modern replacement for ‘ls’
+                    zoxide
+
+                    (writeShellScriptBin "lazygit" ''
+                      export GPG_TTY=$(tty)
+                      ${gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
+                      exec ${lazygit}/bin/lazygit "$@"
+                    '')
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
                   ++ defaultPkgs;
+
+                users.defaultUserShell = pkgs.zsh;
+                users.users.user.shell = pkgs.zsh;
+
+                programs.zsh = {
+                  enable = true;
+                  enableCompletion = true;
+                  autosuggestions.enable = true;
+                  syntaxHighlighting.enable = true;
+
+                  shellAliases = {
+                    ll = "ls -l";
+                    la = "ls -la";
+                    sc = "systemctl";
+                    n = "nvim";
+                  };
+
+                  histSize = 10000;
+                  histFile = "$HOME/.zsh_history";
+
+                  shellInit = ''
+                    if [[ $- != *i* ]]; then
+                      return
+                    fi
+                    export HISTIGNORE="rm *:cp *"
+                    setopt HIST_IGNORE_ALL_DUPS
+                    export GPG_TTY=$(tty)
+
+                    # Use antidote plugin manager
+                    export ANTIDOTE_HOME="$HOME/.cache/antidote"
+                    mkdir -p "$ANTIDOTE_HOME"
+                    source ${pkgs.antidote}/share/antidote/antidote.zsh
+
+                    antidote bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.zsh
+                    antidote load
+
+                    if command -v oh-my-posh >/dev/null 2>&1; then
+                      eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/montys.omp.json")"
+                    fi
+                  '';
+                };
+
+                environment.etc."zsh_plugins.txt".text = ''
+                  zsh-users/zsh-autosuggestions
+                  zap-zsh/supercharge
+                  zsh-users/zsh-syntax-highlighting
+                  atoftegaard-git/zsh-omz-autocomplete
+                  MichaelAquilina/zsh-you-should-use
+                  zap-zsh/magic-enter
+                  chivalryq/git-alias
+                  zap-zsh/vim
+                  zap-zsh/sudo
+                  wintermi/zsh-oh-my-posh
+                '';
+
+                environment.etc."gpg-agent.conf".text = ''
+                  pinentry-program /run/current-system/sw/bin/pinentry-tty
+                '';
+                environment.etc."zellij".source = ./zellij;
+                systemd.tmpfiles.rules = [
+                  # Symlink /etc/zshrc nach /home/user/.zshrc, falls nicht vorhanden
+                  "L+ /home/user/.zshrc - - - - /etc/zshrc"
+                  "L+ /home/user/.zsh_plugins.txt - - - - /etc/zsh_plugins.txt"
+                  "L+ /home/user/.gnupg/gpg-agent.conf - - - - /etc/gpg-agent.conf"
+                  # zellij config
+                  "d /home/user/.config/zellij 0755 user user -"
+                  "L+ /home/user/.config/zellij/config.kdl - - - - /etc/zellij/config.kdl"
+                  "L+ /home/user/.config/zellij/layouts - - - - /etc/zellij/layouts"
+                  "L+ /home/user/.config/zellij/plugins - - - - /etc/zellij/plugins"
+                  # hyprland config
+                  "L+ /home/user/.config/hypr/hyprland.conf - - - - /etc/hyprland.conf"
+                ];
+
+                # git
+                programs.git = {
+                  enable = true;
+                  config = {
+                    user = {
+                      name = "Daniel Kipp";
+                      email = "daniel.kipp@gmail.com";
+                    };
+                    help.autocorrect = 1;
+                    push.default = "simple";
+                    pull.rebase = false;
+                    "branch \"main\"".mergeoptions = "--no-edit";
+                    init.defaultBranch = "main";
+                    gpg.program = "gpg";
+                    commit.gpgsign = true;
+                    user.signingkey = "937A32679620DC68";
+                  };
+                };
+
+                services.pulseaudio.enable = false;
+                security.rtkit.enable = true;
+                services.pipewire = {
+                  enable = true;
+                  alsa.enable = true;
+                  alsa.support32Bit = true;
+                  pulse.enable = true;
+                };
 
                 system.stateVersion = "25.05";
               }

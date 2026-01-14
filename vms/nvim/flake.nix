@@ -62,35 +62,29 @@
                       size = 80000;
                     }
                     {
-                      mountPoint = "/";
-                      image = "root.img";
-                      size = 30000;
-                    }
-                    {
                       mountPoint = "/var/log";
                       image = "log.img";
                       size = 2048;
                     }
+                    {
+                      mountPoint = "/mnt/user-store";
+                      image = "store.img";
+                      size = 40000;
+                    }
                   ];
                   shares = [
-                    # {
-                    #   proto = "virtiofs";
-                    #   tag = "ro-store";
-                    #   source = "/nix/store";
-                    #   mountPoint = "/nix/.ro-store";
-                    # }
                     {
                       proto = "virtiofs";
                       tag = "host-home";
                       source = "/home/nx/nixos-config";
                       mountPoint = "/mnt/host";
                     }
-                    # {
-                    #   proto = "virtiofs";
-                    #   tag = "host-code";
-                    #   source = "/home/nx/code";
-                    #   mountPoint = "/mnt/host-code";
-                    # }
+                    {
+                      proto = "virtiofs";
+                      tag = "ro-store";
+                      source = "/nix/store";
+                      mountPoint = "/nix/.ro-store";
+                    }
                   ];
                   mem = 8192;
                   vcpu = 6;
@@ -230,33 +224,43 @@
                   '';
                 };
 
-                environment.etc."zsh_plugins.txt".text = ''
-                  zsh-users/zsh-autosuggestions
-                  zap-zsh/supercharge
-                  zsh-users/zsh-syntax-highlighting
-                  atoftegaard-git/zsh-omz-autocomplete
-                  MichaelAquilina/zsh-you-should-use
-                  zap-zsh/magic-enter
-                  chivalryq/git-alias
-                  zap-zsh/vim
-                  zap-zsh/sudo
-                  wintermi/zsh-oh-my-posh
-                '';
+                environment.etc = {
+                  "zsh_plugins.txt".text = ''
+                    zsh-users/zsh-autosuggestions
+                    zap-zsh/supercharge
+                    zsh-users/zsh-syntax-highlighting
+                    atoftegaard-git/zsh-omz-autocomplete
+                    MichaelAquilina/zsh-you-should-use
+                    zap-zsh/magic-enter
+                    chivalryq/git-alias
+                    zap-zsh/vim
+                    zap-zsh/sudo
+                    wintermi/zsh-oh-my-posh
+                  '';
 
-                environment.etc."gpg-agent.conf".text = ''
-                  pinentry-program /run/current-system/sw/bin/pinentry-tty
-                '';
-                environment.etc."zellij".source = ./zellij;
+                  "gpg-agent.conf".text = ''
+                    pinentry-program /run/current-system/sw/bin/pinentry-tty
+                  '';
+
+                  "zellij".source = ./zellij;
+
+                  "nix.conf".text = ''
+                    store = /mnt/user-store
+                  '';
+                };
                 systemd.tmpfiles.rules = [
                   # Symlink /etc/zshrc nach /home/user/.zshrc, falls nicht vorhanden
                   "L+ /home/user/.zshrc - - - - /etc/zshrc"
                   "L+ /home/user/.zsh_plugins.txt - - - - /etc/zsh_plugins.txt"
                   "L+ /home/user/.gnupg/gpg-agent.conf - - - - /etc/gpg-agent.conf"
                   # zellij config
-                  "d /home/user/.config/zellij 0755 user user -"
+                  "d /home/user/.config/zellij 0755 user users -"
                   "L+ /home/user/.config/zellij/config.kdl - - - - /etc/zellij/config.kdl"
                   "L+ /home/user/.config/zellij/layouts - - - - /etc/zellij/layouts"
                   "L+ /home/user/.config/zellij/plugins - - - - /etc/zellij/plugins"
+                  # alternative user store
+                  "d /home/user/.config/nix 0755 user users -"
+                  "L+ /home/user/.config/nix/nix.conf - - - - /etc/nix.conf"
                 ];
 
                 # git
@@ -312,10 +316,23 @@
                   wantedBy = [ "default.target" ];
                 };
 
-                nix.settings.trusted-users = [
-                  "root"
-                  "user"
-                ];
+                nix = {
+                  settings = {
+                    substituters = [
+                      "file:///nix/store"
+                      "https://cache.nixos.org"
+                      "https://microvm.cachix.org"
+                    ];
+                    trusted-public-keys = [
+                      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+                      "microvm.cachix.org-1:oXnBs9THCoQI4PiXLm2ODWyptDIrQ2NYjmJfUfpGqMI="
+                    ];
+                    trusted-users = [
+                      "root"
+                      "user"
+                    ];
+                  };
+                };
 
                 system.stateVersion = "25.05";
               }
