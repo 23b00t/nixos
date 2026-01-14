@@ -68,6 +68,10 @@ let
         IP="10.0.0.12"
         FULL_NAME="steam"
         ;;
+      "godot"|"g")
+        IP="10.0.0.13"
+        FULL_NAME="godot"
+        ;;
       *)
         echo "Error: Unknown VM '$NAME'"
         exit 1

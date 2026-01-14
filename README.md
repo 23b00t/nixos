@@ -18,6 +18,8 @@
 - .9 office (no net, no autostart)
 - .10 vault (no net, no autostart)
 - .11 irc
+- .12 steam
+- .13 godot
 
 - .254 host
 

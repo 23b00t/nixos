@@ -31,6 +31,7 @@
     # test-vm.url = "path:./vms/test";
     # onlyoffice-vm.url = "path:./vms/onlyoffice";
     steam-vm.url = "path:./vms/steam";
+    godot-vm.url = "path:./vms/godot";
 
     # Hydenix
     hydenix = {

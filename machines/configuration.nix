@@ -31,7 +31,7 @@ let
     "10de:2d19" # NVIDIA RTX 5060 Max-Q (VGA)
     "10de:22eb" # NVIDIA RTX 5060 Audio
   ];
-  maxVMs = 12;
+  maxVMs = 14;
 in
 {
   boot = {
@@ -455,6 +455,10 @@ in
     # };
     steam = {
       flake = inputs.steam-vm;
+      autostart = false;
+    };
+    godot = {
+      flake = inputs.godot-vm;
       autostart = false;
     };
   };

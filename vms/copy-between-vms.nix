@@ -37,6 +37,7 @@ pkgs.writeShellScriptBin "cp-vm" ''
   vault 10.0.0.10
   irc 10.0.0.11
   steam 10.0.0.12
+  godot 10.0.0.13
   '
 
   usage() {
