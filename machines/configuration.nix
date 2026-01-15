@@ -275,6 +275,7 @@ in
     shadow
     wprs
     remmina
+    virt-viewer
 
     socktop-bundle.socktop
 
@@ -512,6 +513,7 @@ in
       "10.0.0.7/32"
       "10.0.0.8/32"
       "10.0.0.12/32"
+      "10.0.0.13/32"
     ];
     # externalInterface = "wlo1";
   };

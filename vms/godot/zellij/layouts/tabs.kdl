@@ -15,6 +15,9 @@ layout {
     tab name="code" cwd="~/code/" {
         pane
     }
+    tab name="btop" cwd="~/" {
+        pane command="btop"
+    }
     tab name="yazi" cwd="~/" {
         pane command="yazi"
     }

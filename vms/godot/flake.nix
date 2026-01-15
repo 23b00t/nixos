@@ -70,10 +70,10 @@
                     "spicevmc,id=spicechannel0,name=vdagent"
                     "-device"
                     "virtserialport,chardev=spicechannel0,name=com.redhat.spice.0"
-                    "-device"
-                    "ich9-intel-hda"
-                    "-device"
-                    "hda-duplex"
+                    # "-device"
+                    # "ich9-intel-hda"
+                    # "-device"
+                    # "hda-duplex"
                     "-spice"
                     "port=5930,addr=127.0.0.1,disable-ticketing=on,image-compression=off,jpeg-wan-compression=never,zlib-glz-wan-compression=never"
                   ];
@@ -102,7 +102,7 @@
                       path = "0000:02:00.1";
                     }
                   ];
-                  mem = 6144;
+                  mem = 16384;
                   vcpu = 6;
                 };
 
@@ -191,10 +191,24 @@
                     github-copilot-cli
                     openssl
 
+                    python3
+                    fd
+                    zip
+                    xz
+                    unzip
+                    p7zip
+
+                    gcc
+                    gnumake
+                    rustc
+                    cargo
+                    rust-analyzer
                     watchexec
                     lua-language-server
                     lua51Packages.lua
                     lua51Packages.luarocks
+                    nixfmt
+                    statix
                     tree-sitter
                     vectorcode
                     nodejs
@@ -209,12 +223,17 @@
                     oh-my-posh
                     eza # A modern replacement for ‘ls’
                     zoxide
+                    ddate
+                    cowsay
 
                     (writeShellScriptBin "lazygit" ''
                       export GPG_TTY=$(tty)
                       ${gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
                       exec ${lazygit}/bin/lazygit "$@"
                     '')
+
+                    firefox
+
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
                   ++ defaultPkgs;
