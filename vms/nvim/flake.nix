@@ -55,6 +55,8 @@
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
+                  writableStoreOverlay = "/nix/.rw-store";
+                  # storeOnDisk = false;
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -66,10 +68,21 @@
                       image = "log.img";
                       size = 2048;
                     }
+                    # {
+                    #   mountPoint = "/nix/store";
+                    #   image = "nix-store.img";
+                    #   label = "nix-store";
+                    #   size = 60000;
+                    # }
+                    # {
+                    #   mountPoint = "/mnt/user-store";
+                    #   image = "store.img";
+                    #   size = 40000;
+                    # }
                     {
-                      mountPoint = "/mnt/user-store";
-                      image = "store.img";
-                      size = 40000;
+                      image = "nix-store-overlay.img";
+                      mountPoint = config.microvm.writableStoreOverlay;
+                      size = 20000;
                     }
                   ];
                   shares = [
@@ -244,9 +257,9 @@
 
                   "zellij".source = ./zellij;
 
-                  "nix.conf".text = ''
-                    store = /mnt/user-store
-                  '';
+                  # "nix.conf".text = ''
+                  #   store = /mnt/user-store
+                  # '';
                 };
                 systemd.tmpfiles.rules = [
                   # Symlink /etc/zshrc nach /home/user/.zshrc, falls nicht vorhanden
@@ -259,8 +272,8 @@
                   "L+ /home/user/.config/zellij/layouts - - - - /etc/zellij/layouts"
                   "L+ /home/user/.config/zellij/plugins - - - - /etc/zellij/plugins"
                   # alternative user store
-                  "d /home/user/.config/nix 0755 user users -"
-                  "L+ /home/user/.config/nix/nix.conf - - - - /etc/nix.conf"
+                  # "d /home/user/.config/nix 0755 user users -"
+                  # "L+ /home/user/.config/nix/nix.conf - - - - /etc/nix.conf"
                 ];
 
                 # git
@@ -319,7 +332,6 @@
                 nix = {
                   settings = {
                     substituters = [
-                      "file:///nix/store"
                       "https://cache.nixos.org"
                       "https://microvm.cachix.org"
                     ];

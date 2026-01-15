@@ -47,6 +47,7 @@
               in
               {
                 networking.hostName = "godot-vm";
+                nixpkgs.config.allowUnfree = true;
 
                 microvm = {
                   registerClosure = false;
