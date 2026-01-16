@@ -70,6 +70,11 @@
     firefox.enable = false;
   };
 
+  home.file.".local/share/waybar/layouts/khing.jsonc" = {
+    source = ./resources/patched-khing.jsonc;
+    force = true;
+  };
+
   # home.file.".config/waybar/user-style.css".text = ''
   #   * {
   #     font-size: 14px;

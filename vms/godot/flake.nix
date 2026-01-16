@@ -71,9 +71,7 @@
                     "-device"
                     "virtserialport,chardev=spicechannel0,name=com.redhat.spice.0"
                     # "-device"
-                    # "ich9-intel-hda"
-                    # "-device"
-                    # "hda-duplex"
+                    # "AC97"
                     "-spice"
                     "port=5930,addr=127.0.0.1,disable-ticketing=on,image-compression=off,jpeg-wan-compression=never,zlib-glz-wan-compression=never"
                   ];
