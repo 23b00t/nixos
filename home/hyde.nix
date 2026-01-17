@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 {
   hydenix.hm = {
     enable = true;
@@ -71,9 +71,13 @@
   };
 
   home.file.".local/share/waybar/layouts/khing.jsonc" = {
-    source = ./resources/patched-khing.jsonc;
+    text = "";
     force = true;
   };
+  home.activation.patchWaybarLayout = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    rm -f "$HOME/.local/share/waybar/layouts/khing.jsonc"
+    cp ${./resources/patched-khing.jsonc} "$HOME/.local/share/waybar/layouts/khing.jsonc"
+  '';
 
   # home.file.".config/waybar/user-style.css".text = ''
   #   * {
