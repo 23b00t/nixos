@@ -116,7 +116,6 @@
                   options vfio-pci disable_idle_d3=1
                   options nvidia-drm modeset=1 fbdev=1
                 '';
-                # options nvidia NVreg_EnableGpuFirmware=0
                
                 boot.blacklistedKernelModules = [ "nouveau" ];
 

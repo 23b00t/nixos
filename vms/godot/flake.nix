@@ -116,10 +116,12 @@
                 # To fix first startup bug
                 boot.kernelParams = [
                   "vfio-pci.disable_idle_d3=1"
-                  "nvidia.NVreg_EnableGpuFirmware=0"
+                  "nvidia-drm.modeset=1"
+                  # "nvidia.NVreg_EnableGpuFirmware=0"
                 ];
                 boot.extraModprobeConfig = ''
                   options vfio-pci disable_idle_d3=1
+                  options nvidia-drm modeset=1 fbdev=1
                 '';
 
                 boot.blacklistedKernelModules = [ "nouveau" ];
@@ -221,6 +223,7 @@
                     xdg-utils
                     kitty
                     godot
+                    wl-clipboard
 
                     gnupg
                     pinentry-curses
