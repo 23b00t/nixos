@@ -133,16 +133,16 @@
 
                 hardware.nvidia = {
                   modesetting.enable = true;
-
                   open = true;
-                  # forceFullCompositionPipeline = true;
-                  package = config.boot.kernelPackages.nvidiaPackages.stable;
+
+                  package = config.boot.kernelPackages.nvidiaPackages.beta;
                   prime.offload.enable = false;
                   prime.sync.enable = false;
                   nvidiaSettings = true;
                   powerManagement.enable = false;
                   powerManagement.finegrained = false;
                 };
+
                 services.getty.autologinUser = "user";
 
                 programs.hyprland = {

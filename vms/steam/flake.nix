@@ -1,3 +1,7 @@
+# INFO: Grafic problems solved with the following beta driver:
+# Sun Jan 18 10:25:53 2026
+# +-----------------------------------------------------------------------------------------+
+# | NVIDIA-SMI 590.48.01              Driver Version: 590.48.01      CUDA Version: 13.1     |
 {
   description = "steam MicroVM";
 
@@ -101,19 +105,22 @@
 
                 # Don't use legacy GRUB in the image
                 boot.loader.grub.enable = lib.mkForce false;
-                # services.power-profiles-daemon.enable = true;
-                # powerManagement.cpuFreqGovernor = "performance";
 
                 # To fix first startup bug
                 boot.kernelParams = [
                   "vfio-pci.disable_idle_d3=1"
-                  "nvidia.NVreg_EnableGpuFirmware=0"
+                  "nvidia-drm.modeset=1"
+                  # "nvidia.NVreg_EnableGpuFirmware=0"
                 ];
                 boot.extraModprobeConfig = ''
                   options vfio-pci disable_idle_d3=1
+                  options nvidia-drm modeset=1 fbdev=1
                 '';
-
+                # options nvidia NVreg_EnableGpuFirmware=0
+               
                 boot.blacklistedKernelModules = [ "nouveau" ];
+
+                boot.kernelPackages = pkgs.linuxPackages_zen;
 
                 hardware.graphics = {
                   enable = true;
@@ -124,13 +131,12 @@
 
                 hardware.nvidia = {
                   modesetting.enable = true;
-
                   open = true;
-                  # forceFullCompositionPipeline = true;
-                  package = config.boot.kernelPackages.nvidiaPackages.stable;
+
+                  package = config.boot.kernelPackages.nvidiaPackages.beta;
                   prime.offload.enable = false;
                   prime.sync.enable = false;
-                  nvidiaSettings = false;
+                  nvidiaSettings = true;
                   powerManagement.enable = false;
                   powerManagement.finegrained = false;
                 };
@@ -186,18 +192,73 @@
                     #!/usr/bin/env bash
                     set -xeuo pipefail
 
-                    gamescopeArgs=(
+                    MAXMODE=$(head -1 /sys/class/drm/card0-HDMI-A-1/modes)
+                    if [[ "$MAXMODE" == "1920x1080" ]]; then
+                      DEVICE_TYPE="monitor"
+                    else
+                      DEVICE_TYPE="tv"
+                    fi
+
+                    # Schalte hier die TV-Ausgabe-Modi nach Bedarf:
+                    # TV_MODE=native => volles 4K
+                    # TV_MODE=safe   => etwas kleiner, mit schwarzem Rand (Overscan workaround)
+                    TV_MODE="''${TV_MODE:-safe}"  # native oder safe
+
+                    if [[ "$DEVICE_TYPE" == "monitor" ]]; then
+                      gamescopeArgs=(
                         --adaptive-sync # VRR support
                         # --hdr-enabled
                         --mangoapp # performance overlay
                         --rt
                         --steam
+                        --backend drm
+                        # -W 1920 -H 1080 -w 1920 -h 1080
+                        --immediate-flips
+                        # -r 60
+                        # --xwayland-count 2
                         # --framerate-limit 60
-                    )
+                      )
+                    elif [[ "$TV_MODE" == "safe" ]]; then
+                      # Overscan-freundliche Auflösung (z.B. 3800x2100 ins 4K-Fenster)
+                      gamescopeArgs=(
+                        --adaptive-sync
+                        --hdr-enabled
+                        --mangoapp
+                        --rt
+                        --steam
+                        --backend drm
+                        # -W 3820 -H 2140 -w 3840 -h 2160
+                        # -W 3190 -H 1790 -w 3200 -h 1800
+                        # -W 3180 -H 1780 -w 3840 -h 2160
+                        # -W 2540 -H 1420 -w 2560 -h 1440
+                        -W 2860 -H 1600 -w 2880 -h 1620
+                        --immediate-flips
+                      )
+                    else
+                      # Volles 4K für TV
+                      gamescopeArgs=(
+                        --adaptive-sync
+                        --hdr-enabled
+                        --mangoapp
+                        --rt
+                        --steam
+                        --backend drm
+                        -W 3840 -H 2160 -w 3840 -h 2160
+                        --immediate-flips
+                      )
+                    fi
                     steamArgs=(
-                        -pipewire-dmabuf
-                        -tenfoot
+                      # -pipewire-dmabuf
+                      -steamdeck
+                      -steamos3
                     )
+
+                    export GAMESCOPE_LAYER_FORCE_NO_GAMMA=1
+                    export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
+                    export LIBGL_DRIVERS_PATH=/run/opengl-driver/lib/dri
+                    export __GLX_VENDOR_LIBRARY_NAME=nvidia
+                    export GAMESCOPE_DISABLE_HARDWARE_CURSOR=1
+
                     exec dbus-run-session -- gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
                   '';
                 };
@@ -256,6 +317,8 @@
                   dbus
                   vim
                   btop
+
+                  protonup-rs
                   # mesa
                   # mesa-demos # für glxinfo, glxgears
                   # vulkan-tools # für vulkaninfo

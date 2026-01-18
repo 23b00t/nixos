@@ -27,6 +27,7 @@
       "custom/keybindhint",
       "custom/gamemode",
       "idle_inhibitor",
+      "memory",
     ],
   },
   "group/leaf": {
