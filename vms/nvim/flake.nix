@@ -8,6 +8,9 @@
     url = "github:astro/microvm.nix";
     inputs.nixpkgs.follows = "nixpkgs";
   };
+  inputs.impermanence = {
+    url = "github:nix-community/impermanence";
+  };
 
   outputs =
     {
@@ -32,6 +35,7 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
+            inputs.impermanence.nixosModules.impermanence
             (import ../net-config.nix { inherit lib index mac; })
             (import ../common-config.nix {
               inherit lib;
@@ -55,7 +59,7 @@
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
-                  writableStoreOverlay = "/nix/.rw-store";
+                  # writableStoreOverlay = "/nix/.rw-store";
                   # storeOnDisk = false;
                   volumes = [
                     {
@@ -74,16 +78,16 @@
                     #   label = "nix-store";
                     #   size = 60000;
                     # }
-                    # {
-                    #   mountPoint = "/mnt/user-store";
-                    #   image = "store.img";
-                    #   size = 40000;
-                    # }
                     {
-                      image = "nix-store-overlay.img";
-                      mountPoint = config.microvm.writableStoreOverlay;
-                      size = 20000;
+                      mountPoint = "/persist";
+                      image = "persist.img";
+                      size = 40000;
                     }
+                    # {
+                    #   image = "nix-store-overlay.img";
+                    #   mountPoint = config.microvm.writableStoreOverlay;
+                    #   size = 20000;
+                    # }
                   ];
                   shares = [
                     {
@@ -344,6 +348,12 @@
                       "user"
                     ];
                   };
+                };
+
+                environment.persistence."/persist" = {
+                  directories = [
+                    "/nix"
+                  ];
                 };
 
                 system.stateVersion = "25.05";
