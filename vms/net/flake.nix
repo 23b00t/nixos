@@ -17,30 +17,31 @@
       self,
       nixpkgs,
       microvm,
-      ...
-    }@inputs:
+      zen-browser,
+    }:
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
       index = 5;
       mac = "00:00:00:00:00:05";
-      sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
     in
     {
       packages.${system} = {
         default = self.packages.${system}.net;
         net = self.nixosConfigurations.net.config.microvm.declaredRunner;
       };
-
       nixosConfigurations = {
         net = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            ../net-config.nix
-            ../common-config.nix
-            ../zen-firefox.nix
+            (import ../net-config.nix { inherit lib index mac; })
+            (import ../common-config.nix {
+              inherit lib;
+              inherit pkgs;
+              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
+            })
             (
               { config, pkgs, ... }:
               let
@@ -105,6 +106,7 @@
                 environment.systemPackages = [
                   pkgs.wprs
                   pkgs.xwayland
+                  (import ../zen-firefox.nix { inherit lib pkgs zen-browser; })
                   (import ../copy-between-vms.nix { inherit pkgs; })
                 ]
                 ++ defaultPkgs;
@@ -113,16 +115,6 @@
               }
             )
           ];
-          specialArgs = {
-            inherit
-              inputs
-              lib
-              pkgs
-              index
-              mac
-              sshKey
-              ;
-          };
         };
       };
     };
