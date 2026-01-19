@@ -17,7 +17,6 @@
       self,
       nixpkgs,
       microvm,
-      zen-browser,
       ...
     }@inputs:
     let

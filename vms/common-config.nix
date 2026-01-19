@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sshKey ? null,
+  ...
 }:
 let
   socktop-bundle = import ../pkgs/socktop-bundle.nix {
