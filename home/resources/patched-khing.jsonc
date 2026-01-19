@@ -21,19 +21,16 @@
   "group/pill-in#center": {
     "orientation": "inherit",
     "modules": [
-      "keyboard-state",
+      "memory",
       "clock",
-      "custom/updates",
       "custom/keybindhint",
       "custom/gamemode",
       "idle_inhibitor",
-      "memory",
     ],
   },
   "group/leaf": {
     "orientation": "inherit",
     "modules": [
-      "privacy",
       "backlight",
       "tray",
       "network#bandwidthUpBytes",

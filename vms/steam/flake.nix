@@ -176,14 +176,14 @@
 
                 # tty1 nicht von getty belegen lassen
                 # systemd.services."getty@tty1".enable = false;
-                # environment.loginShellInit = ''
-                #   if [[ "$(tty)" = "/dev/tty1" ]]; then
-                #     mkdir -p "$HOME/.local/state"
-                #     exec > >(tee -a "$HOME/.local/state/steam-autostart.log") 2>&1
-                #     set -x
-                #     exec "$HOME/gs.sh"
-                #   fi
-                # '';
+                environment.loginShellInit = ''
+                  if [[ "$(tty)" = "/dev/tty1" ]]; then
+                    # mkdir -p "$HOME/.local/state"
+                    # exec > >(tee -a "$HOME/.local/state/steam-autostart.log") 2>&1
+                    set -x
+                    exec "$HOME/gs.sh"
+                  fi
+                '';
 
                 environment.etc."gs.sh" = {
                   mode = "0755";
@@ -385,6 +385,39 @@
                       IdentitiesOnly yes
                 '';
 
+# [user@steam-vm:~]$ cat /sys/class/drm/card0-HDMI-A-1/modes
+# 3840x2160
+# 4096x2160
+# 4096x2160
+# 4096x2160
+# 4096x2160
+# 4096x2160
+# 4096x2160
+# 3840x2160
+# 3840x2160
+# 3840x2160
+# 3840x2160
+# 3840x2160
+# 1920x1080
+# 1920x1080
+# 1920x1080
+# 1920x1080
+# 1920x1080
+# 1920x1080
+# 1920x1080
+# 1920x1080
+# 1280x1024
+# 1360x768
+# 1152x864
+# 1280x720
+# 1280x720
+# 1024x768
+# 800x600
+# 720x576
+# 720x480
+# 640x480
+# 640x480
+# 640x480
                 # NOTE: connect controller via ssh:
                 # bluetoothctl
                 # power on

@@ -6,6 +6,10 @@
       url = "github:astro/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    zen-browser = {
+      url = "github:youwen5/zen-browser-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -13,30 +17,31 @@
       self,
       nixpkgs,
       microvm,
-    }:
+      zen-browser,
+      ...
+    }@inputs:
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
       index = 5;
       mac = "00:00:00:00:00:05";
+      sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
     in
     {
       packages.${system} = {
         default = self.packages.${system}.net;
         net = self.nixosConfigurations.net.config.microvm.declaredRunner;
       };
+
       nixosConfigurations = {
         net = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
-            })
+            ../net-config.nix
+            ../common-config.nix
+            ../zen-firefox.nix
             (
               { config, pkgs, ... }:
               let
@@ -109,6 +114,16 @@
               }
             )
           ];
+          specialArgs = {
+            inherit
+              inputs
+              lib
+              pkgs
+              index
+              mac
+              sshKey
+              ;
+          };
         };
       };
     };
