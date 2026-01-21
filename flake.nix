@@ -15,7 +15,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    flatpaks.url = "github:in-a-dil-emma/declarative-flatpak/latest";
+    # flatpaks.url = "github:in-a-dil-emma/declarative-flatpak/latest";
 
     # MicroVMs
     irc-vm.url = "path:./vms/irc";

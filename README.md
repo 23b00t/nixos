@@ -118,7 +118,7 @@ mangoapp ist problematisch
 ## Resize VM images 
 
  ● Um ein .img-Image um 30GB zu vergrößern
-     truncate -s +30G dateiname.img
+     sudo truncate -s +30G dateiname.img
 
  ● Nach dem Vergrößern des .img-Files das Dateisystem innerhalb der VM ebenfalls vergrößern, z.B. mit resize2fs für ext4. Starte die VM, öffne ein Terminal und führe dort (als root) resize2fs /dev/vdX aus, wobei /dev/vdX das gemountete Image ist.
 

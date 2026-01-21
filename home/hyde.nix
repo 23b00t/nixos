@@ -38,7 +38,7 @@
           kb_variant = altgr-intl
           kb_options = grp:alt_shift_toggle
         }
-        # exec-once = ~/nixos-config/home/set-wallpapers.sh
+        exec-once = ~/nixos-config/home/set-wallpapers.sh
       '';
 
       keybindings = {
@@ -46,7 +46,7 @@
         extraConfig = ''
           # bind = SUPER, F, exec, gtk-launch "Firefox Web Browser"
           unbind = SUPER, B
-          bind = SUPER, B, exec, vm-run 5 net firefox
+          bind = SUPER, B, exec, vm-run 5 net zen
           unbind = ,XF86MonBrightnessUp
           unbind = ,XF86MonBrightnessDown
           bindel = ,XF86MonBrightnessUp, exec, brightnessctl -d intel_backlight -e4 -n2 set 5%+

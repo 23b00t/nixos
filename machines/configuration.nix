@@ -156,7 +156,7 @@ in
     inputs.nixos-hardware.nixosModules.common-pc-laptop # Laptops
     inputs.nixos-hardware.nixosModules.common-pc-ssd # SSD storage
     # ../modules/steam-vm-image.nix
-    inputs.flatpaks.nixosModules.default
+    # inputs.flatpaks.nixosModules.default
   ];
 
   # steamVmImage = {
@@ -268,7 +268,7 @@ in
     remmina
     virt-viewer
 
-    flatpak
+    # flatpak
 
     (import ../vms/copy-between-vms.nix { inherit pkgs; })
   ];
@@ -547,7 +547,7 @@ in
     boot = {
       enable = false; # enable boot module
     };
-    gaming.enable = true; # enable gaming module
+    gaming.enable = false; # enable gaming module
     hardware.enable = true; # enable hardware module
     network.enable = true; # enable network module
     nix.enable = true; # enable nix module
@@ -630,20 +630,20 @@ in
   };
 
   # for static linked binaries in nvim
-  programs.nix-ld.enable = true;
-  programs.nix-ld.libraries = with pkgs; [ icu ];
+  # programs.nix-ld.enable = true;
+  # programs.nix-ld.libraries = with pkgs; [ icu ];
 
-  services.flatpak = {
-    enable = true;
-    # flatpakDir = "/home/nx/.local/share/flatpak";
-    remotes = {
-      "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-      "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
-    };
-    packages = [
-      "flathub:app/org.godotengine.Godot/x86_64/stable"
-    ];
-  };
+  # services.flatpak = {
+  #   enable = true;
+  #   # flatpakDir = "/home/nx/.local/share/flatpak";
+  #   remotes = {
+  #     "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+  #     "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
+  #   };
+  #   packages = [
+  #     "flathub:app/org.godotengine.Godot/x86_64/stable"
+  #   ];
+  # };
 
   # Steam VM CPU pinning
   systemd.services."microvm@steam".serviceConfig.CPUAffinity = "0 1 2 3 4 5 6 7 8 9";

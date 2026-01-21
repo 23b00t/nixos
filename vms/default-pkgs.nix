@@ -8,4 +8,11 @@ with pkgs;
   tree
   lsof
   bibata-cursors
+
+  nerd-fonts.droid-sans-mono
+  p7zip
+  jq
+  poppler
+  resvg
+  imagemagick
 ]

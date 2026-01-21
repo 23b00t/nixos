@@ -50,22 +50,6 @@
         "type": "github"
       }
     },
-    "flatpaks_2": {
-      "locked": {
-        "lastModified": 1767354457,
-        "narHash": "sha256-YjDYlQz7sD22mX6V+hYALHUX3glAw5e5sCaCuer7E9w=",
-        "owner": "in-a-dil-emma",
-        "repo": "declarative-flatpak",
-        "rev": "15b3ddc90cfddec062377ff566543e2a52aab363",
-        "type": "github"
-      },
-      "original": {
-        "owner": "in-a-dil-emma",
-        "ref": "latest",
-        "repo": "declarative-flatpak",
-        "type": "github"
-      }
-    },
     "godot-vm": {
       "inputs": {
         "microvm": "microvm_2",
@@ -926,7 +910,6 @@
     "root": {
       "inputs": {
         "chat-vm": "chat-vm",
-        "flatpaks": "flatpaks_2",
         "godot-vm": "godot-vm",
         "home-manager": "home-manager",
         "hydenix": "hydenix",

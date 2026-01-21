@@ -55,7 +55,7 @@
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
-                  # writableStoreOverlay = "/nix/.rw-store";
+                  writableStoreOverlay = "/nix/.rw-store";
                   # storeOnDisk = false;
                   volumes = [
                     {
@@ -74,16 +74,16 @@
                     #   label = "nix-store";
                     #   size = 60000;
                     # }
-                    {
-                      mountPoint = "/mnt/user-store";
-                      image = "store.img";
-                      size = 50000;
-                    }
                     # {
-                    #   image = "nix-store-overlay.img";
-                    #   mountPoint = config.microvm.writableStoreOverlay;
-                    #   size = 20000;
+                    #   mountPoint = "/mnt/user-store";
+                    #   image = "store.img";
+                    #   size = 50000;
                     # }
+                    {
+                      image = "nix-store-overlay.img";
+                      mountPoint = config.microvm.writableStoreOverlay;
+                      size = 40000;
+                    }
                   ];
                   shares = [
                     {
@@ -155,7 +155,7 @@
 
                     postman
                     dbeaver-bin
-                    # devenv
+                    devenv
                     firefox
 
                     wprs
@@ -239,10 +239,10 @@
                     fi
 
                     # Set nix user store
-                    export NIX_STORE_DIR=/mnt/user-store/nix/store
-                    export NIX_STATE_DIR=/mnt/user-store/nix/var/nix
-                    export NIX_PROFILE_DIR=/mnt/user-store/nix/var/nix/profiles
-                    export NIX_LOG_DIR=/mnt/user-store/nix/var/log/nix
+                    # export NIX_STORE_DIR=/mnt/user-store/nix/store
+                    # export NIX_STATE_DIR=/mnt/user-store/nix/var/nix
+                    # export NIX_PROFILE_DIR=/mnt/user-store/nix/var/nix/profiles
+                    # export NIX_LOG_DIR=/mnt/user-store/nix/var/log/nix
 
                     # Countdown shell function
                     countdown() {
@@ -362,6 +362,11 @@
                       "flakes"
                     ];
                   };
+                };
+
+                # For termusic
+                environment.variables = {
+                  PULSE_SERVER = "tcp:localhost:4713";
                 };
 
                 system.stateVersion = "25.05";
