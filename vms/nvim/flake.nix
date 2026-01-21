@@ -55,7 +55,7 @@
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
-                  writableStoreOverlay = "/nix/.rw-store";
+                  # writableStoreOverlay = "/nix/.rw-store";
                   # storeOnDisk = false;
                   volumes = [
                     {
@@ -74,16 +74,16 @@
                     #   label = "nix-store";
                     #   size = 60000;
                     # }
-                    # {
-                    #   mountPoint = "/mnt/user-store";
-                    #   image = "store.img";
-                    #   size = 40000;
-                    # }
                     {
-                      image = "nix-store-overlay.img";
-                      mountPoint = config.microvm.writableStoreOverlay;
-                      size = 20000;
+                      mountPoint = "/mnt/user-store";
+                      image = "store.img";
+                      size = 50000;
                     }
+                    # {
+                    #   image = "nix-store-overlay.img";
+                    #   mountPoint = config.microvm.writableStoreOverlay;
+                    #   size = 20000;
+                    # }
                   ];
                   shares = [
                     {
@@ -100,7 +100,7 @@
                     }
                   ];
                   mem = 8192;
-                  vcpu = 6;
+                  vcpu = 8;
                 };
 
                 environment.systemPackages =
@@ -155,11 +155,14 @@
 
                     postman
                     dbeaver-bin
-                    devenv
+                    # devenv
                     firefox
 
                     wprs
                     xwayland
+
+                    pulseaudio
+                    termdown
 
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
@@ -234,6 +237,17 @@
                     if command -v oh-my-posh >/dev/null 2>&1; then
                       eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/montys.omp.json")"
                     fi
+
+                    # Set nix user store
+                    export NIX_STORE_DIR=/mnt/user-store/nix/store
+                    export NIX_STATE_DIR=/mnt/user-store/nix/var/nix
+                    export NIX_PROFILE_DIR=/mnt/user-store/nix/var/nix/profiles
+                    export NIX_LOG_DIR=/mnt/user-store/nix/var/log/nix
+
+                    # Countdown shell function
+                    countdown() {
+                      termdown "$1" -c 10 && paplay --volume=43000 ~/Music/airhorn.wav
+                    }
                   '';
                 };
 
@@ -342,6 +356,10 @@
                     trusted-users = [
                       "root"
                       "user"
+                    ];
+                    extra-experimental-features = [
+                      "nix-command"
+                      "flakes"
                     ];
                   };
                 };

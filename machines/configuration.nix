@@ -657,7 +657,7 @@ in
   };
 
   # Steam VM CPU pinning
-  systemd.services."microvm@steam".serviceConfig.CPUAffinity = "0 2 4 6 8 10 12 14";
+  systemd.services."microvm@steam".serviceConfig.CPUAffinity = "0 1 2 3 4 5 6 7 8 9";
 
   # System Version - Don't change unless you know what you're doing (helps with system upgrades and compatibility)
   system.stateVersion = "25.05";

@@ -117,7 +117,7 @@
                   #   }
                   # ];
                   mem = 8192;
-                  vcpu = 6;
+                  vcpu = 4;
                 };
 
                 services.xrdp = {

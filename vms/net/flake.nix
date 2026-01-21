@@ -74,8 +74,8 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  mem = 4048;
-                  vcpu = 4;
+                  mem = 6144;
+                  vcpu = 2;
                 };
 
                 systemd.user.services.wprsd = {

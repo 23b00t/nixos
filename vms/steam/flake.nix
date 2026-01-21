@@ -49,7 +49,7 @@
                   optimize.enable = false;
                   qemu.extraArgs = [
                     "-smp"
-                    "8,sockets=1,cores=8,threads=1"
+                    "10,sockets=1,cores=10,threads=1"
                     "-mem-prealloc"
                   ];
                   volumes = [
@@ -94,7 +94,7 @@
                     }
                   ];
                   mem = 16384;
-                  vcpu = 8;
+                  vcpu = 10;
                 };
 
                 services.qemuGuest.enable = true;
@@ -177,12 +177,12 @@
                 # tty1 nicht von getty belegen lassen
                 # systemd.services."getty@tty1".enable = false;
                 environment.loginShellInit = ''
-                  if [[ "$(tty)" = "/dev/tty1" ]]; then
-                    # mkdir -p "$HOME/.local/state"
-                    # exec > >(tee -a "$HOME/.local/state/steam-autostart.log") 2>&1
-                    set -x
-                    exec "$HOME/gs.sh"
-                  fi
+                  # if [[ "$(tty)" = "/dev/tty1" ]]; then
+                  #   # mkdir -p "$HOME/.local/state"
+                  #   # exec > >(tee -a "$HOME/.local/state/steam-autostart.log") 2>&1
+                  #   set -x
+                  #   exec "$HOME/gs.sh"
+                  # fi
                 '';
 
                 environment.etc."gs.sh" = {
@@ -226,11 +226,11 @@
                         --rt
                         --steam
                         --backend drm
-                        # -W 3820 -H 2140 -w 3840 -h 2160
+                        -W 3800 -H 2120 -w 3840 -h 2160
                         # -W 3190 -H 1790 -w 3200 -h 1800
                         # -W 3180 -H 1780 -w 3840 -h 2160
                         # -W 2540 -H 1420 -w 2560 -h 1440
-                        -W 2860 -H 1600 -w 2880 -h 1620
+                        # -W 2860 -H 1600 -w 2880 -h 1620
                         --immediate-flips
                       )
                     else
@@ -271,45 +271,6 @@
                   "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
                 ];
 
-                # programs.nix-ld.enable = true;
-                # programs.nix-ld.libraries = with pkgs; [
-                #   stdenv.cc.cc # libstdc++.so, libgcc_s.so, libc.so, etc.
-                #   zlib # Komprimierung
-                #   icu # Unicode/Internationale Zeichen - wie von dir genannt
-                #   expat # XML-Parsing (Steam selbst, Proton, Wine, viele Launcher)
-                #   openssl # OpenSSL (TLS/SSL)
-                #   curl # (manchmal für Netzwerk-Downloads)
-                #   pulseaudio # für Audio in vielen Games/Proton
-                #   alsa-lib # für direkten ALSA-Support
-                #   dbus # für Steam-GUI, Overlay, Controller, Proton
-                #
-                #   mesa # libGL, libEGL, Mesa-GL-Implementierungen
-                #   libglvnd # GL/Vulkan-Dispatch (klüger als einzelne libGL)
-                #   vulkan-loader # libvulkan.so Loader
-                #   vulkan-headers # oft von Spielen benötigt (Header werden von Binär-Dists mitgeladen)
-                #
-                #   libvorbis # viele Spiele verwenden OGG/Opus-Audio
-                #   libogg
-                #   libopus
-                #
-                #   libpng # viele GUIs/Games/Tools für PNG-Support
-                #   libjpeg
-                #   fontconfig # Fonts/DPI/Fallback etc.
-                #   freetype # Spiele ohne fontconfig
-                #   libuuid # IDs, oft bei Games & Launcher im Backend
-                #   libxcb # X11 (für Fenstermodus, Overlay, XWayland)
-                #   xorg.libX11
-                #   xorg.libXext
-                #   xorg.libXrandr
-                #   xorg.libXcursor
-                #   xorg.libXi
-                #   xorg.libXtst
-                #   xorg.libXinerama
-                #   xorg.libXScrnSaver
-                #
-                #   glib # GObject/GTK-Basics
-                #   gtk3
-                # ];
                 environment.systemPackages = with pkgs; [
                   mangohud
                   pciutils
@@ -333,20 +294,6 @@
                 };
 
                 services.upower.enable = true;
-
-                # time.timeZone = "Europe/Berlin";
-                # i18n.defaultLocale = "en_US.UTF-8";
-                # i18n.extraLocaleSettings = {
-                #   LC_TIME = "de_DE.UTF-8";
-                #   LC_MONETARY = "de_DE.UTF-8";
-                #   LC_NUMERIC = "de_DE.UTF-8";
-                #   LC_MEASUREMENT = "de_DE.UTF-8";
-                #   LC_PAPER = "de_DE.UTF-8";
-                #   LC_ADDRESS = "de_DE.UTF-8";
-                #   LC_TELEPHONE = "de_DE.UTF-8";
-                #   LC_NAME = "de_DE.UTF-8";
-                #   LC_IDENTIFICATION = "de_DE.UTF-8";
-                # };
 
                 services.openssh = {
                   enable = true;
@@ -385,39 +332,6 @@
                       IdentitiesOnly yes
                 '';
 
-# [user@steam-vm:~]$ cat /sys/class/drm/card0-HDMI-A-1/modes
-# 3840x2160
-# 4096x2160
-# 4096x2160
-# 4096x2160
-# 4096x2160
-# 4096x2160
-# 4096x2160
-# 3840x2160
-# 3840x2160
-# 3840x2160
-# 3840x2160
-# 3840x2160
-# 1920x1080
-# 1920x1080
-# 1920x1080
-# 1920x1080
-# 1920x1080
-# 1920x1080
-# 1920x1080
-# 1920x1080
-# 1280x1024
-# 1360x768
-# 1152x864
-# 1280x720
-# 1280x720
-# 1024x768
-# 800x600
-# 720x576
-# 720x480
-# 640x480
-# 640x480
-# 640x480
                 # NOTE: connect controller via ssh:
                 # bluetoothctl
                 # power on

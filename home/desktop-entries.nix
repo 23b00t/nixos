@@ -321,6 +321,27 @@ in
       ];
     })
     (mkVmEntry {
+      name = "Zen Browser";
+      genericName = "Web Browser";
+      vmName = "net";
+      ipSuffix = 5;
+      binary = "zen";
+      icon = "web-browser";
+      categories = [
+        "Network"
+        "WebBrowser"
+      ];
+      mimeType = [
+        "text/html"
+        "application/xhtml+xml"
+        "application/xml"
+        "application/pdf"
+        "application/x-xpinstall"
+      ];
+    })
+
+    # --- Net Private VM
+    (mkVmEntry {
       name = "Firefox Private Browser";
       genericName = "Web Browser";
       vmName = "net-private";

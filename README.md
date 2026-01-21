@@ -132,3 +132,8 @@ mangoapp ist problematisch
 ## Misc
 
 - Check value of option: e.g. sudo nixos-option home-manager.users.nx.xdg.enable
+
+## nix develope
+
+nix develop --store /mnt/user-store --extra-experimental-features nix-command --extra-experimental-features flakes
+nix store gc --store /mnt/user-store --extra-experimental-features nix-command

@@ -22,10 +22,11 @@
     "orientation": "inherit",
     "modules": [
       "memory",
-      "clock",
-      "custom/keybindhint",
+      "custom/cpuinfo",
+      "cpu",
       "custom/gamemode",
       "idle_inhibitor",
+      "clock",
     ],
   },
   "group/leaf": {
@@ -40,7 +41,6 @@
       "pulseaudio#microphone",
       "battery",
       "power-profiles-daemon",
-      "custom/cpuinfo",
       "custom/sensorsinfo",
       "custom/swaync",
       "custom/dunst",
