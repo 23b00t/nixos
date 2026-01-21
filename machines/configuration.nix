@@ -18,15 +18,6 @@ let
       # })
     ];
   };
-  socktop-bundle = import ../pkgs/socktop-bundle.nix {
-    inherit (pkgs)
-      stdenv
-      rustPlatform
-      fetchFromGitHub
-      pkg-config
-      libdrm
-      ;
-  };
   devices = [
     "10de:2d19" # NVIDIA RTX 5060 Max-Q (VGA)
     "10de:22eb" # NVIDIA RTX 5060 Audio
@@ -276,8 +267,6 @@ in
     wprs
     remmina
     virt-viewer
-
-    socktop-bundle.socktop
 
     flatpak
 

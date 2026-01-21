@@ -4,17 +4,6 @@
   sshKey ? null,
   ...
 }:
-let
-  socktop-bundle = import ../pkgs/socktop-bundle.nix {
-    inherit (pkgs)
-      stdenv
-      rustPlatform
-      fetchFromGitHub
-      pkg-config
-      libdrm
-      ;
-  };
-in
 {
   # boot.kernelParams = [
   #   "systemd.log_level=debug"
@@ -107,15 +96,6 @@ in
   systemd.tmpfiles.rules = [
     "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
   ];
-  systemd.services.socktop-agent = {
-    description = "Socktop Agent";
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      ExecStart = "${socktop-bundle.socktop_agent}/bin/socktop_agent --port 23000";
-      Restart = "always";
-      User = "root";
-    };
-  };
 
   networking.firewall = {
     enable = true;

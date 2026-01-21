@@ -12,7 +12,7 @@ layout {
     tab name="nixos" cwd="~/nixos-config/" {
         pane
     }
-    tab name="godot" cwd="~/code/the-game/godot/" {
+    tab name="home" cwd="~/" {
         pane
     }
     tab name="user" cwd="~/" {
@@ -20,38 +20,6 @@ layout {
     }
     tab name="btop" cwd="~/" {
         pane command="btop"
-    }
-    tab name="socktop" cwd="~/" {
-        pane command="socktop" { 
-          args "ws://10.0.0.1:23000/ws" 
-        }
-        pane command="socktop" {
-          args "ws://10.0.0.2:23000/ws" 
-        }
-        pane command="socktop" {
-          args "ws://10.0.0.4:23000/ws" 
-        }
-        pane command="socktop" {
-          args "ws://10.0.0.5:23000/ws" 
-        }
-        pane command="socktop" {
-          args "ws://10.0.0.6:23000/ws" 
-        }
-        pane command="socktop" {
-          args "ws://10.0.0.7:23000/ws" 
-        }
-        pane command="socktop" {
-          args "ws://10.0.0.8:23000/ws" 
-        }
-        pane command="socktop" {
-          args "ws://10.0.0.9:23000/ws" 
-        }
-        pane command="socktop" {
-          args "ws://10.0.0.10:23000/ws"
-        }
-        pane command="socktop" {
-          args "ws://10.0.0.11:23000/ws"
-        }
     }
     tab name="music" cwd="~/" {
         pane

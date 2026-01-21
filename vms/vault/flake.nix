@@ -70,6 +70,7 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
+                  mem = 1024;
                 };
 
                 systemd.user.services.wprsd = {
