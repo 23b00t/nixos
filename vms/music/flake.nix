@@ -77,6 +77,9 @@
                   ];
                 };
 
+                # Fix shutdown problem with time-sync timeout
+                services.timesyncd.enable = false;
+
                 # For termusic
                 environment.variables = {
                   PULSE_SERVER = "tcp:localhost:4713";

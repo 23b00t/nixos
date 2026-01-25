@@ -137,3 +137,35 @@ mangoapp ist problematisch
 
 nix develop --store /mnt/user-store --extra-experimental-features nix-command --extra-experimental-features flakes
 nix store gc --store /mnt/user-store --extra-experimental-features nix-command
+
+## WiFi Problemes
+
+- sudo modprobe iwlwifi
+
+## devenv wrapper with custom nix store - didn't work as expected
+
+```nix
+"nix.conf".text = ''
+  store = /mnt/user-store
+  substituters = https://cache.nixos.org/
+  trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+  sandbox = false 
+  require-sigs = true
+  auto-optimise-store = false 
+  extra-experimental-features = nix-command flakes
+'';
+systemd.tmpfiles.rules = [
+  # alternative user store
+  "d /home/user/.config/nix 0755 user users -"
+  "L+ /home/user/.config/nix/nix.conf - - - - /etc/nix.conf"
+];
+```
+
+```bash
+nix profile add 'nixpkgs#devenv'
+mkdir -p ~/.local/bin
+echo '#!/bin/sh
+exec $(find /mnt/user-store/nix/store -type f -name devenv | sort | tail -1) "$@"
+' > ~/.local/bin/devenv
+chmod +x ~/.local/bin/devenv
+```

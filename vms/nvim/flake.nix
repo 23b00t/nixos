@@ -82,7 +82,7 @@
                     {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
-                      size = 40000;
+                      size = 50000;
                     }
                   ];
                   shares = [
@@ -164,6 +164,8 @@
                     pulseaudio
                     termdown
 
+                    # distrobox
+
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
                   ++ defaultPkgs;
@@ -238,6 +240,10 @@
                       eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/montys.omp.json")"
                     fi
 
+                    # Solve SSL cert issue
+                    export SSL_CERT_DIR=/etc/ssl/certs
+                    export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
                     # Set nix user store
                     # export NIX_STORE_DIR=/mnt/user-store/nix/store
                     # export NIX_STATE_DIR=/mnt/user-store/nix/var/nix
@@ -273,6 +279,11 @@
 
                   # "nix.conf".text = ''
                   #   store = /mnt/user-store
+                  #   sandbox = false
+                  #   auto-optimise-store = false
+                  #   extra-experimental-features = nix-command flakes
+                  #   substituters =
+                  #   require-sigs = false
                   # '';
                 };
                 systemd.tmpfiles.rules = [
@@ -327,6 +338,15 @@
                     # Keine Docker-Kompatibilität, wenn Docker selbst installiert ist
                     dockerCompat = false;
                   };
+                };
+
+                # Fix DNS resolution with nix-portable
+                # sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+                # see: https://github.com/NixOS/nix/issues/6770
+                networking.resolvconf.enable = false;
+                environment.etc."resolv.conf" = {
+                  source = "/run/systemd/resolve/stub-resolv.conf";
+                  mode = "symlink";
                 };
 
                 systemd.user.services.wprsd = {

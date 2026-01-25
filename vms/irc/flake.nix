@@ -93,22 +93,31 @@
                   "L+ /home/user/.config/zellij/plugins - - - - /etc/zellij/plugins"
                 ];
 
-                environment.systemPackages = with pkgs; [
-                  tiny
-                  pass
-                  gnupg
-                  pinentry-curses
-                  proxychains-ng
-                  openssl
-                  zellij
+                environment.systemPackages =
+                  with pkgs;
+                  [
+                    tiny
+                    pass
+                    gnupg
+                    pinentry-curses
+                    proxychains-ng
+                    openssl
+                    zellij
+                    iamb
 
-                  (import ../copy-between-vms.nix { inherit pkgs; })
-                ] ++ defaultPkgs;
+                    (import ../copy-between-vms.nix { inherit pkgs; })
+                  ]
+                  ++ defaultPkgs;
 
                 environment.etc."proxychains.conf".text = ''
                   [ProxyList]
                   socks5  10.152.152.10 9050
                 '';
+
+                programs.vim = {
+                  enable = true;
+                  defaultEditor = true;
+                };
                 system.stateVersion = "25.05";
               }
             )

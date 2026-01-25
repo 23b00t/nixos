@@ -35,3 +35,5 @@ nvim $HOME/nixos-config/home/cmds # Edit this file - update cmds
 
 wl-screenrec -g "$(slurp)" -f ~/Videos/screen.mp4 --audio --low-power=off # record region video
 wl-screenrec -f -o eDP-1 ~/Videos/screen.mp4 --audio --low-power=off # record full screen video
+
+curl -sI URL | grep -i Content-Length | awk '{gsub(/\r$/,""); print $2}' | numfmt --to=iec # human readable content length from URL
