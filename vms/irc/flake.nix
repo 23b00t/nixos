@@ -96,7 +96,12 @@
                 environment.systemPackages =
                   with pkgs;
                   [
-                    tiny
+                    (writeShellScriptBin "tiny" ''
+                      export GPG_TTY=$(tty)
+                      ${gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
+                      exec ${tiny}/bin/tiny "$@"
+                    '')
+                    # tiny
                     pass
                     gnupg
                     pinentry-curses

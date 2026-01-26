@@ -51,6 +51,7 @@
           unbind = ,XF86MonBrightnessDown
           bindel = ,XF86MonBrightnessUp, exec, brightnessctl -d intel_backlight -e4 -n2 set 5%+
           bindel = ,XF86MonBrightnessDown, exec, brightnessctl -d intel_backlight -e4 -n2 set 5%-
+          bind = SUPER SHIFT, K, exec, kitty --session=none
         ''; # additional keybindings configuration
         overrideConfig = null; # complete keybindings configuration override (null or lib.types.lines)
       };

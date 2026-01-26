@@ -43,6 +43,17 @@
               { config, pkgs, ... }:
               let
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
+                nixOverlayBackupScript = pkgs.writeShellScriptBin "nix-overlay-backup" ''
+                   #!/usr/bin/env bash
+                  set -euo pipefail
+                  UPPERDIR="/nix/.rw-store/store"
+                  CACHEDIR="/mnt/store-cache"
+
+                  find "$UPPERDIR" -mindepth 1 -maxdepth 1 -type d -printf "/nix/store/%f\n" > /tmp/overlay-paths.txt
+                  if [ -s /tmp/overlay-paths.txt ]; then
+                    xargs /run/current-system/sw/bin/nix copy --no-check-sigs --to "file://$CACHEDIR" < /tmp/overlay-paths.txt
+                  fi
+                '';
               in
               {
                 nixpkgs.config.allowUnfree = true;
@@ -56,6 +67,9 @@
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
                   writableStoreOverlay = "/nix/.rw-store";
+                  preStart = ''
+                    rm -f nix-store-overlay.img
+                  '';
                   # storeOnDisk = false;
                   volumes = [
                     {
@@ -74,11 +88,11 @@
                     #   label = "nix-store";
                     #   size = 60000;
                     # }
-                    # {
-                    #   mountPoint = "/mnt/user-store";
-                    #   image = "store.img";
-                    #   size = 50000;
-                    # }
+                    {
+                      mountPoint = "/mnt/store-cache";
+                      image = "store-cache.img";
+                      size = 50000;
+                    }
                     {
                       image = "nix-store-overlay.img";
                       mountPoint = config.microvm.writableStoreOverlay;
@@ -277,6 +291,7 @@
 
                   "zellij".source = ./zellij;
 
+                  "nix-overlay-backup".source = "${nixOverlayBackupScript}/bin/nix-overlay-backup";
                   # "nix.conf".text = ''
                   #   store = /mnt/user-store
                   #   sandbox = false
@@ -300,6 +315,28 @@
                   # "d /home/user/.config/nix 0755 user users -"
                   # "L+ /home/user/.config/nix/nix.conf - - - - /etc/nix.conf"
                 ];
+
+                systemd.services.nix-overlay-backup = {
+                  description = "Export Nix store paths from writable overlay to store cache on shutdown";
+                  script = "/etc/nix-overlay-backup";
+                  serviceConfig = {
+                    Type = "oneshot";
+                    RemainAfterExit = true;
+                    DefaultDependencies = false;
+                    Before = [
+                      "umount.target"
+                      "poweroff.target"
+                      "reboot.target"
+                      "halt.target"
+                    ];
+                    TimeoutSec = 0;
+                  };
+                  wantedBy = [
+                    "poweroff.target"
+                    "halt.target"
+                    "reboot.target"
+                  ];
+                };
 
                 # git
                 programs.git = {
@@ -343,11 +380,11 @@
                 # Fix DNS resolution with nix-portable
                 # sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
                 # see: https://github.com/NixOS/nix/issues/6770
-                networking.resolvconf.enable = false;
-                environment.etc."resolv.conf" = {
-                  source = "/run/systemd/resolve/stub-resolv.conf";
-                  mode = "symlink";
-                };
+                # networking.resolvconf.enable = false;
+                # environment.etc."resolv.conf" = {
+                #   source = "/run/systemd/resolve/stub-resolv.conf";
+                #   mode = "symlink";
+                # };
 
                 systemd.user.services.wprsd = {
                   description = "wprsd instance";
@@ -366,6 +403,7 @@
                 nix = {
                   settings = {
                     substituters = [
+                      "file:///mnt/store-cache"
                       "https://cache.nixos.org"
                       "https://microvm.cachix.org"
                     ];
