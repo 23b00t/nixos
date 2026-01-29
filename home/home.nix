@@ -77,7 +77,7 @@ in
     pciutils # lspci
     usbutils # lsusb
 
-    nerd-fonts.droid-sans-mono
+    nerd-fonts.fira-code
 
     # zoom-us
     # discord

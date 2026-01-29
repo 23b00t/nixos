@@ -92,11 +92,6 @@
                       size = 4096;
                     }
                     {
-                      mountPoint = "/var/log";
-                      image = "log.img";
-                      size = 1028;
-                    }
-                    {
                       mountPoint = "/var/lib/flatpak";
                       image = "flatpak.img";
                       size = 6000;

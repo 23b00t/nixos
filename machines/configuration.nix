@@ -629,6 +629,10 @@ in
     };
   };
 
+  fonts.packages = with pkgs; [
+    nerd-fonts.fira-code
+  ];
+
   # for static linked binaries in nvim
   # programs.nix-ld.enable = true;
   # programs.nix-ld.libraries = with pkgs; [ icu ];

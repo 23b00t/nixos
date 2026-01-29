@@ -77,11 +77,6 @@
                       image = "home.img";
                       size = 80000;
                     }
-                    {
-                      mountPoint = "/var/log";
-                      image = "log.img";
-                      size = 2048;
-                    }
                     # {
                     #   mountPoint = "/nix/store";
                     #   image = "nix-store.img";

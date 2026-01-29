@@ -239,14 +239,14 @@ keybinds clear-defaults=true {
             SwitchToMode "Locked"
         }
     }
-    shared_except "locked" {
-        bind "Ctrl n" {
-            Run "bash" "-c" "~/nixos-config/devenv/ilias-devenv/zellij-layout/il-layout.sh" {
-                floating true;
-            }
-            SwitchToMode "Locked"
-        }
-    }
+    // shared_except "locked" {
+    //     bind "Ctrl n" {
+    //         Run "bash" "-c" "~/nixos-config/devenv/ilias-devenv/zellij-layout/il-layout.sh" {
+    //             floating true;
+    //         }
+    //         SwitchToMode "Locked"
+    //     }
+    // }
     // shared_except "locked" {
     // // ...
     //     bind "f" {

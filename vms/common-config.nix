@@ -85,6 +85,10 @@
     WAYLAND_CURSOR_THEME = "Bibata-Modern-Ice";
   };
 
+  fonts.packages = with pkgs; [
+    nerd-fonts.fira-code
+  ];
+
   environment.etc."ssh_config".text = ''
     Host *
         StrictHostKeyChecking no

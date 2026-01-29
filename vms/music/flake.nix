@@ -61,11 +61,6 @@
                       image = "home.img";
                       size = 4096;
                     }
-                    {
-                      mountPoint = "/var/log";
-                      image = "log.img";
-                      size = 1024;
-                    }
                   ];
                   shares = [
                     {

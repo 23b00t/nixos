@@ -9,7 +9,7 @@ with pkgs;
   lsof
   bibata-cursors
 
-  nerd-fonts.droid-sans-mono
+  nerd-fonts.fira-code
   p7zip
   jq
   poppler
