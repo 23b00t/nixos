@@ -1,5 +1,5 @@
 nvim_vm() {
-  local host_prefix="/home/nx/nixos-config"
+  local host_prefix="/home/nx"
   local vm_prefix="/mnt/host"
 
   local current_dir="${PWD:a}"
