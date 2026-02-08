@@ -8,6 +8,7 @@ with pkgs;
   tree
   lsof
   bibata-cursors
+  wl-clipboard
 
   nerd-fonts.fira-code
   p7zip
