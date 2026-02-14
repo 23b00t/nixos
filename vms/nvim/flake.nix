@@ -98,7 +98,7 @@
                     {
                       proto = "virtiofs";
                       tag = "host-home";
-                      source = "/home/nx/nixos-config";
+                      source = "/home/nx";
                       mountPoint = "/mnt/host";
                     }
                     {

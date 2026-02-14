@@ -2,11 +2,18 @@ p() {
   case "$1" in
     -h)
       echo "Usage:"
+      echo "----------------------------------------------------"
       echo "  p file.txt         # upload (paste.rs)"
       echo "  echo hi | p        # upload from stdin (paste.rs)"
+      echo "  cat <<EOF | p" 
+      echo "  paste"
+      echo "  multiple lines"
+      echo "  EOF"
       echo "  p -g <id> [ext]    # get paste by id (paste.rs)"
       echo "  p -d <id>          # delete paste by id (paste.rs)"
       echo "  p -h               # show this help message"
+      echo "----------------------------------------------------"
+      echo "  -> paste images etc. p0x0 || puguu "
       return 0
       ;;
     -g)
