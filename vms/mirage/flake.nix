@@ -69,6 +69,15 @@
                   with pkgs;
                   [
                     opam
+                    git
+                    mercurial
+                    darcs
+                    bubblewrap
+                    gcc
+                    gnumake
+                    pkg-config
+                    rsync
+                    unzip
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
                   ++ defaultPkgs;

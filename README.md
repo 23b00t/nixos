@@ -26,7 +26,7 @@
 ### Create VMs
 
 - vms/vm-name/flake.nix
-- add in main flake.nix, configuration.nix, ssh.nix, copy-between-vms.nix, vm-connect.nix
+- add in main flake.nix, configuration.nix (to microvm secion and NAT if desired), ssh.nix, copy-between-vms.nix, vm-connect.nix
 
 ## nvim-vm
 
