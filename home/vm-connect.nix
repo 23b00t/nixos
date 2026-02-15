@@ -72,6 +72,10 @@ let
         IP="10.0.0.13"
         FULL_NAME="godot"
         ;;
+      "mirage"|"mi")
+        IP="10.0.0.14"
+        FULL_NAME="mirage"
+        ;;
       *)
         echo "Error: Unknown VM '$NAME'"
         exit 1

@@ -38,6 +38,7 @@ pkgs.writeShellScriptBin "cp-vm" ''
   irc 10.0.0.11
   steam 10.0.0.12
   godot 10.0.0.13
+  mirage10.0.0.14
   '
 
   usage() {

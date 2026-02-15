@@ -13,6 +13,7 @@ let
     { name = "irc-vm"; ip = "10.0.0.11"; }
     { name = "steam-vm"; ip = "10.0.0.12"; }
     { name = "godot-vm"; ip = "10.0.0.13"; }
+    { name = "mirage-vm"; ip = "10.0.0.14"; }
   ];
 
   hostStrings = builtins.concatStringsSep "\n" (map (h:
