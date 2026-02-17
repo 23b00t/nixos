@@ -63,6 +63,9 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
+
+                  mem = 8192;
+                  vcpu = 4;
                 };
 
                 environment.systemPackages =

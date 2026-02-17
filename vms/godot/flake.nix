@@ -197,14 +197,14 @@
                   freetype # Spiele ohne fontconfig
                   libuuid # IDs, oft bei Games & Launcher im Backend
                   libxcb # X11 (für Fenstermodus, Overlay, XWayland)
-                  xorg.libX11
-                  xorg.libXext
-                  xorg.libXrandr
-                  xorg.libXcursor
-                  xorg.libXi
-                  xorg.libXtst
-                  xorg.libXinerama
-                  xorg.libXScrnSaver
+                  libx11
+                  libxext
+                  libxrandr
+                  libxcursor
+                  libxi
+                  libxtst
+                  libxinerama
+                  libxScrnSaver
 
                   glib # GObject/GTK-Basics
                   gtk3
