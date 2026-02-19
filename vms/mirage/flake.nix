@@ -81,6 +81,7 @@
                     pkg-config
                     rsync
                     unzip
+                    pkg-config
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
                   ++ defaultPkgs;

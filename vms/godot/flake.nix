@@ -204,7 +204,7 @@
                   libxi
                   libxtst
                   libxinerama
-                  libxScrnSaver
+                  libxscrnsaver
 
                   glib # GObject/GTK-Basics
                   gtk3
