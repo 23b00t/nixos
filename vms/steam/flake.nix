@@ -177,12 +177,12 @@
                 # tty1 nicht von getty belegen lassen
                 # systemd.services."getty@tty1".enable = false;
                 environment.loginShellInit = ''
-                  # if [[ "$(tty)" = "/dev/tty1" ]]; then
-                  #   # mkdir -p "$HOME/.local/state"
-                  #   # exec > >(tee -a "$HOME/.local/state/steam-autostart.log") 2>&1
-                  #   set -x
-                  #   exec "$HOME/gs.sh"
-                  # fi
+                  if [[ "$(tty)" = "/dev/tty1" ]]; then
+                    # mkdir -p "$HOME/.local/state"
+                    # exec > >(tee -a "$HOME/.local/state/steam-autostart.log") 2>&1
+                    set -x
+                    exec "$HOME/gs.sh"
+                  fi
                 '';
 
                 environment.etc."gs.sh" = {
@@ -198,11 +198,6 @@
                       DEVICE_TYPE="tv"
                     fi
 
-                    # Schalte hier die TV-Ausgabe-Modi nach Bedarf:
-                    # TV_MODE=native => volles 4K
-                    # TV_MODE=safe   => etwas kleiner, mit schwarzem Rand (Overscan workaround)
-                    TV_MODE="''${TV_MODE:-safe}"  # native oder safe
-
                     if [[ "$DEVICE_TYPE" == "monitor" ]]; then
                       gamescopeArgs=(
                         --adaptive-sync # VRR support
@@ -217,24 +212,7 @@
                         # --xwayland-count 2
                         # --framerate-limit 60
                       )
-                    elif [[ "$TV_MODE" == "safe" ]]; then
-                      # Overscan-freundliche Auflösung (z.B. 3800x2100 ins 4K-Fenster)
-                      gamescopeArgs=(
-                        --adaptive-sync
-                        --hdr-enabled
-                        --mangoapp
-                        --rt
-                        --steam
-                        --backend drm
-                        -W 3800 -H 2120 -w 3840 -h 2160
-                        # -W 3190 -H 1790 -w 3200 -h 1800
-                        # -W 3180 -H 1780 -w 3840 -h 2160
-                        # -W 2540 -H 1420 -w 2560 -h 1440
-                        # -W 2860 -H 1600 -w 2880 -h 1620
-                        --immediate-flips
-                      )
                     else
-                      # Volles 4K für TV
                       gamescopeArgs=(
                         --adaptive-sync
                         --hdr-enabled

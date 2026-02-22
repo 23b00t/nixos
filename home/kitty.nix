@@ -61,7 +61,7 @@ let
     	# background_tint 0.5
 
     	shell zsh
-    	editor vim
+    	editor nvim
 
     	close_on_child_death no
 
