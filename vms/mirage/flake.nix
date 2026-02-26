@@ -37,6 +37,8 @@
               inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAXSVOR0aTAo/5lDeG+3r3QeOygbLKY7WrkB8wSK+rh9 mirage-vm";
             })
+            ../modules/ide.nix
+            ../modules/zsh.nix
             (
               { config, pkgs, ... }:
               let
@@ -44,6 +46,8 @@
               in
               {
                 networking.hostName = "mirage-vm";
+                services.ide.enable = true;
+                services.zsh-env.enable = true;
 
                 microvm = {
                   registerClosure = false;
@@ -72,7 +76,6 @@
                   with pkgs;
                   [
                     opam
-                    git
                     mercurial
                     darcs
                     bubblewrap
@@ -80,7 +83,6 @@
                     gnumake
                     pkg-config
                     rsync
-                    unzip
                     pkg-config
                     (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
