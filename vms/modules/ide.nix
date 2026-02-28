@@ -6,6 +6,20 @@
 }:
 let
   cfg = config.services.ide;
+    lazyvimSyncScript = pkgs.writeShellScript "ide-lazyvim-sync" ''
+    set -e
+
+    NVIM_DIR="/home/${cfg.user}/.config/nvim"
+    REPO_URL="${cfg.lazyvimRepo}"
+
+    if [ ! -d "$NVIM_DIR/.git" ]; then
+      mkdir -p "$(dirname "$NVIM_DIR")"
+      ${pkgs.git}/bin/git clone "$REPO_URL" "$NVIM_DIR"
+    else
+      cd "$NVIM_DIR"
+      ${pkgs.git}/bin/git pull --ff-only || true
+    fi
+  '';
 in
 {
   options.services.ide = {
@@ -97,21 +111,7 @@ in
         Type = "oneshot";
         User = cfg.user;
         Group = "users";
-        ExecStart = pkgs.runtimeShell + ''
-          -c '
-            set -e
-            NVIM_DIR="/home/${cfg.user}/.config/nvim"
-            REPO_URL="${cfg.lazyvimRepo}"
-
-            if [ ! -d "$NVIM_DIR/.git" ]; then
-              mkdir -p "$(dirname "$NVIM_DIR")"
-              git clone "$REPO_URL" "$NVIM_DIR"
-            else
-              cd "$NVIM_DIR"
-              git pull --ff-only || true
-            fi
-          '
-        '';
+        ExecStart = lazyvimSyncScript;
       };
     };
   };
