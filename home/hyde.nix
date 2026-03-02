@@ -9,14 +9,14 @@
     social.enable = false;
     spotify.enable = false;
     hyprland = {
-      # monitors = {
-      #   enable = true;
-        # overrideConfig = ''
-        #   monitor=DP-2,1680x1050@59.88,0x0,1
-        #   monitor=DP-1,1920x1080@60.00,1680x0,1
-        #   monitor=eDP-1,1920x1200@60.00,3600x0,1
-        # '';
-      # };
+      monitors = {
+        enable = true;
+        overrideConfig = ''
+          monitor=eDP-1,1920x1200@60.00,0x0,1
+          monitor=DP-1,1920x1080@60.00,1920x0,1
+          monitor=DP-2,1680x1050@59.88,3840x0,1
+        '';
+      };
 
       extraConfig = ''
         input {
