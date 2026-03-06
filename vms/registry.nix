@@ -1,4 +1,3 @@
-{ lib, ... }:
 let
   # Central VM registry used across host, home-manager scripts and helper tools.
   # Each VM entry has the following fields:
@@ -142,19 +141,23 @@ let
     }
   ];
 
-  byName = lib.listToAttrs (map (vm: {
-    name = vm.name;
-    value = vm;
-  }) vms);
+  byName =
+    builtins.listToAttrs (map (vm: {
+      name = vm.name;
+      value = vm;
+    }) vms);
 
-  byShort = lib.listToAttrs (map (vm: {
-    name = vm.short;
-    value = vm;
-  }) (lib.filter (vm: vm.short != null) vms));
+  byShort =
+    builtins.listToAttrs (map (vm: {
+      name = vm.short;
+      value = vm;
+    }) (builtins.filter (vm: vm.short != null) vms));
 
-  natIPs = map (vm: vm.ip) (lib.filter (vm: vm.nat) vms);
+  natIPs =
+    map (vm: vm.ip) (builtins.filter (vm: vm.nat or false) vms);
 
-  autostartNames = map (vm: vm.name) (lib.filter (vm: vm.autostart) vms);
+  autostartNames =
+    map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) vms);
 
 in {
   inherit vms byName byShort natIPs autostartNames;
