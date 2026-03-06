@@ -1,48 +1,42 @@
-{
-  pkgs ? import <nixpkgs> { },
-}:
+{ pkgs, lib, ... }:
+let
+  vmRegistry = import ./registry.nix { inherit lib; };
+
+  # Host table: <hostname> <ip> [username]
+  # We include both long and short names; default user is 'user' except for host.
+  hostTable = builtins.concatStringsSep "\n" (
+    [ "host 10.0.0.254 nx" ]
+    ++ (map (vm:
+      let
+        base = "${vm.name} ${vm.ip}";
+      in
+        if vm.short != null && vm.short != vm.name then
+          base + "\n" + "${vm.short} ${vm.ip}"
+        else
+          base
+    ) vmRegistry.vms)
+  );
+
+in
 pkgs.writeShellScriptBin "cp-vm" ''
   # cp-vm: Copy or move a file/folder via rsync to a target VM or host using a host table.
   #
   # Syntax:
-  #   cp-vm [-m] target-host-name ./filename
+  #   cp-vm [-m] <vm-name-or-short> ./filename
   #     -m               : move (instead of copy)
-  #     target-host-name : destination host, as defined in the 'vm-hosts' table
+  #     <vm-name-or-short>: destination VM, long or short name from registry
   #     ./filename       : file or directory to transfer (relative or absolute path)
   #
-  # The 'vm-hosts' file must exist in the same directory as this script and contains entries in the format:
-  #     <hostname> <ip> [username]
-  #
-  # Example for vm-hosts:
-  #   vma 10.0.0.1
-  #   host 10.0.0.0 another-username
-  #
-  # If username is omitted, the default is 'user'.
+  # The host table is generated from Nix VM registry.
 
   set -e
 
   DEFAULT_USER="user"
 
-  # Host table: <hostname> <ip> [username]
-  HOSTTABLE='
-  host 10.0.0.254 nx
-  nvim 10.0.0.1
-  chat 10.0.0.2
-  music 10.0.0.4
-  net 10.0.0.5
-  net-private 10.0.0.6
-  wine 10.0.0.7
-  kali 10.0.0.8
-  office 10.0.0.9
-  vault 10.0.0.10
-  irc 10.0.0.11
-  steam 10.0.0.12
-  godot 10.0.0.13
-  mirage 10.0.0.14
-  '
+  HOSTTABLE='''${hostTable}
 
   usage() {
-    echo "Usage: $0 [-m] target-host-name ./filename"
+    echo "Usage: $0 [-m] <vm-name-or-short> ./filename"
     echo "  -m               : move (instead of copy)"
     exit 1
   }
@@ -103,3 +97,4 @@ pkgs.writeShellScriptBin "cp-vm" ''
 
   echo "Transfer to $TARGET ($IP) completed."
 ''
+

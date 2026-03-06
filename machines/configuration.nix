@@ -403,59 +403,30 @@ in
   # MicroVM Configuration
   microvm.host.enable = true;
 
-  microvm.vms = {
-    irc = {
-      flake = inputs.irc-vm;
-    };
-    nvim = {
-      flake = inputs.nvim-vm;
-    };
-    chat = {
-      flake = inputs.chat-vm;
-    };
-    office = {
-      flake = inputs.office-vm;
-      autostart = false;
-    };
-    music = {
-      flake = inputs.music-vm;
-    };
-    net = {
-      flake = inputs.net-vm;
-    };
-    net-private = {
-      flake = inputs.net-private-vm;
-      autostart = false;
-    };
-    wine = {
-      flake = inputs.wine-vm;
-      autostart = false;
-    };
-    kali = {
-      flake = inputs.kali-vm;
-      autostart = false;
-    };
-    vault = {
-      flake = inputs.vault-vm;
-      autostart = false;
-    };
-    # test = {
-    #   flake = inputs.test-vm;
-    #   autostart = false;
-    # };
-    steam = {
-      flake = inputs.steam-vm;
-      autostart = false;
-    };
-    godot = {
-      flake = inputs.godot-vm;
-      autostart = false;
-    };
-    mirage = {
-      flake = inputs.mirage-vm;
-      autostart = false;
-    };
-  };
+  microvm.vms =
+    let
+      vmRegistry = import ../vms/registry.nix { inherit lib; };
+
+      # Helper to read autostart flag from registry by name.
+      autostartFor = name: (vmRegistry.byName.${name}.autostart or false);
+
+      # If you do not want all registry VMs to be microvms on this host,
+      # filter vmRegistry.vms here, e.g.:
+      # selectedVms = lib.filter (vm: vm.name != "some-vm") vmRegistry.vms;
+      selectedVms = vmRegistry.vms;
+
+    in
+    builtins.listToAttrs (
+      map (vm: {
+        name = vm.name;
+        value = {
+          # inputs.<name> is generated from registry in flake.nix
+          flake = inputs.${vm.name};
+          autostart = autostartFor vm.name;
+        };
+      }) selectedVms
+    );
+
   programs.ssh.startAgent = true;
   networking.useNetworkd = true;
   # Generiere Netzwerke für alle VMs
@@ -494,23 +465,15 @@ in
     };
 
   # NAT only for 4 VMs
-  networking.nat = {
-    enable = true;
-    internalIPs = [
-      "10.0.0.1/32"
-      "10.0.0.2/32"
-      "10.0.0.3/32"
-      "10.0.0.4/32"
-      "10.0.0.5/32"
-      "10.0.0.6/32"
-      "10.0.0.7/32"
-      "10.0.0.8/32"
-      "10.0.0.12/32"
-      "10.0.0.13/32"
-      "10.0.0.14/32"
-    ];
-    # externalInterface = "wlo1";
-  };
+  networking.nat =
+    let
+      vmRegistry = import ../vms/registry.nix { inherit lib; };
+    in
+    {
+      enable = true;
+      internalIPs = map (ip: "${ip}/32") vmRegistry.natIPs;
+      # externalInterface = "wlo1";
+    };
 
   systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
 

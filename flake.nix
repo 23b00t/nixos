@@ -1,7 +1,9 @@
 {
   description = "Nixos config by 23b00t";
 
-  inputs = rec {
+    inputs = rec {
+
+
     # Your nixpkgs
     # nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs.follows = "hydenix/nixpkgs";
@@ -17,22 +19,20 @@
 
     # flatpaks.url = "github:in-a-dil-emma/declarative-flatpak/latest";
 
-    # MicroVMs
-    irc-vm.url = "path:./vms/irc";
-    nvim-vm.url = "path:./vms/nvim";
-    chat-vm.url = "path:./vms/chat";
-    office-vm.url = "path:./vms/office";
-    music-vm.url = "path:./vms/music";
-    net-vm.url = "path:./vms/net";
-    net-private-vm.url = "path:./vms/net-private";
-    wine-vm.url = "path:./vms/wine";
-    kali-vm.url = "path:./vms/kali";
-    vault-vm.url = "path:./vms/vault";
-    # test-vm.url = "path:./vms/test";
-    # onlyoffice-vm.url = "path:./vms/onlyoffice";
-    steam-vm.url = "path:./vms/steam";
-    godot-vm.url = "path:./vms/godot";
-    mirage-vm.url = "path:./vms/mirage";
+      # MicroVMs
+      # Derive VM inputs directly from the central registry to avoid manual duplication.
+      vmRegistry = import ./vms/registry.nix { inherit (nixpkgs) lib; };
+
+      vmInputs = builtins.listToAttrs (map (vm: {
+        name = vm.name;
+        value = {
+          url = "path:./vms/${vm.name}";
+        };
+      }) vmRegistry.vms);
+
+    } // vmInputs;
+
+
 
     # Hydenix
     hydenix = {

@@ -1,27 +1,30 @@
-{ pkgs }:
+{ pkgs, lib, inputs }:
+let
+  vmRegistry = import ../vms/registry.nix { inherit lib; };
+
+  # Build a simple host table with both long and short names mapped to IPs.
+  hostTable = builtins.concatStringsSep "\n" (map (vm:
+    let
+      base = "${vm.name} ${vm.ip}";
+    in
+      if vm.short != null && vm.short != vm.name then
+        base + "\n" + "${vm.short} ${vm.ip}"
+      else
+        base
+  ) vmRegistry.vms);
+
+in
 pkgs.writeShellScriptBin "backup" ''
-  # TODO: HOSTTABLE should be read from file; lines should just be read as columns seperated by space.
-  # Start VM if not running logic needs to be refactored in seperate function
-  # Data parsing sould be refactored in seperate function
+  # TODO: Host table is generated from Nix registry; parsing should stay simple.
+  # Data parsing should be refactored in separate function.
   set -e
 
   # Host table: <hostname> <ip>
-  HOSTTABLE='
-  nvim 10.0.0.1
-  chat 10.0.0.2
-  music 10.0.0.4
-  net 10.0.0.5
-  net-private 10.0.0.6
-  wine 10.0.0.7
-  kali 10.0.0.8
-  office 10.0.0.9
-  vault 10.0.0.10
-  irc 10.0.0.11
-  '
+  HOSTTABLE='''${hostTable}
 
   usage() {
-    echo "Usage: $0 destination target-host-name next-target ..."
-    echo "or: $0 -a destination (to backup all targets in the list)"
+    echo "Usage: $0 destination target-vm-name ..."
+    echo "or: $0 -a destination (to backup all VMs in the registry)"
     echo "or: $0 -r source-dir (to restore backups from source-dir)"
     exit 1
   }
@@ -173,3 +176,5 @@ pkgs.writeShellScriptBin "backup" ''
     backup_host "$TARGET"
   done
 ''
+
+

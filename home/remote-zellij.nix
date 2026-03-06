@@ -2,30 +2,38 @@
 pkgs.writeShellScriptBin "remote-zellij" ''
   #!/usr/bin/env bash
 
-  if [ $# -lt 2 ]; then
-    echo "Usage: remote-zellij <ip-suffix> <vm-name>"
+  if [ $# -lt 1 ]; then
+    echo "Usage: remote-zellij <vm-name-or-short>"
     exit 1
   fi
 
-  IPSUFFIX="$1"
-  VMNAME="$2"
+  VMNAME="$1"
 
-  ZJ_SESSIONS="$(vm-run -c "''${IPSUFFIX}" "''${VMNAME}" zellij list-sessions \
+  # Use "vm" helper to execute commands on the VM via ssh
+  run_on_vm() {
+    local cmd="$1"
+    shift || true
+    vm "$VMNAME" "$cmd" "$@"
+  }
+
+  # List sessions via ssh and clean up ANSI escapes
+  ZJ_SESSIONS="$(run_on_vm "zellij" list-sessions \
     | sed -r 's/\x1B\[[0-9;]*[mK]//g' \
     | awk '{for(i=1;i<=NF;i++) if($i ~ /^[a-zA-Z][^ ]*/) {print $i; break}}')"
-  NO_SESSIONS="$(echo "''${ZJ_SESSIONS}" | wc -l)"
+  NO_SESSIONS="$(echo "${ZJ_SESSIONS}" | wc -l)"
 
-  if [ "''${NO_SESSIONS}" -ge 2 ]; then
-    CHOICE=$( (echo "''${ZJ_SESSIONS}"; echo "[Start new session]") | fzf )
-    if [ "''${CHOICE}" = "[Start new session]" ]; then
-      vm-run -c "''${IPSUFFIX}" "''${VMNAME}" zellij --layout /home/user/.config/zellij/layouts/tabs.kdl
-    elif [ -n "''${CHOICE}" ]; then
-      vm-run -c "''${IPSUFFIX}" "''${VMNAME}" zellij attach "''${CHOICE}"
+  if [ "${NO_SESSIONS}" -ge 2 ]; then
+    CHOICE=$( (echo "${ZJ_SESSIONS}"; echo "[Start new session]") | fzf )
+    if [ "${CHOICE}" = "[Start new session]" ]; then
+      run_on_vm "zellij" --layout /home/user/.config/zellij/layouts/tabs.kdl
+    elif [ -n "${CHOICE}" ]; then
+      run_on_vm "zellij" attach "${CHOICE}"
     else
       echo "Cancelled."
       exit 1
     fi
   else
-    vm-run -c "''${IPSUFFIX}" "''${VMNAME}" zellij --layout /home/user/.config/zellij/layouts/tabs.kdl attach -c
+    run_on_vm "zellij" --layout /home/user/.config/zellij/layouts/tabs.kdl attach -c
   fi
 ''
+
