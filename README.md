@@ -37,7 +37,6 @@
 - gpg --export XXXXXXXXXX > public.asc
 - in vm: gpg --import privat.asc and gpg --import public.asc
 - gh auth login
-- cp-vm nvim .cache/oh-my-posh/themes/montys.omp.json
 
 ## libvirt
 

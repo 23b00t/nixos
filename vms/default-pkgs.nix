@@ -16,4 +16,5 @@ with pkgs;
   poppler
   resvg
   imagemagick
+  (import ./copy-between-vms.nix { inherit pkgs; })
 ]

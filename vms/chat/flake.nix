@@ -155,7 +155,7 @@
 
                     kitty
 
-                    (import ../copy-between-vms.nix { inherit pkgs; })
+
                   ]
                   ++ defaultPkgs;
 

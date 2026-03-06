@@ -92,7 +92,7 @@
                     # pulseaudio
                     # mpv
                     yt-dlp
-                    (import ../copy-between-vms.nix { inherit pkgs; })
+
                   ]
                   ++ defaultPkgs;
 

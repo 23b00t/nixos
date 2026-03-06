@@ -145,7 +145,7 @@
 
                     dconf # to fix onlyoffice errors
 
-                    (import ../copy-between-vms.nix { inherit pkgs; })
+
                   ]
                   ++ defaultPkgs;
 

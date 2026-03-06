@@ -40,6 +40,9 @@
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhv6q3siBUASk16LN8tCa2nPUp4g2isRuwo1ndDPz7g godot-vm";
             })
             (import ../yazi-config.nix { inherit pkgs; })
+            ../modules/ide.nix
+            ../modules/zsh.nix
+            ../modules/zellij.nix
             (
               { config, pkgs, ... }:
               let
@@ -102,6 +105,13 @@
                   ];
                   mem = 16384;
                   vcpu = 6;
+                };
+
+                services.ide.enable = true;
+                services.zellij-env.enable = true;
+                services.zsh-env = {
+                  enable = true;
+                  # ohMyPoshTheme = "montys.omp.json";
                 };
 
                 services.qemuGuest.enable = true;
@@ -210,13 +220,6 @@
                   gtk3
                 ];
 
-                programs.neovim = {
-                  enable = true;
-                  defaultEditor = true;
-                  withNodeJs = true;
-                  withPython3 = true;
-                };
-
                 environment.systemPackages =
                   with pkgs;
                   [
@@ -225,149 +228,14 @@
                     godot
                     wl-clipboard
 
-                    gnupg
-                    pinentry-curses
-                    gh
-                    github-copilot-cli
-                    openssl
-
-                    python3
-                    fd
-                    zip
-                    xz
-                    unzip
-                    p7zip
-
-                    gcc
-                    gnumake
-                    rustc
-                    cargo
-                    rust-analyzer
-                    watchexec
-                    lua-language-server
-                    lua51Packages.lua
-                    lua51Packages.luarocks
-                    nixfmt
-                    statix
-                    tree-sitter
-                    vectorcode
-                    nodejs
-                    nodePackages.npm
-                    watchman
-                    icu
-
-                    zellij
-                    antidote
-                    ripgrep
-                    fzf
-                    oh-my-posh
-                    eza # A modern replacement for ‘ls’
-                    zoxide
-                    ddate
-                    cowsay
-
-                    (writeShellScriptBin "lazygit" ''
-                      export GPG_TTY=$(tty)
-                      ${gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
-                      exec ${lazygit}/bin/lazygit "$@"
-                    '')
-
                     firefox
-
-                    (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
                   ++ defaultPkgs;
 
-                users.defaultUserShell = pkgs.zsh;
-                users.users.user.shell = pkgs.zsh;
-
-                programs.zsh = {
-                  enable = true;
-                  enableCompletion = true;
-                  autosuggestions.enable = true;
-                  syntaxHighlighting.enable = true;
-
-                  shellAliases = {
-                    ll = "ls -l";
-                    la = "ls -la";
-                    sc = "systemctl";
-                    n = "nvim";
-                  };
-
-                  histSize = 10000;
-                  histFile = "$HOME/.zsh_history";
-
-                  shellInit = ''
-                    if [[ $- != *i* ]]; then
-                      return
-                    fi
-                    export HISTIGNORE="rm *:cp *"
-                    setopt HIST_IGNORE_ALL_DUPS
-                    export GPG_TTY=$(tty)
-
-                    # Use antidote plugin manager
-                    export ANTIDOTE_HOME="$HOME/.cache/antidote"
-                    mkdir -p "$ANTIDOTE_HOME"
-                    source ${pkgs.antidote}/share/antidote/antidote.zsh
-
-                    antidote bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.zsh
-                    antidote load
-
-                    if command -v oh-my-posh >/dev/null 2>&1; then
-                      eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/montys.omp.json")"
-                    fi
-                  '';
-                };
-
-                environment.etc."zsh_plugins.txt".text = ''
-                  zsh-users/zsh-autosuggestions
-                  zap-zsh/supercharge
-                  zsh-users/zsh-syntax-highlighting
-                  atoftegaard-git/zsh-omz-autocomplete
-                  MichaelAquilina/zsh-you-should-use
-                  zap-zsh/magic-enter
-                  chivalryq/git-alias
-                  zap-zsh/vim
-                  zap-zsh/sudo
-                  wintermi/zsh-oh-my-posh
-                '';
-
-                environment.etc."gpg-agent.conf".text = ''
-                  pinentry-program /run/current-system/sw/bin/pinentry-tty
-                '';
-                environment.etc."zellij".source = ./zellij;
                 systemd.tmpfiles.rules = [
-                  # Symlink /etc/zshrc nach /home/user/.zshrc, falls nicht vorhanden
-                  "L+ /home/user/.zshrc - - - - /etc/zshrc"
-                  "L+ /home/user/.zsh_plugins.txt - - - - /etc/zsh_plugins.txt"
-                  "L+ /home/user/.gnupg/gpg-agent.conf - - - - /etc/gpg-agent.conf"
-                  # zellij config
-                  "d /home/user/.config/zellij 0755 user users -"
-                  "L+ /home/user/.config/zellij/config.kdl - - - - /etc/zellij/config.kdl"
-                  "L+ /home/user/.config/zellij/layouts - - - - /etc/zellij/layouts"
-                  "L+ /home/user/.config/zellij/plugins - - - - /etc/zellij/plugins"
                   # hyprland config
                   "L+ /home/user/.config/hypr/hyprland.conf - - - - /etc/hyprland.conf"
                 ];
-
-                # git
-                programs.git = {
-                  enable = true;
-                  config = {
-                    user = {
-                      name = "Daniel Kipp";
-                      email = "daniel.kipp@gmail.com";
-                    };
-                    help.autocorrect = 1;
-                    push.default = "simple";
-                    pull.rebase = false;
-                    "branch \"main\"".mergeoptions = "--no-edit";
-                    init.defaultBranch = "main";
-                    gpg.program = "gpg";
-                    commit.gpgsign = true;
-                    user.signingkey = "937A32679620DC68";
-                  };
-                };
 
                 services.pulseaudio.enable = false;
                 security.rtkit.enable = true;

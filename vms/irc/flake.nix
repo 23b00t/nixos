@@ -40,6 +40,7 @@
               inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm";
             })
+            ../modules/zellij.nix
             (
               { config, pkgs, ... }:
               let
@@ -79,14 +80,7 @@
                   ];
                 };
 
-                environment.etc."zellij".source = ./zellij;
-                systemd.tmpfiles.rules = [
-                  # zellij config
-                  "d /home/user/.config/zellij 0755 user user -"
-                  "L+ /home/user/.config/zellij/config.kdl - - - - /etc/zellij/config.kdl"
-                  "L+ /home/user/.config/zellij/layouts - - - - /etc/zellij/layouts"
-                  "L+ /home/user/.config/zellij/plugins - - - - /etc/zellij/plugins"
-                ];
+                services.zellij-env.enable = true;
 
                 environment.systemPackages =
                   with pkgs;
@@ -102,10 +96,7 @@
                     pinentry-curses
                     proxychains-ng
                     openssl
-                    zellij
                     iamb
-
-                    (import ../copy-between-vms.nix { inherit pkgs; })
                   ]
                   ++ defaultPkgs;
 
@@ -114,10 +105,6 @@
                   socks5  10.152.152.10 9050
                 '';
 
-                programs.vim = {
-                  enable = true;
-                  defaultEditor = true;
-                };
                 system.stateVersion = "25.05";
               }
             )

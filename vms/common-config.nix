@@ -100,11 +100,4 @@
   systemd.tmpfiles.rules = [
     "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
   ];
-
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [
-      23000
-    ];
-  };
 }

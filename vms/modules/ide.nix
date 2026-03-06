@@ -6,7 +6,7 @@
 }:
 let
   cfg = config.services.ide;
-    lazyvimSyncScript = pkgs.writeShellScript "ide-lazyvim-sync" ''
+  lazyvimSyncScript = pkgs.writeShellScript "ide-lazyvim-sync" ''
     set -e
 
     NVIM_DIR="/home/${cfg.user}/.config/nvim"
@@ -86,6 +86,24 @@ in
       defaultEditor = true;
       withNodeJs = true;
       withPython3 = true;
+    };
+
+    programs.git = {
+      enable = true;
+      config = {
+        user = {
+          name = "Daniel Kipp";
+          email = "daniel.kipp@gmail.com";
+        };
+        help.autocorrect = 1;
+        push.default = "simple";
+        pull.rebase = false;
+        "branch \"main\"".mergeoptions = "--no-edit";
+        init.defaultBranch = "main";
+        gpg.program = "gpg";
+        commit.gpgsign = true;
+        user.signingkey = "937A32679620DC68";
+      };
     };
 
     environment.variables.EDITOR = "nvim";

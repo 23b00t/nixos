@@ -262,7 +262,7 @@
                   # vulkan-tools # für vulkaninfo
                   # vulkan-loader
                   # vulkan-validation-layers
-                  (import ../copy-between-vms.nix { inherit pkgs; })
+
                 ];
                 services.dbus.enable = true;
 

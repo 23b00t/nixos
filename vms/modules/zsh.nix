@@ -16,15 +16,29 @@ in
 {
   options.services.zsh-env = {
     enable = lib.mkEnableOption "zsh shell environment with plugins";
+
     user = lib.mkOption {
       type = lib.types.str;
       default = "user";
       description = "Target user for zsh config";
     };
+
     ohMyPoshTheme = lib.mkOption {
       type = lib.types.str;
       default = "montys.omp.json";
       description = "oh-my-posh theme file name located in ~/.cache/oh-my-posh/themes/";
+    };
+
+    extraAliases = lib.mkOption {
+      type = lib.types.attrsOf lib.types.str;
+      default = { };
+      description = "Extra or overriding zsh aliases for this host.";
+    };
+
+    extraShellInit = lib.mkOption {
+      type = lib.types.lines;
+      default = "";
+      description = "Extra shellInit code appended for this host.";
     };
   };
 
@@ -35,12 +49,14 @@ in
       autosuggestions.enable = true;
       syntaxHighlighting.enable = true;
 
-      shellAliases = {
-        ll = "ls -l";
-        la = "ls -la";
-        sc = "systemctl";
-        n = "nvim";
-      };
+      shellAliases =
+        {
+          ll = "ls -l";
+          la = "ls -la";
+          sc = "systemctl";
+          n = "nvim";
+        }
+        // cfg.extraAliases;
 
       histSize = 10000;
       histFile = "$HOME/.zsh_history";
@@ -66,11 +82,10 @@ in
 
         export SSL_CERT_DIR=/etc/ssl/certs
         export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-      '';
+      '' + cfg.extraShellInit;
     };
 
     environment.systemPackages = with pkgs; [
-      zellij
       antidote
       oh-my-posh
       eza

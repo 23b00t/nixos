@@ -86,7 +86,7 @@
                   pkgs.wprs
                   pkgs.xwayland
                   pkgs.keepassxc
-                  (import ../copy-between-vms.nix { inherit pkgs; })
+
                 ]
                 ++ defaultPkgs;
 

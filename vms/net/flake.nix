@@ -102,7 +102,7 @@
                   pkgs.wprs
                   pkgs.xwayland
                   (import ../zen-firefox.nix { inherit lib pkgs zen-browser; })
-                  (import ../copy-between-vms.nix { inherit pkgs; })
+
                 ]
                 ++ defaultPkgs;
 

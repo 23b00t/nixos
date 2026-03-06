@@ -203,7 +203,7 @@
                   mangohud
                   pciutils
                   dbus
-                  (import ../copy-between-vms.nix { inherit pkgs; })
+
                 ];
                 # D-Bus system service (sollte auf NixOS meist ohnehin an sein, aber explizit ist gut)
                 services.dbus.enable = true;
