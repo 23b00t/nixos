@@ -1,6 +1,6 @@
 { lib, inputs, ... }:
 let
-  vmRegistry = import ../vms/registry.nix { inherit lib; };
+  vmRegistry = import ../vms/registry.nix;
 
   hosts = vmRegistry.vms;
 

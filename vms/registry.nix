@@ -29,15 +29,15 @@ let
       sshKeyName = "chat-vm";
       extraSSH = {};
     }
-    {
-      name = "test";
-      short = "t";
-      ip = "10.0.0.3";
-      autostart = false;
-      nat = true;
-      sshKeyName = "test-vm";
-      extraSSH = {};
-    }
+    # {
+    #   name = "test";
+    #   short = "t";
+    #   ip = "10.0.0.3";
+    #   autostart = false;
+    #   nat = true;
+    #   sshKeyName = "test-vm";
+    #   extraSSH = {};
+    # }
     {
       name = "music";
       short = "m";
@@ -90,7 +90,7 @@ let
       short = "o";
       ip = "10.0.0.9";
       autostart = false;
-      nat = true;
+      nat = false;
       sshKeyName = "office-vm";
       extraSSH = {};
     }

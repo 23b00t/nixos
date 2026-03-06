@@ -1,7 +1,7 @@
 # filepath: home/vm-connect.nix
 { pkgs, lib, ... }:
 let
-  vmRegistry = import ../vms/registry.nix { inherit lib; };
+  vmRegistry = import ../vms/registry.nix;
 
   vmCases = builtins.concatStringsSep "\n" (map (vm:
     let
@@ -54,7 +54,13 @@ ${vmCases}
     esac
 
     USER="user"
-    KEY="$HOME/.ssh/${FULL_NAME}-vm"
+
+    if [ -z "''${FULL_NAME:-}" ]; then
+      echo "Internal error: FULL_NAME not set for VM '$NAME'" >&2
+      exit 1
+    fi
+
+    KEY="$HOME/.ssh/''${FULL_NAME}-vm"
 
     if [ "$USE_KITTEN" -eq 1 ]; then
       exec kitten ssh -i "$KEY" "$USER@$IP" -t
@@ -67,4 +73,3 @@ in
 {
   home.packages = [ vmScript ];
 }
-

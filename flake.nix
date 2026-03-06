@@ -27,25 +27,41 @@
     # Hardware Configuration's, used in ./configuration.nix. Feel free to remove if unused
     nixos-hardware.url = "github:nixos/nixos-hardware/master";
 
-    # MicroVMs – derive from registry
-    vmRegistry = import ./vms/registry.nix;
-
-    vmInputs = builtins.listToAttrs (map (vm: {
-      name = vm.name;
-      value = {
-        url = "path:./vms/${vm.name}";
-      };
-    }) vmRegistry.vms);
+    irc.url = "path:./vms/irc";
+    nvim.url = "path:./vms/nvim";
+    chat.url = "path:./vms/chat";
+    office.url = "path:./vms/office";
+    music.url = "path:./vms/music";
+    net.url = "path:./vms/net";
+    net-private.url = "path:./vms/net-private";
+    wine.url = "path:./vms/wine";
+    kali.url = "path:./vms/kali";
+    vault.url = "path:./vms/vault";
+    # test.url = "path:./vms/test";
+    # onlyoffice.url = "path:./vms/onlyoffice";
+    steam.url = "path:./vms/steam";
+    godot.url = "path:./vms/godot";
+    mirage.url = "path:./vms/mirage";
   };
 
   outputs =
     { ... }@inputs:
     let
       system = "x86_64-linux";
+
+      # Import vm registry as pure data (registry.nix should not depend on lib)
+      vmRegistry = import ./vms/registry.nix;
+
+      # Build a set of VM flakes from the registry, so we can pass them into configuration.
+      vmFlakes = builtins.listToAttrs (map (vm: {
+        name = vm.name;
+        value = inputs.${vm.name};
+      }) vmRegistry.vms);
+
       hydenixConfig = inputs.nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
-          inherit inputs;
+          inherit inputs vmRegistry vmFlakes;
         };
         # extraModules = [
         #   (

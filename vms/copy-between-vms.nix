@@ -1,6 +1,6 @@
 { pkgs, lib, ... }:
 let
-  vmRegistry = import ./registry.nix { inherit lib; };
+  vmRegistry = import ./registry.nix;
 
   # Host table: <hostname> <ip> [username]
   # We include both long and short names; default user is 'user' except for host.

@@ -103,7 +103,7 @@ in
     # wine
     # pass
     (import ./remote-zellij.nix { inherit pkgs; })
-    (import ./backup.nix { inherit pkgs; })
+    (import ./backup.nix { inherit pkgs lib inputs; })
   ];
 
   # programs.direnv = {

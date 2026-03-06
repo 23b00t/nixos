@@ -20,14 +20,14 @@ pkgs.writeShellScriptBin "remote-zellij" ''
   ZJ_SESSIONS="$(run_on_vm "zellij" list-sessions \
     | sed -r 's/\x1B\[[0-9;]*[mK]//g' \
     | awk '{for(i=1;i<=NF;i++) if($i ~ /^[a-zA-Z][^ ]*/) {print $i; break}}')"
-  NO_SESSIONS="$(echo "${ZJ_SESSIONS}" | wc -l)"
+  NO_SESSIONS="$(echo "''${ZJ_SESSIONS}" | wc -l)"
 
-  if [ "${NO_SESSIONS}" -ge 2 ]; then
-    CHOICE=$( (echo "${ZJ_SESSIONS}"; echo "[Start new session]") | fzf )
-    if [ "${CHOICE}" = "[Start new session]" ]; then
+  if [ "''${NO_SESSIONS}" -ge 2 ]; then
+    CHOICE=$( (echo "''${ZJ_SESSIONS}"; echo "[Start new session]") | fzf )
+    if [ "''${CHOICE}" = "[Start new session]" ]; then
       run_on_vm "zellij" --layout /home/user/.config/zellij/layouts/tabs.kdl
-    elif [ -n "${CHOICE}" ]; then
-      run_on_vm "zellij" attach "${CHOICE}"
+    elif [ -n "''${CHOICE}" ]; then
+      run_on_vm "zellij" attach "''${CHOICE}"
     else
       echo "Cancelled."
       exit 1

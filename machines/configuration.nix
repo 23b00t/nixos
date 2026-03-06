@@ -1,6 +1,8 @@
 {
   lib,
   inputs,
+  vmRegistry,
+  vmFlakes,
   ...
 }:
 let
@@ -270,7 +272,7 @@ in
 
     # flatpak
 
-    (import ../vms/copy-between-vms.nix { inherit pkgs; })
+    (import ../vms/copy-between-vms.nix { inherit pkgs lib; })
   ];
 
   programs.vim.enable = true;
@@ -405,23 +407,18 @@ in
 
   microvm.vms =
     let
-      vmRegistry = import ../vms/registry.nix { inherit lib; };
-
       # Helper to read autostart flag from registry by name.
       autostartFor = name: (vmRegistry.byName.${name}.autostart or false);
 
       # If you do not want all registry VMs to be microvms on this host,
-      # filter vmRegistry.vms here, e.g.:
-      # selectedVms = lib.filter (vm: vm.name != "some-vm") vmRegistry.vms;
+      # filter vmRegistry.vms here.
       selectedVms = vmRegistry.vms;
-
     in
     builtins.listToAttrs (
       map (vm: {
         name = vm.name;
         value = {
-          # inputs.<name> is generated from registry in flake.nix
-          flake = inputs.${vm.name};
+          flake = vmFlakes.${vm.name};
           autostart = autostartFor vm.name;
         };
       }) selectedVms
@@ -467,7 +464,7 @@ in
   # NAT only for 4 VMs
   networking.nat =
     let
-      vmRegistry = import ../vms/registry.nix { inherit lib; };
+      vmRegistry = import ../vms/registry.nix;
     in
     {
       enable = true;
