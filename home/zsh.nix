@@ -77,6 +77,16 @@
           [ -f "$HOME/nixos-config/home/hydectl.zsh" ] && source "$HOME/nixos-config/home/hydectl.zsh"
           [ -f "$HOME/nixos-config/home/nvim.zsh" ] && source "$HOME/nixos-config/home/nvim.zsh"
           compdef _hydectl hydectl
+
+          ms() {
+              systemctl start microvm@"$1".service
+          }
+          mst() {
+              systemctl stop microvm@"$1".service
+          }
+          mr() {
+              systemctl restart microvm@"$1".service
+          }
       	'';
   };
 }

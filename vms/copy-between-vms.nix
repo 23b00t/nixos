@@ -33,7 +33,7 @@ pkgs.writeShellScriptBin "cp-vm" ''
 
   DEFAULT_USER="user"
 
-  HOSTTABLE='''${hostTable}
+  HOSTTABLE="${hostTable}"
 
   usage() {
     echo "Usage: $0 [-m] <vm-name-or-short> ./filename"
