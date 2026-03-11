@@ -80,7 +80,13 @@
                   ];
                 };
 
-                services.zellij-env.enable = true;
+                services.zellij-env = {
+                  enable = true;
+                  tabsKdlFile = builtins.path {
+                    name = "tabs.kdl";
+                    path = ./tabs.kdl;
+                  };
+                };
 
                 environment.systemPackages =
                   with pkgs;

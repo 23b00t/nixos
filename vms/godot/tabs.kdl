@@ -1,0 +1,24 @@
+layout {
+    default_tab_template name="main" {
+        // compact-bar at the top
+        pane size=1 borderless=true {
+            plugin location="zellij:compact-bar" {
+                tooltip "F1"
+            }
+        }
+        children
+    }
+
+    tab name="user" cwd="~/" {
+        pane
+    }
+    tab name="code" cwd="~/code/" {
+        pane
+    }
+    tab name="btop" cwd="~/" {
+        pane command="btop"
+    }
+    tab name="yazi" cwd="~/" {
+        pane command="yazi"
+    }
+}

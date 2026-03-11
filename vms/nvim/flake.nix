@@ -167,6 +167,10 @@
                   # Defaults for reference
                   # user = "user";
                   # configDir = ./zellij-custom;
+                  tabsKdlFile = builtins.path {
+                    name = "tabs.kdl";
+                    path = ./tabs.kdl;
+                  };
                 };
 
                 services.zsh-env = {
