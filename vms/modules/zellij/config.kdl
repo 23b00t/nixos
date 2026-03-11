@@ -239,14 +239,6 @@ keybinds clear-defaults=true {
             SwitchToMode "Locked"
         }
     }
-    shared_except "locked" {
-        bind "Ctrl n" {
-            Run "bash" "-c" "~/nixos-config/devenv/ilias-devenv/zellij-layout/il-layout.sh" {
-                floating true;
-            }
-            SwitchToMode "Locked"
-        }
-    }
     // shared_except "locked" {
     // // ...
     //     bind "f" {
@@ -310,7 +302,7 @@ default_mode "locked"
 // Choose the path to the default shell that zellij will use for opening new panes
 // Default: $SHELL
 // 
-default_shell "zsh"
+// default_shell "zsh"
  
 // Choose the path to override cwd that zellij will use for opening new panes
 // 
@@ -534,7 +526,7 @@ pane_frames false
 // The ip address the web server should listen on when it starts
 // Default: "127.0.0.1"
 // (Requires restart)
-web_server_ip "0.0.0.0"
+// web_server_ip "0.0.0.0"
  
 // The port the web server should listen on when it starts
 // Default: 8082
