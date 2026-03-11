@@ -14,17 +14,14 @@ let
   ) vmRegistry.vms);
 
 in
-pkgs.writeShellScriptBin "backup" ''
-  # TODO: Host table is generated from Nix registry; parsing should stay simple.
-  # Data parsing should be refactored in separate function.
+  pkgs.writeShellScriptBin "backup" ''
   set -e
 
-  # Host table: <hostname> <ip>
-  HOSTTABLE='''${hostTable}
+  HOSTTABLE="${hostTable}"
 
   usage() {
-    echo "Usage: $0 destination target-vm-name ..."
-    echo "or: $0 -a destination (to backup all VMs in the registry)"
+    echo "Usage: $0 destination target-host-name next-target ..."
+    echo "or: $0 -a destination (to backup all targets in the list)"
     echo "or: $0 -r source-dir (to restore backups from source-dir)"
     exit 1
   }
@@ -176,5 +173,3 @@ pkgs.writeShellScriptBin "backup" ''
     backup_host "$TARGET"
   done
 ''
-
-
