@@ -139,6 +139,15 @@ let
       sshKeyName = "mirage-vm";
       extraSSH = {};
     }
+    {
+      name = "php";
+      short = "p";
+      ip = "10.0.0.15";
+      autostart = false;
+      nat = true;
+      sshKeyName = "php-vm";
+      extraSSH = {};
+    }
   ];
 
   byName =

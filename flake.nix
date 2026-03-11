@@ -42,6 +42,7 @@
     steam.url = "path:./vms/steam";
     godot.url = "path:./vms/godot";
     mirage.url = "path:./vms/mirage";
+    php.url = "path:./vms/php";
   };
 
   outputs =
