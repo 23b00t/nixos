@@ -22,9 +22,13 @@
       mac = "00:00:00:00:00:0f";
     in
     {
-      devShells.${system} = {
-        php82 = pkgs.mkShell {
-          packages = with pkgs; [
+      packages.${system} = {
+        default = self.packages.${system}.php;
+        php = self.nixosConfigurations.php.config.microvm.declaredRunner;
+
+        php82-shell = pkgs.buildEnv {
+          name = "php82-shell";
+          paths = with pkgs; [
             php82
             php82Packages.composer
             php82Packages.php-cs-fixer
@@ -32,8 +36,9 @@
           ];
         };
 
-        php83 = pkgs.mkShell {
-          packages = with pkgs; [
+        php83-shell = pkgs.buildEnv {
+          name = "php83-shell";
+          paths = with pkgs; [
             php83
             php83Packages.composer
             php83Packages.php-cs-fixer
@@ -41,8 +46,9 @@
           ];
         };
 
-        php84 = pkgs.mkShell {
-          packages = with pkgs; [
+        php84-shell = pkgs.buildEnv {
+          name = "php84-shell";
+          paths = with pkgs; [
             php84
             php84Packages.composer
             php84Packages.php-cs-fixer
@@ -50,18 +56,15 @@
           ];
         };
 
-        php85 = pkgs.mkShell {
-          packages = with pkgs; [
+        php85-shell = pkgs.buildEnv {
+          name = "php85-shell";
+          paths = with pkgs; [
             php85
             php85Packages.composer
             php85Packages.php-cs-fixer
             php85Packages.php-codesniffer
           ];
         };
-      };
-      packages.${system} = {
-        default = self.packages.${system}.php;
-        php = self.nixosConfigurations.php.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
         php = nixpkgs.lib.nixosSystem {
@@ -81,6 +84,8 @@
               { config, pkgs, ... }:
               let
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
+                phpSwitcherScript = import ./php-switcher.nix;
+                phpSwitcherBin = pkgs.writeShellScriptBin "setphpv" phpSwitcherScript;
               in
               {
                 networking.hostName = "php-vm";
@@ -127,10 +132,11 @@
                   ]
                   ++ defaultPkgs
                   ++ [
-                    self.devShells.${pkgs.system}.php82
-                    self.devShells.${pkgs.system}.php83
-                    self.devShells.${pkgs.system}.php84
-                    self.devShells.${pkgs.system}.php85
+                    self.packages.${pkgs.system}.php82-shell
+                    self.packages.${pkgs.system}.php83-shell
+                    self.packages.${pkgs.system}.php84-shell
+                    self.packages.${pkgs.system}.php85-shell
+                    phpSwitcherBin
                   ];
 
                 networking.firewall = {
