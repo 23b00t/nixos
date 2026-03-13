@@ -1,0 +1,31 @@
+layout {
+    default_tab_template name="main" {
+        // compact-bar at the top
+        pane size=1 borderless=true {
+            plugin location="zellij:compact-bar" {
+                tooltip "F1"
+            }
+        }
+        children
+    }
+
+    tab name="user" cwd="~/" {
+        pane
+    }
+
+    tab name="il10" {
+      pane_template name="il" {
+        cwd="~/code/il_10/"
+        command="export PATH='$HOME/bin/php8.3:$PATH'"
+      }
+      pane {
+        cwd="~/code/il_10/ilias_10/"
+        command="source setphpv 83"
+      }
+      pane split_direction="vertical" {
+        il
+        il
+        il
+      }
+    }
+}

@@ -11,22 +11,24 @@ let
     PHP_VER="$1"
 
     # Find the correct store path
-    PHP_STORE=$(ls /nix/store | grep "php${PHP_VER}-shell" | head -n1)
+    PHP_STORE=$(ls /nix/store | grep "php''${PHP_VER}-shell$")
     if [ -z "$PHP_STORE" ]; then
-      echo "PHP$PHP_VER environment not found in /nix/store"
+      echo "PHP''$PHP_VER environment not found in /nix/store"
       exit 1
     fi
 
     # Create ~/bin if it doesn't exist
-    mkdir -p ~/bin
+    mkdir -p ~/bin/php''$PHP_VER
 
     # Overwrite symlinks in ~/bin
-    ln -sf "/nix/store/$PHP_STORE/bin/php" ~/bin/php
-    ln -sf "/nix/store/$PHP_STORE/bin/composer" ~/bin/composer
-    ln -sf "/nix/store/$PHP_STORE/bin/php-cs-fixer" ~/bin/php-cs-fixer
-    ln -sf "/nix/store/$PHP_STORE/bin/phpcs" ~/bin/phpcs
+    ln -sf "/nix/store/$PHP_STORE/bin/php" ~/bin/php''$PHP_VER/php
+    ln -sf "/nix/store/$PHP_STORE/bin/composer" ~/bin/php''$PHP_VER/composer
+    ln -sf "/nix/store/$PHP_STORE/bin/php-cs-fixer" ~/bin/php''$PHP_VER/php-cs-fixer
+    ln -sf "/nix/store/$PHP_STORE/bin/phpcs" ~/bin/php''$PHP_VER/phpcs
 
-    echo "Switched to PHP $PHP_VER"
+    export PATH="$HOME/bin/php''$PHP_VER:$PATH"
+
+    echo "Switched to PHP ''$PHP_VER"
   '';
 in
 phpSwitcherScript
