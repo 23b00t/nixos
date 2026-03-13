@@ -70,7 +70,7 @@ host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1vide
 
 - sudo modprobe iwlwifi
 
-## TODOs
+## TODOs <!-- TODO: -->
 
 - cp-vm should read multiple files, not only one and folders
 - backup and restore should be better tested and have a better output over success and failure
@@ -78,9 +78,11 @@ host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1vide
 - Multi machine setup
 - Setup microvm binary
 - Solve manual vm adding to flake.nix 
-- Improve priting service (remove pre-condition of SSH Connection to the host)
+- Improve printing service (remove pre-condition of SSH Connection to the host)
 - General refactoring and cleanup
 - Remove unused host/ not strictly needed host software
+- Modularize common-config.nix, net-config.nix, default-packages.nix etc.
+- Debug and fix occasionally occurring shared libs error in nvim-vm
 
 ## Misc
 

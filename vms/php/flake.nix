@@ -22,6 +22,43 @@
       mac = "00:00:00:00:00:0f";
     in
     {
+      devShells.${system} = {
+        php82 = pkgs.mkShell {
+          packages = with pkgs; [
+            php82
+            php82Packages.composer
+            php82Packages.php-cs-fixer
+            php82Packages.php-codesniffer
+          ];
+        };
+
+        php83 = pkgs.mkShell {
+          packages = with pkgs; [
+            php83
+            php83Packages.composer
+            php83Packages.php-cs-fixer
+            php83Packages.php-codesniffer
+          ];
+        };
+
+        php84 = pkgs.mkShell {
+          packages = with pkgs; [
+            php84
+            php84Packages.composer
+            php84Packages.php-cs-fixer
+            php84Packages.php-codesniffer
+          ];
+        };
+
+        php85 = pkgs.mkShell {
+          packages = with pkgs; [
+            php85
+            php85Packages.composer
+            php85Packages.php-cs-fixer
+            php85Packages.php-codesniffer
+          ];
+        };
+      };
       packages.${system} = {
         default = self.packages.${system}.php;
         php = self.nixosConfigurations.php.config.microvm.declaredRunner;
@@ -39,29 +76,23 @@
             })
             ../modules/ide.nix
             ../modules/zsh.nix
+            ../modules/zellij.nix
             (
               { config, pkgs, ... }:
               let
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-
-                devenvConfig = import ./devenv.nix {
-                  inherit pkgs;
-                  # "Fake"-config für den Import-Kontext von devenv.nix:
-                  config = {
-                    env = {
-                      DEVENV_ROOT = "/home/user/project"; # Pfad in der VM anpassen
-                    };
-                  };
-                };
-                envVars = devenvConfig.env or { };
-                devPkgs = devenvConfig.packages or [ ];
-                scripts = devenvConfig.scripts or { };
-                processes = devenvConfig.processes or { };
               in
               {
                 networking.hostName = "php-vm";
                 services.ide.enable = true;
                 services.zsh-env.enable = true;
+                services.zellij-env = {
+                  enable = true;
+                  # tabsKdlFile = builtins.path {
+                  #   name = "tabs.kdl";
+                  #   path = ./tabs.kdl;
+                  # };
+                };
 
                 microvm = {
                   registerClosure = false;
@@ -86,8 +117,43 @@
                   vcpu = 2;
                 };
 
-                services.ide.enable = true;
-                services.zsh-env.enable = true;
+                environment.systemPackages =
+                  with pkgs;
+                  [
+                    phpstan
+                    intelephense
+                    vscode-langservers-extracted
+                    mariadb
+                  ]
+                  ++ defaultPkgs
+                  ++ [
+                    self.devShells.${pkgs.system}.php82
+                    self.devShells.${pkgs.system}.php83
+                    self.devShells.${pkgs.system}.php84
+                    self.devShells.${pkgs.system}.php85
+                  ];
+
+                networking.firewall = {
+                  enable = true;
+                  allowedTCPPortRanges = [
+                    {
+                      from = 8500;
+                      to = 8523;
+                    }
+                  ];
+                };
+
+                virtualisation = {
+                  docker = {
+                    enable = true;
+                    rootless = {
+                      enable = true;
+                      setSocketVariable = true;
+                    };
+                    extraOptions = "--experimental";
+                    extraPackages = [ pkgs.docker-buildx ];
+                  };
+                };
 
                 system.stateVersion = "25.05";
               }

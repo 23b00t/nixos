@@ -26,7 +26,7 @@ in
 
     tabsKdlFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
-      default = null;
+      default = ./zellij/layouts/tabs.kdl;
       description = "Optional override for zellij/layouts/tabs.kdl file.";
     };
   };
