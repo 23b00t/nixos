@@ -7,36 +7,51 @@
 
 ## VMs
 
-- .1 nvim
-- .2 chat
-- .3
-- .4 music
-- .5 net
-- .6 net-private (no autostart)
-- .7 wine (no autostart)
-- .8 kali (no autstart)
-- .9 office (no net, no autostart)
-- .10 vault (no net, no autostart)
-- .11 irc
-- .12 steam
-- .13 godot
-
-- .254 host
-
 ### Create VMs
 
-- vms/vm-name/flake.nix
-- add in main flake.nix, configuration.nix (to microvm secion and NAT if desired), ssh.nix, copy-between-vms.nix, vm-connect.nix
+- Add entry to vms/registry.nix, e.g.:
+  ```nix
+  {
+    name = "nvim";
+    short = "n";
+    ip = "10.0.0.1";
+    autostart = true;
+    nat = true;
+    sshKeyName = "nvim-vm";
+    extraSSH = {
+      RemoteForward = "4713 localhost:4713";
+    };
+  }
+  ```
+- Add entry to flake.nix, e.g.:
+  ```nix
+  nvim.url = "path:./vms/nvim";
+  ```
+- Add a flake to vms/{name}/flake.nix which defines the microvm
+- Import modules as needed, the usage of nearly all available modules is shown in vms/nvim/flake.nix
 
-## nvim-vm
+### Additional setup for ide vms
 
-- cp-vm nvim .ssh/id_ed25519
-- cp-vm nvim .ssh/id_ed25519.pub
+<!-- TODO: Should be ready in vault-vm -->
 - gpg --list-secret-keys --keyid-format LONG
 - gpg --export-secret-keys XXXXXXXXXX > privat.asc
 - gpg --export XXXXXXXXXX > public.asc
+<!-- END_TODO -->
+- cp-vm {name} privat.asc public.asc
 - in vm: gpg --import privat.asc and gpg --import public.asc
 - gh auth login
+
+### Resize VM images 
+
+- To increase the size of a .img image file by 30GB:
+```bash
+sudo truncate -s +30G filename.img
+```
+
+- After enlarging the .img file, you also need to expand the filesystem inside the VM. For example, if the filesystem is ext4, start the VM, open a terminal, and run (as root):
+```bash
+resize2fs /dev/vdX
+```
 
 ## libvirt
 
@@ -47,26 +62,29 @@
 
 ## screensharing
 
+<!-- TODO: Build sth. working - idealy with only sharing specific windows, would be fine if only chat-vm is the target (but should be addable by module) -->
 vm: mpv http://192.168.178.20:8082/stream
 host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1video -b:v 3000k -bf 0 http://0.0.0.0:8082/stream
-
-## Wuthering Waves
-
-- https://steamcommunity.com/app/3513350/discussions/0/506216918922078642/
-- Properties -> launch options: SteamOS=1 %command% 
-
-## Probleme
-
-Dez 27 18:27:44 chat-vm nsncd[801]: Dec 27 17:27:44.153 ERRO error handling request, err: ESTALE: Stale file handle, request_type: GETPWBYNAME, thread: worker_2
-Dez 27 18:27:44 chat-vm sshd[1168]: Privilege separation user sshd does not exist
-Dez 27 18:28:06 chat-vm nsncd[801]: Dec 27 17:28:06.607 ERRO error handling request, err: ESTALE: Stale file handle, request_type: GETPWBYNAME, thread: worker_0
-Dez 27 18:28:06 chat-vm sshd[1169]: Privilege separation user sshd does not exist
 
 ## No WiFi
 
 - sudo modprobe iwlwifi
 
-## steam vm 
+## TODOs
+
+- cp-vm should read multiple files, not only one and folders
+- backup and restore should be better tested and have a better output over success and failure
+  - vms started by the scripts should be stoped after backup and restore
+- Multi machine setup
+- Setup microvm binary
+- Solve manual vm adding to flake.nix 
+- Improve priting service (remove pre-condition of SSH Connection to the host)
+- General refactoring and cleanup
+- Remove unused host/ not strictly needed host software
+
+## Misc
+
+### steam vm 
 
 lspci -nn | grep -E "VGA|3D|Audio"
 nvidia-smi || true
@@ -107,41 +125,23 @@ sudo cat /var/log/steam-autostart.log || true
 4. **systemd-Unit für sauberes Binding:**  
    Erstelle eine systemd-Unit auf dem Host, die vor dem VM-Start die Geräte vorbereitet.
 
-
-### WuWa
-
-PROTON_ENABLE_NVAPI=1
-gamescope --steam --mangoapp --framerate-limit 60 
-mangoapp ist problematisch
-
-## Resize VM images 
-
- ● Um ein .img-Image um 30GB zu vergrößern
-     sudo truncate -s +30G dateiname.img
-
- ● Nach dem Vergrößern des .img-Files das Dateisystem innerhalb der VM ebenfalls vergrößern, z.B. mit resize2fs für ext4. Starte die VM, öffne ein Terminal und führe dort (als root) resize2fs /dev/vdX aus, wobei /dev/vdX das gemountete Image ist.
-
-## windowrule bug fix
+### windowrule bug fix
 
  ~#@❯ rm windowrules.conf
  ~#@❯ ln -s /home/nx/nixos-config/home/windowrules.conf /home/nx/.local/share/hypr/windowrules.conf
  ~#@❯ rm windowrules.conf
  ~#@❯ ln -s /home/nx/nixos-config/home/windowrules.conf /home/nx/.config/hypr/windowrules.conf
 
-## Misc
+### Nixos
 
 - Check value of option: e.g. sudo nixos-option home-manager.users.nx.xdg.enable
 
-## nix develope
+### nix develope
 
 nix develop --store /mnt/user-store --extra-experimental-features nix-command --extra-experimental-features flakes
 nix store gc --store /mnt/user-store --extra-experimental-features nix-command
 
-## WiFi Problemes
-
-- sudo modprobe iwlwifi
-
-## devenv wrapper with custom nix store - didn't work as expected
+### devenv wrapper with custom nix store - didn't work as expected
 
 ```nix
 "nix.conf".text = ''
