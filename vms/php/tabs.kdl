@@ -14,18 +14,11 @@ layout {
     }
 
     tab name="il10" {
-      pane_template name="il" {
-        cwd="~/code/il_10/"
-        command="export PATH='$HOME/bin/php8.3:$PATH'"
-      }
-      pane {
-        cwd="~/code/il_10/ilias_10/"
-        command="source setphpv 83"
-      }
+      pane cwd="~/code/il_10/ilias_10/"
       pane split_direction="vertical" {
-        il
-        il
-        il
+        pane cwd="~/code/il_10/"
+        pane cwd="~/code/il_10/"
+        pane cwd="~/code/il_10/"
       }
     }
 }

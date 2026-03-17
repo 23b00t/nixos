@@ -32,13 +32,19 @@
 
 ### Additional setup for ide vms
 
-<!-- TODO: Should be ready in vault-vm -->
-- gpg --list-secret-keys --keyid-format LONG
-- gpg --export-secret-keys XXXXXXXXXX > privat.asc
-- gpg --export XXXXXXXXXX > public.asc
-<!-- END_TODO -->
 - cp-vm {name} privat.asc public.asc
 - in vm: gpg --import privat.asc and gpg --import public.asc
+```bash
+  chmod 700 ~/.gnupg
+  chmod 600 ~/.gnupg/*
+  gpg --list-keys
+  gpg --edit-key <KEY-ID>
+  # dann im GPG-Prompt:
+  # trust
+  # 5
+  # y
+  # quit
+```
 - gh auth login
 
 ### Resize VM images 
@@ -48,10 +54,17 @@
 sudo truncate -s +30G filename.img
 ```
 
-- After enlarging the .img file, you also need to expand the filesystem inside the VM. For example, if the filesystem is ext4, start the VM, open a terminal, and run (as root):
+- After enlarging the .img file resize it in the vm:
 ```bash
-resize2fs /dev/vdX
+lsblk
+sudo resize2fs /dev/vdX
 ```
+
+### Temporarily allow VM to Host SSH Connection (for copy to host)
+
+- sudo iptables -I INPUT 1 -p tcp --dport 22 -s 10.0.0.1 -j ACCEPT
+- And directly remove it again:
+  - sudo iptables -D INPUT -p tcp --dport 22 -s 10.0.0.1 -j ACCEPT
 
 ## libvirt
 
@@ -83,6 +96,9 @@ host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1vide
 - Remove unused host/ not strictly needed host software
 - Modularize common-config.nix, net-config.nix, default-packages.nix etc.
 - Debug and fix occasionally occurring shared libs error in nvim-vm
+- Adress: evaluation warning: 'system' has been renamed to/replaced by 'stdenv.hostPlatform.system'
+- cp-vm bug fix: script has to use the right key and not brute-force
+- Improve ssh key sharing
 
 ## Misc
 
@@ -170,3 +186,9 @@ exec $(find /mnt/user-store/nix/store -type f -name devenv | sort | tail -1) "$@
 ' > ~/.local/bin/devenv
 chmod +x ~/.local/bin/devenv
 ```
+
+### Export GPG keys 
+
+- gpg --list-secret-keys --keyid-format LONG
+- gpg --export-secret-keys XXXXXXXXXX > privat.asc
+- gpg --export XXXXXXXXXX > public.asc

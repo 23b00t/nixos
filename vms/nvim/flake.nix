@@ -177,7 +177,7 @@
                   enable = true;
                   # Defaults for reference
                   # user = "user";
-                  # ohMyPoshTheme = "montys.omp.json";
+                  ohMyPoshTheme = "1_shell.omp.json";
 
                   extraAliases = {
                     edit = "sudo -e";

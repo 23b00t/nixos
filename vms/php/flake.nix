@@ -106,7 +106,7 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 12000;
+                      size = 25000;
                     }
                   ];
                   shares = [
@@ -158,6 +158,13 @@
                     };
                     extraOptions = "--experimental";
                     extraPackages = [ pkgs.docker-buildx ];
+                    enableOnBoot = true;
+                    daemon.settings = {
+                      dns = [
+                        "8.8.8.8"
+                        "1.1.1.1"
+                      ];
+                    };
                   };
                 };
 
