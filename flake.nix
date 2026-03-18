@@ -50,40 +50,44 @@
     let
       system = "x86_64-linux";
 
-      # Import vm registry as pure data (registry.nix should not depend on lib)
       vmRegistry = import ./vms/registry.nix;
 
-      # Build a set of VM flakes from the registry, so we can pass them into configuration.
-      vmFlakes = builtins.listToAttrs (map (vm: {
-        name = vm.name;
-        value = inputs.${vm.name};
-      }) vmRegistry.vms);
+      vmFlakes = builtins.listToAttrs (
+        map (vm: {
+          name = vm.name;
+          value = inputs.${vm.name};
+        }) vmRegistry.vms
+      );
 
-      hydenixConfig = inputs.nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = {
-          inherit inputs vmRegistry vmFlakes;
+      baseModules = [
+        ./machines/common-configuration.nix
+      ];
+
+      mkMachine =
+        extraModules:
+        inputs.nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = {
+            inherit inputs vmRegistry vmFlakes;
+          };
+          modules = baseModules ++ extraModules;
         };
-        # extraModules = [
-        #   (
-        #     { pkgs, ... }:
-        #     {
-        #       nixpkgs.overlays = [
-        #         (import ./overlays/socktop.nix)
-        #       ];
-        #     }
-        #   )
-        # ];
-        modules = [
-          ./machines/configuration.nix
-        ];
-      };
+
+      xmgConfig = mkMachine [
+        ./machines/xmg/configuration.nix
+      ];
+
+      hpConfig = mkMachine [
+        ./machines/hp/configuration.nix
+      ];
     in
     {
       nixosConfigurations = {
-        hydenix = hydenixConfig;
-        default = hydenixConfig;
-        machine = hydenixConfig;
+        xmg = xmgConfig;
+        hp = hpConfig;
+
+        # Falls du einen Default brauchst:
+        default = xmgConfig;
       };
     };
 }

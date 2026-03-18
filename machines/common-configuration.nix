@@ -1,0 +1,417 @@
+{
+  lib,
+  inputs,
+  vmRegistry,
+  vmFlakes,
+  ...
+}:
+let
+  system = "x86_64-linux";
+  pkgs = import inputs.nixpkgs {
+    inherit system;
+    config.allowUnfree = true;
+    overlays = [
+      inputs.hydenix.overlays.default
+    ];
+  };
+  maxVMs = 23;
+in
+{
+
+  # Switch govenor with: sudo cpupower frequency-set -g performance
+  # Get infos: cpupower frequency-info
+  services.power-profiles-daemon.enable = true;
+  powerManagement.cpuFreqGovernor = "powersave";
+
+  nixpkgs.pkgs = pkgs; # Set pkgs for hydenix globally
+
+  imports = [
+    # hydenix inputs - Required modules, don't modify unless you know what you're doing
+    inputs.hydenix.inputs.home-manager.nixosModules.home-manager
+    inputs.hydenix.nixosModules.default
+    inputs.microvm.nixosModules.host
+
+    # Hardware Configuration - Uncomment lines that match your hardware
+    # Run `lshw -short` or `lspci` to identify your hardware
+
+    # GPU Configuration (choose one):
+    # inputs.nixos-hardware.nixosModules.common-gpu-nvidia
+
+    # Additional Hardware Modules - Uncomment based on your system type:
+    inputs.nixos-hardware.nixosModules.common-hidpi # High-DPI displays
+    inputs.nixos-hardware.nixosModules.common-pc-laptop # Laptops
+    inputs.nixos-hardware.nixosModules.common-pc-ssd # SSD storage
+    # ../modules/steam-vm-image.nix
+    # inputs.flatpaks.nixosModules.default
+  ];
+
+  # Home Manager Configuration - manages user-specific configurations (dotfiles, themes, etc.)
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    extraSpecialArgs = { inherit inputs; };
+    users."nx" =
+      { ... }:
+      {
+        imports = [
+          inputs.hydenix.homeModules.default
+          ../home/home.nix # Your custom home-manager modules (configure hydenix.hm here!)
+        ];
+      };
+  };
+
+  # User Account Setup - REQUIRED: Change "hydenix" to your desired username (must match above)
+  networking = {
+    hostName = "machine";
+    # TODO: Use nftables - check rules
+    # nftables.enable = true;
+    firewall = {
+      enable = true;
+      allowedTCPPorts = [
+        9003
+        631
+      ];
+      extraCommands = ''
+        iptables -A INPUT -p tcp --dport 22 -s 10.0.0.9 -j ACCEPT
+        iptables -A INPUT -p tcp --dport 22 -j DROP
+      '';
+      extraStopCommands = ''
+        iptables -D INPUT -p tcp --dport 22 -s 10.0.0.9 -j ACCEPT || true
+        iptables -D INPUT -p tcp --dport 22 -j DROP || true
+      '';
+      # TODO: Test to remove after Docker has been removed
+      # Erlaubt Traffic auf der Bridge (nötig wegen Docker/br_netfilter)
+      trustedInterfaces = [ "virbr2" ];
+    };
+  };
+  services.openssh = {
+    enable = true;
+    # listenAddresses = [
+    #   {
+    #     addr = "10.0.0.0";
+    #     port = 22;
+    #   }
+    # ];
+    settings.PermitRootLogin = "no";
+  };
+  services.fail2ban.enable = true;
+
+  # Enable the Flakes feature and the accompanying new nix command-line tool
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
+  # TODO: Check what should be done by home-manager
+  environment.systemPackages = with pkgs; [
+    # Flakes clones its dependencies through the git command,
+    # so git must be installed first
+    kitty
+    wl-clipboard
+    vim
+    gnupg
+    pinentry-curses
+    wget
+    virt-manager
+    libvirt
+    qemu
+    cloud-hypervisor
+    virtiofsd
+    zellij
+    xwayland
+    shadow
+    wprs
+    remmina
+    virt-viewer
+
+    (import ../vms/copy-between-vms.nix { inherit pkgs lib; })
+  ];
+
+  programs.vim.enable = true;
+  environment.variables.EDITOR = "vim";
+
+  # User
+  users.groups.tun = { };
+
+  users.users = {
+    nx = {
+      isNormalUser = true;
+      extraGroups = [
+        "wheel"
+        "networkmanager"
+        "libvirtd"
+        "tun"
+        "docker"
+        "kvm"
+        "input"
+      ];
+    };
+    microvm = {
+      extraGroups = [ "tun" ];
+    };
+  };
+
+  # Sound
+
+  ## Remove sound.enable or set it to false if you had it set previously, as sound.enable is only meant for ALSA-based configurations
+
+  services.pulseaudio.enable = false;
+  ## rtkit is optional but recommended
+  security.rtkit.enable = true;
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+    # If you want to use JACK applications, uncomment this
+    # jack.enable = true;
+    # Netzwerk-Audio aktivieren
+    # NOTE: Problems? -> ss -tulpn | grep 4713 -> nothing? ->
+    # systemctl --user restart pipewire pipewire-pulse
+    configPackages = [
+      (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
+        pulse.cmd = [
+          { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
+        ]
+      '')
+    ];
+  };
+
+  # Bluetooth
+
+  services.pipewire.wireplumber.extraConfig.bluetoothEnhancements = {
+    "monitor.bluez.properties" = {
+      "bluez5.enable-sbc-xq" = true;
+      "bluez5.enable-msbc" = true;
+      "bluez5.enable-hw-volume" = true;
+      "bluez5.roles" = [
+        "hsp_hs"
+        "hsp_ag"
+        "hfp_hf"
+        "hfp_ag"
+      ];
+    };
+  };
+
+  networking.networkmanager.enable = true;
+  # networking.wireless.enable = true;
+
+  # Time & Locals
+  time.timeZone = "Europe/Berlin";
+  i18n.defaultLocale = "en_US.UTF-8";
+  # i18n.extraLocales = "de_DE.UTF-8/UTF-8";
+  i18n.extraLocaleSettings = {
+    LC_TIME = "de_DE.UTF-8";
+    LC_MONETARY = "de_DE.UTF-8";
+    LC_NUMERIC = "de_DE.UTF-8";
+    LC_MEASUREMENT = "de_DE.UTF-8";
+    LC_PAPER = "de_DE.UTF-8";
+    LC_ADDRESS = "de_DE.UTF-8";
+    LC_TELEPHONE = "de_DE.UTF-8";
+    LC_NAME = "de_DE.UTF-8";
+    LC_IDENTIFICATION = "de_DE.UTF-8";
+    # https://www.reddit.com/r/NixOS/comments/11be3cy/i_need_some_help_changing_the_system_language/
+  };
+
+  virtualisation.libvirtd.enable = true;
+  # virtualisation.spiceUSBRedirection.enable = true;
+
+  systemd.services."libvirt-default-net" = {
+    description = "Start libvirt default network";
+    wantedBy = [ "multi-user.target" ];
+    wants = [ "libvirtd.service" ];
+    after = [ "libvirtd.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "-${pkgs.libvirt}/bin/virsh net-start default";
+      RemainAfterExit = true;
+    };
+  };
+  programs.virt-manager.enable = true;
+
+  # TODO: Check if this is done in home-manager already
+  # zsh
+  programs.zsh.enable = true;
+  users.extraUsers.nx = {
+    shell = pkgs.zsh;
+  };
+  users.defaultUserShell = pkgs.zsh;
+
+  # gpg
+  programs.gnupg.agent = {
+    enable = true;
+    # is set by hydenix to true
+    enableSSHSupport = lib.mkForce false;
+    settings = {
+      default-cache-ttl = 3600;
+      max-cache-ttl = 7200;
+    };
+  };
+
+  # MicroVM Configuration
+  microvm.host.enable = true;
+
+  microvm.vms =
+    let
+      # Helper to read autostart flag from registry by name.
+      autostartFor = name: (vmRegistry.byName.${name}.autostart or false);
+
+      # If you do not want all registry VMs to be microvms on this host,
+      # filter vmRegistry.vms here.
+      selectedVms = vmRegistry.vms;
+    in
+    builtins.listToAttrs (
+      map (vm: {
+        name = vm.name;
+        value = {
+          flake = vmFlakes.${vm.name};
+          autostart = autostartFor vm.name;
+        };
+      }) selectedVms
+    );
+
+  programs.ssh.startAgent = true;
+  networking.useNetworkd = true;
+  # Generiere Netzwerke für alle VMs
+  # Netzwerke für Standard-VMs (10.0.0.x)
+  systemd.network.networks =
+    (builtins.listToAttrs (
+      map (index: {
+        name = "30-vm${toString index}";
+        value = {
+          matchConfig.Name = "vm${toString index}";
+          # Host-Adresse für die P2P Verbindung
+          address = [
+            "10.0.0.0/32" # Host auf diesem Interface
+            "10.0.0.254/32" # Feste Host-IP für alle VMs
+            "fec0::/128"
+            "fec0::ff/128" # Feste Host-IPv6 für alle VMs
+          ];
+          # Route zur VM
+          routes = [
+            { Destination = "10.0.0.${toString index}/32"; }
+            { Destination = "fec0::${lib.toHexString index}/128"; }
+          ];
+          networkConfig = {
+            IPv4Forwarding = true;
+            IPv6Forwarding = true;
+          };
+        };
+      }) (lib.genList (i: i + 1) maxVMs)
+    ))
+    // {
+      # IMPORTANT: Ignore Tor interfaces for VMs
+      "35-vm11-tor-ignore" = {
+        matchConfig.Name = "vm11-tor";
+        linkConfig.Unmanaged = "yes";
+      };
+    };
+
+  # NAT only for 4 VMs
+  networking.nat =
+    let
+      vmRegistry = import ../vms/registry.nix;
+    in
+    {
+      enable = true;
+      internalIPs = map (ip: "${ip}/32") vmRegistry.natIPs;
+      # externalInterface = "wlo1";
+    };
+
+  systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
+
+  # use cache
+  nix = {
+    settings = {
+      substituters = [
+        "https://cache.nixos.org"
+        "https://microvm.cachix.org"
+      ];
+      trusted-public-keys = [
+        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+        "microvm.cachix.org-1:oXnBs9THCoQI4PiXLm2ODWyptDIrQ2NYjmJfUfpGqMI="
+      ];
+      trusted-users = [
+        "root"
+        "nx"
+      ];
+    };
+  };
+
+  # Hydenix Configuration - Main configuration for the Hydenix desktop environment
+  hydenix = {
+    enable = true; # Enable Hydenix modules
+    # Basic System Settings (REQUIRED):
+    hostname = "machine"; # REQUIRED: Set your computer's network name (change to something unique)
+    timezone = "Europe/Berlin"; # REQUIRED: Set timezone (examples: "America/New_York", "Europe/London", "Asia/Tokyo")
+    locale = "en_US.UTF-8"; # REQUIRED: Set locale/language (examples: "en_US.UTF-8", "en_GB.UTF-8", "de_DE.UTF-8")
+
+    audio.enable = true; # enable audio module
+    boot = {
+      enable = false; # enable boot module
+    };
+    gaming.enable = false; # enable gaming module
+    hardware.enable = true; # enable hardware module
+    network.enable = true; # enable network module
+    nix.enable = true; # enable nix module
+    sddm.enable = true; # enable sddm module
+
+    system.enable = true; # enable system module
+  };
+
+  systemd.services.retrigger-vm11-tor-udev = {
+    description = "Retrigger udev for vm11-tor after boot";
+    after = [ "multi-user.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.systemd}/bin/udevadm trigger --action=add /sys/class/net/vm11-tor";
+    };
+  };
+
+  services.udev.extraRules = ''
+    KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
+    # Udev-Regel, die feuert, sobald vm11-tor auftaucht (Hotplug-sicher)
+    SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm11-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
+    # Keyboard
+    SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
+    # Mouse
+    SUBSYSTEM=="usb", ATTR{idVendor}=="093a", ATTR{idProduct}=="2533", GROUP="kvm"
+  '';
+  services.udev.packages = [
+    (pkgs.writeTextFile {
+      name = "kaleidoskope-udev-rules";
+      destination = "/etc/udev/rules.d/50-kaleidoskope.rules";
+      text = ''
+        # Kaleidoscope keyboards
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2303", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2302", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2301", SYMLINK+="Model01",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2300", SYMLINK+="Model01",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="0006", SYMLINK+="Model100",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="0005", SYMLINK+="Model100",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="00a1", SYMLINK+="Preonic",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="00a3", SYMLINK+="Preonic",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="00a0", SYMLINK+="Preonic",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+        SUBSYSTEMS=="usb", ATTRS{idVendor}=="3496", ATTRS{idProduct}=="00a3", SYMLINK+="Preonic",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+      '';
+    })
+  ];
+
+  # Printer
+  services.printing = {
+    enable = true;
+  };
+
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+  };
+
+  fonts.packages = with pkgs; [
+    nerd-fonts.fira-code
+  ];
+
+  # System Version - Don't change unless you know what you're doing (helps with system upgrades and compatibility)
+  system.stateVersion = "25.05";
+}
