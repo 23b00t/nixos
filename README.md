@@ -5,6 +5,10 @@
 - mv /etc/nixos/ /etc/nixos.bak
 - ln -s /home/nx/nixos-config /etc/nixos
 
+## Build system
+
+- sudo nixos-rebuild switch --flake ".#hp"
+
 ## VMs
 
 ### Create VMs
