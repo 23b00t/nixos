@@ -86,7 +86,6 @@
         xmg = xmgConfig;
         hp = hpConfig;
 
-        # Falls du einen Default brauchst:
         default = xmgConfig;
       };
     };

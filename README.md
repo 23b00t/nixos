@@ -94,7 +94,7 @@ host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1vide
   - vms started by the scripts should be stoped after backup and restore
 - Multi machine setup
 - Setup microvm binary
-- Solve manual vm adding to flake.nix 
+  - Solve manual vm adding to flake.nix -> registry should be improved and with sed we'll manipulate the main flake before nix evaluation
 - Improve printing service (remove pre-condition of SSH Connection to the host)
 - General refactoring and cleanup
 - Remove unused host/ not strictly needed host software
