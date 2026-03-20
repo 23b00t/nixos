@@ -1,5 +1,6 @@
 {
   lib,
+  config,
   inputs,
   vmRegistry,
   vmFlakes,
@@ -49,7 +50,10 @@ in
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    extraSpecialArgs = { inherit inputs; };
+    extraSpecialArgs = {
+      inherit inputs;
+      hostname = config.networking.hostName;
+    };
     users."nx" =
       { ... }:
       {
@@ -62,7 +66,7 @@ in
 
   # User Account Setup - REQUIRED: Change "hydenix" to your desired username (must match above)
   networking = {
-    hostName = "machine";
+    # hostName = "machine";
     # TODO: Use nftables - check rules
     # nftables.enable = true;
     firewall = {
@@ -328,7 +332,7 @@ in
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-        "microvm.cachix.org-1:oXnBs9THCoQI4PiXLm2ODWyptDIrQ2NYjmJfUfpGqMI="
+        "microvm.cachix.org-1:oXnBc6hRE3eX5rSYdRyMYXnfzcCxC7yKPTbZXALsqys="
       ];
       trusted-users = [
         "root"
@@ -341,7 +345,7 @@ in
   hydenix = {
     enable = true; # Enable Hydenix modules
     # Basic System Settings (REQUIRED):
-    hostname = "machine"; # REQUIRED: Set your computer's network name (change to something unique)
+    # hostname = "machine"; # REQUIRED: Set your computer's network name (change to something unique)
     timezone = "Europe/Berlin"; # REQUIRED: Set timezone (examples: "America/New_York", "Europe/London", "Asia/Tokyo")
     locale = "en_US.UTF-8"; # REQUIRED: Set locale/language (examples: "en_US.UTF-8", "en_GB.UTF-8", "de_DE.UTF-8")
 

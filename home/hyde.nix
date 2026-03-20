@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ lib, hostname, ... }:
 {
   hydenix.hm = {
     enable = true;
@@ -11,21 +11,42 @@
     hyprland = {
       monitors = {
         enable = true;
-        overrideConfig = ''
-          monitor=eDP-1,1920x1200@60.00,0x0,1
-          monitor=DP-1,1920x1080@60.00,1920x0,1
-          monitor=DP-2,1680x1050@59.88,3840x0,1
-        '';
+        overrideConfig =
+          if hostname == "xmg" then
+            ''
+              monitor=eDP-1,1920x1200@60.00,0x0,1
+              monitor=DP-1,1920x1080@60.00,1920x0,1
+              monitor=DP-2,1680x1050@59.88,3840x0,1
+            ''
+          else if hostname == "hp" then
+            ''
+              monitor=HDMI-A-1,1920x1080@60,0x0,1
+              monitor=eDP-1,1920x1080@60,1920x0,1
+            ''
+          else
+            null;
       };
 
-      extraConfig = ''
-        input {
-          kb_layout = us
-          kb_variant = altgr-intl
-          kb_options = grp:alt_shift_toggle
-        }
-        # exec-once = ~/nixos-config/home/set-wallpapers.sh
-      '';
+      extraConfig =
+        if hostname == "xmg" then
+          ''
+            input {
+              kb_layout = us
+              kb_variant = altgr-intl
+              kb_options = grp:alt_shift_toggle
+            }
+            # exec-once = ~/nixos-config/home/set-wallpapers.sh
+          ''
+        else if hostname == "hp" then
+          ''
+            input {
+              kb_layout = us,de
+              kb_variant = altgr-intl
+              kb_options = grp:alt_shift_toggle
+            }
+          ''
+        else
+          "";
 
       keybindings = {
         enable = true; # enable keybindings configurations

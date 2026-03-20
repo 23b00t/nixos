@@ -2,6 +2,7 @@
   pkgs,
   lib,
   inputs,
+  hostname,
   ...
 }:
 let
@@ -12,7 +13,7 @@ in
     ./zsh.nix
     ./vim.nix
     ./yazi.nix
-    ./hyde.nix
+    (import ./hyde.nix { inherit lib hostname; })
     ./ssh.nix
     ./desktop-entries.nix
     ./vm-connect.nix

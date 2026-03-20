@@ -112,5 +112,6 @@ in
 
   # Optional
   # networking.hostName = lib.mkForce "xmg";
-  # hydenix.hostname = lib.mkForce "xmg";
+  hydenix.hostname = lib.mkForce "xmg";
+  networking.hostName = lib.mkForce "xmg";
 }
