@@ -21,4 +21,13 @@ layout {
         pane cwd="~/code/il_10/"
       }
     }
+
+    tab name="il10_auth" {
+      pane cwd="~/code/il_10_auth/ilias_10/"
+      pane cwd="~/code/il_10_auth/ilias_10/"
+      pane split_direction="vertical" {
+        pane cwd="~/code/il_10_auth/"
+        pane cwd="~/code/il_10_auth/"
+      }
+    }
 }

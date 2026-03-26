@@ -32,23 +32,25 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ pkgs.zellij ];
-
-    environment.etc."zellij/config.kdl".source = cfg.configDir + "/config.kdl";
-    environment.etc."zellij/plugins".source = cfg.configDir + "/plugins";
-    environment.etc."zellij/layouts/tabs.swap.kdl".source = cfg.configDir + "/layouts/tabs.swap.kdl";
-    environment.etc."zellij/layouts/tabs.kdl".source = lib.mkIf (
-      cfg.tabsKdlFile != null
-    ) cfg.tabsKdlFile;
+    environment = {
+      systemPackages = [ pkgs.zellij ];
+      etc = {
+        "zellij/config.kdl".source = cfg.configDir + "/config.kdl";
+        "zellij/plugins".source = cfg.configDir + "/plugins";
+        "zellij/layouts/tabs.swap.kdl".source = cfg.configDir + "/layouts/tabs.swap.kdl";
+        "zellij/layouts/tabs.kdl".source = lib.mkIf (
+          cfg.tabsKdlFile != null
+        ) cfg.tabsKdlFile;
+      };
+    };
 
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user}/.config/zellij 0755 ${cfg.user} users -"
       "L+ /home/${cfg.user}/.config/zellij/config.kdl - - - - /etc/zellij/config.kdl"
       "d /home/${cfg.user}/.config/zellij/layouts 0755 ${cfg.user} users -"
       "L+ /home/${cfg.user}/.config/zellij/plugins - - - - /etc/zellij/plugins"
-    ]
-    ++ lib.optional (
-      cfg.tabsKdlFile != null
-    ) "L+ /home/${cfg.user}/.config/zellij/layouts/tabs.kdl - - - - ${cfg.tabsKdlFile}";
+      "L+ /home/${cfg.user}/.config/zellij/layouts/tabs.swap.kdl - - - - /etc/zellij/layouts/tabs.swap.kdl"
+      "L+ /home/${cfg.user}/.config/zellij/layouts/tabs.kdl - - - - ${cfg.tabsKdlFile}"
+    ];
   };
 }
