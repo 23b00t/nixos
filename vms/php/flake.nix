@@ -93,10 +93,10 @@
                 services.zsh-env.enable = true;
                 services.zellij-env = {
                   enable = true;
-                  # tabsKdlFile = builtins.path {
-                  #   name = "tabs.kdl";
-                  #   path = ./tabs.kdl;
-                  # };
+                  tabsKdlFile = builtins.path {
+                    name = "tabs.kdl";
+                    path = ./tabs.kdl;
+                  };
                 };
 
                 microvm = {
@@ -107,6 +107,11 @@
                       mountPoint = "/home/user";
                       image = "home.img";
                       size = 25000;
+                    }
+                    {
+                      mountPoint = "/var";
+                      image = "var.img";
+                      size = 20000;
                     }
                   ];
                   shares = [
@@ -152,10 +157,10 @@
                 virtualisation = {
                   docker = {
                     enable = true;
-                    rootless = {
-                      enable = true;
-                      setSocketVariable = true;
-                    };
+                    # rootless = {
+                    #   enable = true;
+                    #   setSocketVariable = true;
+                    # };
                     extraOptions = "--experimental";
                     extraPackages = [ pkgs.docker-buildx ];
                     enableOnBoot = true;
