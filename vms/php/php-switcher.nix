@@ -11,7 +11,7 @@ let
     PHP_VER="$1"
 
     # Find the correct store path
-    PHP_STORE=$(ls /nix/store | grep "php''${PHP_VER}-shell$")
+    PHP_STORE=$(ls /nix/store | grep "php''${PHP_VER}-shell$ | tail -n 1")
     if [ -z "$PHP_STORE" ]; then
       echo "PHP''$PHP_VER environment not found in /nix/store"
       exit 1

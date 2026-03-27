@@ -90,7 +90,51 @@
               {
                 networking.hostName = "php-vm";
                 services.ide.enable = true;
-                services.zsh-env.enable = true;
+                services.zsh-env = {
+                  enable = true;
+                  extraAliases = {
+                    il = "~/.config/zellij-layout/il-layout.sh";
+                  };
+                  extraShellInit = ''
+                    _ilias_cid() {
+                      sudo docker compose ps -q ilias
+                    }
+
+                    _mysql_cid() {
+                      sudo docker compose ps -q mysql
+                    }
+
+                    cli() {
+                      local cid
+                      cid="$(_ilias_cid)"
+                      if [ -z "$cid" ]; then
+                        echo "No running 'ilias' container found." >&2
+                        return 1
+                      fi
+                      sudo docker exec -it "$cid" /bin/bash
+                    }
+
+                    ildb() {
+                      local cid
+                      cid="$(_mysql_cid)"
+                      if [ -z "$cid" ]; then
+                        echo "No running 'mysql' container found." >&2
+                        return 1
+                      fi
+
+                      # Port wie in deiner DBUI-URL: 3505
+                      sudo docker exec -it "$cid" /bin/bash -c 'mariadb -h 127.0.0.1 -P 3505 -u ilias -p'
+                    }
+
+                    start() {
+                      sudo docker compose start
+                    }
+
+                    stop() {
+                      sudo docker compose stop
+                    }
+                  '';
+                };
                 services.zellij-env = {
                   enable = true;
                   tabsKdlFile = builtins.path {
@@ -98,6 +142,12 @@
                     path = ./tabs.kdl;
                   };
                 };
+
+                environment.etc."zellij-layout".source = ./zellij-layout;
+
+                systemd.tmpfiles.rules = [
+                  "L+ /home/user/.config/zellij-layout - - - - /etc/zellij-layout"
+                ];
 
                 microvm = {
                   registerClosure = false;
@@ -143,6 +193,10 @@
                     self.packages.${pkgs.system}.php85-shell
                     phpSwitcherBin
                   ];
+
+                programs.direnv = {
+                  enable = true;
+                };
 
                 networking.firewall = {
                   enable = true;
