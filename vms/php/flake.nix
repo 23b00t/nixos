@@ -158,6 +158,11 @@
                       cid="$(_mysql_cid)" || return 1
                       sudo docker exec -it "$cid" /bin/bash -c 'mariadb -h 127.0.0.1 -P 3306 -u ilias -p'
                     }
+                    log() {
+                      local cid
+                      cid="$(_ilias_cid)" || return 1
+                      sudo docker logs -f "$cid"
+                    }
                     start() {
                       sudo docker compose start
                     }
@@ -225,8 +230,18 @@
                   enable = true;
                 };
 
+                users.groups.www-data = {
+                  gid = 33;
+                };
+                users.users.user = {
+                  extraGroups = lib.mkAfter [ "www-data" ];
+                };
+
                 networking.firewall = {
                   enable = true;
+                  allowedTCPPorts = [
+                    9003
+                  ];
                   allowedTCPPortRanges = [
                     {
                       from = 8500;
