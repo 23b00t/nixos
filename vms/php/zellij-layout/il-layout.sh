@@ -8,9 +8,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAYOUT_TEMPLATE="$SCRIPT_DIR/il-layout.kdl"
 TEMP_LAYOUT="/tmp/il_dynamic.kdl"
 BASE_DIR="$HOME/code/il_$IL_VERSION"
+MAIN_VERSION="${IL_VERSION%%_*}"
 
 sed -e "s|{{BASE_PATH}}|$BASE_DIR|g" \
-    -e "s|{{PROJECT_PATH}}|$BASE_DIR/ilias_$IL_VERSION|g" \
+    -e "s|{{PROJECT_PATH}}|$BASE_DIR/ilias_$MAIN_VERSION|g" \
     -e "s|{{NAME}}|il_$IL_VERSION|g" \
     "$LAYOUT_TEMPLATE" > "$TEMP_LAYOUT"
 

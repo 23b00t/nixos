@@ -84,8 +84,37 @@
               { config, pkgs, ... }:
               let
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-                phpSwitcherScript = import ./php-switcher.nix;
-                phpSwitcherBin = pkgs.writeShellScriptBin "setphpv" phpSwitcherScript;
+
+                phpShells = {
+                  "82" = self.packages.${pkgs.system}.php82-shell;
+                  "83" = self.packages.${pkgs.system}.php83-shell;
+                  "84" = self.packages.${pkgs.system}.php84-shell;
+                  "85" = self.packages.${pkgs.system}.php85-shell;
+                };
+
+                phpTools = [
+                  "php"
+                  "composer"
+                  "php-cs-fixer"
+                  "phpcs"
+                ];
+
+                mkRulesFor =
+                  ver: shell:
+                  [
+                    "d /home/user/bin/php${ver} 0755 user users -"
+                  ]
+                  ++ map (tool: "L+ /home/user/bin/php${ver}/${tool} - - - - ${shell}/bin/${tool}") phpTools;
+
+                phpTmpfilesRules = [
+                  # critical: avoid unsafe path transition by ensuring /home/user/bin is user-owned
+                  "d /home/user/bin 0755 user users -"
+                ]
+                ++ lib.flatten (lib.mapAttrsToList mkRulesFor phpShells);
+
+                phpTmpfilesFile = pkgs.writeText "php-home-bin.conf" (
+                  lib.concatStringsSep "\n" phpTmpfilesRules + "\n"
+                );
               in
               {
                 networking.hostName = "php-vm";
@@ -97,44 +126,47 @@
                   };
                   extraShellInit = ''
                     _ilias_cid() {
-                      sudo docker compose ps -q ilias
-                    }
-
-                    _mysql_cid() {
-                      sudo docker compose ps -q mysql
-                    }
-
-                    cli() {
                       local cid
-                      cid="$(_ilias_cid)"
+                      cid=$(sudo docker compose ps -q ilias)
                       if [ -z "$cid" ]; then
                         echo "No running 'ilias' container found." >&2
                         return 1
                       fi
-                      sudo docker exec -it "$cid" /bin/bash
+                      echo "$cid"
                     }
-
-                    ildb() {
+                    _mysql_cid() {
                       local cid
-                      cid="$(_mysql_cid)"
+                      cid=$(sudo docker compose ps -q mysql)
                       if [ -z "$cid" ]; then
                         echo "No running 'mysql' container found." >&2
                         return 1
                       fi
-
-                      # Port wie in deiner DBUI-URL: 3505
-                      sudo docker exec -it "$cid" /bin/bash -c 'mariadb -h 127.0.0.1 -P 3505 -u ilias -p'
+                      echo "$cid"
                     }
-
+                    cli() {
+                      local cid
+                      cid="$(_ilias_cid)" || return 1
+                      sudo docker exec -it "$cid" /bin/bash
+                    }
+                    cdu() {
+                      local cid
+                      cid="$(_ilias_cid)" || return 1
+                      sudo docker exec -it "$cid" /bin/bash -c 'composer du'
+                    }
+                    ildb() {
+                      local cid
+                      cid="$(_mysql_cid)" || return 1
+                      sudo docker exec -it "$cid" /bin/bash -c 'mariadb -h 127.0.0.1 -P 3306 -u ilias -p'
+                    }
                     start() {
                       sudo docker compose start
                     }
-
                     stop() {
                       sudo docker compose stop
                     }
                   '';
                 };
+
                 services.zellij-env = {
                   enable = true;
                   tabsKdlFile = builtins.path {
@@ -144,10 +176,6 @@
                 };
 
                 environment.etc."zellij-layout".source = ./zellij-layout;
-
-                systemd.tmpfiles.rules = [
-                  "L+ /home/user/.config/zellij-layout - - - - /etc/zellij-layout"
-                ];
 
                 microvm = {
                   registerClosure = false;
@@ -173,7 +201,7 @@
                     }
                   ];
 
-                  mem = 8192;
+                  mem = 16384;
                   vcpu = 2;
                 };
 
@@ -191,7 +219,6 @@
                     self.packages.${pkgs.system}.php83-shell
                     self.packages.${pkgs.system}.php84-shell
                     self.packages.${pkgs.system}.php85-shell
-                    phpSwitcherBin
                   ];
 
                 programs.direnv = {
@@ -225,6 +252,29 @@
                       ];
                     };
                   };
+                };
+
+                systemd.tmpfiles.rules = [
+                  # zellij layout for ILIAS
+                  "L+ /home/user/.config/zellij-layout - - - - /etc/zellij-layout"
+                ];
+
+                systemd.services.php-home-bin-tmpfiles = {
+                  description = "Create PHP tool symlinks in /home/user/bin after home mount";
+                  wantedBy = [ "multi-user.target" ];
+                  after = [ "local-fs.target" ];
+                  requires = [ "local-fs.target" ];
+                  unitConfig.RequiresMountsFor = [ "/home/user" ];
+
+                  serviceConfig = {
+                    Type = "oneshot";
+                    RemainAfterExit = true;
+                  };
+
+                  script = ''
+                    set -euo pipefail
+                    ${pkgs.systemd}/bin/systemd-tmpfiles --create ${phpTmpfilesFile}
+                  '';
                 };
 
                 system.stateVersion = "25.05";
