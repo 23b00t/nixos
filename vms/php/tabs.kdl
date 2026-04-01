@@ -12,16 +12,4 @@ layout {
     tab name="user" cwd="~/" {
         pane
     }
-
-    tab name="il10_auth" {
-      pane stacked=true {
-        pane cwd="~/code/il_10_auth/" expanded=true
-        pane cwd="~/code/il_10_auth/"
-      }
-      pane stacked=true {
-        pane cwd="~/code/il_10_auth/ilias_10/" expanded=true
-        pane cwd="~/code/il_10_auth/ilias_10/"
-        pane cwd="~/code/il_10_auth/ilias_10/"
-      }
-    }
 }

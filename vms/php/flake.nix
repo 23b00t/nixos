@@ -77,6 +77,7 @@
               inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHpfcEv27hamz0HELXGKpLd6M+/m5m/fopZ3A7fonUVw php-vm";
             })
+            (import ../yazi-config.nix { inherit pkgs; })
             ../modules/ide.nix
             ../modules/zsh.nix
             ../modules/zellij.nix
@@ -226,16 +227,7 @@
                     self.packages.${pkgs.system}.php85-shell
                   ];
 
-                programs.direnv = {
-                  enable = true;
-                };
-
-                users.groups.www-data = {
-                  gid = 33;
-                };
-                users.users.user = {
-                  extraGroups = lib.mkAfter [ "www-data" ];
-                };
+                programs.direnv.enable = true;
 
                 networking.firewall = {
                   enable = true;
