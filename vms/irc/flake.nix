@@ -45,6 +45,15 @@
               { config, pkgs, ... }:
               let
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
+                iamb_fixed = pkgs.iamb.overrideAttrs (old: {
+                  postPatch = (old.postPatch or "") + ''
+                    # Workaround for rustc error[E0275] overflow (ulyssa/iamb#598)
+                    if ! grep -q '^#!\[recursion_limit = "256"\]' src/main.rs; then
+                      # Insert right after the module docs (//! ...) and before other #![allow...]
+                      sed -i '0,/^#!\[allow(/ s//#![recursion_limit = "256"]\n&/' src/main.rs
+                    fi
+                  '';
+                });
               in
               {
                 microvm.interfaces = [
@@ -102,7 +111,8 @@
                     pinentry-curses
                     proxychains-ng
                     openssl
-                    iamb
+                    # iamb
+                    iamb_fixed
                   ]
                   ++ defaultPkgs;
 

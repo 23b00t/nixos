@@ -63,7 +63,7 @@ in
       tree-sitter
       vectorcode
       nodejs
-      nodePackages.npm
+      # nodePackages.npm
       watchman
       icu
 
