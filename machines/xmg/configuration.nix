@@ -63,6 +63,25 @@ in
     SUBSYSTEM=="usb", ATTR{idVendor}=="8087", ATTR{idProduct}=="0033", GROUP="kvm", MODE="0660"
   '';
 
+  services.keyd = {
+    enable = true;
+    keyboards = {
+      internal = {
+        # IDs, wie z.B. ["0001:0001"] (Vendor:Product)
+        # journalctl -xeu keyd.service | grep -i keyboard
+        ids = [ "0001:0001" ];
+        settings = {
+          main = {
+            y = "z";
+            z = "y";
+            # leftctrl = "esc";
+            # esc = "leftctrl";
+          };
+        };
+      };
+    };
+  };
+
   # Steam VM CPU pinning
   systemd.services."microvm@steam".serviceConfig.CPUAffinity = "0 1 2 3 4 5 6 7 8 9";
 
