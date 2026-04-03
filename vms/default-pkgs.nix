@@ -20,6 +20,7 @@ with pkgs;
   imagemagick
   (import ./copy-between-vms.nix { inherit pkgs lib; })
 
+  # NOTE: Important that WAYLAND_DISPLAY = "wayland-0" is set as a fake var too
   # Create fake wl-copy
   (pkgs.writeShellScriptBin "wl-copy" ''
     #!/usr/bin/env sh
@@ -31,7 +32,7 @@ with pkgs;
     if [ -f /tmp/fake-clipboard ]; then
       cat /tmp/fake-clipboard
     else
-      exit 1
+      echo ""
     fi 
   '')
 ]

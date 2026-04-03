@@ -148,6 +148,15 @@ let
       sshKeyName = "php-vm";
       extraSSH = {};
     }
+    {
+      name = "ruby";
+      short = "r";
+      ip = "10.0.0.16";
+      autostart = false;
+      nat = true;
+      sshKeyName = "ruby-vm";
+      extraSSH = {};
+    }
   ];
 
   byName =

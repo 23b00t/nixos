@@ -108,7 +108,7 @@
                     }
                   ];
                   mem = 8192;
-                  vcpu = 8;
+                  vcpu = 4;
                 };
 
                 environment.systemPackages =
@@ -129,10 +129,10 @@
 
                     wprs
                     xwayland
+                    ruby
 
                     pulseaudio
                     termdown
-
                   ]
                   ++ defaultPkgs;
 
