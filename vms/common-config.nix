@@ -83,6 +83,7 @@
     GTK_CURSORS_THEME = "Bibata-Modern-Ice";
     XCURSOR_THEME = "Bibata-Modern-Ice";
     WAYLAND_CURSOR_THEME = "Bibata-Modern-Ice";
+    WAYLAND_DISPLAY = "wayland-0";
   };
 
   fonts.packages = with pkgs; [

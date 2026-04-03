@@ -2,7 +2,12 @@
 
 set -euo pipefail
 
-read -rp "Enter ILIAS version: " IL_VERSION
+if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 <ILIAS_BASE_FOLDER aka ~/code/il_VERSION_OR_NAME>"
+    exit 1
+fi
+
+IL_VERSION="$1"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAYOUT_TEMPLATE="$SCRIPT_DIR/il-layout.kdl"
@@ -16,4 +21,3 @@ sed -e "s|{{BASE_PATH}}|$BASE_DIR|g" \
     "$LAYOUT_TEMPLATE" > "$TEMP_LAYOUT"
 
 zellij action new-tab --layout "$TEMP_LAYOUT"
-
