@@ -16,9 +16,9 @@ let
       autostart = true;
       nat = true;
       sshKeyName = "nvim-vm";
-      extraSSH = {
-        RemoteForward = "4713 localhost:4713";
-      };
+      extraSSH = [
+        "RemoteForward 4713 localhost:4713"
+      ];
     }
     {
       name = "chat";
@@ -27,7 +27,6 @@ let
       autostart = true;
       nat = true;
       sshKeyName = "chat-vm";
-      extraSSH = {};
     }
     # {
     #   name = "test";
@@ -45,9 +44,9 @@ let
       autostart = true;
       nat = true;
       sshKeyName = "music-vm";
-      extraSSH = {
-        RemoteForward = "4713 localhost:4713";
-      };
+      extraSSH = [
+        "RemoteForward 4713 localhost:4713"
+      ];
     }
     {
       name = "net";
@@ -56,7 +55,6 @@ let
       autostart = true;
       nat = true;
       sshKeyName = "net-vm";
-      extraSSH = {};
     }
     {
       name = "net-private";
@@ -65,7 +63,6 @@ let
       autostart = false;
       nat = true;
       sshKeyName = "net-private-vm";
-      extraSSH = {};
     }
     {
       name = "wine";
@@ -74,7 +71,6 @@ let
       autostart = false;
       nat = true;
       sshKeyName = "wine-vm";
-      extraSSH = {};
     }
     {
       name = "kali";
@@ -83,7 +79,6 @@ let
       autostart = false;
       nat = true;
       sshKeyName = "kali-vm";
-      extraSSH = {};
     }
     {
       name = "office";
@@ -92,7 +87,6 @@ let
       autostart = false;
       nat = false;
       sshKeyName = "office-vm";
-      extraSSH = {};
     }
     {
       name = "vault";
@@ -101,7 +95,6 @@ let
       autostart = false;
       nat = false;
       sshKeyName = "vault-vm";
-      extraSSH = {};
     }
     {
       name = "irc";
@@ -110,7 +103,6 @@ let
       autostart = true;
       nat = false;
       sshKeyName = "irc-vm";
-      extraSSH = {};
     }
     {
       name = "steam";
@@ -119,7 +111,6 @@ let
       autostart = false;
       nat = true;
       sshKeyName = "steam-vm";
-      extraSSH = {};
     }
     {
       name = "godot";
@@ -128,7 +119,6 @@ let
       autostart = false;
       nat = true;
       sshKeyName = "godot-vm";
-      extraSSH = {};
     }
     {
       name = "mirage";
@@ -137,7 +127,6 @@ let
       autostart = false;
       nat = true;
       sshKeyName = "mirage-vm";
-      extraSSH = {};
     }
     {
       name = "php";
@@ -146,7 +135,6 @@ let
       autostart = false;
       nat = true;
       sshKeyName = "php-vm";
-      extraSSH = {};
     }
     {
       name = "ruby";
@@ -155,28 +143,37 @@ let
       autostart = false;
       nat = true;
       sshKeyName = "ruby-vm";
-      extraSSH = {};
     }
   ];
 
-  byName =
-    builtins.listToAttrs (map (vm: {
+  byName = builtins.listToAttrs (
+    map (vm: {
       name = vm.name;
       value = vm;
-    }) vms);
+    }) vms
+  );
 
-  byShort =
-    builtins.listToAttrs (map (vm: {
+  byShort = builtins.listToAttrs (
+    map (vm: {
       name = vm.short;
       value = vm;
-    }) (builtins.filter (vm: vm.short != null) vms));
+    }) (builtins.filter (vm: vm.short != null) vms)
+  );
 
-  natIPs =
-    map (vm: vm.ip) (builtins.filter (vm: vm.nat or false) vms);
+  natIPs = map (vm: vm.ip) (builtins.filter (vm: vm.nat or false) vms);
 
-  autostartNames =
-    map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) vms);
+  autostartNames = map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) vms);
 
-in {
-  inherit vms byName byShort natIPs autostartNames;
+  globalExtraSSH = [ "RemoteForward /tmp/ssh_dbus.sock /run/user/1000/bus" ];
+
+in
+{
+  inherit
+    vms
+    byName
+    byShort
+    natIPs
+    autostartNames
+    globalExtraSSH
+    ;
 }

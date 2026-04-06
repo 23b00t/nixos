@@ -70,6 +70,11 @@ sudo resize2fs /dev/vdX
 - And directly remove it again:
   - sudo iptables -D INPUT -p tcp --dport 22 -s 10.0.0.1 -j ACCEPT
 
+### Notification forwarding
+
+- https://nikhilism.com/post/2023/remote-dbus-notifications/
+- Implemented in common-config.nix and registry.nix (changed ssh.nix logic for it to make it possible to have the same key twice)
+
 ## libvirt
 
 - virsh list --all --name

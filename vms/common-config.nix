@@ -40,6 +40,8 @@
       ClientAliveCountMax 3
       # Login-Beschleunigung
       UseDNS no
+      # DBus Forwarding
+      StreamLocalBindUnlink yes
     '';
   };
   security.pam.loginLimits = [
@@ -89,6 +91,12 @@
   fonts.packages = with pkgs; [
     nerd-fonts.fira-code
   ];
+
+  environment.shellInit = ''
+    if [ -n "$SSH_CONNECTION" ]; then
+      export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_dbus.sock
+    fi
+  '';
 
   environment.etc."ssh_config".text = ''
     Host *
