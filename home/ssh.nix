@@ -16,16 +16,27 @@ let
     ) hosts
   );
 
+  mkMatchBlock = h: {
+    "${h.name}-vm ${h.ip}" = {
+      user = "user";
+      identityFile = "~/.ssh/${h.sshKeyName}";
+      identitiesOnly = true;
+      forwardAgent = true;
+    };
+  };
+
+  matchBlocks = builtins.foldl' (acc: h: acc // mkMatchBlock h) {
+    "*" = {
+      addKeysToAgent = "yes";
+    };
+  } hosts;
+
 in
 {
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
     extraConfig = hostStrings;
-    matchBlocks = {
-      "*" = {
-        addKeysToAgent = "yes";
-      };
-    };
+    inherit matchBlocks;
   };
 }
