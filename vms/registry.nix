@@ -6,8 +6,8 @@ let
   #   ip          : IPv4 address on the 10.0.0.0/24 network
   #   autostart   : whether the VM should autostart via microvm.host
   #   nat         : whether the VM should be included in networking.nat.internalIPs
-  #   sshKeyName  : basename of SSH key in ~/.ssh (without ".pub"), if null use default pattern
-  #   extraSSH    : extra SSH matchOptions for home.ssh (may be {})
+  #   sshKeyName  : basename of SSH key in ~/.ssh
+  #   extraSSH    : extra SSH matchOptions for home.ssh (may be [])
   vms = [
     {
       name = "nvim";
@@ -165,7 +165,6 @@ let
   autostartNames = map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) vms);
 
   globalExtraSSH = [ "RemoteForward /tmp/ssh_dbus.sock /run/user/1000/bus" ];
-
 in
 {
   inherit

@@ -32,10 +32,10 @@
   "group/leaf": {
     "orientation": "inherit",
     "modules": [
-      "backlight",
-      "tray",
       "network#bandwidthUpBytes",
       "network#bandwidthDownBytes",
+      "backlight",
+      "tray",
       "custom/bluetooth",
       "pulseaudio",
       "pulseaudio#microphone",
