@@ -143,9 +143,18 @@
                     xwayland
                     kitty
 
+                    # DEBUG: wprs 10.0.0.9 run -- env QT_DEBUG_PLUGINS=1 GTK_DEBUG=all XDG_RUNTIME_DIR=/run/user/1000 onlyoffice-desktopeditors --native-file-dialog
+                    # Provoke crash: wprs 10.0.0.9 run -- env -u DBUS_SESSION_BUS_ADDRESS -u XDG_CURRENT_DESKTOP -u XDG_SESSION_TYPE onlyoffice-desktopeditors --native-file-dialog
+                    # gtk3
+                    # qt5.qtbase
+                    # qt5.qttools
+                    # qt5.qtsvg
+                    # qt5.qtwayland
+                    # mesa
+                    # libGL
+                    # gedit
+
                     dconf # to fix onlyoffice errors
-
-
                   ]
                   ++ defaultPkgs;
 
