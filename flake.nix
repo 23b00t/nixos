@@ -3,8 +3,8 @@
 
   inputs = rec {
     # Your nixpkgs
-    # nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs.follows = "hydenix/nixpkgs";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # nixpkgs.follows = "hydenix/nixpkgs";
 
     microvm = {
       url = "github:microvm-nix/microvm.nix";
@@ -20,7 +20,6 @@
     # Hydenix
     hydenix = {
       url = "github:richen604/hydenix";
-      # inputs.nixpkgs.follows = "nixpkgs";
     };
     yazi.url = "github:sxyazi/yazi";
 

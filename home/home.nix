@@ -34,10 +34,9 @@ in
       exec zsh -c 'source /home/nx/nixos-config/home/nvim.zsh; nvim_vm "$@"' _ "$@"
     '')
     # yaziPkg
-    zoxide
+    # zoxide
     # ddate
     oh-my-posh
-    neofetch
     fastfetch
 
     # archives
@@ -47,9 +46,9 @@ in
     # p7zip
 
     # utils
-    ripgrep # recursively searches directories for a regex pattern
-    eza # A modern replacement for ‘ls’
-    fzf # A command-line fuzzy finder
+    # ripgrep # recursively searches directories for a regex pattern
+    # eza # A modern replacement for ‘ls’
+    # fzf # A command-line fuzzy finder
 
     # misc
     # cowsay
