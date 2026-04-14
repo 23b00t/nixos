@@ -32,6 +32,7 @@
   nvim.url = "path:./vms/nvim";
   ```
 - Add a flake to vms/{name}/flake.nix which defines the microvm
+  - Create a ssh key for the VM
 - Import modules as needed, the usage of nearly all available modules is shown in vms/nvim/flake.nix
 
 ### Additional setup for ide vms

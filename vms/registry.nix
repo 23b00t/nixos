@@ -35,7 +35,6 @@ let
     #   autostart = false;
     #   nat = true;
     #   sshKeyName = "test-vm";
-    #   extraSSH = {};
     # }
     {
       name = "music";
