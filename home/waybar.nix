@@ -4,35 +4,10 @@
   pkgs,
   ...
 }:
-let
-  hydeOverlay = final: prev: {
-    hyde = prev.stdenv.mkDerivation {
-      pname = "hyde";
-      version = "unstable-2026-04-15";
-      src = prev.fetchFromGitHub {
-        owner = "HyDE-Project";
-        repo = "HyDE";
-        rev = "master";
-        sha256 = "0000000000000000000000000000000000000000000000000000"; # <-- sha256 ersetzen!
-      };
-      installPhase = ''
-        mkdir -p $out
-        cp -r Configs $out/
-      '';
-    };
-  };
-  pkgs = import pkgs.path {
-    overlays = [ hydeOverlay ];
-    config = config.nixpkgs.config or { };
-  };
-in
 {
   home.packages = with pkgs; [
     waybar # system bar
     playerctl # media player cli
-    gobject-introspection # for python packages
-    (python3.withPackages (ps: with ps; [ pygobject3 ])) # python with pygobject3
-    python-pyamdgpuinfo # AMD GPU information library
     lm_sensors # sensors information library
     power-profiles-daemon # power profiles daemon
     # Screenshots
@@ -72,12 +47,12 @@ in
     ".config/waybar/includes/border-radius.css" = {
       source = "${pkgs.hyde}/Configs/.config/waybar/includes/border-radius.css";
       force = true;
-      mutable = true;
+       
     };
     ".config/waybar/includes/global.css" = {
       source = "${pkgs.hyde}/Configs/.config/waybar/includes/global.css";
       force = true;
-      mutable = true;
+       
     };
     ".config/waybar/includes/includes.json" = {
       text = ''
@@ -200,7 +175,7 @@ in
         }
       '';
       force = true;
-      mutable = true;
+       
     };
     ".config/waybar/user-style.css".text = ''
       * {
@@ -234,12 +209,12 @@ in
         @import "user-style.css";  
       '';
       force = true;
-      mutable = true;
+       
     };
     ".config/waybar/config.jsonc" = {
       source = ./resources/patched-khing.jsonc;
       force = true;
-      mutable = true;
+       
     };
   };
 }

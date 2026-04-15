@@ -4,28 +4,6 @@
   pkgs,
   ...
 }:
-let
-  hydeOverlay = final: prev: {
-    hyde = prev.stdenv.mkDerivation {
-      pname = "hyde";
-      version = "unstable-2026-04-15";
-      src = prev.fetchFromGitHub {
-        owner = "HyDE-Project";
-        repo = "HyDE";
-        rev = "master";
-        sha256 = "0000000000000000000000000000000000000000000000000000"; # <-- sha256 ersetzen!
-      };
-      installPhase = ''
-        mkdir -p $out
-        cp -r Configs $out/
-      '';
-    };
-  };
-  pkgs = import pkgs.path {
-    overlays = [ hydeOverlay ];
-    config = config.nixpkgs.config or { };
-  };
-in
 {
   home.packages = with pkgs; [
     rofi # application launcher
@@ -37,7 +15,6 @@ in
     ".config/rofi/theme.rasi" = {
       source = "${pkgs.hyde}/Configs/.config/rofi/theme.rasi";
       force = true;
-      mutable = true;
     };
   };
 
@@ -51,14 +28,12 @@ in
       source = "${pkgs.hyde}/Configs/.local/share/hyde/rofi/assets/";
       recursive = true;
       force = true;
-      mutable = true;
     };
 
     ".local/share/hyde/rofi/themes/" = {
       source = "${pkgs.hyde}/Configs/.local/share/hyde/rofi/themes/";
       recursive = true;
       force = true;
-      mutable = true;
     };
   };
 }

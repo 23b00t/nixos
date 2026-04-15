@@ -26,6 +26,5 @@
     SUBSYSTEM=="usb", ATTR{idVendor}=="0408", ATTR{idProduct}=="5365", GROUP="kvm"
   '';
 
-  hydenix.hostname = lib.mkForce "hp";
   networking.hostName = lib.mkForce "hp";
 }

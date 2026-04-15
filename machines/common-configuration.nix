@@ -8,10 +8,11 @@
 }:
 let
   system = "x86_64-linux";
-  pkgs = import inputs.nixpkgs {
-    inherit system;
-    config.allowUnfree = true;
-  };
+    pkgs = import inputs.nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+      overlays = [ inputs.self.overlays.default ];
+    };
   maxVMs = 23;
 in
 {
@@ -73,6 +74,7 @@ in
 
   imports = [
     inputs.microvm.nixosModules.host
+    inputs.home-manager.nixosModules.home-manager
 
     # Hardware Configuration - Uncomment lines that match your hardware
     # Run `lshw -short` or `lspci` to identify your hardware
@@ -140,11 +142,6 @@ in
   };
   services.fail2ban.enable = true;
 
-  # Enable the Flakes feature and the accompanying new nix command-line tool
-  nix.settings.experimental-features = [
-    "nix-command"
-    "flakes"
-  ];
   # TODO: Check what should be done by home-manager
   environment.systemPackages = with pkgs; [
     # Flakes clones its dependencies through the git command,
@@ -185,8 +182,6 @@ in
     hypridle
 
     # sddm
-    hyde
-    Bibata-Modern-Ice
     sddm-astronaut
 
     # Network
@@ -244,7 +239,6 @@ in
     dbus.enable = true;
 
     upower.enable = true;
-    openssh.enable = true;
     libinput.enable = true;
   };
 
@@ -335,8 +329,6 @@ in
   ## Remove sound.enable or set it to false if you had it set previously, as sound.enable is only meant for ALSA-based configurations
 
   services.pulseaudio.enable = false;
-  ## rtkit is optional but recommended
-  security.rtkit.enable = true;
 
   services = {
     pipewire = {

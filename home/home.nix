@@ -21,6 +21,8 @@ in
     ./vm-connect.nix
   ];
 
+
+
   home = {
     username = "nx";
     homeDirectory = "/home/nx";
