@@ -275,17 +275,16 @@
                   };
                 };
 
-                # For termusic
                 environment.variables = {
                   PULSE_SERVER = "tcp:localhost:4713";
                 };
-                services.resolved.enable = false;
 
-                networking.useHostResolvConf = false;
-                networking.nameservers = [
-                  "1.1.1.1"
-                  "1.0.0.1"
-                ];
+                # services.resolved.enable = false;
+                # networking.useHostResolvConf = false;
+                # networking.nameservers = [
+                #   "1.1.1.1"
+                #   "1.0.0.1"
+                # ];
 
                 system.stateVersion = "25.05";
               }
