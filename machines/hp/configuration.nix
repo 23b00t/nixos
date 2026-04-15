@@ -5,7 +5,6 @@
 }:
 {
   imports = [
-    # hydenix inputs - Required modules, don't modify unless you know what you're doing
     ./hardware-configuration.nix # Auto-generated hardware config
 
     # GPU Configuration (choose one):

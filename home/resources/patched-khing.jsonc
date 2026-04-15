@@ -32,19 +32,15 @@
   "group/leaf": {
     "orientation": "inherit",
     "modules": [
-      "network#bandwidthUpBytes",
-      "network#bandwidthDownBytes",
       "backlight",
       "tray",
       "custom/bluetooth",
       "pulseaudio",
       "pulseaudio#microphone",
       "battery",
-      "power-profiles-daemon",
       "custom/sensorsinfo",
       "custom/swaync",
       "custom/dunst",
-      "custom/hyde-menu",
     ],
   },
   "group/pill-in#clipboard": {

@@ -4,7 +4,6 @@
   inputs = rec {
     # Your nixpkgs
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    # nixpkgs.follows = "hydenix/nixpkgs";
 
     microvm = {
       url = "github:microvm-nix/microvm.nix";
@@ -15,12 +14,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # flatpaks.url = "github:in-a-dil-emma/declarative-flatpak/latest";
-
-    # Hydenix
-    # hydenix = {
-    #   url = "github:richen604/hydenix";
-    # };
     yazi.url = "github:sxyazi/yazi";
 
     # Hardware Configuration's, used in ./configuration.nix. Feel free to remove if unused
@@ -48,23 +41,6 @@
     outputs =
       { self, nixpkgs, ... }@inputs:
       let
-        hydeOverlay = final: prev: {
-          hyde = prev.stdenv.mkDerivation {
-            pname = "hyde";
-            version = "unstable-2026-04-15";
-            src = prev.fetchFromGitHub {
-              owner = "HyDE-Project";
-              repo = "HyDE";
-              rev = "master";
-              sha256 = "sha256-t7gFUO+tKh68IOMC6Zi2kukv1C7Ywe9eLL3LH82WJb4=";
-            };
-            installPhase = ''
-              mkdir -p $out
-              cp -r Configs $out/
-            '';
-          };
-        };
-
       system = "x86_64-linux";
 
       vmRegistry = import ./vms/registry.nix;
@@ -99,8 +75,6 @@
       ];
       in
       {
-        overlays.default = hydeOverlay;
-
         nixosConfigurations = {
         xmg = xmgConfig;
         hp = hpConfig;

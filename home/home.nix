@@ -21,8 +21,6 @@ in
     ./vm-connect.nix
   ];
 
-
-
   home = {
     username = "nx";
     homeDirectory = "/home/nx";
@@ -70,6 +68,7 @@ in
 
     wlogout
     dunst # notifications
+    swaynotificationcenter
 
     (import ./remote-zellij.nix { inherit pkgs; })
     (import ./backup.nix { inherit pkgs lib inputs; })
@@ -119,20 +118,20 @@ in
       enable = true;
     };
 
-    userDirs = {
-      enable = true;
-      createDirectories = true;
-
-      # Define standard XDG user directories
-      desktop = "${config.home.homeDirectory}/Desktop";
-      documents = "${config.home.homeDirectory}/Documents";
-      download = "${config.home.homeDirectory}/Downloads";
-      music = "${config.home.homeDirectory}/Music";
-      pictures = "${config.home.homeDirectory}/Pictures";
-      publicShare = "${config.home.homeDirectory}/Public";
-      templates = "${config.home.homeDirectory}/Templates";
-      videos = "${config.home.homeDirectory}/Videos";
-    };
+    # userDirs = {
+    #   enable = true;
+    #   createDirectories = true;
+    #
+    #   # Define standard XDG user directories
+    #   desktop = "${config.home.homeDirectory}/Desktop";
+    #   documents = "${config.home.homeDirectory}/Documents";
+    #   download = "${config.home.homeDirectory}/Downloads";
+    #   music = "${config.home.homeDirectory}/Music";
+    #   pictures = "${config.home.homeDirectory}/Pictures";
+    #   publicShare = "${config.home.homeDirectory}/Public";
+    #   templates = "${config.home.homeDirectory}/Templates";
+    #   videos = "${config.home.homeDirectory}/Videos";
+    # };
 
     # Define standard XDG base directories
     cacheHome = "${config.home.homeDirectory}/.cache";
@@ -141,6 +140,14 @@ in
     stateHome = "${config.home.homeDirectory}/.local/state";
   };
 
+  gtk = {
+    enable = true;
+
+    iconTheme = {
+      name = "Tela-dark";
+      package = pkgs.tela-icon-theme;
+    };
+  };
   # Set environment variables
   home.sessionVariables = {
     # Base XDG directories
@@ -221,9 +228,12 @@ in
           };
 
       decoration = {
-        shadow_offset = "0 5";
-        "col.shadow" = "rgba(00000099)";
+        rounding = 10;
       };
+
+      # Window border colors
+      "col.active_border" = "rgba(88c0d0ff)"; # aktive Fenster (helles Blau)
+      "col.inactive_border" = "rgba(4c566a80)"; # inaktive Fenster (dunkler, halb transparent)
 
       general = {
         gaps_in = 5;
@@ -235,12 +245,15 @@ in
       "$mod" = "SUPER";
 
       bind = [
-        "$mod, A, exec, pkill rofi || rofi -show drun"
+        "$mod, A, exec, pkill rofi || rofi -show drun -theme ~/.config/rofi/theme.rasi"
         "$mod, B, exec, vm-run net zen"
 
         "$mod, V, togglefloating,"
         "$mod, P, pseudo," # dwindle
         "$mod, J, togglesplit," # dwindle
+
+        # Lock screen
+        "$mod, L, exec, hyprlock"
 
         # Focus movement
         "$mod, left, movefocus, l"
@@ -300,8 +313,6 @@ in
       # Startup-Apps (Hyprland-Panel, Waybar, Notifier, etc.)
       exec-once = [
         "waybar"
-        "hyprpanel"
-        "swaync" # oder "dunst" – je nachdem, was du nutzt
       ];
 
       bindm = [
@@ -311,18 +322,52 @@ in
         "$mod ALT, mouse:272, resizewindow"
       ];
 
-      # Windowrules / windowrulev2
-      windowrulev2 = [
-        # Beispiel: Tools immer floating
-        "float, class:^(pavucontrol)$"
-        "float, class:^(nm-connection-editor)$"
-        "float, class:^(Blueman-manager)$"
+      # Window rules
+      windowrule = [
+        # Ignore maximize requests from all apps
+        {
+          name = "suppress-maximize-events";
+          "match:class" = ".*";
+          suppress_event = "maximize";
+        }
 
-        # Beispiel: Emoji-/Glyph-Picker immer floating
-        "float, class:^(bemoji)$"
+        # Fix some dragging issues with XWayland
+        {
+          name = "fix-xwayland-drags";
+          "match:class" = "^$";
+          "match:title" = "^$";
+          "match:xwayland" = true;
+          "match:float" = true;
+          "match:fullscreen" = false;
+          "match:pin" = false;
+          no_focus = true;
+        }
       ];
     };
   };
 
+  services.wpaperd.enable = true;
+  services.wpaperd.settings = {
+    "DP-1" = {
+      path = "${config.home.homeDirectory}/nixos-config/wallpapers/edger_lucy_neon.jpg";
+    };
+
+    "DP-2" = {
+      path = "${config.home.homeDirectory}/nixos-config/wallpapers/cat_lofi_cafe.jpg";
+    };
+
+    "eDP-1" = {
+      path = "${config.home.homeDirectory}/nixos-config/wallpapers/cat_lofi_cafe.jpg";
+    };
+  };
+
+  services.swaync = {
+    enable = true;
+    package = pkgs.swaynotificationcenter;
+  };
+
+  services.dunst = {
+    enable = true;
+  };
   home.stateVersion = "25.05";
 }

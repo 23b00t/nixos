@@ -1,4 +1,4 @@
-# NixOS, Hyde.nix, microvm.nix
+# NixOS, hyprland, microvm.nix
 
 ## Create Symlink
 

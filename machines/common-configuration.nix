@@ -11,7 +11,6 @@ let
     pkgs = import inputs.nixpkgs {
       inherit system;
       config.allowUnfree = true;
-      overlays = [ inputs.self.overlays.default ];
     };
   maxVMs = 23;
 in

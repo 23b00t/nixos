@@ -20,8 +20,6 @@
       containers = "nix develop '/home/nx/nixos-config#containers'";
       kk = "kitty @ kitten";
       # ddate = "nix run 'nixpkgs#ddate'";
-      h = "hydectl";
-      hs = "hyde-shell";
       countdown = "$HOME/nixos-config/home/scripts/countdown.sh";
       n = "nvim_vm";
       tm = "vm-run -c music termusic";
@@ -74,9 +72,7 @@
 
           # Load custom functions
           [ -f "$HOME/nixos-config/home/paste_functions.zsh" ] && source "$HOME/nixos-config/home/paste_functions.zsh"
-          [ -f "$HOME/nixos-config/home/hydectl.zsh" ] && source "$HOME/nixos-config/home/hydectl.zsh"
           [ -f "$HOME/nixos-config/home/nvim.zsh" ] && source "$HOME/nixos-config/home/nvim.zsh"
-          compdef _hydectl hydectl
 
           ms() {
               systemctl start microvm@"$1".service

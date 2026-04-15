@@ -15,206 +15,254 @@
     slurp
     swappy
     satty
-    # Lock screen 
+    # Lock screen
     hyprlock
     swaylock
   ];
 
   home.file = {
-    ".config/satty/config.toml" = {
-      source = "${pkgs.hyde}/Configs/.config/satty/config.toml";
-      force = true;
-    };
-    # Modules for waybar
-    # Note: some of these may not work for NixOS
-    # TODO: review waybar modules for nix compatibility
-    ".config/waybar/modules" = {
-      source = "${pkgs.hyde}/Configs/.config/waybar/modules";
-      recursive = true;
-    };
-    ".config/waybar/layouts" = {
-      source = "${pkgs.hyde}/Configs/.config/waybar/layouts";
-      recursive = true;
-    };
-    ".config/waybar/menus" = {
-      source = "${pkgs.hyde}/Configs/.config/waybar/menus";
-      recursive = true;
-    };
-    ".config/waybar/styles" = {
-      source = "${pkgs.hyde}/Configs/.config/waybar/styles";
-      recursive = true;
-    };
-    ".config/waybar/includes/border-radius.css" = {
-      source = "${pkgs.hyde}/Configs/.config/waybar/includes/border-radius.css";
-      force = true;
-       
-    };
-    ".config/waybar/includes/global.css" = {
-      source = "${pkgs.hyde}/Configs/.config/waybar/includes/global.css";
-      force = true;
-       
-    };
-    ".config/waybar/includes/includes.json" = {
-      text = ''
-        {
-          "include": [
-              "${config.xdg.configHome}/waybar/modules/backlight.jsonc",
-              "${config.xdg.configHome}/waybar/modules/battery.jsonc",
-              "${config.xdg.configHome}/waybar/modules/bluetooth.jsonc",
-              "${config.xdg.configHome}/waybar/modules/cava.jsonc",
-              "${config.xdg.configHome}/waybar/modules/cliphist.jsonc",
-              "${config.xdg.configHome}/waybar/modules/clock##alt.jsonc",
-              "${config.xdg.configHome}/waybar/modules/clock.jsonc",
-              "${config.xdg.configHome}/waybar/modules/cpu.jsonc",
-              "${config.xdg.configHome}/waybar/modules/cpuinfo.jsonc",
-              "${config.xdg.configHome}/waybar/modules/display.jsonc",
-              "${config.xdg.configHome}/waybar/modules/footer.jsonc",
-              "${config.xdg.configHome}/waybar/modules/github_hyde.jsonc",
-              "${config.xdg.configHome}/waybar/modules/github_hyprdots.jsonc",
-              "${config.xdg.configHome}/waybar/modules/gpuinfo.jsonc",
-              "${config.xdg.configHome}/waybar/modules/header.jsonc",
-              "${config.xdg.configHome}/waybar/modules/hyprsunset.jsonc",
-              "${config.xdg.configHome}/waybar/modules/idle_inhibitor.jsonc",
-              "${config.xdg.configHome}/waybar/modules/keybindhint.jsonc",
-              "${config.xdg.configHome}/waybar/modules/language.jsonc",
-              "${config.xdg.configHome}/waybar/modules/memory.jsonc",
-              "${config.xdg.configHome}/waybar/modules/mpris.jsonc",
-              "${config.xdg.configHome}/waybar/modules/network.jsonc",
-              "${config.xdg.configHome}/waybar/modules/notifications.jsonc",
-              "${config.xdg.configHome}/waybar/modules/power.jsonc",
-              "${config.xdg.configHome}/waybar/modules/privacy.jsonc",
-              "${config.xdg.configHome}/waybar/modules/pulseaudio#microphone.jsonc",
-              "${config.xdg.configHome}/waybar/modules/pulseaudio.jsonc",
-              "${config.xdg.configHome}/waybar/modules/sensorsinfo.jsonc",
-              "${config.xdg.configHome}/waybar/modules/spotify.jsonc",
-              "${config.xdg.configHome}/waybar/modules/taskbar##custom.jsonc",
-              "${config.xdg.configHome}/waybar/modules/taskbar##windows.jsonc",
-              "${config.xdg.configHome}/waybar/modules/taskbar.jsonc",
-              "${config.xdg.configHome}/waybar/modules/theme.jsonc",
-              "${config.xdg.configHome}/waybar/modules/tray.jsonc",
-              "${config.xdg.configHome}/waybar/modules/updates.jsonc",
-              "${config.xdg.configHome}/waybar/modules/wallchange.jsonc",
-              "${config.xdg.configHome}/waybar/modules/wbar.jsonc",
-              "${config.xdg.configHome}/waybar/modules/weather.jsonc",
-              "${config.xdg.configHome}/waybar/modules/window.jsonc",
-              "${config.xdg.configHome}/waybar/modules/workspaces##kanji.jsonc",
-              "${config.xdg.configHome}/waybar/modules/workspaces##roman.jsonc",
-              "${config.xdg.configHome}/waybar/modules/workspaces.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/wlr-taskbar#windows.json",
-              "${config.xdg.dataHome}/waybar/modules/wlr-taskbar.json",
-              "${config.xdg.dataHome}/waybar/modules/privacy.json",
-              "${config.xdg.dataHome}/waybar/modules/tray.json",
-              "${config.xdg.dataHome}/waybar/modules/custom-cava.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-clipboard.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-cliphist.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-cpuinfo.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-display.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-dunst.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-gamemode.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-github_hyde.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-gpuinfo#amd.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-gpuinfo#intel.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-gpuinfo#nvidia.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-gpuinfo.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-hyprsunset.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-keybindhint.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-power.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-powermenu.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-sensorsinfo.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-spotify.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-theme.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-updates.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-wallchange.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-wbar.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-weather.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/hyprland-language.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/hyprland-window.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/hyprland-workspaces.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-swaync.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/wlr-taskbar.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/wlr-taskbar#windows.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/clock.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/cpu.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/idle_inhibitor.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/memory.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/mpris.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/network.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/privacy.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/pulseaudio.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/pulseaudio#microphone.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/tray.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/power-profiles-daemon.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/image#hyde-menu.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/custom-hyde-menu.jsonc",
-              "${config.xdg.dataHome}/waybar/modules/network#bandwidth.jsonc",
-              "${config.xdg.configHome}/waybar/modules/custom-mediaplayer.jsonc",
-              "${config.xdg.configHome}/waybar/modules/gamemode.jsonc",
-              "${config.xdg.configHome}/waybar/modules/group-eyecare.jsonc",
-              "${config.xdg.configHome}/waybar/modules/group-hide-tray.jsonc",
-              "${config.xdg.configHome}/waybar/modules/group-mediaplayer.jsonc",
-              "${config.xdg.configHome}/waybar/modules/group-volumecontrol.jsonc",
-              "${config.xdg.configHome}/waybar/modules/mpd.jsonc",
-              "${config.xdg.configHome}/waybar/modules/temperature.jsonc"
-          ],
-          "wlr/taskbar#windows": {
-              "icon-size": 16.0,
-              "icon-size-multiplier": 1.6
-          },
-          "wlr/taskbar": {
-              "icon-size": 16.0,
-              "icon-size-multiplier": 1.6
-          },
-          "privacy": {
-              "icon-size": 10,
-              "icon-size-multiplier": 1
-          },
-          "tray": {
-              "icon-size": 16.0,
-              "icon-size-multiplier": 1.6
-          }
-        }
-      '';
-      force = true;
-       
-    };
     ".config/waybar/user-style.css".text = ''
       * {
         font-size: 14px;
       }
     '';
+
     ".config/waybar/style.css" = {
       text = ''
-        /*!  DO NOT EDIT THIS FILE */
-        /*
-        *     ░▒▒▒░░░▓▓           ___________
-        *   ░░▒▒▒░░░░░▓▓        //___________/
-        *  ░░▒▒▒░░░░░▓▓     _   _ _    _ _____
-        *  ░░▒▒░░░░░▓▓▓▓▓ | | | | |  | |  __/
-        *   ░▒▒░░░░▓▓   ▓▓ | |_| | |_/ /| |___
-        *    ░▒▒░░▓▓   ▓▓   |__  |____/ |____/
-        *      ░▒▓▓   ▓▓  //____/
-        */
+        /* Tokyo Night inspired Waybar style */
 
-        /* Modified by Hyde */
-        /* Modify/add style in ~/.config/waybar/styles/ */
-        @import "${config.xdg.dataHome}/waybar/styles/defaults.css";
+        * {
+          font-family: "JetBrainsMono Nerd Font", "Symbols Nerd Font";
+          font-size: 13px;
+          border-radius: 8px;
+          min-height: 0;
+        }
 
-        /* Imports wallbash colors */
-        @import "${config.xdg.cacheHome}/hyde/wallbash/gtk.css";
+        window#waybar {
+          background-color: rgba(26, 27, 38, 0.92);
+          color: #c0caf5;
+          border-radius: 12px;
+          border: 1px solid #3b4261;
+        }
 
-        /* Colors and theme configuration is generated through the `theme.css` file */
-        @import "theme.css";
+        window#waybar.hidden {
+          opacity: 0.0;
+        }
 
-        /* Users who want to override the current style add/edit 'user-style.css' */
-        @import "user-style.css";  
+        #workspaces {
+          margin: 0 4px;
+        }
+
+        #workspaces button {
+          padding: 0 8px;
+          margin: 0 2px;
+          background-color: transparent;
+          color: #565f89;
+          border-radius: 6px;
+          transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        #workspaces button.active,
+        #workspaces button.focused {
+          background: linear-gradient(135deg, #7aa2f7, #bb9af7);
+          color: #1a1b26;
+        }
+
+        #workspaces button.urgent {
+          background-color: #f7768e;
+          color: #1a1b26;
+        }
+
+        #clock,
+        #battery,
+        #pulseaudio,
+        #pulseaudio.microphone,
+        #memory,
+        #cpu,
+        #backlight,
+        #tray,
+        #custom-bluetooth,
+        #custom-sensorsinfo,
+        #custom-swaync,
+        #custom-dunst {
+          padding: 0 10px;
+          margin: 0 4px;
+          background-color: #24283b;
+          color: #c0caf5;
+          border-radius: 8px;
+        }
+
+        #tray menu {
+          background-color: #1a1b26;
+          color: #c0caf5;
+          border-radius: 8px;
+          border: 1px solid #3b4261;
+        }
+
+        #battery.charging,
+        #battery.plugged {
+          color: #9ece6a;
+        }
+
+        #battery.critical {
+          color: #f7768e;
+        }
+
+        #pulseaudio.muted {
+          color: #565f89;
+        }
+
+        tooltip {
+          background: #1a1b26;
+          color: #c0caf5;
+          border-radius: 8px;
+          border: 1px solid #3b4261;
+        }
+
+        tooltip label {
+          padding: 4px 8px;
+        }
       '';
       force = true;
-       
     };
+
     ".config/waybar/config.jsonc" = {
-      source = ./resources/patched-khing.jsonc;
+      text = ''
+        {
+          // Global bar options
+          "layer": "top",
+          "position": "top",
+          "height": 30,
+          "margin-left": 8,
+          "margin-right": 8,
+          "margin-top": 4,
+          "spacing": 6,
+          "reload_style_on_change": true,
+
+          // Layout without external JSONC modules/includes
+          "modules-left": [
+            "hyprland/workspaces",
+            "wlr/taskbar"
+          ],
+          "modules-center": [
+            "memory",
+            "cpu",
+            "clock"
+          ],
+          "modules-right": [
+            "backlight",
+            "tray",
+            "custom/bluetooth",
+            "pulseaudio",
+            "pulseaudio#microphone",
+            "battery",
+            "custom/sensorsinfo",
+            "custom/swaync",
+            "custom/dunst"
+          ],
+
+          "hyprland/workspaces": {
+            "format": "{name}",
+            "sort-by-number": true,
+            "all-outputs": true,
+            "disable-scroll": false
+          },
+
+          "wlr/taskbar": {
+            "format": "{icon}",
+            "icon-size": 16,
+            "markup": false,
+            "on-click": "activate",
+            "on-click-middle": "close",
+            "ignore-list": []
+          },
+
+          "clock": {
+            "format": "{:%H:%M}",
+            "format-alt": "{:%A, %d.%m.%Y}",
+            "tooltip-format": "{:%Y-%m-%d %H:%M:%S}"
+          },
+
+          "memory": {
+            "format": " {used:0.1f}G",
+            "tooltip": true
+          },
+
+          "cpu": {
+            "format": " {usage:2}%",
+            "tooltip": true
+          },
+
+          "backlight": {
+            "format": " {percent}%",
+            "on-scroll-up": "brightnessctl set +5%",
+            "on-scroll-down": "brightnessctl set 5%-"
+          },
+
+          "pulseaudio": {
+            "format": "{icon} {volume}%",
+            "format-muted": " mute",
+            "on-click": "pavucontrol",
+            "scroll-step": 2,
+            "format-icons": {
+              "default": ["", "", ""]
+            }
+          },
+
+          "pulseaudio#microphone": {
+            "format-source": " {volume}%",
+            "format-source-muted": " mute",
+            "on-click": "pavucontrol"
+          },
+
+          "battery": {
+            "states": {
+              "good": 80,
+              "warning": 30,
+              "critical": 15
+            },
+            "format": "{icon} {capacity}%",
+            "format-charging": " {capacity}%",
+            "format-plugged": " {capacity}%",
+            "format-alt": "{time} remaining",
+            "interval": 30,
+            "tooltip": true,
+            "format-icons": ["", "", "", "", ""]
+          },
+
+          "tray": {
+            "icon-size": 16,
+            "spacing": 8
+          },
+
+          "custom/bluetooth": {
+            "format": "",
+            "tooltip": false,
+            "exec": "echo ",
+            "interval": 3600
+          },
+
+          "custom/sensorsinfo": {
+            "format": "",
+            "tooltip": true,
+            "exec": "sensors | head -n 5",
+            "interval": 30
+          },
+
+          "custom/swaync": {
+            "format": "",
+            "tooltip": "Notifications",
+            "on-click": "swaync-client -t"
+          },
+
+          "custom/dunst": {
+            "format": "",
+            "tooltip": "Toggle dunst",
+            "on-click": "dunstctl set-paused toggle"
+          }
+        }
+      '';
       force = true;
-       
     };
   };
 }
