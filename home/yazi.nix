@@ -9,14 +9,14 @@ let
     hash = "sha256-52Zn6OSSsuNNAeqqZidjOvfCSB7qPqUeizYq/gO+UbE=";
   };
 
-  yaziPkg = inputs.yazi.packages.${pkgs.system}.default.override {
+  yaziPkg = inputs.yazi.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
     _7zz = pkgs._7zz-rar;
   };
 in
 {
   programs.yazi = {
     enable = true;
-    # package = yazi.packages.${pkgs.system}.default;
+    # package = yazi.packages.${pkgs.stdenv.hostPlatform.system}.default;
     package = yaziPkg;
     enableZshIntegration = true;
     shellWrapperName = "y";

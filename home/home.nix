@@ -149,6 +149,10 @@ in
       name = "Tela-dark";
       package = pkgs.tela-icon-theme;
     };
+
+    gtk4 = {
+      theme = null;
+    };
   };
   # Set environment variables
   home.sessionVariables = {
@@ -373,5 +377,5 @@ in
   #   enable = true;
   # };
  
-  home.stateVersion = "25.05";
+home.stateVersion = "26.05";
 }

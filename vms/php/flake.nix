@@ -87,10 +87,10 @@
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
 
                 phpShells = {
-                  "82" = self.packages.${pkgs.system}.php82-shell;
-                  "83" = self.packages.${pkgs.system}.php83-shell;
-                  "84" = self.packages.${pkgs.system}.php84-shell;
-                  "85" = self.packages.${pkgs.system}.php85-shell;
+                  "82" = self.packages.${pkgs.stdenv.hostPlatform.system}.php82-shell;
+                  "83" = self.packages.${pkgs.stdenv.hostPlatform.system}.php83-shell;
+                  "84" = self.packages.${pkgs.stdenv.hostPlatform.system}.php84-shell;
+                  "85" = self.packages.${pkgs.stdenv.hostPlatform.system}.php85-shell;
                 };
 
                 phpTools = [
@@ -221,10 +221,10 @@
                   ]
                   ++ defaultPkgs
                   ++ [
-                    self.packages.${pkgs.system}.php82-shell
-                    self.packages.${pkgs.system}.php83-shell
-                    self.packages.${pkgs.system}.php84-shell
-                    self.packages.${pkgs.system}.php85-shell
+                    self.packages.${pkgs.stdenv.hostPlatform.system}.php82-shell
+                    self.packages.${pkgs.stdenv.hostPlatform.system}.php83-shell
+                    self.packages.${pkgs.stdenv.hostPlatform.system}.php84-shell
+                    self.packages.${pkgs.stdenv.hostPlatform.system}.php85-shell
                   ];
 
                 programs.direnv.enable = true;
