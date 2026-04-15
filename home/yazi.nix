@@ -30,25 +30,25 @@ in
       #   max_width = 1000;
       #   max_height = 1000;
       # };
-      plugin = {
-        prepend_fetchers = [
-          {
-            id = "git";
-            name = "*";
-            run = "git";
-          }
-          {
-            id = "git";
-            name = "*/";
-            run = "git";
-          }
-        ];
-      };
+      # plugin = {
+      #   prepend_fetchers = [
+      #     {
+      #       id = "git";
+      #       name = "*";
+      #       run = "git";
+      #     }
+      #     {
+      #       id = "git";
+      #       name = "*/";
+      #       run = "git";
+      #     }
+      #   ];
+      # };
     };
 
     plugins = {
       full-border = "${yazi-plugins}/full-border.yazi";
-      git = "${yazi-plugins}/git.yazi";
+      # git = "${yazi-plugins}/git.yazi";
       mount = "${yazi-plugins}/mount.yazi";
       chmod = "${yazi-plugins}/chmod.yazi";
       "jump-to-char" = "${yazi-plugins}/jump-to-char.yazi";
@@ -56,7 +56,7 @@ in
 
     initLua = ''
       require("full-border"):setup()
-      require("git"):setup()
+      -- require("git"):setup()
     '';
 
     keymap = {

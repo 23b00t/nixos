@@ -40,7 +40,7 @@
           location: center;
           width: 40%;
           border: 2px;
-          border-color: @accent;
+          border-color: @accent2;
           border-radius: 10;
           padding: 10;
         }
@@ -83,7 +83,7 @@
         }
 
         element selected {
-          background-color: @accent;
+          background-color: @accent2;
           text-color: @bg;
         }
 

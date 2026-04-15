@@ -66,6 +66,48 @@ in
 
     wl-screenrec
 
+    # Screen recording helper scripts
+    (writeShellScriptBin "screenrec-region" ''
+      #!${pkgs.bash}/bin/bash
+      set -euo pipefail
+
+      # Toggle: wenn schon läuft, Recording stoppen
+      if pgrep -x wl-screenrec >/dev/null; then
+        ${pkgs.libnotify}/bin/notify-send "Screen recording" "Region recording stopped"
+        pkill -INT wl-screenrec
+        exit 0
+      fi
+
+      OUTDIR="''${XDG_VIDEOS_DIR:-''$HOME/Videos}/ScreenRecordings"
+      mkdir -p "$OUTDIR"
+      FILE="$OUTDIR/region-$(date +'%Y-%m-%d_%H-%M-%S').mp4"
+
+      ${pkgs.libnotify}/bin/notify-send "Screen recording" "Region recording started → $FILE"
+      wl-screenrec -g "$(slurp)" -f "$FILE" --low-power=off
+    '')
+
+    (writeShellScriptBin "screenrec-full" ''
+      #!${pkgs.bash}/bin/bash
+      set -euo pipefail
+
+      # Toggle: wenn schon läuft, Recording stoppen
+      if pgrep -x wl-screenrec >/dev/null; then
+        ${pkgs.libnotify}/bin/notify-send "Screen recording" "Fullscreen recording stopped"
+        pkill -INT wl-screenrec
+        exit 0
+      fi
+
+      OUTDIR="''${XDG_VIDEOS_DIR:-''$HOME/Videos}/ScreenRecordings"
+      mkdir -p "$OUTDIR"
+      FILE="$OUTDIR/full-$(date +'%Y-%m-%d_%H-%M-%S').mp4"
+
+      # aktuellen Monitor aus Hyprland ermitteln
+      MONITOR="$(hyprctl monitors | awk '/Monitor/{mon=$2} /focused:/{if($2=="yes") print mon}')"
+
+      ${pkgs.libnotify}/bin/notify-send "Screen recording" "Fullscreen recording started on $MONITOR → $FILE"
+      wl-screenrec -o "$MONITOR" -f "$FILE" --low-power=off
+    '')
+
     wlogout
     dunst # notifications
     swaynotificationcenter
@@ -118,22 +160,34 @@ in
 
     mimeApps = {
       enable = true;
-    };
+      defaultApplications = {
+        # Images
+        "image/png" = "swappy.desktop";
+        "image/jpeg" = "swappy.desktop";
+        "image/jpg" = "swappy.desktop";
+        "image/webp" = "swappy.desktop";
+        "image/gif" = "swappy.desktop";
 
-    # userDirs = {
-    #   enable = true;
-    #   createDirectories = true;
-    #
-    #   # Define standard XDG user directories
-    #   desktop = "${config.home.homeDirectory}/Desktop";
-    #   documents = "${config.home.homeDirectory}/Documents";
-    #   download = "${config.home.homeDirectory}/Downloads";
-    #   music = "${config.home.homeDirectory}/Music";
-    #   pictures = "${config.home.homeDirectory}/Pictures";
-    #   publicShare = "${config.home.homeDirectory}/Public";
-    #   templates = "${config.home.homeDirectory}/Templates";
-    #   videos = "${config.home.homeDirectory}/Videos";
-    # };
+        # Videos
+        "video/mp4" = "chromium-browser.desktop";
+        "video/webm" = "chromium-browser.desktop";
+        "video/x-matroska" = "chromium-browser.desktop";
+        "video/ogg" = "chromium-browser.desktop";
+        "video/quicktime" = "chromium-browser.desktop";
+        "video/x-msvideo" = "chromium-browser.desktop";
+        "video/x-flv" = "chromium-browser.desktop";
+        "video/x-ms-wmv" = "chromium-browser.desktop";
+        "video/mpeg" = "chromium-browser.desktop";
+        "video/3gpp" = "chromium-browser.desktop";
+        "video/3gpp2" = "chromium-browser.desktop";
+
+        # URLs
+        "x-scheme-handler/http" = "zen.desktop";
+        "x-scheme-handler/https" = "zen.desktop";
+        "x-scheme-handler/about" = "zen.desktop";
+        "x-scheme-handler/unknown" = "zen.desktop";
+      };
+    };
 
     # Define standard XDG base directories
     cacheHome = "${config.home.homeDirectory}/.cache";
@@ -235,11 +289,19 @@ in
 
       decoration = {
         rounding = 10;
+
+        # blur behind windows
+        blur = {
+          enabled = true;
+          size = 4; # blur strength
+          passes = 2; # more = softer, but slower
+          new_optimizations = true;
+        };
       };
 
       # Window border colors
-      "col.active_border" = "rgba(88c0d0ff)"; # aktive Fenster (helles Blau)
-      "col.inactive_border" = "rgba(4c566a80)"; # inaktive Fenster (dunkler, halb transparent)
+      "col.active_border" = "rgba(5e81acff)";
+      "col.inactive_border" = "rgba(3b4252ff)";
 
       general = {
         gaps_in = 5;
@@ -247,6 +309,11 @@ in
         border_size = 2;
         layout = "dwindle";
       };
+
+      # light transparency for all windows
+      active_opacity = 0.90;
+      inactive_opacity = 0.70;
+      fullscreen_opacity = 1.0;
 
       "$mod" = "SUPER";
 
@@ -266,6 +333,19 @@ in
         "$mod, right, movefocus, r"
         "$mod, up, movefocus, u"
         "$mod, down, movefocus, d"
+        # Move windows
+        "$mod SHIFT, left, movewindow, l"
+        "$mod SHIFT, right, movewindow, r"
+        "$mod SHIFT, up, movewindow, u"
+        "$mod SHIFT, down, movewindow, d"
+        # Resize windows
+        "$mod CTRL, left, resizeactive, -20 0"
+        "$mod CTRL, right, resizeactive, 20 0"
+        "$mod CTRL, up, resizeactive, 0 -20"
+        "$mod CTRL, down, resizeactive, 0 20"
+        # Switch layout
+        "$mod, Y, layoutmsg, dwindle"
+        "$mod, U, layoutmsg, master"
 
         # Workspace switching
         "$mod, 1, workspace, 1"
@@ -298,8 +378,20 @@ in
         # Kitty-Special
         "$mod SHIFT, K, exec, kitty --session=none"
         "$mod, T, exec, kitty"
-        # emoji picker 
+        # emoji picker
         "$mod, comma, exec, rofimoji --selector-args='-theme ~/.config/rofi/theme.rasi'"
+
+        # Fullscreen toggle
+        "$mod, F, fullscreen, 0"
+
+        # Screenshots
+        "$mod, P, exec, grim -g \"$(slurp)\" - | swappy -f -"
+        "$mod SHIFT, P, exec, grim - | swappy -f -"
+        # Screen recording (toggle start/stop)
+        "$mod, R, exec, screenrec-region"
+        "$mod SHIFT, R, exec, screenrec-full"
+        # yazi
+        "$mod, E, exec, kitty -e yazi"
       ];
 
       bindl = [
@@ -378,6 +470,6 @@ in
   # services.dunst = {
   #   enable = true;
   # };
- 
-home.stateVersion = "26.05";
+
+  home.stateVersion = "26.05";
 }
