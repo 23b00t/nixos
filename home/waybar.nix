@@ -21,25 +21,19 @@
   ];
 
   home.file = {
-    ".config/waybar/user-style.css".text = ''
-      * {
-        font-size: 14px;
-      }
-    '';
-
     ".config/waybar/style.css" = {
       text = ''
         /* Tokyo Night inspired Waybar style */
 
         * {
-          font-family: "JetBrainsMono Nerd Font", "Symbols Nerd Font";
-          font-size: 13px;
+          font-family: "FiraCode Nerd Font", "Symbols Nerd Font";
+          font-size: 14px;
           border-radius: 8px;
           min-height: 0;
         }
 
         window#waybar {
-          background-color: rgba(26, 27, 38, 0.92);
+          background-color: rgba(26, 27, 38, 0.85);
           color: #c0caf5;
           border-radius: 12px;
           border: 1px solid #3b4261;
@@ -84,19 +78,19 @@
         #custom-bluetooth,
         #custom-sensorsinfo,
         #custom-swaync,
-        #custom-dunst {
+        #custom-cputemp {
           padding: 0 10px;
-          margin: 0 4px;
-          background-color: #24283b;
+          margin: 0 1px;
+          background-color: rgba(42, 32, 64, 0.50);
           color: #c0caf5;
           border-radius: 8px;
         }
 
         #tray menu {
-          background-color: #1a1b26;
+          background-color: #2a2040;
           color: #c0caf5;
           border-radius: 8px;
-          border: 1px solid #3b4261;
+          border: 1px solid #2a2261;
         }
 
         #battery.charging,
@@ -147,18 +141,16 @@
           "modules-center": [
             "memory",
             "cpu",
+            "custom/cputemp",
             "clock"
           ],
           "modules-right": [
             "backlight",
             "tray",
-            "custom/bluetooth",
             "pulseaudio",
             "pulseaudio#microphone",
             "battery",
-            "custom/sensorsinfo",
             "custom/swaync",
-            "custom/dunst"
           ],
 
           "hyprland/workspaces": {
@@ -203,16 +195,17 @@
             "format": "{icon} {volume}%",
             "format-muted": " mute",
             "on-click": "pavucontrol",
-            "scroll-step": 2,
+            "scroll-step": 5,
             "format-icons": {
               "default": ["", "", ""]
             }
           },
 
           "pulseaudio#microphone": {
+            "format": "{format_source}",
+
             "format-source": " {volume}%",
             "format-source-muted": " mute",
-            "on-click": "pavucontrol"
           },
 
           "battery": {
@@ -239,13 +232,14 @@
             "format": "",
             "tooltip": false,
             "exec": "echo ",
-            "interval": 3600
+            "interval": 3600,
+            "on-click": "blueman-manager"
           },
 
           "custom/sensorsinfo": {
             "format": "",
             "tooltip": true,
-            "exec": "sensors | head -n 5",
+            "exec": "sensors",
             "interval": 30
           },
 
@@ -255,11 +249,12 @@
             "on-click": "swaync-client -t"
           },
 
-          "custom/dunst": {
-            "format": "",
-            "tooltip": "Toggle dunst",
-            "on-click": "dunstctl set-paused toggle"
-          }
+          "custom/cputemp": {
+            "format": "{}",
+            "tooltip": true,
+            "exec": "sensors | grep -m 1 'Package id 0:' | awk '{print $4}'",
+            "interval": 30
+          },
         }
       '';
       force = true;

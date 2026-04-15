@@ -70,6 +70,8 @@ in
     dunst # notifications
     swaynotificationcenter
 
+    rofimoji
+
     (import ./remote-zellij.nix { inherit pkgs; })
     (import ./backup.nix { inherit pkgs lib inputs; })
   ];
@@ -292,8 +294,8 @@ in
         # Kitty-Special
         "$mod SHIFT, K, exec, kitty --session=none"
         "$mod, T, exec, kitty"
-        # Scratch Buffer
-
+        # emoji picker 
+        "$mod, comma, exec, rofimoji --selector-args='-theme ~/.config/rofi/theme.rasi'"
       ];
 
       bindl = [
@@ -313,6 +315,7 @@ in
       # Startup-Apps (Hyprland-Panel, Waybar, Notifier, etc.)
       exec-once = [
         "waybar"
+        "systemctl --user restart wpaperd.service"
       ];
 
       bindm = [
@@ -366,8 +369,9 @@ in
     package = pkgs.swaynotificationcenter;
   };
 
-  services.dunst = {
-    enable = true;
-  };
+  # services.dunst = {
+  #   enable = true;
+  # };
+ 
   home.stateVersion = "25.05";
 }
