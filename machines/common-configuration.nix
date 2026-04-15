@@ -11,9 +11,6 @@ let
   pkgs = import inputs.nixpkgs {
     inherit system;
     config.allowUnfree = true;
-    overlays = [
-      inputs.hydenix.overlays.default
-    ];
   };
   maxVMs = 23;
 in
@@ -72,12 +69,9 @@ in
   services.power-profiles-daemon.enable = true;
   powerManagement.cpuFreqGovernor = "powersave";
 
-  nixpkgs.pkgs = pkgs; # Set pkgs for hydenix globally
+  nixpkgs.pkgs = pkgs;
 
   imports = [
-    # hydenix inputs - Required modules, don't modify unless you know what you're doing
-    inputs.hydenix.inputs.home-manager.nixosModules.home-manager
-    inputs.hydenix.nixosModules.default
     inputs.microvm.nixosModules.host
 
     # Hardware Configuration - Uncomment lines that match your hardware
@@ -106,13 +100,11 @@ in
       { ... }:
       {
         imports = [
-          inputs.hydenix.homeModules.default
-          ../home/home.nix # Your custom home-manager modules (configure hydenix.hm here!)
+          ../home/home.nix
         ];
       };
   };
 
-  # User Account Setup - REQUIRED: Change "hydenix" to your desired username (must match above)
   networking = {
     # hostName = "machine";
     # TODO: Use nftables - check rules
@@ -169,17 +161,153 @@ in
     cloud-hypervisor
     virtiofsd
     zellij
-    xwayland
     shadow
     wprs
     remmina
     virt-viewer
 
+    libnotify # Desktop notification library
+    wl-clip-persist # Keep Wayland clipboard even after programs close (avoids crashes)
+    polkit_gnome # authentication agent for privilege escalation
+    dbus # inter-process communication daemon
+    upower # power management/battery status daemon
+    mesa # OpenGL implementation and GPU drivers
+    dconf # configuration storage system
+    dconf-editor # dconf editor
+    xdg-utils # Collection of XDG desktop integration tools
+    desktop-file-utils # for updating desktop database
+    hicolor-icon-theme # Base fallback icon theme
+    cliphist # clipboard manager
+    wayland # for wayland support
+    egl-wayland # for wayland support
+    xwayland # for x11 support
+    coreutils # coreutils implementation
+    hypridle
+
+    # sddm
+    hyde
+    Bibata-Modern-Ice
+    sddm-astronaut
+
+    # Network
+    networkmanager
+    networkmanagerapplet
+
+    # Hardware
+    brightnessctl # screen brightness control
+    udiskie # manage removable media
+    ntfs3g # ntfs support
+    exfat # exFAT support
+    libinput-gestures # actions touchpad gestures using libinput
+    libinput # libinput library
+    lm_sensors # system sensors
+    pciutils # pci utils
+
+    # Audio
+    bluez
+    bluez-tools
+    blueman
+    pipewire
+    wireplumber
+    pavucontrol
+    pamixer
+    playerctl
+
     (import ../vms/copy-between-vms.nix { inherit pkgs lib; })
   ];
 
+  environment.variables = {
+    NIXOS_OZONE_WL = "1";
+  };
+
+  programs.hyprland = {
+    package = pkgs.hyprland;
+    portalPackage = pkgs.xdg-desktop-portal-hyprland;
+    enable = true;
+    withUWSM = true;
+  };
+
+  programs.nix-ld.enable = true;
+
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = true;
+    settings = {
+      General = {
+        Enable = "Source,Sink,Media,Socket";
+        Experimental = true;
+      };
+    };
+  };
+
+  services = {
+    dbus.enable = true;
+
+    upower.enable = true;
+    openssh.enable = true;
+    libinput.enable = true;
+  };
+
+  programs.dconf.enable = true;
   programs.vim.enable = true;
   environment.variables.EDITOR = "vim";
+
+  # For polkit authentication
+  security.polkit.enable = true;
+  security.pam.services.swaylock = { };
+  security.rtkit.enable = true;
+  systemd.user.services.polkit-gnome-authentication-agent-1 = {
+    description = "polkit-gnome-authentication-agent-1";
+    wantedBy = [ "graphical-session.target" ];
+    wants = [ "graphical-session.target" ];
+    after = [ "graphical-session.target" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
+      Restart = "on-failure";
+      RestartSec = 1;
+      TimeoutStopSec = 10;
+    };
+  };
+
+  # For proper XDG desktop integration
+  xdg.portal = {
+    enable = true;
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+  };
+
+  # sddm
+  # Add this section to ensure cursor theme is properly loaded
+  environment.sessionVariables = {
+    XCURSOR_THEME = "Bibata-Modern-Ice";
+    XCURSOR_SIZE = "24";
+  };
+
+  services.displayManager.sddm = {
+    enable = true;
+    theme = "sddm-astronaut-theme";
+    wayland = {
+      enable = true;
+    };
+    extraPackages = with pkgs.kdePackages; [
+      qtsvg
+      qtmultimedia
+      qtvirtualkeyboard
+    ];
+    settings = {
+      Theme = {
+        CursorTheme = "Bibata-Modern-Ice";
+        CursorSize = "24";
+      };
+      General = {
+        # Set default session globally
+        DefaultSession = "hyprland.desktop";
+      };
+      Wayland = {
+        EnableHiDPI = true;
+      };
+    };
+  };
 
   # User
   users.groups.tun = { };
@@ -209,42 +337,48 @@ in
   services.pulseaudio.enable = false;
   ## rtkit is optional but recommended
   security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    # jack.enable = true;
-    # Netzwerk-Audio aktivieren
-    # NOTE: Problems? -> ss -tulpn | grep 4713 -> nothing? ->
-    # systemctl --user restart pipewire pipewire-pulse
-    configPackages = [
-      (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
-        pulse.cmd = [
-          { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
-        ]
-      '')
-    ];
-  };
 
-  # Bluetooth
+  services = {
+    pipewire = {
+      enable = true;
+      alsa = {
+        enable = true;
+        support32Bit = true;
+      };
+      pulse.enable = true;
+      wireplumber = {
+        enable = true;
+        extraConfig.bluetoothEnhancements = {
+          "monitor.bluez.properties" = {
+            "bluez5.enable-sbc-xq" = true;
+            "bluez5.enable-msbc" = true;
+            "bluez5.enable-hw-volume" = true;
+            "bluez5.roles" = [
+              "hsp_hs"
+              "hsp_ag"
+              "hfp_hf"
+              "hfp_ag"
+            ];
+          };
+        };
 
-  services.pipewire.wireplumber.extraConfig.bluetoothEnhancements = {
-    "monitor.bluez.properties" = {
-      "bluez5.enable-sbc-xq" = true;
-      "bluez5.enable-msbc" = true;
-      "bluez5.enable-hw-volume" = true;
-      "bluez5.roles" = [
-        "hsp_hs"
-        "hsp_ag"
-        "hfp_hf"
-        "hfp_ag"
+      };
+      # If you want to use JACK applications, uncomment this
+      # jack.enable = true;
+      # Netzwerk-Audio aktivieren
+      # NOTE: Problems? -> ss -tulpn | grep 4713 -> nothing? ->
+      # systemctl --user restart pipewire pipewire-pulse
+      configPackages = [
+        (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
+          pulse.cmd = [
+            { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
+          ]
+        '')
       ];
     };
+    blueman.enable = true;
   };
 
-  networking.networkmanager.enable = true;
   # networking.wireless.enable = true;
 
   # Time & Locals
@@ -291,8 +425,6 @@ in
   # gpg
   programs.gnupg.agent = {
     enable = true;
-    # is set by hydenix to true
-    enableSSHSupport = lib.mkForce false;
     settings = {
       default-cache-ttl = 3600;
       max-cache-ttl = 7200;
@@ -374,40 +506,28 @@ in
   # use cache
   nix = {
     settings = {
+      auto-optimise-store = true;
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
       substituters = [
         "https://cache.nixos.org"
         "https://microvm.cachix.org"
+        "https://hyprland.cachix.org"
+        "https://nix-community.cachix.org"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "microvm.cachix.org-1:oXnBc6hRE3eX5rSYdRyMYXnfzcCxC7yKPTbZXALsqys="
+        "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
+        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       ];
       trusted-users = [
         "root"
         "nx"
       ];
     };
-  };
-
-  # Hydenix Configuration - Main configuration for the Hydenix desktop environment
-  hydenix = {
-    enable = true; # Enable Hydenix modules
-    # Basic System Settings (REQUIRED):
-    # hostname = "machine"; # REQUIRED: Set your computer's network name (change to something unique)
-    timezone = "Europe/Berlin"; # REQUIRED: Set timezone (examples: "America/New_York", "Europe/London", "Asia/Tokyo")
-    locale = "en_US.UTF-8"; # REQUIRED: Set locale/language (examples: "en_US.UTF-8", "en_GB.UTF-8", "de_DE.UTF-8")
-
-    audio.enable = true; # enable audio module
-    boot = {
-      enable = false; # enable boot module
-    };
-    gaming.enable = false; # enable gaming module
-    hardware.enable = true; # enable hardware module
-    network.enable = true; # enable network module
-    nix.enable = true; # enable nix module
-    sddm.enable = true; # enable sddm module
-
-    system.enable = true; # enable system module
   };
 
   systemd.services.retrigger-vm11-tor-udev = {
