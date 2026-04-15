@@ -8,10 +8,10 @@
 }:
 let
   system = "x86_64-linux";
-    pkgs = import inputs.nixpkgs {
-      inherit system;
-      config.allowUnfree = true;
-    };
+  pkgs = import inputs.nixpkgs {
+    inherit system;
+    config.allowUnfree = true;
+  };
   maxVMs = 23;
 in
 {
@@ -448,7 +448,7 @@ in
     );
 
   programs.ssh.startAgent = true;
-  networking.useNetworkd = true;
+  # networking.useNetworkd = true;
   # Generiere Netzwerke für alle VMs
   # Netzwerke für Standard-VMs (10.0.0.x)
   systemd.network.networks =
@@ -577,6 +577,16 @@ in
   fonts.packages = with pkgs; [
     nerd-fonts.fira-code
   ];
+
+  networking.networkmanager = {
+    enable = true;
+    unmanaged = [
+      "interface-name:vm*"
+      "interface-name:virbr*"
+    ];
+  };
+
+  systemd.network.enable = true;
 
   system.stateVersion = "26.05";
 }

@@ -92,6 +92,12 @@ host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1vide
 ## No WiFi
 
 - sudo modprobe iwlwifi
+```sh
+nmcli radio all
+```
+```sh
+nmcli radio wifi on
+```
 
 ## TODOs <!-- TODO: -->
 

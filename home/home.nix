@@ -320,6 +320,8 @@ in
       exec-once = [
         "waybar"
         "systemctl --user restart wpaperd.service"
+        "nm-applet --indicator"
+        "blueman-applet"
       ];
 
       bindm = [
