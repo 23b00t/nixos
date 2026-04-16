@@ -1,7 +1,7 @@
 # filepath: home/vm-connect.nix
 { pkgs, lib, ... }:
 let
-  vmRegistry = import ../vms/registry.nix;
+  vmRegistry = import ../../vms/registry.nix;
 
   vmCases = builtins.concatStringsSep "\n" (map (vm:
     let

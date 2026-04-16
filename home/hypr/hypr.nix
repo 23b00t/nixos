@@ -58,7 +58,6 @@
     satty
     # Lock screen
     hyprlock
-    swaylock
   ];
 
   xdg = {
@@ -151,19 +150,6 @@
     # Additional XDG-related variables
     LESSHISTFILE = "/tmp/less-hist";
     PARALLEL_HOME = "${config.xdg.configHome}/parallel";
-    SCREENRC = "${config.xdg.configHome}/screen/screenrc";
-    ZSH_AUTOSUGGEST_STRATEGY = "history completion";
-
-    # History configuration // explicit to not nuke history
-    HISTFILE = "\${HISTFILE:-\$HOME/.zsh_history}";
-    HISTSIZE = "10000";
-    SAVEHIST = "10000";
-    setopt_EXTENDED_HISTORY = "true";
-    setopt_INC_APPEND_HISTORY = "true";
-    setopt_SHARE_HISTORY = "true";
-    setopt_HIST_EXPIRE_DUPS_FIRST = "true";
-    setopt_HIST_IGNORE_DUPS = "true";
-    setopt_HIST_IGNORE_ALL_DUPS = "true";
   };
 
   wayland.windowManager.hyprland = {
@@ -221,8 +207,8 @@
       };
 
       # Window border colors
-      "col.active_border" = "rgba(5e81acff)";
-      "col.inactive_border" = "rgba(3b4252ff)";
+      "col.active_border" = "rgba(bb9af7ff)";
+      "col.inactive_border" = "rgba(d1bfffcc)";
 
       general = {
         gaps_in = 5;
@@ -302,7 +288,7 @@
         "$mod SHIFT, K, exec, kitty --session=none"
         "$mod, T, exec, kitty"
         # emoji picker
-        "$mod, comma, exec, rofimoji --selector-args='-theme ~/.config/rofi/theme.rasi'"
+        "$mod, comma, exec, rofimoji --action copy --selector-args='-theme ~/.config/rofi/theme.rasi'"
 
         # Fullscreen toggle
         "$mod, F, fullscreen, 0"
@@ -316,8 +302,6 @@
         # yazi
         "$mod, E, exec, kitty -e yazi"
       ];
-
-      # TODO: include satty for screenshots
 
       bindl = [
         ",XF86MonBrightnessUp, exec, brightnessctl -d intel_backlight -e4 -n2 set 5%+"
@@ -342,7 +326,6 @@
       ];
 
       bindm = [
-        # Mausbewegungen
         "$mod, mouse:272, movewindow"
         "$mod, mouse:273, resizewindow"
         "$mod ALT, mouse:272, resizewindow"

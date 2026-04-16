@@ -1,6 +1,6 @@
 { pkgs, lib, inputs }:
 let
-  vmRegistry = import ../vms/registry.nix;
+  vmRegistry = import ../../vms/registry.nix;
 
   # Build a simple host table with both long and short names mapped to IPs.
   hostTable = builtins.concatStringsSep "\n" (map (vm:

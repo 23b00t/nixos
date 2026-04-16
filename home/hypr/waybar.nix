@@ -7,17 +7,6 @@
 {
   home.packages = with pkgs; [
     waybar # system bar
-    playerctl # media player cli
-    lm_sensors # sensors information library
-    power-profiles-daemon # power profiles daemon
-    # Screenshots
-    grim
-    slurp
-    swappy
-    satty
-    # Lock screen
-    hyprlock
-    swaylock
   ];
 
   home.file = {
@@ -81,7 +70,7 @@
         #custom-swaync,
         #custom-cputemp {
           padding: 0 10px;
-          margin: 0 1px;
+          margin: 0 0.5px;
           background-color: rgba(42, 32, 64, 0.50);
           color: #c0caf5;
           border-radius: 8px;
@@ -171,8 +160,8 @@
           },
 
           "clock": {
-            "format": "{:%H:%M}",
-            "format-alt": "{:%A, %d.%m.%Y}",
+            "format": "{:%A, %d.%m.%Y - %H:%M}",
+            "format-alt": "{:%H:%M}",
             "tooltip-format": "{:%Y-%m-%d %H:%M:%S}"
           },
 
