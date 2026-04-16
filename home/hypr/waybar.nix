@@ -88,6 +88,12 @@
           color: #9ece6a;
         }
 
+        #custom-cputemp.warning,
+        #battery.warning {
+          color: #e0af68;
+        }
+
+        #custom-cputemp.critical,
         #battery.critical {
           color: #f7768e;
         }
@@ -201,8 +207,8 @@
           "battery": {
             "states": {
               "good": 80,
-              "warning": 30,
-              "critical": 15
+              "warning": 40,
+              "critical": 20
             },
             "format": "{icon} {capacity}%",
             "format-charging": " {capacity}%",
@@ -240,10 +246,14 @@
           },
 
           "custom/cputemp": {
-            "format": "{}",
+            "format": "{ {output}°C}",
             "tooltip": true,
-            "exec": "sensors | grep -m 1 'Package id 0:' | awk '{print $4}'",
-            "interval": 5
+            "exec": "sensors | grep -m 1 'Package id 0:' | awk '{print $4}' | sed 's/+//;s/[^0-9.]//g'",
+            "interval": 5,
+            "states": {
+              "warning": 76,
+              "critical": 85
+            }
           },
         }
       '';
