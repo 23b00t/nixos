@@ -15,8 +15,8 @@
       update = "nix flake update && sudo nixos-rebuild switch";
       rebuild = "sudo nixos-rebuild switch";
       sc = "systemctl";
-      cmd = "eval $(fzf < ~/nixos-config/home/cmds)";
-      pcmd = "cmd=$(fzf < ~/nixos-config/home/cmds); vared -p '> ' -c cmd; eval '$cmd'";
+      cmd = "eval $(fzf < ~/nixos-config/home/resources/cmds)";
+      pcmd = "cmd=$(fzf < ~/nixos-config/home/resources/cmds); vared -p '> ' -c cmd; eval '$cmd'";
       containers = "nix develop '/home/nx/nixos-config#containers'";
       kk = "kitty @ kitten";
       # ddate = "nix run 'nixpkgs#ddate'";
@@ -71,8 +71,8 @@
           # fi
 
           # Load custom functions
-          [ -f "$HOME/nixos-config/home/paste_functions.zsh" ] && source "$HOME/nixos-config/home/paste_functions.zsh"
-          [ -f "$HOME/nixos-config/home/nvim.zsh" ] && source "$HOME/nixos-config/home/nvim.zsh"
+          [ -f "$HOME/nixos-config/home/resources/paste_functions.zsh" ] && source "$HOME/nixos-config/home/resources/paste_functions.zsh"
+          [ -f "$HOME/nixos-config/home/resources/nvim.zsh" ] && source "$HOME/nixos-config/home/resources/nvim.zsh"
 
           ms() {
               systemctl start microvm@"$1".service

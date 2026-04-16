@@ -27,7 +27,7 @@
           bg: #1a1b26;
           bg-alt: #16161e;
           fg: #c0caf5;
-          accent: #7aa2f7;
+          accent1: rgba(187, 154, 247, 0.15);
           accent2: #bb9af7;
           urgent: #f7768e;
 
@@ -83,7 +83,7 @@
         }
 
         element selected {
-          background-color: @accent2;
+          background-color: @accent1;
           text-color: @bg;
         }
 
