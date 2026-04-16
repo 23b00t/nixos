@@ -246,7 +246,7 @@
           },
 
           "custom/cputemp": {
-            "format": "{ {output}°C}",
+            "format": " {}°C",
             "tooltip": true,
             "exec": "sensors | grep -m 1 'Package id 0:' | awk '{print $4}' | sed 's/+//;s/[^0-9.]//g'",
             "interval": 5,
