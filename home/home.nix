@@ -108,8 +108,6 @@ in
       wl-screenrec -o "$MONITOR" -f "$FILE" --low-power=off
     '')
 
-    wlogout
-    dunst # notifications
     swaynotificationcenter
 
     rofimoji
@@ -293,7 +291,7 @@ in
         # blur behind windows
         blur = {
           enabled = true;
-          size = 4; # blur strength
+          size = 6; # blur strength
           passes = 2; # more = softer, but slower
           new_optimizations = true;
         };
@@ -307,7 +305,8 @@ in
         gaps_in = 5;
         gaps_out = 10;
         border_size = 2;
-        layout = "dwindle";
+        # layout = "dwindle";
+        layout = "master";
       };
 
       # light transparency for all windows
@@ -344,8 +343,9 @@ in
         "$mod CTRL, up, resizeactive, 0 -20"
         "$mod CTRL, down, resizeactive, 0 20"
         # Switch layout
-        "$mod, Y, layoutmsg, dwindle"
-        "$mod, U, layoutmsg, master"
+        "$mod, M, layoutmsg, swapwithmaster"
+        "$mod, Y, layoutmsg, focusmaster"
+        "$mod, D, layoutmsg, addmaster"
 
         # Workspace switching
         "$mod, 1, workspace, 1"
