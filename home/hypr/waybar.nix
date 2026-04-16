@@ -17,7 +17,7 @@
         * {
           font-family: "FiraCode Nerd Font", "Symbols Nerd Font";
           font-size: 14px;
-          font-weight: bold;
+          font-weight: 500;
           border-radius: 8px;
           min-height: 0;
         }

@@ -209,6 +209,8 @@
       # Window border colors
       "col.active_border" = "rgba(bb9af7ff)";
       "col.inactive_border" = "rgba(d1bfffcc)";
+      "col.nogroup_border" = "rgba(d1bfffcc)";
+      "col.nogroup_border_active" = "rgba(bb9af7ff)";
 
       general = {
         gaps_in = 5;
