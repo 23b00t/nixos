@@ -58,6 +58,10 @@
     satty
     # Lock screen
     hyprlock
+
+    adw-gtk3
+    adwaita-qt
+    libsForQt5.qtstyleplugin-kvantum
   ];
 
   xdg = {
@@ -128,6 +132,16 @@
       theme = null;
     };
   };
+
+  qt = {
+    enable = true;
+    platformTheme.name = "gtk";
+    style = {
+      name = "kvantum";
+      package = pkgs.libsForQt5.qtstyleplugin-kvantum;
+    };
+  };
+
   # Set environment variables
   home.sessionVariables = {
     # Base XDG directories
@@ -150,7 +164,18 @@
     # Additional XDG-related variables
     LESSHISTFILE = "/tmp/less-hist";
     PARALLEL_HOME = "${config.xdg.configHome}/parallel";
+
+    QT_QPA_PLATFORMTHEME = "gtk2";
+    GTK_THEME = "adw-gtk3";
   };
+
+  xdg.configFile."Kvantum/kvantum.kvconfig".text = ''
+    [General]
+    theme=KvAdaptaDark
+  '';
+
+  xdg.configFile."Kvantum/KvAdaptaDark/KvAdaptaDark.kvconfig".source =
+    "${pkgs.libsForQt5.qtstyleplugin-kvantum}/share/Kvantum/KvAdaptaDark/KvAdaptaDark.kvconfig";
 
   wayland.windowManager.hyprland = {
     enable = true;

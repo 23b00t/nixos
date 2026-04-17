@@ -131,7 +131,7 @@
         else
           color="#c0caf5"
         fi
-        echo "<span color=\"$color\">$temp</span>"
+        echo "<span color=\"$color\">$temp°C</span>"
       '';
       executable = true;
       force = true;
@@ -267,7 +267,7 @@
           },
 
           "custom/cputemp": {
-            "format": " {}°C",
+            "format": " {}",
             "tooltip": true,
             "exec": "~/.config/waybar/scripts/cputemp.sh",
             "interval": 5,
