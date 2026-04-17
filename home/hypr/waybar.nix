@@ -15,7 +15,7 @@
         /* Tokyo Night inspired Waybar style */
 
         * {
-          font-family: "FiraCode Nerd Font", "Symbols Nerd Font";
+          font-family: "FiraCode Nerd Font SemBd", "FiraCode Nerd Font", "Symbols Nerd Font";
           font-size: 14px;
           font-weight: 500;
           border-radius: 8px;
@@ -70,7 +70,7 @@
         #custom-swaync,
         #custom-cputemp {
           padding: 0 10px;
-          margin: 0 0.5px;
+          margin: 0 1px;
           background-color: rgba(42, 32, 64, 0.50);
           color: #c0caf5;
           border-radius: 8px;
@@ -88,12 +88,10 @@
           color: #9ece6a;
         }
 
-        #custom-cputemp.warning,
         #battery.warning {
           color: #e0af68;
         }
 
-        #custom-cputemp.critical,
         #battery.critical {
           color: #f7768e;
         }
@@ -113,6 +111,29 @@
           padding: 4px 8px;
         }
       '';
+      force = true;
+    };
+
+    # CPU-Temp-Script
+    ".config/waybar/scripts/cputemp.sh" = {
+      text = ''
+        #!/usr/bin/env bash
+        temp=$(sensors | grep -m 1 'Package id 0:' | awk '{print $4}' | sed 's/+//;s/[^0-9.]//g')
+        if [[ -z "$temp" ]]; then
+          echo "?"
+          exit 0
+        fi
+        temp_int=''${temp%.*}
+        if [[ $temp_int -ge 85 ]]; then
+          color="#f7768e"
+        elif [[ $temp_int -ge 76 ]]; then
+          color="#e0af68"
+        else
+          color="#c0caf5"
+        fi
+        echo "<span color=\"$color\">$temp</span>"
+      '';
+      executable = true;
       force = true;
     };
 
@@ -166,7 +187,7 @@
           },
 
           "clock": {
-            "format": "{:%A, %d.%m.%Y - %H:%M}",
+            "format": "{:%a, %d.%m.%y - %H:%M}",
             "format-alt": "{:%H:%M}",
             "tooltip-format": "{:%Y-%m-%d %H:%M:%S}"
           },
@@ -200,7 +221,7 @@
           "pulseaudio#microphone": {
             "format": "{format_source}",
 
-            "format-source": " {volume}%",
+            "format-source": "{volume}%",
             "format-source-muted": " mute",
           },
 
@@ -248,12 +269,8 @@
           "custom/cputemp": {
             "format": " {}°C",
             "tooltip": true,
-            "exec": "sensors | grep -m 1 'Package id 0:' | awk '{print $4}' | sed 's/+//;s/[^0-9.]//g'",
+            "exec": "~/.config/waybar/scripts/cputemp.sh",
             "interval": 5,
-            "states": {
-              "warning": 76,
-              "critical": 85
-            }
           },
         }
       '';
