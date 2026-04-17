@@ -52,7 +52,7 @@ let
     	tab_title_template        "{fmt.fg._323449}{fmt.bg.default}{fmt.fg._04d1f9}{fmt.bg.default}{index}{fmt.fg._04d1f9}{fmt.bg._323449} {title[:15] + (title[15:] and '…')} {fmt.fg._323449}{fmt.bg.default} "
     	active_tab_title_template "{fmt.fg._37f499}{fmt.bg.default}{fmt.fg._212337}{fmt.bg._37f499}{fmt.fg._212337}{fmt.bg._37f499} {title[:40] + (title[40:] and '…')} {fmt.fg._37f499}{fmt.bg.default} "
 
-    	background_opacity 0.8
+      # background_opacity 0.8
     	# background_blur 5 
     	# background_image ~/Pictures/galaxy_kaleidoscope.png
     	# background_image_layout cscaled

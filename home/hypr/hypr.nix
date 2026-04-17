@@ -222,6 +222,11 @@
       decoration = {
         rounding = 10;
 
+        # light transparency for all windows
+        active_opacity = 0.95;
+        inactive_opacity = 0.90;
+        fullscreen_opacity = 1.0;
+
         # blur behind windows
         blur = {
           enabled = true;
@@ -231,24 +236,19 @@
         };
       };
 
-      # Window border colors
-      "col.active_border" = "rgba(bb9af7ff)";
-      "col.inactive_border" = "rgba(d1bfffcc)";
-      "col.nogroup_border" = "rgba(d1bfffcc)";
-      "col.nogroup_border_active" = "rgba(bb9af7ff)";
-
       general = {
         gaps_in = 5;
         gaps_out = 10;
         border_size = 2;
         # layout = "dwindle";
         layout = "master";
-      };
 
-      # light transparency for all windows
-      active_opacity = 0.90;
-      inactive_opacity = 0.70;
-      fullscreen_opacity = 1.0;
+        # Window border colors
+        "col.active_border" = "rgba(bb9af7ff)";
+        "col.inactive_border" = "rgba(d1bfffcc)";
+        "col.nogroup_border" = "rgba(d1bfffcc)";
+        "col.nogroup_border_active" = "rgba(bb9af7ff)";
+      };
 
       "$mod" = "SUPER";
 
@@ -361,6 +361,17 @@
 
       # Window rules
       windowrule = [
+        {
+          name = "opacity-all";
+          "match:class" = ".*";
+          opacity = "0.95 0.9 1.0";
+        }
+        {
+          name = "kitty-fullscreen-opaque";
+          "match:class" = "^(kitty|Kitty)$";
+          "match:fullscreen" = true;
+          opacity = "1.0 1.0 1.0";
+        }
         # Ignore maximize requests from all apps
         {
           name = "suppress-maximize-events";
