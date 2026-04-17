@@ -111,8 +111,8 @@
                     pinentry-curses
                     proxychains-ng
                     openssl
-                    # iamb
-                    iamb_fixed
+                    iamb
+                    # iamb_fixed
                   ]
                   ++ defaultPkgs;
 

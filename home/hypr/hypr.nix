@@ -325,6 +325,7 @@
         "systemctl --user restart wpaperd.service"
         "nm-applet --indicator"
         "blueman-applet"
+        "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
       ];
 
       bindm = [
