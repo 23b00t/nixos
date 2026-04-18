@@ -131,7 +131,7 @@
         else
           color="#c0caf5"
         fi
-        echo "<span color=\"$color\">$temp</span>"
+        echo "<span color=\"$color\">$temp°C</span>"
       '';
       executable = true;
       force = true;

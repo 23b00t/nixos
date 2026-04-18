@@ -12,11 +12,15 @@
         "unix:path=$XDG_RUNTIME_DIR/bus" \
         "$XDG_RUNTIME_DIR/vm-session-bus.sock" \
         --filter \
+        --log \
+        --see=org.freedesktop.Notifications \
         --talk=org.freedesktop.Notifications \
+        --see=org.kde.StatusNotifierWatcher \
         --talk=org.kde.StatusNotifierWatcher \
+        --see=org.freedesktop.StatusNotifierWatcher \
         --talk=org.freedesktop.StatusNotifierWatcher \
-        --own=org.kde.StatusNotifierItem-* \
-        --own=org.freedesktop.StatusNotifierItem-*
+        --broadcast=org.kde.StatusNotifierWatcher=/StatusNotifierWatcher,org.kde.StatusNotifierWatcher,* \
+        --broadcast=org.freedesktop.StatusNotifierWatcher=/StatusNotifierWatcher,org.freedesktop.StatusNotifierWatcher,*
     '';
 
     serviceConfig = {
