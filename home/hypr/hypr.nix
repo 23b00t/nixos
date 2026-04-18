@@ -62,6 +62,10 @@
     adw-gtk3
     adwaita-qt
     libsForQt5.qtstyleplugin-kvantum
+
+    glib
+    dconf
+    gsettings-desktop-schemas
   ];
 
   xdg = {
@@ -123,13 +127,29 @@
   gtk = {
     enable = true;
 
+    theme = {
+      name = "adw-gtk3-dark";
+      package = pkgs.adw-gtk3;
+    };
+
     iconTheme = {
       name = "Tela-dark";
       package = pkgs.tela-icon-theme;
     };
 
-    gtk4 = {
-      theme = null;
+    gtk3.extraConfig = {
+      gtk-application-prefer-dark-theme = 1;
+    };
+
+    gtk4.extraConfig = {
+      gtk-application-prefer-dark-theme = 1;
+    };
+  };
+
+  dconf.settings = {
+    "org/gnome/desktop/interface" = {
+      color-scheme = "prefer-dark";
+      gtk-theme = "adw-gtk3-dark";
     };
   };
 
@@ -166,7 +186,7 @@
     PARALLEL_HOME = "${config.xdg.configHome}/parallel";
 
     QT_QPA_PLATFORMTHEME = "gtk2";
-    GTK_THEME = "adw-gtk3";
+    GTK_THEME = "adw-gtk3-dark";
   };
 
   xdg.configFile."Kvantum/kvantum.kvconfig".text = ''
