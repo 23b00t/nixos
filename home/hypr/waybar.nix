@@ -141,19 +141,29 @@
     ".config/waybar/scripts/battery-notify.sh" = {
       text = ''
         #!/usr/bin/env bash
-        # $1: capacity, $2: status
-        capacity=$1
-        status=$2
 
-        # Exit if charging or plugged in
-        if [[ "$status" == "Charging" || "$status" == "Plugged" ]]; then
-            exit 0
+        bat_dir=""
+        for candidate in /sys/class/power_supply/BAT*; do
+          if [[ -r "$candidate/capacity" && -r "$candidate/status" ]]; then
+            bat_dir="$candidate"
+            break
+          fi
+        done
+
+        [[ -n "$bat_dir" ]] || exit 0
+
+        capacity=$(<"$bat_dir/capacity")
+        status=$(<"$bat_dir/status")
+
+        # Exit if not discharging
+        if [[ "$status" != "Discharging" ]]; then
+          exit 0
         fi
 
         if [[ "$capacity" -le 20 ]]; then
-            notify-send -u critical "Akku fast leer!" "Akkustand ist bei $capacity%. Bitte anstecken."
+          notify-send -u critical "Battery critical" "Battery level is $capacity%. Please plug in."
         elif [[ "$capacity" -le 40 ]]; then
-            notify-send -u normal "Niedriger Akkustand" "Akkustand ist bei $capacity%."
+          notify-send -u normal "Battery low" "Battery level is $capacity%."
         fi
       '';
       executable = true;
@@ -261,7 +271,10 @@
             "interval": 30,
             "tooltip": true,
             "format-icons": ["", "", "", "", ""],
-            "on-update": "~/.config/waybar/scripts/battery-notify.sh {capacity} {status}"
+            "events": {
+              "on-discharging-warning": "~/.config/waybar/scripts/battery-notify.sh",
+              "on-discharging-critical": "~/.config/waybar/scripts/battery-notify.sh"
+            }
           },
 
           "tray": {

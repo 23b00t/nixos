@@ -87,6 +87,7 @@ in
     inputs.nixos-hardware.nixosModules.common-pc-ssd # SSD storage
     # ../modules/steam-vm-image.nix
     # inputs.flatpaks.nixosModules.default
+    ../modules/dbus-proxy.nix
   ];
 
   # Home Manager Configuration - manages user-specific configurations (dotfiles, themes, etc.)

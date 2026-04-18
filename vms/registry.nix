@@ -163,7 +163,7 @@ let
 
   autostartNames = map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) vms);
 
-  globalExtraSSH = [ "RemoteForward /tmp/ssh_dbus.sock /run/user/1000/bus" ];
+  globalExtraSSH = [ "RemoteForward /tmp/ssh_dbus.sock /run/user/1000/vm-session-bus.sock" ];
 in
 {
   inherit
