@@ -131,7 +131,30 @@
         else
           color="#c0caf5"
         fi
-        echo "<span color=\"$color\">$temp°C</span>"
+        echo "<span color=\"$color\">$temp</span>"
+      '';
+      executable = true;
+      force = true;
+    };
+
+    # Battery notification script
+    ".config/waybar/scripts/battery-notify.sh" = {
+      text = ''
+        #!/usr/bin/env bash
+        # $1: capacity, $2: status
+        capacity=$1
+        status=$2
+
+        # Exit if charging or plugged in
+        if [[ "$status" == "Charging" || "$status" == "Plugged" ]]; then
+            exit 0
+        fi
+
+        if [[ "$capacity" -le 20 ]]; then
+            notify-send -u critical "Akku fast leer!" "Akkustand ist bei $capacity%. Bitte anstecken."
+        elif [[ "$capacity" -le 40 ]]; then
+            notify-send -u normal "Niedriger Akkustand" "Akkustand ist bei $capacity%."
+        fi
       '';
       executable = true;
       force = true;
@@ -237,7 +260,8 @@
             "format-alt": "{time} remaining",
             "interval": 30,
             "tooltip": true,
-            "format-icons": ["", "", "", "", ""]
+            "format-icons": ["", "", "", "", ""],
+            "on-update": "~/.config/waybar/scripts/battery-notify.sh {capacity} {status}"
           },
 
           "tray": {

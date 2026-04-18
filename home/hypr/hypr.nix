@@ -186,7 +186,8 @@
     PARALLEL_HOME = "${config.xdg.configHome}/parallel";
 
     QT_QPA_PLATFORMTHEME = "gtk2";
-    GTK_THEME = "adw-gtk3-dark";
+    QT_STYLE_OVERRIDE = "kvantum";
+    GTK_THEME = "Adwaita:dark";
   };
 
   xdg.configFile."Kvantum/kvantum.kvconfig".text = ''
