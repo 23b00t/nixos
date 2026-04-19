@@ -42,7 +42,7 @@
             ../modules/ide.nix
             ../modules/zsh.nix
             ../modules/zellij.nix
-            # ../modules/persistent-store-overlay.nix
+            ../modules/persistent-store-overlay.nix
             (
               { config, pkgs, ... }:
               let
@@ -55,7 +55,6 @@
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
-                  # storeOnDisk = false;
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -64,12 +63,12 @@
                     }
                   ];
                   shares = [
-                    {
-                      proto = "virtiofs";
-                      tag = "ro-store";
-                      source = "/nix/store";
-                      mountPoint = "/nix/.ro-store";
-                    }
+                    # {
+                    #   proto = "virtiofs";
+                    #   tag = "ro-store";
+                    #   source = "/nix/store";
+                    #   mountPoint = "/nix/.ro-store";
+                    # }
                     {
                       proto = "virtiofs";
                       tag = "host-home";
@@ -163,7 +162,7 @@
                   '';
                 };
 
-                # services.persistentStoreOverlay.enable = true;
+                services.persistentStoreOverlay.enable = true;
 
                 virtualisation = {
                   docker = {
