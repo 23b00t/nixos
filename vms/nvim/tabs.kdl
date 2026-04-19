@@ -18,14 +18,6 @@ layout {
     tab name="code" cwd="~/code/" {
         pane
     }
-    tab name="il9" {
-      pane cwd="~/code/il_9/ilias_9/"
-      pane split_direction="vertical" {
-        pane cwd="~/code/il_9/"
-        pane cwd="~/code/il_9/"
-        pane cwd="~/code/il_9/"
-      }
-    }
     tab name="ruby" cwd="~/code/ruby/" {
         pane
     }

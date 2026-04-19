@@ -121,7 +121,7 @@
                   socks5  10.152.152.10 9050
                 '';
 
-                system.stateVersion = "25.05";
+                system.stateVersion = "26.05";
               }
             )
           ];
