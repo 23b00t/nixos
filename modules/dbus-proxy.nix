@@ -12,7 +12,6 @@
         "unix:path=$XDG_RUNTIME_DIR/bus" \
         "$XDG_RUNTIME_DIR/vm-session-bus.sock" \
         --filter \
-        --log \
         --see=org.freedesktop.Notifications \
         --talk=org.freedesktop.Notifications \
         --see=org.kde.StatusNotifierWatcher \
