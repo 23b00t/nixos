@@ -17,12 +17,6 @@ in
   options.services.persistentStoreOverlay = {
     enable = lib.mkEnableOption "Enable persistent store overlay for microvms";
 
-    dbDir = lib.mkOption {
-      type = lib.types.path;
-      default = ./persist/nix-db-backup;
-      description = "Directory to store the Nix database backup.";
-    };
-
     user = lib.mkOption {
       type = lib.types.str;
       default = "user";
@@ -39,6 +33,7 @@ in
       type = lib.types.int;
       default = 512;
       description = "Size of the Nix DB overlay in MB.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -52,7 +47,7 @@ in
         }
         {
           image = "nix-db.img";
-          mountPoint = cfg.dbDir;
+          mountPoint = "/persist/nix-db-backup";
           size = cfg.dbDirSize;
         }
       ];
