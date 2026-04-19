@@ -89,11 +89,6 @@
                   vcpu = 4;
                 };
 
-                programs.direnv = {
-                  enable = true;
-                  nix-direnv.enable = true;
-                };
-
                 environment.systemPackages =
                   with pkgs;
                   [

@@ -5,7 +5,7 @@
   description = "nvim MicroVM";
 
   inputs.microvm = {
-    url = "github:astro/microvm.nix";
+    url = "github:microvm-nix/microvm.nix";
     inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -42,21 +42,11 @@
             ../modules/ide.nix
             ../modules/zsh.nix
             ../modules/zellij.nix
+            ../modules/persistent-store-overlay.nix
             (
               { config, pkgs, ... }:
               let
                 defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-                nixOverlayBackupScript = pkgs.writeShellScriptBin "nix-overlay-backup" ''
-                   #!/usr/bin/env bash
-                  set -euo pipefail
-                  UPPERDIR="/nix/.rw-store/store"
-                  CACHEDIR="/mnt/store-cache"
-
-                  find "$UPPERDIR" -mindepth 1 -maxdepth 1 -type d -printf "/nix/store/%f\n" > /tmp/overlay-paths.txt
-                  if [ -s /tmp/overlay-paths.txt ]; then
-                    xargs /run/current-system/sw/bin/nix copy --no-check-sigs --to "file://$CACHEDIR" < /tmp/overlay-paths.txt
-                  fi
-                '';
               in
               {
                 nixpkgs.config.allowUnfree = true;
@@ -65,32 +55,12 @@
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
-                  writableStoreOverlay = "/nix/.rw-store";
-                  preStart = ''
-                    rm -f nix-store-overlay.img
-                  '';
                   # storeOnDisk = false;
                   volumes = [
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
                       size = 80000;
-                    }
-                    # {
-                    #   mountPoint = "/nix/store";
-                    #   image = "nix-store.img";
-                    #   label = "nix-store";
-                    #   size = 60000;
-                    # }
-                    {
-                      mountPoint = "/mnt/store-cache";
-                      image = "store-cache.img";
-                      size = 50000;
-                    }
-                    {
-                      image = "nix-store-overlay.img";
-                      mountPoint = config.microvm.writableStoreOverlay;
-                      size = 50000;
                     }
                   ];
                   shares = [
@@ -99,12 +69,6 @@
                       tag = "host-home";
                       source = "/home/nx";
                       mountPoint = "/mnt/host";
-                    }
-                    {
-                      proto = "virtiofs";
-                      tag = "ro-store";
-                      source = "/nix/store";
-                      mountPoint = "/nix/.ro-store";
                     }
                   ];
                   mem = 8192;
@@ -193,31 +157,7 @@
                   '';
                 };
 
-                environment.etc = {
-                  "nix-overlay-backup".source = "${nixOverlayBackupScript}/bin/nix-overlay-backup";
-                };
-
-                systemd.services.nix-overlay-backup = {
-                  description = "Export Nix store paths from writable overlay to store cache on shutdown";
-                  script = "/etc/nix-overlay-backup";
-                  serviceConfig = {
-                    Type = "oneshot";
-                    RemainAfterExit = true;
-                    DefaultDependencies = false;
-                    Before = [
-                      "umount.target"
-                      "poweroff.target"
-                      "reboot.target"
-                      "halt.target"
-                    ];
-                    TimeoutSec = 0;
-                  };
-                  wantedBy = [
-                    "poweroff.target"
-                    "halt.target"
-                    "reboot.target"
-                  ];
-                };
+                services.persistentStoreOverlay.enable = true;
 
                 virtualisation = {
                   docker = {
@@ -253,28 +193,6 @@
                   wantedBy = [ "default.target" ];
                 };
 
-                nix = {
-                  settings = {
-                    substituters = [
-                      "file:///mnt/store-cache"
-                      "https://cache.nixos.org"
-                      "https://microvm.cachix.org"
-                    ];
-                    trusted-public-keys = [
-                      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-                      "microvm.cachix.org-1:oXnBs9THCoQI4PiXLm2ODWyptDIrQ2NYjmJfUfpGqMI="
-                    ];
-                    trusted-users = [
-                      "root"
-                      "user"
-                    ];
-                    extra-experimental-features = [
-                      "nix-command"
-                      "flakes"
-                    ];
-                  };
-                };
-
                 environment.variables = {
                   PULSE_SERVER = "tcp:localhost:4713";
                 };
@@ -286,7 +204,7 @@
                 #   "1.0.0.1"
                 # ];
 
-                system.stateVersion = "25.05";
+                system.stateVersion = "26.05";
               }
             )
           ];
