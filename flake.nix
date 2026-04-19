@@ -29,7 +29,7 @@
     wine.url = "path:./vms/wine";
     kali.url = "path:./vms/kali";
     vault.url = "path:./vms/vault";
-    # test.url = "path:./vms/test";
+    test.url = "path:./vms/test";
     # onlyoffice.url = "path:./vms/onlyoffice";
     steam.url = "path:./vms/steam";
     godot.url = "path:./vms/godot";

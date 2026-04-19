@@ -39,25 +39,31 @@ in
   config = lib.mkIf cfg.enable {
     microvm = {
       writableStoreOverlay = "/nix/.rw-store";
-      volumes = lib.mkAfter [
-        {
-          image = "nix-store-overlay.img";
-          mountPoint = "/nix/.rw-store";
-          size = cfg.overlaySize;
-        }
-        {
-          image = "nix-db.img";
-          mountPoint = "/persist/nix-db-backup";
-          size = cfg.dbDirSize;
-        }
+      volumes = lib.mkMerge [
+        (config.microvm.volumes or [ ])
+        [
+          {
+            image = "nix-store-overlay.img";
+            mountPoint = "/nix/.rw-store";
+            size = cfg.overlaySize;
+          }
+          {
+            image = "nix-db.img";
+            mountPoint = "/persist/nix-db-backup";
+            size = cfg.dbDirSize;
+          }
+        ]
       ];
-      shares = lib.mkAfter [
-        {
-          proto = "virtiofs";
-          tag = "ro-store";
-          source = "/nix/store";
-          mountPoint = "/nix/.ro-store";
-        }
+      shares = lib.mkMerge [
+        (config.microvm.shares or [ ])
+        [
+          {
+            proto = "virtiofs";
+            tag = "ro-store";
+            source = "/nix/store";
+            mountPoint = "/nix/.ro-store";
+          }
+        ]
       ];
     };
     # use cache
