@@ -6,10 +6,6 @@
       url = "github:microvm-nix/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    flatpaks = {
-      url = "github:in-a-dil-emma/declarative-flatpak/latest";
-      # inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -17,7 +13,6 @@
       self,
       nixpkgs,
       microvm,
-      flatpaks,
       ...
     }:
     let
@@ -38,7 +33,6 @@
           modules = [
             microvm.nixosModules.microvm
             (import ../net-config.nix { inherit lib index mac; })
-            flatpaks.nixosModules.default
             (import ../common-config.nix {
               inherit lib;
               inherit pkgs;
@@ -59,23 +53,10 @@
                 xdg.portal.enable = true;
                 xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
                 xdg.portal.config.common.default = "gtk";
-                services.flatpak = {
-                  enable = true;
-                  flatpakDir = "/var/lib/flatpak";
-                  remotes = {
-                    "flathub" = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-                    "flathub-beta" = "https://dl.flathub.org/beta-repo/flathub-beta.flatpakrepo";
-                  };
-                  packages = [
-                    "flathub:app/us.zoom.Zoom/x86_64/stable"
-                  ];
-                };
-
                 microvm = {
                   registerClosure = false;
                   hypervisor = "qemu";
                   optimize.enable = false;
-                  # qemu.machine = "q35";
 
                   qemu.extraArgs = [
                     "-nodefaults"
@@ -91,11 +72,6 @@
                       image = "home.img";
                       size = 4096;
                     }
-                    {
-                      mountPoint = "/var/lib/flatpak";
-                      image = "flatpak.img";
-                      size = 6000;
-                    }
                   ];
                   shares = [
                     {
@@ -105,14 +81,8 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  # devices = [
-                  #   {
-                  #     bus = "usb";
-                  #     path = "vendorid=0x0408,productid=0x5365,guest-reset=false,pipeline=false";
-                  #   }
-                  # ];
                   mem = 8192;
-                  vcpu = 4;
+                  vcpu = 2;
                 };
 
                 services.xrdp = {
@@ -154,8 +124,6 @@
                     vulkan-loader
 
                     kitty
-
-
                   ]
                   ++ defaultPkgs;
 
