@@ -8,9 +8,15 @@
 let
   cfg = config.services.persistentStoreOverlay;
   nixDumpOverlayDb = pkgs.writeShellScript "nix-db-dump.sh" ''
-    ${pkgs.findutils}/bin/find /nix/.rw-store/store -mindepth 1 -maxdepth 1 -type d \
-      | ${pkgs.gnused}/bin/sed 's#^/nix/.rw-store/store#/nix/store#' \
-      | ${pkgs.findutils}/bin/xargs ${pkgs.nix}/bin/nix-store --dump-db > /persist/overlay.db
+    set -e
+    db="/persist/overlay.db"
+    > "$db"
+    # Dump only valid store path
+    for p in /nix/.rw-store/store/*; do
+      s="/nix/store/$(basename "$p")"
+      ${pkgs.nix}/bin/nix-store --verify-path "$s" >/dev/null 2>&1 && \
+        ${pkgs.nix}/bin/nix-store --dump-db "$s" >> "$db"
+    done
   '';
 
   nixLoadOverlayDb = pkgs.writeShellScript "nix-db-restore.sh" ''
@@ -98,6 +104,7 @@ in
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${nixDumpOverlayDb}";
+        User = "root";
       };
     };
     systemd.services.nix-db-restore = {
@@ -107,6 +114,7 @@ in
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${nixLoadOverlayDb}";
+        User = "root";
       };
     };
   };

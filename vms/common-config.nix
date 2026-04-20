@@ -108,5 +108,6 @@
 
   systemd.tmpfiles.rules = [
     "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
+    "d /home/user 0755 user users -"
   ];
 }
