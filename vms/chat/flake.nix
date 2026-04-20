@@ -38,7 +38,6 @@
               inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
             })
-            (import ../rdp.nix { inherit lib; })
             (
               { config, pkgs, ... }:
               let
@@ -48,11 +47,6 @@
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "chat-vm";
 
-                # Flatpak settings
-                # Enable XDG portal for Flatpak apps
-                xdg.portal.enable = true;
-                xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-                xdg.portal.config.common.default = "gtk";
                 microvm = {
                   registerClosure = false;
                   hypervisor = "qemu";
@@ -83,17 +77,6 @@
                   ];
                   mem = 8192;
                   vcpu = 2;
-                };
-
-                services.xrdp = {
-                  defaultWindowManager = ''
-                    exec fluxbox -no-toolbar &
-                    fbpid=$!
-                    sleep 2
-                    setxkbmap -layout "us" -variant "intl" -option "grp:alt_shift_toggle"
-                    kitty &
-                    wait $fbpid
-                  '';
                 };
 
                 systemd.user.services.wprsd = {
