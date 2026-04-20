@@ -8,14 +8,14 @@
 let
   cfg = config.services.persistentStoreOverlay;
   nixDumpOverlayDb = pkgs.writeShellScript "nix-db-dump.sh" ''
-    find /nix/.rw-store/store -mindepth 1 -maxdepth 1 -type d \
-      | sed 's#^/nix/.rw-store/store#/nix/store#' \
-      | xargs nix-store --dump-db > /persist/overlay.db
+    ${pkgs.findutils}/bin/find /nix/.rw-store/store -mindepth 1 -maxdepth 1 -type d \
+      | ${pkgs.gnused}/bin/sed 's#^/nix/.rw-store/store#/nix/store#' \
+      | ${pkgs.findutils}/bin/xargs ${pkgs.nix}/bin/nix-store --dump-db > /persist/overlay.db
   '';
 
   nixLoadOverlayDb = pkgs.writeShellScript "nix-db-restore.sh" ''
     if [ -f /persist/overlay.db ] && [ -s /persist/overlay.db ]; then
-      nix-store --load-db < /persist/overlay.db
+      ${pkgs.nix}/bin/nix-store --load-db < /persist/overlay.db
     fi
   '';
 in
@@ -53,7 +53,7 @@ in
         }
         {
           image = "nix-db.img";
-          mountPoint = "/persist/nix-db-backup";
+          mountPoint = "/persist";
           size = cfg.dbDirSize;
         }
       ];
