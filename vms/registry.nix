@@ -28,14 +28,14 @@ let
       nat = true;
       sshKeyName = "chat-vm";
     }
-    {
-      name = "test";
-      short = "t";
-      ip = "10.0.0.3";
-      autostart = false;
-      nat = true;
-      sshKeyName = "test-vm";
-    }
+    # {
+    #   name = "test";
+    #   short = "t";
+    #   ip = "10.0.0.3";
+    #   autostart = false;
+    #   nat = true;
+    #   sshKeyName = "test-vm";
+    # }
     {
       name = "music";
       short = "m";
