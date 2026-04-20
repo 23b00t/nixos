@@ -63,12 +63,6 @@
                     }
                   ];
                   shares = [
-                    # {
-                    #   proto = "virtiofs";
-                    #   tag = "ro-store";
-                    #   source = "/nix/store";
-                    #   mountPoint = "/nix/.ro-store";
-                    # }
                     {
                       proto = "virtiofs";
                       tag = "host-home";
@@ -151,7 +145,6 @@
                   extraAliases = {
                     edit = "sudo -e";
                     dc = "docker compose";
-                    ilinit = "$HOME/code/devenv/ilias-devenv/ilias-devenv-builder.sh";
                   };
 
                   extraShellInit = ''
@@ -201,13 +194,6 @@
                 environment.variables = {
                   PULSE_SERVER = "tcp:localhost:4713";
                 };
-
-                # services.resolved.enable = false;
-                # networking.useHostResolvConf = false;
-                # networking.nameservers = [
-                #   "1.1.1.1"
-                #   "1.0.0.1"
-                # ];
 
                 system.stateVersion = "26.05";
               }

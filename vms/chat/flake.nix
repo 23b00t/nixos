@@ -116,6 +116,7 @@
                     vesktop
                     telegram-desktop
                     slack
+                    nheko
                     google-chrome
                     wprs
                     xwayland

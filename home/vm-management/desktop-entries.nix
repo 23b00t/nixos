@@ -219,6 +219,20 @@ in
     })
 
     (mkVmEntry {
+      name = "nheko";
+      genericName = "Nehko Matrix Client";
+      vm = "chat";
+      binary = "nheko";
+      icon = "nheko";
+      categories = [
+        "Network"
+        "InstantMessaging"
+        "Chat"
+      ];
+      mimeType = [ "x-scheme-handler/web+msteams" ];
+    })
+
+    (mkVmEntry {
       name = "element";
       genericName = "Element";
       vm = "chat";

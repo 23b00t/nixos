@@ -235,11 +235,11 @@
       exec-once = [
         "waybar"
         "systemctl --user restart wpaperd.service"
+        "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
         "nm-applet --indicator"
         "blueman-applet"
-        "vm-run c vesktop -m"
-        "vm-run c Telegram -startintray"
-        "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
+        "sleep 5 && vm-run c vesktop -m"
+        "sleep 5 && vm-run c Telegram -startintray"
       ];
 
       bindm = [
