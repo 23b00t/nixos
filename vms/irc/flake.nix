@@ -87,6 +87,7 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
+                  mem = 2048;
                 };
 
                 services.zellij-env = {
