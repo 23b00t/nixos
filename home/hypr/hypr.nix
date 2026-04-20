@@ -229,10 +229,6 @@
         ",XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
         ",XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
         ",XF86MonBrightnessUp, exec, brightnessctl -e4 -n2 set 5%+"
-        ", XF86AudioNext, exec, playerctl next"
-        ", XF86AudioPause, exec, playerctl play-pause"
-        ", XF86AudioPlay, exec, playerctl play-pause"
-        ", XF86AudioPrev, exec, playerctl previous"
       ];
 
       # Startup-Apps (Hyprland-Panel, Waybar, Notifier, etc.)
@@ -241,8 +237,8 @@
         "systemctl --user restart wpaperd.service"
         "nm-applet --indicator"
         "blueman-applet"
-        "vm-run c vesktop"
-        "vm-run c Telegram"
+        "vm-run c vesktop -m"
+        "vm-run c Telegram -startintray"
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
       ];
 

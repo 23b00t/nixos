@@ -204,7 +204,7 @@ in
     wireplumber
     pavucontrol
     pamixer
-    playerctl
+    # playerctl
 
     git
     fzf
