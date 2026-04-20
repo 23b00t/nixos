@@ -7,9 +7,15 @@
 
 let
   cfg = config.services.persistentStoreOverlay;
-  nixDbRestoreScript = pkgs.writeShellScript "nix-db-restore.sh" ''
-    if [ -d /persist/nix-db-backup ] && [ "$(ls -A /persist/nix-db-backup)" ]; then
-      exec ${pkgs.rsync}/bin/rsync -a /persist/nix-db-backup/ /nix/var/nix/db/
+  nixDumpOverlayDb = pkgs.writeShellScript "nix-db-dump.sh" ''
+    find /nix/.rw-store/store -mindepth 1 -maxdepth 1 -type d \
+      | sed 's#^/nix/.rw-store/store#/nix/store#' \
+      | xargs nix-store --dump-db > /persist/overlay.db
+  '';
+
+  nixLoadOverlayDb = pkgs.writeShellScript "nix-db-restore.sh" ''
+    if [ -f /persist/overlay.db ] && [ -s /persist/overlay.db ]; then
+      nix-store --load-db < /persist/overlay.db
     fi
   '';
 in
@@ -91,7 +97,7 @@ in
       before = [ "shutdown.target" ];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.rsync}/bin/rsync -a --delete /nix/var/nix/db/ /persist/nix-db-backup/";
+        ExecStart = "${nixDumpOverlayDb}";
       };
     };
     systemd.services.nix-db-restore = {
@@ -100,7 +106,7 @@ in
       after = [ "local-fs.target" ];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${nixDbRestoreScript}";
+        ExecStart = "${nixLoadOverlayDb}";
       };
     };
   };
