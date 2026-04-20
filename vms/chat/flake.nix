@@ -110,13 +110,15 @@
                   wantedBy = [ "default.target" ];
                 };
 
+                services.gnome.gnome-keyring.enable = true;
+
                 environment.systemPackages =
                   with pkgs;
                   [
                     vesktop
                     telegram-desktop
                     slack
-                    nheko
+                    element-desktop
                     google-chrome
                     wprs
                     xwayland

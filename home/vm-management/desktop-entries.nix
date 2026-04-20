@@ -219,11 +219,11 @@ in
     })
 
     (mkVmEntry {
-      name = "nheko";
-      genericName = "Nehko Matrix Client";
+      name = "element-desktop";
+      genericName = "Element Matrix Client";
       vm = "chat";
-      binary = "nheko";
-      icon = "nheko";
+      binary = "element-desktop";
+      icon = "element-desktop";
       categories = [
         "Network"
         "InstantMessaging"
