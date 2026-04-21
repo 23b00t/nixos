@@ -19,8 +19,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 2;
-      mac = "00:00:00:00:00:02";
     in
     {
       packages.${system} = {
@@ -32,18 +30,20 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
-            })
+            ../modules/net-config.nix
+            ../modules/common-config.nix
             (
               { config, pkgs, ... }:
-              let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-              in
               {
+                services.net-config = {
+                  enable = true;
+                  index = 2;
+                  mac = "00:00:00:00:00:02";
+                };
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
+                };
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "chat-vm";
 
@@ -95,23 +95,20 @@
 
                 services.gnome.gnome-keyring.enable = true;
 
-                environment.systemPackages =
-                  with pkgs;
-                  [
-                    vesktop
-                    telegram-desktop
-                    slack
-                    element-desktop
-                    google-chrome
-                    wprs
-                    xwayland
+                environment.systemPackages = with pkgs; [
+                  vesktop
+                  telegram-desktop
+                  slack
+                  element-desktop
+                  google-chrome
+                  wprs
+                  xwayland
 
-                    mesa
-                    vulkan-loader
+                  mesa
+                  vulkan-loader
 
-                    kitty
-                  ]
-                  ++ defaultPkgs;
+                  kitty
+                ];
 
                 system.stateVersion = "26.05";
               }

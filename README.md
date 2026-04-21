@@ -113,6 +113,7 @@ nmcli radio wifi on
 - Debug and fix occasionally occurring shared libs error in nvim-vm
 - cp-vm bug fix: script has to use the right key and not brute-force
 - Improve ssh key sharing
+- Fix element-desktop tray issue
 
 ## Misc
 

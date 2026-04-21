@@ -261,6 +261,12 @@
           "match:fullscreen" = true;
           opacity = "1.0 1.0 1.0";
         }
+        {
+          name = "kitty-not-fullscreen";
+          "match:class" = "^(kitty|Kitty)$";
+          "match:fullscreen" = false;
+          opacity = "0.9 0.85 1.0";
+        }
         # Ignore maximize requests from all apps
         {
           name = "suppress-maximize-events";

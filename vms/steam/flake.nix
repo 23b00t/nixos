@@ -22,8 +22,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 12;
-      mac = "00:00:00:00:00:0c";
     in
     {
       packages.${system} = {
@@ -35,12 +33,17 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
+            ../modules/net-config.nix
             (
               { config, pkgs, ... }:
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "steam-vm";
+                services.net-config = {
+                  enable = true;
+                  index = 12;
+                  mac = "00:00:00:00:00:0c";
+                };
 
                 microvm = {
                   registerClosure = false;
@@ -116,7 +119,7 @@
                   options vfio-pci disable_idle_d3=1
                   options nvidia-drm modeset=1 fbdev=1
                 '';
-               
+
                 boot.blacklistedKernelModules = [ "nouveau" ];
 
                 boot.kernelPackages = pkgs.linuxPackages_zen;

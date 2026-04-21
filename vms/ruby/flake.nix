@@ -18,8 +18,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 16;
-      mac = "00:00:00:00:00:10";
     in
     {
       nixosConfigurations = {
@@ -27,23 +25,26 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkF7qniIZVKtoIrUUWkU8t/1QeK34BSEgI54MbqbieC ruby-vm";
-            })
+            ../modules/net-config.nix
             ../modules/yazi-config.nix
             ../modules/ide.nix
             ../modules/zsh.nix
             ../modules/zellij.nix
+            ../modules/common-config.nix
             (
               { config, pkgs, ... }:
-              let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-              in
               {
                 networking.hostName = "ruby-vm";
+
+                services.net-config = {
+                  enable = true;
+                  index = 16;
+                  mac = "00:00:00:00:00:10";
+                };
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkF7qniIZVKtoIrUUWkU8t/1QeK34BSEgI54MbqbieC ruby-vm";
+                };
                 services.ide.enable = true;
                 services.zsh-env = {
                   enable = true;
@@ -93,29 +94,26 @@
                   vcpu = 2;
                 };
 
-                environment.systemPackages =
-                  with pkgs;
-                  [
-                    libyaml
-                    gcc
-                    cmake
-                    pkg-config
-                    zlib
-                    yarn
-                    postgresql
-                    sqlite
-                    bundler
-                    nodejs
-                    imagemagick
-                    libffi
-                    libxml2
-                    libxslt
-                    openssl
-                    wkhtmltopdf
-                    watchman
-                    rbenv
-                  ]
-                  ++ defaultPkgs;
+                environment.systemPackages = with pkgs; [
+                  libyaml
+                  gcc
+                  cmake
+                  pkg-config
+                  zlib
+                  yarn
+                  postgresql
+                  sqlite
+                  bundler
+                  nodejs
+                  imagemagick
+                  libffi
+                  libxml2
+                  libxslt
+                  openssl
+                  wkhtmltopdf
+                  watchman
+                  rbenv
+                ];
 
                 programs.direnv.enable = true;
 

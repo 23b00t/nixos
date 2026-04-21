@@ -18,8 +18,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 4;
-      mac = "00:00:00:00:00:04";
     in
     {
       packages.${system} = {
@@ -31,12 +29,8 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF/ca5rt+rbz5EanCgVCaGQEOco670v/gDm+Op/fM4Y7 music-vm";
-            })
+            ../modules/net-config.nix
+            ../modules/common-config.nix
             (
               { config, pkgs, ... }:
               let
@@ -46,10 +40,17 @@
                   nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
                   buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.mpv ];
                 });
-
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
               in
               {
+                services.net-config = {
+                  enable = true;
+                  index = 4;
+                  mac = "00:00:00:00:00:04";
+                };
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF/ca5rt+rbz5EanCgVCaGQEOco670v/gDm+Op/fM4Y7 music-vm";
+                };
                 networking.hostName = "music-vm";
 
                 microvm = {
@@ -80,21 +81,18 @@
                   PULSE_SERVER = "tcp:localhost:4713";
                 };
 
-                environment.systemPackages =
-                  with pkgs;
-                  [
-                    # INFO: set in .config/termusic/server.toml:
-                    # [player]
-                    # backend = "mpv"
-                    # [backends.mpv]
-                    # audio_device = "pulse"
-                    termusic-mpv
-                    # pulseaudio
-                    # mpv
-                    yt-dlp
+                environment.systemPackages = with pkgs; [
+                  # INFO: set in .config/termusic/server.toml:
+                  # [player]
+                  # backend = "mpv"
+                  # [backends.mpv]
+                  # audio_device = "pulse"
+                  termusic-mpv
+                  # pulseaudio
+                  # mpv
+                  yt-dlp
 
-                  ]
-                  ++ defaultPkgs;
+                ];
 
                 system.stateVersion = "26.05";
               }

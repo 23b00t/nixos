@@ -18,8 +18,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 9;
-      mac = "00:00:00:00:00:09";
     in
     {
       packages.${system} = {
@@ -31,24 +29,29 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm";
-            })
+            ../modules/net-config.nix
+            ../modules/common-config.nix
             ../modules/yazi-config.nix
-            (import ../rdp.nix { inherit lib; })
+            ../modules/common-config.nix
             (
               { config, pkgs, ... }:
               let
                 printer = import ./printer.nix { inherit pkgs; };
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
               in
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "office-vm";
+                services.rdp.enable = true;
+                services.net-config = {
+                  enable = true;
+                  index = 9;
+                  mac = "00:00:00:00:00:09";
+                };
 
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm";
+                };
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
@@ -128,35 +131,32 @@
                   script = "${printer.hostPrintersAddScript}/bin/host-printers-add";
                 };
 
-                environment.systemPackages =
-                  with pkgs;
-                  [
-                    onlyoffice-desktopeditors
-                    gimp
-                    inkscape
-                    vlc
-                    pinta
-                    pdfarranger
+                environment.systemPackages = with pkgs; [
+                  onlyoffice-desktopeditors
+                  gimp
+                  inkscape
+                  vlc
+                  pinta
+                  pdfarranger
 
-                    adwaita-icon-theme
-                    wprs
-                    xwayland
-                    kitty
+                  adwaita-icon-theme
+                  wprs
+                  xwayland
+                  kitty
 
-                    # DEBUG: wprs 10.0.0.9 run -- env QT_DEBUG_PLUGINS=1 GTK_DEBUG=all XDG_RUNTIME_DIR=/run/user/1000 onlyoffice-desktopeditors --native-file-dialog
-                    # Provoke crash: wprs 10.0.0.9 run -- env -u DBUS_SESSION_BUS_ADDRESS -u XDG_CURRENT_DESKTOP -u XDG_SESSION_TYPE onlyoffice-desktopeditors --native-file-dialog
-                    # gtk3
-                    # qt5.qtbase
-                    # qt5.qttools
-                    # qt5.qtsvg
-                    # qt5.qtwayland
-                    # mesa
-                    # libGL
-                    # gedit
+                  # DEBUG: wprs 10.0.0.9 run -- env QT_DEBUG_PLUGINS=1 GTK_DEBUG=all XDG_RUNTIME_DIR=/run/user/1000 onlyoffice-desktopeditors --native-file-dialog
+                  # Provoke crash: wprs 10.0.0.9 run -- env -u DBUS_SESSION_BUS_ADDRESS -u XDG_CURRENT_DESKTOP -u XDG_SESSION_TYPE onlyoffice-desktopeditors --native-file-dialog
+                  # gtk3
+                  # qt5.qtbase
+                  # qt5.qttools
+                  # qt5.qtsvg
+                  # qt5.qtwayland
+                  # mesa
+                  # libGL
+                  # gedit
 
-                    dconf # to fix onlyoffice errors
-                  ]
-                  ++ defaultPkgs;
+                  dconf # to fix onlyoffice errors
+                ];
 
                 system.stateVersion = "26.05";
               }

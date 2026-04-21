@@ -20,8 +20,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 13;
-      mac = "00:00:00:00:00:0d";
     in
     {
       packages.${system} = {
@@ -33,21 +31,14 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhv6q3siBUASk16LN8tCa2nPUp4g2isRuwo1ndDPz7g godot-vm";
-            })
+            ../modules/net-config.nix
+            ../modules/common-config.nix
             ../modules/yazi-config.nix
             ../modules/ide.nix
             ../modules/zsh.nix
             ../modules/zellij.nix
             (
               { config, pkgs, ... }:
-              let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-              in
               {
                 networking.hostName = "godot-vm";
                 nixpkgs.config.allowUnfree = true;
@@ -107,6 +98,15 @@
                   vcpu = 6;
                 };
 
+                services.net-config = {
+                  enable = true;
+                  index = 13;
+                  mac = "00:00:00:00:00:0d";
+                };
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhv6q3siBUASk16LN8tCa2nPUp4g2isRuwo1ndDPz7g godot-vm";
+                };
                 services.ide.enable = true;
                 services.zellij-env = {
                   enable = true;
@@ -226,17 +226,14 @@
                   gtk3
                 ];
 
-                environment.systemPackages =
-                  with pkgs;
-                  [
-                    xdg-utils
-                    kitty
-                    godot
-                    wl-clipboard
+                environment.systemPackages = with pkgs; [
+                  xdg-utils
+                  kitty
+                  godot
+                  wl-clipboard
 
-                    firefox
-                  ]
-                  ++ defaultPkgs;
+                  firefox
+                ];
 
                 systemd.tmpfiles.rules = [
                   # hyprland config

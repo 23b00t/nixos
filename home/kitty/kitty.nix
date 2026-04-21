@@ -73,7 +73,7 @@ let
     	clipboard_control write-clipboard write-primary read-clipboard-ask read-primary-ask
 
     	allow_hyperlinks yes
-      open_url_with vm-run net zen --new-tab
+      open_url_with vm-run net zen -P link
 
     	shell_integration enabled
 

@@ -365,7 +365,7 @@ in
         (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
           pulse.cmd = [
             { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
-          ]
+          ];
         '')
       ];
     };

@@ -18,8 +18,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 3;
-      mac = "00:00:00:00:00:03";
     in
     {
       packages.${system} = {
@@ -31,24 +29,26 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA2091GSIL+SlR1BsWswg+6DZzrL+enxmXo74d/OSUwv test-vm";
-            })
+            ../modules/net-config.nix
             ../modules/ide.nix
             ../modules/zsh.nix
             ../modules/persistent-store-overlay.nix
+            ../modules/common-config.nix
             (
               { config, pkgs, ... }:
-              let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-              in
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "test-vm";
 
+                services.net-config = {
+                  enable = true;
+                  index = 3;
+                  mac = "00:00:00:00:00:03";
+                };
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA2091GSIL+SlR1BsWswg+6DZzrL+enxmXo74d/OSUwv test-vm";
+                };
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
@@ -63,12 +63,9 @@
                   vcpu = 4;
                 };
 
-                environment.systemPackages =
-                  with pkgs;
-                  [
-                    devenv
-                  ]
-                  ++ defaultPkgs;
+                environment.systemPackages = with pkgs; [
+                  devenv
+                ];
 
                 services.ide = {
                   enable = true;

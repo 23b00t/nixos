@@ -18,8 +18,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 14;
-      mac = "00:00:00:00:00:0e";
     in
     {
       packages.${system} = {
@@ -31,23 +29,25 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAXSVOR0aTAo/5lDeG+3r3QeOygbLKY7WrkB8wSK+rh9 mirage-vm";
-            })
+            ../modules/net-config.nix
+            ../modules/common-config.nix
             ../modules/ide.nix
             ../modules/zsh.nix
             (
               { config, pkgs, ... }:
-              let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-              in
               {
                 networking.hostName = "mirage-vm";
+                services.net-config = {
+                  enable = true;
+                  index = 14;
+                  mac = "00:00:00:00:00:0e";
+                };
                 services.ide.enable = true;
                 services.zsh-env.enable = true;
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAXSVOR0aTAo/5lDeG+3r3QeOygbLKY7WrkB8wSK+rh9 mirage-vm";
+                };
 
                 microvm = {
                   registerClosure = false;
@@ -72,20 +72,17 @@
                   vcpu = 4;
                 };
 
-                environment.systemPackages =
-                  with pkgs;
-                  [
-                    opam
-                    mercurial
-                    darcs
-                    bubblewrap
-                    gcc
-                    gnumake
-                    pkg-config
-                    rsync
-                    pkg-config
-                  ]
-                  ++ defaultPkgs;
+                environment.systemPackages = with pkgs; [
+                  opam
+                  mercurial
+                  darcs
+                  bubblewrap
+                  gcc
+                  gnumake
+                  pkg-config
+                  rsync
+                  pkg-config
+                ];
 
                 system.stateVersion = "26.05";
               }

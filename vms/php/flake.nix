@@ -18,8 +18,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 15;
-      mac = "00:00:00:00:00:0f";
     in
     {
       packages.${system} = {
@@ -71,21 +69,15 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHpfcEv27hamz0HELXGKpLd6M+/m5m/fopZ3A7fonUVw php-vm";
-            })
+            ../modules/net-config.nix
             ../modules/yazi-config.nix
             ../modules/ide.nix
             ../modules/zsh.nix
             ../modules/zellij.nix
+            ../modules/common-config.nix
             (
               { config, pkgs, ... }:
               let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-
                 phpShells = {
                   "82" = self.packages.${pkgs.stdenv.hostPlatform.system}.php82-shell;
                   "83" = self.packages.${pkgs.stdenv.hostPlatform.system}.php83-shell;
@@ -119,6 +111,16 @@
               in
               {
                 networking.hostName = "php-vm";
+
+                services.net-config = {
+                  enable = true;
+                  index = 15;
+                  mac = "00:00:00:00:00:0f";
+                };
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHpfcEv27hamz0HELXGKpLd6M+/m5m/fopZ3A7fonUVw php-vm";
+                };
                 services.ide.enable = true;
                 services.zsh-env = {
                   enable = true;
@@ -219,7 +221,6 @@
                     vscode-langservers-extracted
                     mariadb
                   ]
-                  ++ defaultPkgs
                   ++ [
                     self.packages.${pkgs.stdenv.hostPlatform.system}.php82-shell
                     self.packages.${pkgs.stdenv.hostPlatform.system}.php83-shell

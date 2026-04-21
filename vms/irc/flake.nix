@@ -31,20 +31,13 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../whonix-net-config.nix {
-              inherit index;
-              inherit lib;
-            })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm";
-            })
+            ../modules/whonix-net-config.nix
+            ../modules/common-config.nix
             ../modules/zellij.nix
             (
               { config, pkgs, ... }:
               let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
+
                 iamb_fixed = pkgs.iamb.overrideAttrs (old: {
                   postPatch = (old.postPatch or "") + ''
                     # Workaround for rustc error[E0275] overflow (ulyssa/iamb#598)
@@ -70,6 +63,10 @@
                 ];
                 networking.hostName = "irc-vm";
 
+                services.whonix-net-config = {
+                  enable = true;
+                  id = index;
+                };
                 microvm = {
                   hypervisor = "cloud-hypervisor";
                   volumes = [
@@ -98,24 +95,26 @@
                   };
                 };
 
-                environment.systemPackages =
-                  with pkgs;
-                  [
-                    (writeShellScriptBin "tiny" ''
-                      export GPG_TTY=$(tty)
-                      ${gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
-                      exec ${tiny}/bin/tiny "$@"
-                    '')
-                    # tiny
-                    pass
-                    gnupg
-                    pinentry-curses
-                    proxychains-ng
-                    openssl
-                    iamb
-                    # iamb_fixed
-                  ]
-                  ++ defaultPkgs;
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm";
+                };
+
+                environment.systemPackages = with pkgs; [
+                  (writeShellScriptBin "tiny" ''
+                    export GPG_TTY=$(tty)
+                    ${gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
+                    exec ${tiny}/bin/tiny "$@"
+                  '')
+                  # tiny
+                  pass
+                  gnupg
+                  pinentry-curses
+                  proxychains-ng
+                  openssl
+                  iamb
+                  # iamb_fixed
+                ];
 
                 environment.etc."proxychains.conf".text = ''
                   [ProxyList]

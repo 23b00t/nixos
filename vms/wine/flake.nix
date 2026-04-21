@@ -18,8 +18,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 7;
-      mac = "00:00:00:00:00:07";
     in
     {
       packages.${system} = {
@@ -31,21 +29,24 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRYiHWjGyucuX6XJq2U3ENx7MHACcX0t8YzB2JEgfyR wine-vm";
-            })
-            (import ../rdp.nix { inherit lib; })
+            ../modules/common-config.nix
+            ../modules/rdp.nix
+            ../modules/net-config.nix
             (
               { config, pkgs, ... }:
-              let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-              in
               {
                 networking.hostName = "wine-vm";
 
+                services.net-config = {
+                  enable = true;
+                  index = 7;
+                  mac = "00:00:00:00:00:07";
+                };
+                services.rdp.enable = true;
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRYiHWjGyucuX6XJq2U3ENx7MHACcX0t8YzB2JEgfyR wine-vm";
+                };
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
@@ -87,8 +88,7 @@
                   pkgs.wprs
                   pkgs.xwayland
 
-                ]
-                ++ defaultPkgs;
+                ];
 
                 systemd.user.services.wprsd = {
                   description = "wprsd instance";

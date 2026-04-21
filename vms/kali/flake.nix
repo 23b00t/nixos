@@ -18,8 +18,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 8;
-      mac = "00:00:00:00:00:08";
     in
     {
       packages.${system} = {
@@ -31,19 +29,24 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
-            })
+            ../modules/net-config.nix
+            ../modules/common-config.nix
             ../modules/yazi-config.nix
             (
               { config, pkgs, ... }:
               let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
+
               in
               {
+                services.net-config = {
+                  enable = true;
+                  index = 8;
+                  mac = "00:00:00:00:00:08";
+                };
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
+                };
                 networking.hostName = "kali-vm";
 
                 microvm = {
@@ -93,8 +96,7 @@
                   pkgs.wprs
                   pkgs.xwayland
 
-                ]
-                ++ defaultPkgs;
+                ];
 
                 system.stateVersion = "26.05";
               }

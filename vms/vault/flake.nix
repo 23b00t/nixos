@@ -18,8 +18,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 10;
-      mac = "00:00:00:00:00:0a";
     in
     {
       packages.${system} = {
@@ -31,21 +29,23 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPbWqbgvB7bf39HteuS/bmSDqLuPiZn5AV63fjRXEVw vault-vm";
-            })
+            ../modules/net-config.nix
+            ../modules/common-config.nix
             ../modules/yazi-config.nix
             (
               { config, pkgs, ... }:
-              let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-              in
               {
                 networking.hostName = "vault-vm";
 
+                services.net-config = {
+                  enable = true;
+                  index = 10;
+                  mac = "00:00:00:00:00:0a";
+                };
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPbWqbgvB7bf39HteuS/bmSDqLuPiZn5AV63fjRXEVw vault-vm";
+                };
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
@@ -87,8 +87,7 @@
                   pkgs.xwayland
                   pkgs.keepassxc
 
-                ]
-                ++ defaultPkgs;
+                ];
 
                 system.stateVersion = "26.05";
               }

@@ -19,8 +19,6 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
-      index = 1;
-      mac = "00:00:00:00:00:01";
     in
     {
       packages.${system} = {
@@ -32,22 +30,15 @@
           inherit system;
           modules = [
             microvm.nixosModules.microvm
-            (import ../net-config.nix { inherit lib index mac; })
-            (import ../common-config.nix {
-              inherit lib;
-              inherit pkgs;
-              sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzJjZw0V2CdaWI/IBFcTQPwQhYtFn/31i5iNPSc1j8G nvim-vm";
-            })
+            ../modules/net-config.nix
             ../modules/yazi-config.nix
             ../modules/ide.nix
             ../modules/zsh.nix
             ../modules/zellij.nix
             ../modules/persistent-store-overlay.nix
+            ../modules/common-config.nix
             (
               { config, pkgs, ... }:
-              let
-                defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-              in
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "nvim-vm";
@@ -74,30 +65,27 @@
                   vcpu = 4;
                 };
 
-                environment.systemPackages =
-                  with pkgs;
-                  [
-                    lua-language-server
-                    lua51Packages.lua
-                    lua51Packages.luarocks
-                    nixfmt
+                environment.systemPackages = with pkgs; [
+                  lua-language-server
+                  lua51Packages.lua
+                  lua51Packages.luarocks
+                  nixfmt
 
-                    ddate
-                    cowsay
+                  ddate
+                  cowsay
 
-                    postman
-                    dbeaver-bin
-                    devenv
-                    firefox
+                  postman
+                  dbeaver-bin
+                  devenv
+                  firefox
 
-                    wprs
-                    xwayland
-                    ruby
+                  wprs
+                  xwayland
+                  ruby
 
-                    pulseaudio
-                    termdown
-                  ]
-                  ++ defaultPkgs;
+                  pulseaudio
+                  termdown
+                ];
 
                 networking.firewall = {
                   enable = true;
@@ -118,6 +106,16 @@
                 programs.direnv = {
                   enable = true;
                   nix-direnv.enable = true;
+                };
+
+                services.net-config = {
+                  enable = true;
+                  index = 1;
+                  mac = "00:00:00:00:00:01";
+                };
+                services.common-config = {
+                  enable = true;
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzJjZw0V2CdaWI/IBFcTQPwQhYtFn/31i5iNPSc1j8G nvim-vm";
                 };
 
                 services.ide = {
