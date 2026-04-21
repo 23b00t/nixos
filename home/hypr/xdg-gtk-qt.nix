@@ -44,12 +44,6 @@
         "video/mpeg" = "chromium-browser.desktop";
         "video/3gpp" = "chromium-browser.desktop";
         "video/3gpp2" = "chromium-browser.desktop";
-
-        # URLs
-        "x-scheme-handler/http" = "zen.desktop";
-        "x-scheme-handler/https" = "zen.desktop";
-        "x-scheme-handler/about" = "zen.desktop";
-        "x-scheme-handler/unknown" = "zen.desktop";
       };
     };
 

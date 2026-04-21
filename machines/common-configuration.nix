@@ -587,13 +587,5 @@ in
 
   systemd.network.enable = true;
 
-  environment.etc."xdg/mimeapps.list".text = ''
-    [Default Applications]
-    x-scheme-handler/http=zen.desktop
-    x-scheme-handler/https=zen.desktop
-    x-scheme-handler/about=zen.desktop
-    x-scheme-handler/unknown=zen.desktop
-  '';
-
   system.stateVersion = "26.05";
 }
