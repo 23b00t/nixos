@@ -37,7 +37,7 @@
               inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm";
             })
-            (import ../yazi-config.nix { inherit pkgs; })
+            ../modules/yazi-config.nix
             (import ../rdp.nix { inherit lib; })
             (
               { config, pkgs, ... }:

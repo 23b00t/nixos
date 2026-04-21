@@ -39,7 +39,7 @@
               inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhv6q3siBUASk16LN8tCa2nPUp4g2isRuwo1ndDPz7g godot-vm";
             })
-            (import ../yazi-config.nix { inherit pkgs; })
+            ../modules/yazi-config.nix
             ../modules/ide.nix
             ../modules/zsh.nix
             ../modules/zellij.nix

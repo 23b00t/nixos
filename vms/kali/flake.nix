@@ -37,7 +37,7 @@
               inherit pkgs;
               sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
             })
-            (import ../yazi-config.nix { inherit pkgs; })
+            ../modules/yazi-config.nix
             (
               { config, pkgs, ... }:
               let
