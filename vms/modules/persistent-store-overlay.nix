@@ -20,12 +20,13 @@ let
     cleanup() {
       rm -f "$tmp_roots" "$tmp_valid_roots" "$tmp_closure" "$tmp_filtered"
     }
-    trap cleanup EXIT
+    trap cleanup EXIT # Call cleanup() on exit
 
     : > "$db"
 
     add_root() {
       local p="$1"
+      # $p exists?
       [ -e "$p" ] || return 0
       readlink -f "$p" >> "$tmp_roots"
     }
@@ -45,17 +46,19 @@ let
       add_root "$root"
     done < <(find /nix/var/nix/gcroots /nix/var/nix/gcroots/per-user -type l 2>/dev/null)
 
+    # Derive unique roots
     sort -u "$tmp_roots" -o "$tmp_roots"
 
     # Only keep valid roots
     while IFS= read -r root; do
       ${pkgs.nix}/bin/nix-store --verify-path "$root" >/dev/null 2>&1
+      # Check for success of the last command, i.e. Exit-Code 0
       if [ $? -eq 0 ]; then
         printf '%s\n' "$root" >> "$tmp_valid_roots"
       fi
     done < "$tmp_roots"
 
-    # Collect closure per root so one bad root does not abort everything
+    # Collect closure per root
     while IFS= read -r root; do
       ${pkgs.nix}/bin/nix-store -qR "$root" >> "$tmp_closure" 2>/dev/null
     done < "$tmp_valid_roots"
@@ -72,6 +75,7 @@ let
 
     sort -u "$tmp_filtered" -o "$tmp_filtered"
 
+    # Dump the filtered paths to the DB file
     if [ -s "$tmp_filtered" ]; then
       ${pkgs.findutils}/bin/xargs -r ${pkgs.nix}/bin/nix-store --dump-db < "$tmp_filtered" > "$db"
     fi
@@ -148,7 +152,6 @@ in
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       ];
       trusted-users = [
-        "root"
         cfg.user
       ];
     };
