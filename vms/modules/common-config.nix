@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, config, ... }:
 
 with lib;
 
@@ -120,6 +120,6 @@ in
       "d /home/${cfg.user} 0755 ${cfg.user} users -"
     ];
 
-    environment.systemPackages = defaultPkgs ++ (config.environment.systemPackages or []);
+    environment.systemPackages = mkBefore defaultPkgs;
   };
 }

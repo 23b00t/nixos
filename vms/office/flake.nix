@@ -33,6 +33,7 @@
             ../modules/common-config.nix
             ../modules/yazi-config.nix
             ../modules/common-config.nix
+            ../modules/rdp.nix
             (
               { config, pkgs, ... }:
               let
