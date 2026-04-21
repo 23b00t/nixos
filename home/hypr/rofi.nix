@@ -10,96 +10,151 @@
   ];
 
   home.file = {
+    ".config/rofi/config.rasi" = {
+      text = ''
+        // Config //
+        configuration {
+            modi:                        "drun,filebrowser,window,run";
+            show-icons:                  true;
+            display-drun:                " ";
+            display-run:                 " ";
+            display-filebrowser:         " ";
+            display-window:              " ";
+            drun-display-format:         "{name}";
+            window-format:               "{w}{t}";
+            font: "FiraCode Nerd Font 11";
+            icon-theme:                  "Tela-circle-dracula";
+        }
+
+        @theme "~/.config/rofi/theme.rasi"
+
+
+        // Main //
+        window {
+            height:                      30em;
+            width:                       57em;
+            transparency:                "real";
+            fullscreen:                  false;
+            enabled:                     true;
+            cursor:                      "default";
+            spacing:                     0em;
+            padding:                     0em;
+            border-color:                @main-br;
+            background-color:            @main-bg;
+        }
+        mainbox {
+            enabled:                     true;
+            spacing:                     1em;
+            padding:                     1em;
+            orientation:                 horizontal;
+            children:                    [ "inputbar" , "listbox" ];
+            background-color:            transparent;
+        }
+
+
+        // Inputs //
+        inputbar {
+            enabled:                     true;
+            width:                       27em;
+            spacing:                     0em;
+            padding:                     0em;
+            children:                    [ "entry" ];
+            background-color:            transparent;
+            background-image:            url("~/nixos-config/wallpapers/cat_lofi_cafe.jpg", height);
+            border-radius:               1em;
+        }
+        entry {
+            enabled:                     false;
+        }
+
+
+        // Lists //
+        listbox {
+            spacing:                     0em;
+            padding:                     0em;
+            children:                    [ "dummy" , "listview" , "dummy" ];
+            background-color:            transparent;
+        }
+        listview {
+            enabled:                     true;
+            spacing:                     0em;
+            padding:                     1em;
+            columns:                     1;
+            lines:                       7;
+            cycle:                       true;
+            dynamic:                     true;
+            scrollbar:                   false;
+            layout:                      vertical;
+            reverse:                     false;
+            expand:                      false;
+            fixed-height:                true;
+            fixed-columns:               true;
+            cursor:                      "default";
+            background-color:            transparent;
+            text-color:                  @main-fg;
+        }
+        dummy {
+            background-color:            transparent;
+        }
+
+
+        // Elements //
+        element {
+            enabled:                     true;
+            spacing:                     1em;
+            padding:                     0.5em 0.5em 0.5em 1.5em;
+            cursor:                      pointer;
+            background-color:            transparent;
+            text-color:                  @main-fg;
+        }
+        element selected.normal {
+            background-color:            @select-bg;
+            text-color:                  @select-fg;
+        }
+        element-icon {
+            size:                        2.7em;
+            cursor:                      inherit;
+            background-color:            transparent;
+            text-color:                  inherit;
+        }
+        element-text {
+            vertical-align:              0.5;
+            horizontal-align:            0.0;
+            cursor:                      inherit;
+            background-color:            transparent;
+            text-color:                  inherit;
+        }
+
+        // Error message //
+        error-message {
+            text-color:                  @main-fg;
+            background-color:            @main-bg;
+            text-transform:              capitalize;
+            children:                    [ "textbox" ];
+        }
+
+        textbox {
+            text-color:                  inherit;
+            background-color:            inherit;
+            vertical-align:              0.5;
+            horizontal-align:            0.5;
+        }
+      '';
+      force = true;
+    };
     # Tokio-Night-Rofi-Theme
     ".config/rofi/theme.rasi" = {
       text = ''
-        configuration {
-          modi: "drun,run,window";
-          font: "FiraCode Nerd Font 11";
-          show-icons: true;
-          icon-theme: "Tela-dark";
-          display-drun: "Apps";
-          display-run: "Run";
-          display-window: "Windows";
-        }
-
         * {
-          bg: #1a1b26;
-          bg-alt: #16161e;
-          fg: #c0caf5;
-          accent1: rgba(187, 154, 247, 0.15);
-          accent2: #bb9af7;
-          urgent: #f7768e;
-
-          background-color: @bg;
-          text-color: @fg;
-        }
-
-        window {
-          transparency: "real";
-          location: center;
-          width: 40%;
-          border: 2px;
-          border-color: @accent2;
-          border-radius: 10;
-          padding: 10;
-        }
-
-        mainbox {
-          background-color: @bg;
-          spacing: 8;
-          padding: 10;
-        }
-
-        inputbar {
-          background-color: @bg-alt;
-          padding: 6 10;
-          border-radius: 8;
-          children: [prompt, entry];
-        }
-
-        prompt {
-          text-color: @accent2;
-        }
-
-        entry {
-          placeholder: "Search…";
-        }
-
-        listview {
-          background-color: @bg;
-          spacing: 4;
-          scrollbar: false;
-        }
-
-        element {
-          padding: 4 8;
-          border-radius: 6;
-        }
-
-        element normal {
-          background-color: transparent;
-          text-color: @fg;
-        }
-
-        element selected {
-          background-color: @accent1;
-          text-color: @bg;
-        }
-
-        element urgent {
-          background-color: @urgent;
-        }
-
-        element-icon {
-          size: 24;
-          margin: 0 8 0 0;
-        }
-
-        element-text {
-          highlight: bold;
-        }
-      '';
+            main-bg:            #24283be6;
+            main-fg:            #c0caf5ff;
+            main-br:            #bb9af7ff;
+            main-ex:            #7dcfffcc;
+            select-bg:          #7aa2f7ff;
+            select-fg:          #24283bff;
+            separatorcolor:     transparent;
+            border-color:       transparent;
+        }      '';
       force = true;
     };
   };

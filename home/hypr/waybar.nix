@@ -12,10 +12,17 @@
   home.file = {
     ".config/waybar/style.css" = {
       text = ''
-        /* Tokyo Night inspired Waybar style */
+        /* Custom theme colors */
+        @define-color bar-bg rgba(0, 0, 0, 0.1);
+        @define-color main-bg rgba(36, 40, 59, 0.8);
+        @define-color main-fg #7aa2f7;
+        @define-color wb-act-bg #bb9af7;
+        @define-color wb-act-fg #b4f9f8;
+        @define-color wb-hvr-bg #7aa2f7;
+        @define-color wb-hvr-fg #cfc9c2;
 
         * {
-          font-family: "FiraCode Nerd Font SemBd", "FiraCode Nerd Font", "Symbols Nerd Font";
+          font-family: "FiraCode Nerd Font", "FiraCode Nerd Font", "Symbols Nerd Font";
           font-size: 14px;
           font-weight: 500;
           border-radius: 8px;
@@ -23,10 +30,9 @@
         }
 
         window#waybar {
-          background-color: rgba(26, 27, 38, 0.85);
-          color: #c0caf5;
+          background-color: @bar-bg;
+          color: @main-fg;
           border-radius: 12px;
-          border: 1px solid #3b4261;
         }
 
         window#waybar.hidden {
@@ -40,21 +46,21 @@
         #workspaces button {
           padding: 0 8px;
           margin: 0 2px;
-          background-color: transparent;
-          color: #565f89;
+          background-color: rgba(122, 162, 247, 0.10); /* leichtes Blau als Hintergrund */
+          color: @main-fg;
           border-radius: 6px;
           transition: background-color 0.2s ease, color 0.2s ease;
         }
 
         #workspaces button.active,
         #workspaces button.focused {
-          background: linear-gradient(135deg, #7aa2f7, #bb9af7);
-          color: #1a1b26;
+          background: linear-gradient(135deg, @wb-hvr-bg, @wb-act-bg);
+          color: @wb-act-fg;
         }
 
         #workspaces button.urgent {
           background-color: #f7768e;
-          color: #1a1b26;
+          color: @main-bg;
         }
 
         #clock,
@@ -71,8 +77,8 @@
         #custom-cputemp {
           padding: 0 10px;
           margin: 0 1px;
-          background-color: rgba(42, 32, 64, 0.50);
-          color: #c0caf5;
+          background-color: @main-bg;
+          color: @main-fg;
           border-radius: 8px;
         }
 
@@ -129,7 +135,7 @@
         elif [[ $temp_int -ge 76 ]]; then
           color="#e0af68"
         else
-          color="#c0caf5"
+          color="#7aa2f7"
         fi
         echo "<span color=\"$color\">$temp°C</span>"
       '';

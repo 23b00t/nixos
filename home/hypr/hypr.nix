@@ -144,7 +144,7 @@
       "$mod" = "SUPER";
 
       bind = [
-        "$mod, A, exec, pkill rofi || rofi -show drun -theme ~/.config/rofi/theme.rasi"
+        "$mod, A, exec, pkill rofi || rofi -modi drun,filebrowser,window,run -show drun -theme ~/.config/rofi/config.rasi"
         "$mod, B, exec, vm-run net zen"
 
         "$mod, V, togglefloating,"
@@ -206,7 +206,7 @@
         "$mod SHIFT, K, exec, kitty --session=none"
         "$mod, T, exec, kitty"
         # emoji picker
-        "$mod, comma, exec, rofimoji --action copy --selector-args='-theme ~/.config/rofi/theme.rasi'"
+        "$mod, comma, exec, rofimoji --max-recent 0 --action copy --selector-args='-theme ~/.config/rofi/config.rasi'"
 
         # Fullscreen toggle
         "$mod, F, fullscreen, 0"

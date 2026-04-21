@@ -104,7 +104,6 @@ nmcli radio wifi on
 - cp-vm should read multiple files, not only one and folders
 - backup and restore should be better tested and have a better output over success and failure
   - vms started by the scripts should be stoped after backup and restore
-- Multi machine setup
 - Setup microvm binary
   - Solve manual vm adding to flake.nix -> registry should be improved and with sed we'll manipulate the main flake before nix evaluation
 - Improve printing service (remove pre-condition of SSH Connection to the host)
@@ -112,7 +111,6 @@ nmcli radio wifi on
 - Remove unused host/ not strictly needed host software
 - Modularize common-config.nix, net-config.nix, default-packages.nix etc.
 - Debug and fix occasionally occurring shared libs error in nvim-vm
-- Adress: evaluation warning: 'system' has been renamed to/replaced by 'stdenv.hostPlatform.system'
 - cp-vm bug fix: script has to use the right key and not brute-force
 - Improve ssh key sharing
 
