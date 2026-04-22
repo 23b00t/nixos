@@ -31,8 +31,6 @@ in
     };
     kernelPackages = pkgs.linuxPackages_zen;
 
-    # (Optional) Host-Display nur über iGPU: sicherstellen, dass i915 geladen wird
-    # kernelModules = [ "i915" ];
     kernel.sysctl = {
       # Disable bridge netfilter for Whonix Gateway compatibility
       "net.bridge.bridge-nf-call-ip6tables" = 0;
