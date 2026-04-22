@@ -206,7 +206,7 @@
         "$mod SHIFT, K, exec, kitty --session=none"
         "$mod, T, exec, kitty"
         # emoji picker
-        "$mod, comma, exec, rofimoji --max-recent 0 --action copy --selector-args='-theme ~/.config/rofi/config.rasi'"
+        "$mod, comma, exec, rofimoji --max-recent 10 --action copy --selector-args='-theme ~/.config/rofi/config.rasi'"
 
         # Fullscreen toggle
         "$mod, F, fullscreen, 0"
@@ -242,7 +242,7 @@
         "sleep 5 && vm-run c element-desktop --hidden"
         "sleep 5 && vm-run c Telegram -startintray"
         "[workspace 2 silent] sleep 5 && kitty"
-        "[workspace 3 silent] sleep 5 && kitty --session=none remote-zellij i"
+        "[workspace 3 silent] sleep 8 && kitty --session=none remote-zellij i"
         "[workspace special:magic silent] sleep 5 && vm-run net zen"
       ];
 

@@ -27,7 +27,10 @@
     "quiet"
     "splash"
   ];
-  boot.kernelModules = [ "kvm-intel" ];
+  boot.kernelModules = [
+    "kvm-intel"
+    "iwlwifi"
+  ];
   boot.extraModulePackages = [ ];
 
   fileSystems."/" = {

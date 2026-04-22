@@ -358,10 +358,8 @@ in
       # NOTE: Problems? -> ss -tulpn | grep 4713 -> nothing? ->
       # systemctl --user restart pipewire pipewire-pulse
       configPackages = [
-        (pkgs.writeTextDir "share/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
-          pulse.cmd = [
-            { cmd = "load-module" args = "module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713" }
-          ];
+        (pkgs.writeTextDir "etc/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
+          load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713
         '')
       ];
     };

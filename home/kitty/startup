@@ -6,4 +6,8 @@ launch zsh -c "zellij --layout /home/nx/.config/zellij/layouts/tabs.kdl"
 new_tab coding 
 layout stack 
 launch zsh -c "remote-zellij nvim"
-launch zsh -c "remote-zellij irc"
+# launch zsh -c "remote-zellij irc"
+
+new_tab remote
+layout stack
+launch zsh
