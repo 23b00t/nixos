@@ -357,11 +357,18 @@ in
       # Netzwerk-Audio aktivieren
       # NOTE: Problems? -> ss -tulpn | grep 4713 -> nothing? ->
       # systemctl --user restart pipewire pipewire-pulse
-      configPackages = [
-        (pkgs.writeTextDir "etc/pipewire/pipewire-pulse.conf.d/92-network.conf" ''
-          load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1,10.0.0.0/24 port=4713
-        '')
-      ];
+      extraConfig.pipewire-pulse = {
+        "92-network" = {
+          "pulse.properties" = {
+            "server.address" = [
+              "tcp:4713"
+              "unix:native"
+            ];
+            "auth-anonymous" = true;
+            "auth-ip-acl" = "127.0.0.1;10.0.0.0/24";
+          };
+        };
+      };
     };
     blueman.enable = true;
   };
