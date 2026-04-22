@@ -241,11 +241,10 @@
         "sleep 5 && vm-run c vesktop -m"
         "sleep 5 && vm-run c element-desktop --hidden"
         "sleep 5 && vm-run c Telegram -startintray"
+        "[workspace 2 silent] kitty"
+        "[workspace 3 silent] kitty --session=none remote-zellij i"
+        "[workspace special:magic silent] vm-run net zen"
       ];
-
-      exec-once = [workspace 2 silent] kitty;
-      exec-once = [workspace 3 silent] kitty --session=none remote-zellij i;
-      exec-once = [workspace "special:magic" silent] vm-run net zen;
 
       bindm = [
         "$mod, mouse:272, movewindow"
