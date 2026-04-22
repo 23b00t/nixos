@@ -174,7 +174,6 @@ in
     xdg-utils # Collection of XDG desktop integration tools
     desktop-file-utils # for updating desktop database
     hicolor-icon-theme # Base fallback icon theme
-    cliphist # clipboard manager
     wayland # for wayland support
     egl-wayland # for wayland support
     xwayland # for x11 support
@@ -205,7 +204,6 @@ in
     pavucontrol
     pamixer
     # playerctl
-
     git
     fzf
 
