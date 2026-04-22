@@ -114,6 +114,7 @@ nmcli radio wifi on
 - cp-vm bug fix: script has to use the right key and not brute-force
 - Improve ssh key sharing
 - Fix element-desktop tray issue
+- Fix bug that occasionally occurs at boot: Bootscreen isn't displayed and tty seems frozen till password is typed in blindly and boot finished successfully
 
 ## Misc
 

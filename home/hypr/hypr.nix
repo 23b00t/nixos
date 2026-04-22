@@ -238,13 +238,14 @@
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
         "nm-applet --indicator"
         "blueman-applet"
-        "workspace 2 kitty"
-        "workspace 3 kitty --session=none remote-zellij i"
-        "workspace DP-2,4 vm-run c sleep 5 && element-desktop"
-        "workspace special:magic sleep 5 && vm-run net zen"
         "sleep 5 && vm-run c vesktop -m"
+        "sleep 5 && vm-run c element-desktop --hidden"
         "sleep 5 && vm-run c Telegram -startintray"
       ];
+
+      exec-once = [workspace 2 silent] kitty;
+      exec-once = [workspace 3 silent] kitty --session=none remote-zellij i;
+      exec-once = [workspace "special:magic" silent] vm-run net zen;
 
       bindm = [
         "$mod, mouse:272, movewindow"
