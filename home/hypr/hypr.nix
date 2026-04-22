@@ -238,6 +238,10 @@
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
         "nm-applet --indicator"
         "blueman-applet"
+        "workspace 2 kitty"
+        "workspace 3 kitty --session=none remote-zellij i"
+        "workspace DP-2,4 vm-run c sleep 5 && element-desktop"
+        "workspace special:magic sleep 5 && vm-run net zen"
         "sleep 5 && vm-run c vesktop -m"
         "sleep 5 && vm-run c Telegram -startintray"
       ];
