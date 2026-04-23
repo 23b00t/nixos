@@ -4,9 +4,12 @@
   ...
 }:
 let
+  # e.g. lspci -n -s 00:14.3 (for WiFi)
   devices = [
     "10de:2d19" # NVIDIA RTX 5060 Max-Q (VGA)
     "10de:22eb" # NVIDIA RTX 5060 Audio
+    "8086:7a70" # WiFi
+    "10ec:8125" # Ethernet
   ];
 in
 {
@@ -40,6 +43,8 @@ in
       "nvidia_drm"
       "nvidia_modeset"
       "i2c_nvidia_gpu"
+      "r8169"
+      "iwlwifi"
     ];
   };
 

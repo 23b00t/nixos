@@ -29,7 +29,6 @@
   ];
   boot.kernelModules = [
     "kvm-intel"
-    "iwlwifi"
   ];
   boot.extraModulePackages = [ ];
 
