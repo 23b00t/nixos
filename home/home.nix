@@ -35,7 +35,7 @@ in
       #!${pkgs.bash}/bin/bash
       # This script acts as a wrapper to redirect `nvim` calls to the nvim MicroVM.
       # It passes all arguments it receives to the nvim_vm script.
-      exec zsh -c 'source /home/nx/nixos-config/home/nvim.zsh; nvim_vm "$@"' _ "$@"
+      exec zsh -c 'source /home/nx/nixos-config/home/resources/nvim.zsh; nvim_vm "$@"' _ "$@"
     '')
     oh-my-posh
     fastfetch
