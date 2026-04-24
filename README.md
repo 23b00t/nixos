@@ -115,6 +115,7 @@ nmcli radio wifi on
 - Improve ssh key sharing
 - Fix element-desktop tray issue
 - Fix bug that occasionally occurs at boot: Bootscreen isn't displayed and tty seems frozen till password is typed in blindly and boot finished successfully
+- Fix: inter-vm copy-paste. Currently I can only copy in vm a to past than to host, to than copy from host to vm b.
 
 ## Misc
 
