@@ -486,6 +486,12 @@ in
         "32-vm-internal" = {
           matchConfig.Name = "vm-internal";
           address = [ "10.0.0.254/24" ];
+          routes = [
+            {
+              Destination = "0.0.0.0/0";
+              Gateway = "10.0.0.253";
+            }
+          ];
           networkConfig.ConfigureWithoutCarrier = true;
           linkConfig.RequiredForOnline = "no";
         };
