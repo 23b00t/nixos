@@ -542,12 +542,9 @@ in
           linkConfig.Unmanaged = "yes";
         };
 
-        "38-vnet-libvirt" = {
+        "38-vnet-libvirt-ignore" = {
           matchConfig.Name = "vnet*";
-          networkConfig = {
-            ConfigureWithoutCarrier = true;
-          };
-          linkConfig.RequiredForOnline = "no";
+          linkConfig.Unmanaged = "yes";
         };
       };
   };
