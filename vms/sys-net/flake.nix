@@ -51,6 +51,7 @@
               services.common-config = {
                 enable = true;
                 sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2rxZHd/9pzQeQz3VDwlpcEP9KGOASXYsajKbcZdJ4/ sys-net-vm";
+                withDefaultPkgs = false;
               };
 
               users.users.user.extraGroups = lib.mkAfter [ "networkmanager" ];
@@ -88,6 +89,7 @@
               microvm = {
                 registerClosure = false;
                 hypervisor = "cloud-hypervisor";
+                # TODO: Can we set this to true?
                 optimize.enable = false;
                 volumes = [
                   {
@@ -107,15 +109,14 @@
                 devices = [
                   {
                     bus = "pci";
-                    path = "0000:05:00.0";
+                    path = "0000:05:00.0"; # Ethernet Controller
                   }
                   {
                     bus = "pci";
-                    path = "0000:00:14.3";
+                    path = "0000:00:14.3"; # WiFi Controller
                   }
                 ];
-                mem = 2048;
-                vcpu = 1;
+                mem = 1024;
               };
 
               systemd.user.services.wprsd = {
@@ -133,8 +134,6 @@
               };
 
               environment.systemPackages = with pkgs; [
-                vim
-                btop
                 networkmanager
                 networkmanagerapplet
                 iw
@@ -148,8 +147,6 @@
 
                 wprs
                 xwayland
-
-                pciutils
               ];
 
               system.stateVersion = "26.05";

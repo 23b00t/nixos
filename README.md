@@ -109,12 +109,12 @@ nmcli radio wifi on
 - Improve printing service (remove pre-condition of SSH Connection to the host)
 - General refactoring and cleanup
 - Remove unused host/ not strictly needed host software
-- Modularize common-config.nix, net-config.nix, default-packages.nix etc.
 - Debug and fix occasionally occurring shared libs error in nvim-vm
 - cp-vm bug fix: script has to use the right key and not brute-force
 - Improve ssh key sharing
 - Fix element-desktop tray issue
 - Fix bug that occasionally occurs at boot: Bootscreen isn't displayed and tty seems frozen till password is typed in blindly and boot finished successfully
+- Check where we can enable microvm.optimization
 
 ## Misc
 

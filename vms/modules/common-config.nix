@@ -19,6 +19,11 @@ in
       default = "user";
       description = "Username for the main user.";
     };
+    withDefaultPkgs = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Enable the default set of packages defined in default-pkgs.nix";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -121,6 +126,6 @@ in
       "L+ /home/${cfg.user}/.ssh/config - - - - /etc/ssh_config"
     ];
 
-    environment.systemPackages = mkBefore defaultPkgs;
+    environment.systemPackages = mkIf cfg.withDefaultPkgs (mkBefore defaultPkgs);
   };
 }
