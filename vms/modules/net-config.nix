@@ -14,7 +14,7 @@ let
       "10.0.0.${toString cfg.index}/24"
     else
       null;
-  effectiveGateway4 = if cfg.gateway4 != null then cfg.gateway4 else "10.0.0.253";
+  effectiveGateway4 = cfg.gateway4;
   needsOnLinkGatewayRoute = effectiveAddress4 != null && hasSuffix "/32" effectiveAddress4;
 in
 {
@@ -52,8 +52,8 @@ in
 
     gateway4 = mkOption {
       type = types.nullOr types.str;
-      default = null;
-      description = "IPv4 default gateway. Defaults to sys-net (10.0.0.253).";
+      default = "10.0.0.253";
+      description = "IPv4 default gateway. Set to null to disable.";
     };
 
     dns = mkOption {
@@ -109,4 +109,3 @@ in
     };
   };
 }
-
