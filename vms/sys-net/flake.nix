@@ -1,5 +1,5 @@
 {
-  description = "network MicroVM";
+  description = "sys-net MicroVM";
 
   inputs = {
     microvm = {
@@ -21,11 +21,11 @@
     in
     {
       packages.${system} = {
-        default = self.packages.${system}.network;
-        network = self.nixosConfigurations.network.config.microvm.declaredRunner;
+        default = self.packages.${system}.sys-net;
+        sys-net = self.nixosConfigurations.sys-net.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
-        network = nixpkgs.lib.nixosSystem {
+        sys-net = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
@@ -34,7 +34,7 @@
               { config, pkgs, ... }:
               {
                 nixpkgs.config.allowUnfree = true;
-                networking.hostName = "network-vm";
+                networking.hostName = "sys-net-vm";
                 services.net-config = {
                   enable = true;
                   index = 17;
@@ -106,7 +106,7 @@
                     "wheel"
                   ];
                   openssh.authorizedKeys.keys = [
-                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL network-vm"
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL sys-net-vm"
                   ];
                 };
 
