@@ -50,7 +50,7 @@
 
               services.common-config = {
                 enable = true;
-                sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL sys-net-vm";
+                sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2rxZHd/9pzQeQz3VDwlpcEP9KGOASXYsajKbcZdJ4/ sys-net-vm";
               };
 
               users.users.user.extraGroups = lib.mkAfter [ "networkmanager" ];
@@ -118,7 +118,7 @@
                 iw
                 ethtool
                 iproute2
-                wireless_tools
+                wirelesstools
                 wpa_supplicant
                 dnsutils
                 tcpdump
