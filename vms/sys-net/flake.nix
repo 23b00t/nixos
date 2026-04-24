@@ -17,112 +17,119 @@
     let
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
-      pkgs = import nixpkgs { inherit system; };
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
     in
     {
       packages.${system} = {
         default = self.packages.${system}.sys-net;
         sys-net = self.nixosConfigurations.sys-net.config.microvm.declaredRunner;
       };
-      nixosConfigurations = {
-        sys-net = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = [
-            microvm.nixosModules.microvm
-            ../modules/net-config.nix
-            (
-              { config, pkgs, ... }:
-              {
-                nixpkgs.config.allowUnfree = true;
-                networking.hostName = "sys-net-vm";
-                services.net-config = {
+
+      nixosConfigurations.sys-net = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          microvm.nixosModules.microvm
+          ../modules/net-config.nix
+          ../modules/common-config.nix
+          (
+            { lib, ... }:
+            {
+              networking.hostName = "sys-net-vm";
+
+              services.net-config = {
+                enable = true;
+                tapId = "vm-router";
+                interfaceName = "vm-lan";
+                address4 = "10.0.0.253/24";
+                gateway4 = null;
+                mac = "00:00:00:00:00:11";
+              };
+
+              services.common-config = {
+                enable = true;
+                sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL sys-net-vm";
+              };
+
+              users.users.user.extraGroups = lib.mkAfter [ "networkmanager" ];
+
+              networking = {
+                networkmanager = {
                   enable = true;
-                  index = 17;
-                  mac = "00:00:00:00:00:11";
+                  unmanaged = [ "interface-name:vm-lan" ];
                 };
-
-                microvm = {
-                  registerClosure = false;
-
-                  hypervisor = "cloud-hypervisor";
-                  optimize.enable = false;
-                  volumes = [
-                    {
-                      mountPoint = "/home/user";
-                      image = "home.img";
-                      size = 5000;
-                    }
-                  ];
-                  shares = [
-                    {
-                      proto = "virtiofs";
-                      tag = "ro-store";
-                      source = "/nix/store";
-                      mountPoint = "/nix/.ro-store";
-                    }
-                  ];
-                  devices = [
-                    {
-                      bus = "pci";
-                      path = "0000:05:00.0";
-                    }
-                    {
-                      bus = "pci";
-                      path = "0000:00:14.3";
-                    }
-                  ];
-                  mem = 2048;
-                  vcpu = 1;
+                nftables.enable = true;
+                firewall = {
+                  enable = true;
+                  trustedInterfaces = [ "vm-lan" ];
                 };
+                nat = {
+                  enable = true;
+                  internalInterfaces = [ "vm-lan" ];
+                };
+              };
 
-                environment.systemPackages = with pkgs; [
-                  vim
-                  btop
-                  networkmanager
-                  iw
-                  ethtool
-                  iproute2
-                  wireless_tools
-                  wpa_supplicant
+              boot.kernel.sysctl = {
+                "net.ipv4.ip_forward" = 1;
+                "net.ipv6.conf.all.forwarding" = 1;
+              };
+
+              systemd.services.NetworkManager-wait-online.enable = false;
+
+              microvm = {
+                registerClosure = false;
+                hypervisor = "cloud-hypervisor";
+                optimize.enable = false;
+                volumes = [
+                  {
+                    mountPoint = "/home/user";
+                    image = "home.img";
+                    size = 5000;
+                  }
                 ];
+                shares = [
+                  {
+                    proto = "virtiofs";
+                    tag = "ro-store";
+                    source = "/nix/store";
+                    mountPoint = "/nix/.ro-store";
+                  }
+                ];
+                devices = [
+                  {
+                    bus = "pci";
+                    path = "0000:05:00.0";
+                  }
+                  {
+                    bus = "pci";
+                    path = "0000:00:14.3";
+                  }
+                ];
+                mem = 2048;
+                vcpu = 1;
+              };
 
-                services.openssh = {
-                  enable = true;
-                  settings = {
-                    PermitRootLogin = "no";
-                    PasswordAuthentication = false;
-                  };
-                };
-                security.sudo = {
-                  enable = true;
-                  wheelNeedsPassword = false;
-                };
-                users.groups.users = { };
+              environment.systemPackages = with pkgs; [
+                vim
+                btop
+                networkmanager
+                iw
+                ethtool
+                iproute2
+                wireless_tools
+                wpa_supplicant
+                dnsutils
+                tcpdump
+                nftables
+              ];
 
-                users.users.user = {
-                  isNormalUser = true;
-                  group = "users";
-                  extraGroups = [
-                    "wheel"
-                  ];
-                  openssh.authorizedKeys.keys = [
-                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL sys-net-vm"
-                  ];
-                };
-
-                environment.etc."ssh_config".text = ''
-                  Host *
-                      StrictHostKeyChecking no
-                      UserKnownHostsFile /dev/null
-                  Host 10.0.0.254 
-                      IdentitiesOnly yes
-                '';
-
-                system.stateVersion = "26.05";
-              }
-            )
-          ];
-        };
+              system.stateVersion = "26.05";
+            }
+          )
+        ];
       };
     };
 }
+

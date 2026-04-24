@@ -123,6 +123,7 @@ in
         iptables -D INPUT -p tcp --dport 22 -s 10.0.0.9 -j ACCEPT || true
         iptables -D INPUT -p tcp --dport 22 -j DROP || true
       '';
+      # Keep libvirt/Whonix bridge trusted on the host.
       # TODO: Test to remove after Docker has been removed
       # Erlaubt Traffic auf der Bridge (nötig wegen Docker/br_netfilter)
       trustedInterfaces = [ "virbr2" ];
@@ -449,51 +450,53 @@ in
 
   programs.ssh.startAgent = true;
   # networking.useNetworkd = true;
-  # Generiere Netzwerke für alle VMs
-  # Netzwerke für Standard-VMs (10.0.0.x)
-  systemd.network.networks =
-    (builtins.listToAttrs (
-      map (index: {
-        name = "30-vm${toString index}";
-        value = {
-          matchConfig.Name = "vm${toString index}";
-          # Host-Adresse für die P2P Verbindung
-          address = [
-            "10.0.0.0/32" # Host auf diesem Interface
-            "10.0.0.254/32" # Feste Host-IP für alle VMs
-            "fec0::/128"
-            "fec0::ff/128" # Feste Host-IPv6 für alle VMs
-          ];
-          # Route zur VM
-          routes = [
-            { Destination = "10.0.0.${toString index}/32"; }
-            { Destination = "fec0::${lib.toHexString index}/128"; }
-          ];
-          networkConfig = {
-            IPv4Forwarding = true;
-            IPv6Forwarding = true;
-          };
-        };
-      }) (lib.genList (i: i + 1) maxVMs)
-    ))
-    // {
-      # IMPORTANT: Ignore Tor interfaces for VMs
-      "35-vm11-tor-ignore" = {
-        matchConfig.Name = "vm11-tor";
-        linkConfig.Unmanaged = "yes";
+  # Host provides the internal L2 fabric; sys-net provides routing/NAT.
+  systemd.network = {
+    netdevs."20-vm-internal" = {
+      netdevConfig = {
+        Name = "vm-internal";
+        Kind = "bridge";
       };
     };
 
-  # NAT only for 4 VMs
-  networking.nat =
-    let
-      vmRegistry = import ../vms/registry.nix;
-    in
-    {
-      enable = true;
-      internalIPs = map (ip: "${ip}/32") vmRegistry.natIPs;
-      # externalInterface = "wlo1";
-    };
+    networks =
+      (builtins.listToAttrs (
+        map (index: {
+          name = "30-vm${toString index}";
+          value = {
+            matchConfig.Name = "vm${toString index}";
+            networkConfig = {
+              Bridge = "vm-internal";
+              ConfigureWithoutCarrier = true;
+            };
+            linkConfig.RequiredForOnline = "no";
+          };
+        }) (lib.genList (i: i + 1) maxVMs)
+      ))
+      // {
+        "31-vm-router" = {
+          matchConfig.Name = "vm-router";
+          networkConfig = {
+            Bridge = "vm-internal";
+            ConfigureWithoutCarrier = true;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        "32-vm-internal" = {
+          matchConfig.Name = "vm-internal";
+          address = [ "10.0.0.254/24" ];
+          networkConfig.ConfigureWithoutCarrier = true;
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        # IMPORTANT: Ignore Tor interfaces for VMs
+        "35-vm11-tor-ignore" = {
+          matchConfig.Name = "vm11-tor";
+          linkConfig.Unmanaged = "yes";
+        };
+      };
+  };
 
   systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
 

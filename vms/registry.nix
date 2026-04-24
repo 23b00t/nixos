@@ -143,6 +143,14 @@ let
       nat = true;
       sshKeyName = "ruby-vm";
     }
+    {
+      name = "sys-net";
+      short = "sn";
+      ip = "10.0.0.253";
+      autostart = true;
+      nat = false;
+      sshKeyName = "sys-net-vm";
+    }
   ];
 
   byName = builtins.listToAttrs (

@@ -36,6 +36,7 @@
     mirage.url = "path:./vms/mirage";
     php.url = "path:./vms/php";
     ruby.url = "path:./vms/ruby";
+    sys-net.url = "path:./vms/sys-net";
   };
 
     outputs =
