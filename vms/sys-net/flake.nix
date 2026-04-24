@@ -81,6 +81,8 @@
                 "net.ipv6.conf.all.forwarding" = 1;
               };
 
+              hardware.enableRedistributableFirmware = true;
+
               systemd.services.NetworkManager-wait-online.enable = false;
 
               microvm = {
