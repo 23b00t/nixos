@@ -23,16 +23,16 @@
       };
       bridgeZones = [
         {
-          tapId = "vm-libvirt-default";
+          tapId = "vm-libv-def";
           mac = "02:00:00:00:10:00";
-          interfaceName = "vm-default";
+          interfaceName = "vm-def";
           addresses = [ "192.168.122.1/24" ];
           provideDhcp4 = true;
         }
         {
-          tapId = "vm-whonix-external";
+          tapId = "vm-whx-ext";
           mac = "02:00:00:00:10:01";
-          interfaceName = "vm-whonix-external";
+          interfaceName = "vm-whx-ext";
           addresses = [
             "10.0.2.2/24"
             "fd19:c33d:98bc::/64"
@@ -114,18 +114,20 @@
 
               services.dnsmasq = {
                 enable = true;
-                extraConfig = ''
-                  port=0
-                  bind-interfaces
-                  interface=vm-default
-                  dhcp-range=interface:vm-default,192.168.122.10,192.168.122.200,255.255.255.0,24h
-                  dhcp-option=interface:vm-default,option:router,192.168.122.1
-                  dhcp-option=interface:vm-default,option:dns-server,9.9.9.9,149.112.112.112
-
-                  interface=vm-whonix-external
-                  enable-ra
-                  dhcp-range=interface:vm-whonix-external,::,constructor:vm-whonix-external,ra-only,64
-                '';
+                settings = {
+                  port = 0;
+                  "bind-interfaces" = true;
+                  interface = bridgeZoneInterfaces;
+                  "enable-ra" = true;
+                  "dhcp-range" = [
+                    "interface:vm-def,192.168.122.10,192.168.122.200,255.255.255.0,24h"
+                    "interface:vm-whx-ext,::,constructor:vm-whx-ext,ra-only,64"
+                  ];
+                  "dhcp-option" = [
+                    "interface:vm-def,option:router,192.168.122.1"
+                    "interface:vm-def,option:dns-server,9.9.9.9,149.112.112.112"
+                  ];
+                };
               };
 
               networking = {

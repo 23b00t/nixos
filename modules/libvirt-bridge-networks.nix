@@ -33,7 +33,7 @@ let
       current="$(${pkgs.libvirt}/bin/virsh net-dumpxml "$name" 2>/dev/null || true)"
 
       if printf '%s' "$current" | grep -Fq "<forward mode='bridge'/>" \
-        && printf '%s' "$current" | grep -Fq "<bridge name='${bridge}'"; then
+        && printf '%s' "$current" | grep -Fq "<bridge name=''${bridge}'"; then
         ${pkgs.libvirt}/bin/virsh net-autostart "$name" >/dev/null 2>&1 || true
         if ! ${pkgs.libvirt}/bin/virsh net-info "$name" 2>/dev/null | grep -Eq 'Active:\s+yes'; then
           ${pkgs.libvirt}/bin/virsh net-start "$name" >/dev/null 2>&1 || true

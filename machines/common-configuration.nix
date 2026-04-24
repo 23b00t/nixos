@@ -518,8 +518,8 @@ in
           linkConfig.RequiredForOnline = "no";
         };
 
-        "35-vm-libvirt-default" = {
-          matchConfig.Name = "vm-libvirt-default";
+        "35-vm-libv-def" = {
+          matchConfig.Name = "vm-libv-def";
           networkConfig = {
             Bridge = "virbr0";
             ConfigureWithoutCarrier = true;
@@ -527,8 +527,8 @@ in
           linkConfig.RequiredForOnline = "no";
         };
 
-        "36-vm-whonix-external" = {
-          matchConfig.Name = "vm-whonix-external";
+        "36-vm-whx-ext" = {
+          matchConfig.Name = "vm-whx-ext";
           networkConfig = {
             Bridge = "virbr1";
             ConfigureWithoutCarrier = true;
