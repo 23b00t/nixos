@@ -109,27 +109,27 @@
 
                 services.printing.enable = true;
 
-                systemd.services.host-printer-tunnel = {
-                  description = "SSH Tunnel to Host CUPS";
+                systemd.services.print-gateway-tunnel = {
+                  description = "SSH Tunnel to sys-net CUPS";
                   after = [ "network-online.target" ];
                   wantedBy = [ "multi-user.target" ];
                   serviceConfig = {
                     Type = "simple";
-                    ExecStart = "${printer.hostPrinterTunnelScript}/bin/host-printer-tunnel";
+                    ExecStart = "${printer.printGatewayTunnelScript}/bin/print-gateway-tunnel";
                     Restart = "on-failure";
                     RestartSec = 5;
                   };
                 };
-                systemd.services.add-host-printers = {
-                  description = "Add all host CUPS printers via SSH tunnel";
-                  after = [ "host-printer-tunnel.service" ];
-                  requires = [ "host-printer-tunnel.service" ];
+                systemd.services.add-print-gateway-printers = {
+                  description = "Add all sys-net CUPS printers via SSH tunnel";
+                  after = [ "print-gateway-tunnel.service" ];
+                  requires = [ "print-gateway-tunnel.service" ];
                   wantedBy = [ "multi-user.target" ];
                   serviceConfig = {
                     Type = "oneshot";
                     RemainAfterExit = true;
                   };
-                  script = "${printer.hostPrintersAddScript}/bin/host-printers-add";
+                  script = "${printer.printGatewayPrintersAddScript}/bin/print-gateway-printers-add";
                 };
 
                 environment.systemPackages = with pkgs; [

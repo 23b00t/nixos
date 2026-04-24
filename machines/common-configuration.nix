@@ -106,41 +106,6 @@ in
       };
   };
 
-  networking = {
-    # hostName = "machine";
-    # TODO: Use nftables - check rules
-    # nftables.enable = true;
-    firewall = {
-      enable = true;
-      allowedTCPPorts = [
-        9003
-        631
-      ];
-      extraCommands = ''
-        iptables -A INPUT -p tcp --dport 22 -s 10.0.0.9 -j ACCEPT
-        iptables -A INPUT -p tcp --dport 22 -j DROP
-      '';
-      extraStopCommands = ''
-        iptables -D INPUT -p tcp --dport 22 -s 10.0.0.9 -j ACCEPT || true
-        iptables -D INPUT -p tcp --dport 22 -j DROP || true
-      '';
-      # Keep libvirt/Whonix bridge trusted on the host.
-      # TODO: Test to remove after Docker has been removed
-      # Erlaubt Traffic auf der Bridge (nötig wegen Docker/br_netfilter)
-      trustedInterfaces = [ "virbr2" ];
-    };
-  };
-  services.openssh = {
-    enable = true;
-    # listenAddresses = [
-    #   {
-    #     addr = "10.0.0.0";
-    #     port = 22;
-    #   }
-    # ];
-    settings.PermitRootLogin = "no";
-  };
-  services.fail2ban.enable = true;
 
   # TODO: Check what should be done by home-manager
   environment.systemPackages = with pkgs; [
@@ -616,17 +581,6 @@ in
       '';
     })
   ];
-
-  # Printer
-  services.printing = {
-    enable = true;
-  };
-
-  services.avahi = {
-    enable = true;
-    nssmdns4 = true;
-    openFirewall = true;
-  };
 
   fonts.packages = with pkgs; [
     nerd-fonts.fira-code

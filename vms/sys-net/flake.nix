@@ -76,7 +76,19 @@
                 withDefaultPkgs = false;
               };
 
-              users.users.user.extraGroups = lib.mkAfter [ "networkmanager" ];
+              users.users.user = {
+                extraGroups = lib.mkAfter [ "networkmanager" ];
+                openssh.authorizedKeys.keys = lib.mkAfter [
+                  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm"
+                ];
+              };
+
+              services.printing.enable = true;
+              services.avahi = {
+                enable = true;
+                nssmdns4 = true;
+                openFirewall = true;
+              };
 
               microvm.interfaces = lib.mkAfter (
                 map (zone: {

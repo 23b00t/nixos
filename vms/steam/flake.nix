@@ -309,8 +309,6 @@
                   Host *
                       StrictHostKeyChecking no
                       UserKnownHostsFile /dev/null
-                  Host 10.0.0.254 
-                      IdentitiesOnly yes
                 '';
 
                 # NOTE: connect controller via ssh:

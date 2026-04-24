@@ -3,10 +3,9 @@ let
   vmRegistry = import ./registry.nix;
 
   # Host table: <hostname> <ip> [username]
-  # We include both long and short names; default user is 'user' except for host.
+  # We include both long and short names; default user is 'user'.
   hostTable = builtins.concatStringsSep "\n" (
-    [ "host 10.0.0.254 nx" ]
-    ++ (map (vm:
+    map (vm:
       let
         base = "${vm.name} ${vm.ip}";
       in
@@ -14,12 +13,12 @@ let
           base + "\n" + "${vm.short} ${vm.ip}"
         else
           base
-    ) vmRegistry.vms)
+    ) vmRegistry.vms
   );
 
 in
 pkgs.writeShellScriptBin "cp-vm" ''
-  # cp-vm: Copy or move a file/folder via rsync to a target VM or host using a host table.
+  # cp-vm: Copy or move a file/folder via rsync to a target VM using a host table.
   #
   # Syntax:
   #   cp-vm [-m] <vm-name-or-short> ./filename
