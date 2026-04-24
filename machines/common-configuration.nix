@@ -184,7 +184,6 @@ in
 
     # Network
     networkmanager
-    networkmanagerapplet
 
     # Hardware
     brightnessctl # screen brightness control

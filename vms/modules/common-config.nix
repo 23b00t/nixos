@@ -116,8 +116,9 @@ in
     '';
 
     systemd.tmpfiles.rules = [
-      "L+ /home/${cfg.user}/.ssh/config - - - - /etc/ssh_config"
       "d /home/${cfg.user} 0755 ${cfg.user} users -"
+      "d /home/${cfg.user}/.ssh 0700 ${cfg.user} users -"
+      "L+ /home/${cfg.user}/.ssh/config - - - - /etc/ssh_config"
     ];
 
     environment.systemPackages = mkBefore defaultPkgs;
