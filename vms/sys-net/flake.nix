@@ -61,9 +61,14 @@
                   unmanaged = [ "interface-name:vm-lan" ];
                 };
                 nftables.enable = true;
-                firewall = {
+firewall = {
                   enable = true;
                   trustedInterfaces = [ "vm-lan" ];
+                  allowForward = true;
+                  extraForwardRules = ''
+                    iifname "vm-lan" oifname != "vm-lan" accept
+                    ct state established,related accept
+                  '';
                 };
                 nat = {
                   enable = true;
