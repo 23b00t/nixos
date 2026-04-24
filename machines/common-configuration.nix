@@ -72,6 +72,7 @@ in
   imports = [
     inputs.microvm.nixosModules.host
     inputs.home-manager.nixosModules.home-manager
+    ../modules/libvirt-bridge-networks.nix
 
     # Hardware Configuration - Uncomment lines that match your hardware
     # Run `lshw -short` or `lspci` to identify your hardware
@@ -394,18 +395,6 @@ in
 
   virtualisation.libvirtd.enable = true;
   # virtualisation.spiceUSBRedirection.enable = true;
-
-  systemd.services."libvirt-default-net" = {
-    description = "Start libvirt default network";
-    wantedBy = [ "multi-user.target" ];
-    wants = [ "libvirtd.service" ];
-    after = [ "libvirtd.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "-${pkgs.libvirt}/bin/virsh net-start default";
-      RemainAfterExit = true;
-    };
-  };
   programs.virt-manager.enable = true;
 
   # TODO: Check if this is done in home-manager already
@@ -451,10 +440,26 @@ in
   # networking.useNetworkd = true;
   # Host provides the internal L2 fabric; sys-net provides routing/NAT.
   systemd.network = {
-    netdevs."20-vm-internal" = {
-      netdevConfig = {
-        Name = "vm-internal";
-        Kind = "bridge";
+    netdevs = {
+      "20-vm-internal" = {
+        netdevConfig = {
+          Name = "vm-internal";
+          Kind = "bridge";
+        };
+      };
+
+      "21-virbr0" = {
+        netdevConfig = {
+          Name = "virbr0";
+          Kind = "bridge";
+        };
+      };
+
+      "22-virbr1" = {
+        netdevConfig = {
+          Name = "virbr1";
+          Kind = "bridge";
+        };
       };
     };
 
@@ -495,10 +500,54 @@ in
           linkConfig.RequiredForOnline = "no";
         };
 
+        "33-virbr0" = {
+          matchConfig.Name = "virbr0";
+          networkConfig = {
+            ConfigureWithoutCarrier = true;
+            IPv6AcceptRA = false;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        "34-virbr1" = {
+          matchConfig.Name = "virbr1";
+          networkConfig = {
+            ConfigureWithoutCarrier = true;
+            IPv6AcceptRA = false;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        "35-vm-libvirt-default" = {
+          matchConfig.Name = "vm-libvirt-default";
+          networkConfig = {
+            Bridge = "virbr0";
+            ConfigureWithoutCarrier = true;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        "36-vm-whonix-external" = {
+          matchConfig.Name = "vm-whonix-external";
+          networkConfig = {
+            Bridge = "virbr1";
+            ConfigureWithoutCarrier = true;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
         # IMPORTANT: Ignore Tor interfaces for VMs
-        "35-vm11-tor-ignore" = {
+        "37-vm11-tor-ignore" = {
           matchConfig.Name = "vm11-tor";
           linkConfig.Unmanaged = "yes";
+        };
+
+        "38-vnet-libvirt" = {
+          matchConfig.Name = "vnet*";
+          networkConfig = {
+            ConfigureWithoutCarrier = true;
+          };
+          linkConfig.RequiredForOnline = "no";
         };
       };
   };
@@ -591,6 +640,7 @@ in
     unmanaged = [
       "interface-name:vm*"
       "interface-name:virbr*"
+      "interface-name:vnet*"
     ];
   };
 

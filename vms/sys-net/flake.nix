@@ -21,6 +21,25 @@
         inherit system;
         config.allowUnfree = true;
       };
+      bridgeZones = [
+        {
+          tapId = "vm-libvirt-default";
+          mac = "02:00:00:00:10:00";
+          interfaceName = "vm-default";
+          addresses = [ "192.168.122.1/24" ];
+          provideDhcp4 = true;
+        }
+        {
+          tapId = "vm-whonix-external";
+          mac = "02:00:00:00:10:01";
+          interfaceName = "vm-whonix-external";
+          addresses = [
+            "10.0.2.2/24"
+            "fd19:c33d:98bc::/64"
+          ];
+          provideDhcp4 = false;
+        }
+      ];
     in
     {
       packages.${system} = {
@@ -36,6 +55,9 @@
           ../modules/common-config.nix
           (
             { lib, ... }:
+            let
+              bridgeZoneInterfaces = map (zone: zone.interfaceName) bridgeZones;
+            in
             {
               networking.hostName = "sys-net-vm";
 
@@ -56,24 +78,75 @@
 
               users.users.user.extraGroups = lib.mkAfter [ "networkmanager" ];
 
+              microvm.interfaces = lib.mkAfter (
+                map (zone: {
+                  type = "tap";
+                  id = zone.tapId;
+                  mac = zone.mac;
+                }) bridgeZones
+              );
+
+              systemd.network.links = builtins.listToAttrs (
+                map (zone: {
+                  name = "20-${zone.interfaceName}";
+                  value = {
+                    matchConfig.MACAddress = zone.mac;
+                    linkConfig.Name = zone.interfaceName;
+                  };
+                }) bridgeZones
+              );
+
+              systemd.network.networks = builtins.listToAttrs (
+                map (zone: {
+                  name = "30-${zone.interfaceName}";
+                  value = {
+                    matchConfig.MACAddress = zone.mac;
+                    address = zone.addresses;
+                    networkConfig = {
+                      DHCP = "no";
+                      ConfigureWithoutCarrier = true;
+                      IPv6AcceptRA = false;
+                    };
+                    linkConfig.RequiredForOnline = "no";
+                  };
+                }) bridgeZones
+              );
+
+              services.dnsmasq = {
+                enable = true;
+                extraConfig = ''
+                  port=0
+                  bind-interfaces
+                  interface=vm-default
+                  dhcp-range=interface:vm-default,192.168.122.10,192.168.122.200,255.255.255.0,24h
+                  dhcp-option=interface:vm-default,option:router,192.168.122.1
+                  dhcp-option=interface:vm-default,option:dns-server,9.9.9.9,149.112.112.112
+
+                  interface=vm-whonix-external
+                  enable-ra
+                  dhcp-range=interface:vm-whonix-external,::,constructor:vm-whonix-external,ra-only,64
+                '';
+              };
+
               networking = {
                 networkmanager = {
                   enable = true;
-                  unmanaged = [ "interface-name:vm-lan" ];
+                  unmanaged = [ "interface-name:vm-lan" ] ++ map (iface: "interface-name:${iface}") bridgeZoneInterfaces;
                 };
                 nftables.enable = true;
                 firewall = {
                   enable = true;
-                  trustedInterfaces = [ "vm-lan" ];
+                  trustedInterfaces = [ "vm-lan" ] ++ bridgeZoneInterfaces;
                   filterForward = true;
                   extraForwardRules = ''
                     iifname "vm-lan" oifname != "vm-lan" accept
+                    ${lib.concatMapStringsSep "\n" (iface: "iifname \"${iface}\" oifname != \"${iface}\" accept") bridgeZoneInterfaces}
                     ct state established,related accept
                   '';
                 };
                 nat = {
                   enable = true;
-                  internalInterfaces = [ "vm-lan" ];
+                  internalInterfaces = [ "vm-lan" ] ++ bridgeZoneInterfaces;
                 };
               };
 

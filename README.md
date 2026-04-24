@@ -32,7 +32,7 @@
   nvim.url = "path:./vms/nvim";
   ```
 - Add a flake to vms/{name}/flake.nix which defines the microvm
-  - Create a ssh key for the VM
+  - Create a ssh key for the VM: ssh-keygen -C my-vm
 - Import modules as needed, the usage of nearly all available modules is shown in vms/nvim/flake.nix
 
 ### Additional setup for ide vms
@@ -169,6 +169,7 @@ sudo cat /var/log/steam-autostart.log || true
 ### Nixos
 
 - Check value of option: e.g. sudo nixos-option home-manager.users.nx.xdg.enable
+- nix build ".#nixosConfigurations.xmg.config.system.build.toplevel" --dry-run
 
 ### nix develope
 
