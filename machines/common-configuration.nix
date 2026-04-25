@@ -13,159 +13,6 @@ let
     config.allowUnfree = true;
   };
   maxVMs = 23;
-  sysUsbQmpSocket = "/run/microvm-sys-usb/qmp.sock";
-
-  sysUsbAttach = pkgs.writeShellScriptBin "sys-usb-attach" ''
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    sock="${sysUsbQmpSocket}"
-
-    usage() {
-      echo "Usage: sys-usb-attach <busnum> <devnum> [device-id]" >&2
-      echo "Example: sys-usb-attach 001 004 usb-stick" >&2
-      exit 1
-    }
-
-    if [ $# -lt 2 ] || [ $# -gt 3 ]; then
-      usage
-    fi
-
-    if ! systemctl is-active --quiet microvm@sys-usb.service; then
-      echo "sys-usb VM is not running." >&2
-      exit 1
-    fi
-
-    if [ ! -S "$sock" ]; then
-      echo "QMP socket not found at $sock" >&2
-      exit 1
-    fi
-
-    busnum=$(printf '%d' "$1")
-    devnum=$(printf '%d' "$2")
-    dev_id="''${3:-usb-b''${busnum}-d''${devnum}}"
-
-    if ! [ -e "/dev/bus/usb/$(printf '%03d' "$busnum")/$(printf '%03d' "$devnum")" ]; then
-      echo "USB device /dev/bus/usb/$(printf '%03d' "$busnum")/$(printf '%03d' "$devnum") not found on host." >&2
-      exit 1
-    fi
-
-    ${pkgs.python3}/bin/python3 - "$sock" "$busnum" "$devnum" "$dev_id" <<'PY'
-import json
-import socket
-import sys
-
-sock_path, busnum, devnum, dev_id = sys.argv[1:5]
-busnum = int(busnum)
-devnum = int(devnum)
-
-commands = [
-    {"execute": "qmp_capabilities"},
-    {
-        "execute": "device_add",
-        "arguments": {
-            "driver": "usb-host",
-            "hostbus": busnum,
-            "hostaddr": devnum,
-            "id": dev_id,
-        },
-    },
-]
-
-with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-    s.connect(sock_path)
-    greeting = s.recv(65536)
-    if greeting:
-        try:
-            print(greeting.decode(), file=sys.stderr)
-        except UnicodeDecodeError:
-            pass
-    f = s.makefile("rwb", buffering=0)
-    for command in commands:
-        payload = (json.dumps(command) + "\r\n").encode()
-        f.write(payload)
-        while True:
-            line = f.readline()
-            if not line:
-                raise SystemExit("QMP connection closed unexpectedly")
-            decoded = line.decode(errors="replace").strip()
-            print(decoded)
-            response = json.loads(decoded)
-            if "return" in response:
-                break
-            if "error" in response:
-                raise SystemExit(f"QMP error: {response['error']}")
-PY
-
-    echo "Attached host USB device $(printf '%03d' "$busnum")/$(printf '%03d' "$devnum") to sys-usb as $dev_id"
-  '';
-
-  sysUsbDetach = pkgs.writeShellScriptBin "sys-usb-detach" ''
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    sock="${sysUsbQmpSocket}"
-
-    if [ $# -ne 1 ]; then
-      echo "Usage: sys-usb-detach <device-id>" >&2
-      exit 1
-    fi
-
-    dev_id="$1"
-
-    if ! systemctl is-active --quiet microvm@sys-usb.service; then
-      echo "sys-usb VM is not running." >&2
-      exit 1
-    fi
-
-    if [ ! -S "$sock" ]; then
-      echo "QMP socket not found at $sock" >&2
-      exit 1
-    fi
-
-    ${pkgs.python3}/bin/python3 - "$sock" "$dev_id" <<'PY'
-import json
-import socket
-import sys
-
-sock_path, dev_id = sys.argv[1:3]
-commands = [
-    {"execute": "qmp_capabilities"},
-    {
-        "execute": "device_del",
-        "arguments": {
-            "id": dev_id,
-        },
-    },
-]
-
-with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-    s.connect(sock_path)
-    greeting = s.recv(65536)
-    if greeting:
-        try:
-            print(greeting.decode(), file=sys.stderr)
-        except UnicodeDecodeError:
-            pass
-    f = s.makefile("rwb", buffering=0)
-    for command in commands:
-        payload = (json.dumps(command) + "\r\n").encode()
-        f.write(payload)
-        while True:
-            line = f.readline()
-            if not line:
-                raise SystemExit("QMP connection closed unexpectedly")
-            decoded = line.decode(errors="replace").strip()
-            print(decoded)
-            response = json.loads(decoded)
-            if "return" in response:
-                break
-            if "error" in response:
-                raise SystemExit(f"QMP error: {response['error']}")
-PY
-
-    echo "Detached USB device $dev_id from sys-usb"
-  '';
 in
 {
   boot = {
@@ -275,7 +122,6 @@ in
     qemu
     cloud-hypervisor
     virtiofsd
-    libusb1
     usbutils
     zellij
     shadow
@@ -324,8 +170,6 @@ in
     fzf
 
     (import ../vms/copy-between-vms.nix { inherit pkgs lib; })
-    sysUsbAttach
-    sysUsbDetach
   ];
 
   environment.variables = {
@@ -527,13 +371,6 @@ in
         };
       }) selectedVms
     );
-
-  systemd.services."microvm@sys-usb" = {
-    serviceConfig = {
-      RuntimeDirectory = "microvm-sys-usb";
-      RuntimeDirectoryMode = "0750";
-    };
-  };
 
   programs.ssh.startAgent = true;
   # networking.useNetworkd = true;

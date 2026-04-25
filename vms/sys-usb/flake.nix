@@ -68,10 +68,7 @@
 
                   hypervisor = "qemu";
                   optimize.enable = false;
-                  qemu.extraArgs = [
-                    "-qmp"
-                    "unix:/run/microvm-sys-usb/qmp.sock,server=on,wait=off"
-                  ];
+                  qemu.extraArgs = [ ];
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -93,6 +90,7 @@
                 };
 
                 environment.systemPackages = with pkgs; [
+                  usbutils
                   blueman
                   bluez
                   bluez-tools
