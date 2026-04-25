@@ -90,14 +90,14 @@ in
     ${mkUsbAllowRule usb."keyboard-atreus" [ ]}
     ${mkUsbAllowRule usb."mouse-hub" [ ]}
     ${mkUsbAllowRule usb."mouse-main" [ ]}
-    ${mkUsbAllowRule usb."monitor-hub-main" [ ]}
     ${mkUsbAllowRule usb."ite-8291" [ ]}
 
     # VM-reserved devices stay authorized for passthrough, but host drivers are blacklisted.
     ${mkUsbAllowRule usb."webcam-main" [ ''GROUP="kvm"'' ''MODE="0660"'' ]}
     ${mkUsbAllowRule usb."bluetooth-ax211" [ ''GROUP="kvm"'' ''MODE="0660"'' ]}
 
-    # Monitor hub descendants are untrusted by default.
+    # Monitor hub and descendants are reserved for sys-usb.
+    ${mkUsbDenyRule "2-1"}
     ${mkUsbDenyRule "2-1.*"}
 
     # Default deny for every other external USB device.

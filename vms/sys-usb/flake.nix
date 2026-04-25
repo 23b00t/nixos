@@ -91,6 +91,10 @@
 
                 environment.systemPackages = with pkgs; [
                   usbutils
+                  udisks2
+                  ntfs3g
+                  exfatprogs
+                  dosfstools
                   blueman
                   bluez
                   bluez-tools
@@ -100,6 +104,7 @@
                 ];
 
                 services.dbus.enable = true;
+                services.udisks2.enable = true;
                 programs.dconf.enable = true;
 
                 # NOTE:

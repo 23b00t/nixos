@@ -273,9 +273,9 @@ let
       serial = "GenesysLogic_USB3.2_Hub";
       topologyPath = "2-1";
       idPath = "pci-0000:00:14.0-usb-0:1";
-      policy = "host-allow";
-      defaultOwner = "host";
-      allowedOwners = [ "host" ];
+      policy = "vm-reserved";
+      defaultOwner = "sys-usb";
+      allowedOwners = [ "sys-usb" ];
       allowChildren = false;
       preserveDisplayPlumbing = true;
       microvmUsbPath = "vendorid=0x05e3,productid=0x0620";
