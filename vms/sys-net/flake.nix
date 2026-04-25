@@ -153,6 +153,13 @@
                   trustedInterfaces = [ "vm-lan" ] ++ bridgeZoneInterfaces;
                   filterForward = true;
                   extraForwardRules = ''
+                    # Restrict host egress on vm-lan to maintenance traffic only.
+                    iifname "vm-lan" ip saddr 10.0.0.254 meta l4proto icmp accept
+                    iifname "vm-lan" ip saddr 10.0.0.254 tcp dport { 22, 80, 443 } accept
+                    iifname "vm-lan" ip saddr 10.0.0.254 udp dport { 53, 123 } accept
+                    iifname "vm-lan" ip saddr 10.0.0.254 tcp dport 53 accept
+                    iifname "vm-lan" ip saddr 10.0.0.254 reject with icmpx type admin-prohibited
+
                     iifname "vm-lan" oifname != "vm-lan" accept
                     ${lib.concatMapStringsSep "\n" (iface: "iifname \"${iface}\" oifname != \"${iface}\" accept") bridgeZoneInterfaces}
                     ct state established,related accept

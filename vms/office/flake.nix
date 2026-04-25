@@ -112,6 +112,7 @@
                 systemd.services.print-gateway-tunnel = {
                   description = "SSH Tunnel to sys-net CUPS";
                   after = [ "network-online.target" ];
+                  wants = [ "network-online.target" ];
                   wantedBy = [ "multi-user.target" ];
                   serviceConfig = {
                     Type = "simple";

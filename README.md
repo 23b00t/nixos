@@ -76,6 +76,79 @@ sudo resize2fs /dev/vdX
 - https://nikhilism.com/post/2023/remote-dbus-notifications/
 - Implemented in common-config.nix and registry.nix (changed ssh.nix logic for it to make it possible to have the same key twice)
 
+## Network architecture and documentation
+
+### Current model
+
+The system now follows a more Qubes-like split:
+
+- the host is mainly responsible for:
+  - hypervisor duties
+  - local L2 plumbing
+  - running MicroVMs and libvirt
+- `sys-net` is the main external network boundary
+- regular MicroVMs use the internal host bridge and route through `sys-net`
+- libvirt guest trust zones are bridged on the host, but L3/NAT/DHCP policy for migrated external zones lives in `sys-net`
+
+### Important bridges and roles
+
+- `vm-internal`
+  - host internal bridge for MicroVMs
+  - host address: `10.0.0.254/24`
+  - `sys-net` router address: `10.0.0.253/24`
+- `virbr0`
+  - bridge-backed libvirt network for `default`
+  - guest-facing gateway is provided by `sys-net` on `192.168.122.1`
+- `virbr1`
+  - bridge-backed libvirt network for `Whonix-External`
+  - guest-facing gateway is provided by `sys-net` on `10.0.2.2`
+- `virbr2`
+  - `Whonix-Internal`
+  - currently kept as a separate protected trust domain
+
+### Important implementation detail
+
+Host `systemd-networkd` must not manage libvirt `vnet*` interfaces.
+
+The fix is in `machines/common-configuration.nix`:
+
+```nix
+"38-vnet-libvirt-ignore" = {
+  matchConfig.Name = "vnet*";
+  linkConfig.Unmanaged = "yes";
+};
+```
+
+Without this, host `systemd-networkd` reconfigures libvirt tap devices and breaks their bridge forwarding state.
+
+### Host internet policy
+
+The host still uses `sys-net` as its default gateway via `vm-internal`, but host egress is now intended to stay minimal.
+
+Current design goal:
+
+- host may reach VMs for management
+- VMs should not reach the host by default
+- host internet should ideally be restricted to maintenance traffic such as:
+  - SSH
+  - HTTP/HTTPS
+  - DNS
+  - NTP
+  - ICMP for diagnostics
+
+This restriction is enforced in `vms/sys-net/flake.nix` on traffic coming from host address `10.0.0.254` via `vm-lan`.
+
+### Printing migration
+
+Printing and mDNS/Avahi service ownership were moved off the host and into `sys-net`.
+
+- `sys-net` now runs CUPS and Avahi
+- the `office` VM tunnels to `sys-net` instead of to the host
+- in the `office` VM, `/root/.ssh/print-gateway` is the private key used to SSH to `sys-net`
+- the matching public key must be authorized on `sys-net`
+
+Note: this printer migration is configured, but end-to-end runtime testing is still pending.
+
 ## libvirt
 
 - virsh list --all --name
@@ -106,7 +179,16 @@ nmcli radio wifi on
   - vms started by the scripts should be stoped after backup and restore
 - Setup microvm binary
   - Solve manual vm adding to flake.nix -> registry should be improved and with sed we'll manipulate the main flake before nix evaluation
-- Improve printing service (remove pre-condition of SSH Connection to the host)
+- Test migrated printing path via `sys-net` end-to-end
+- Host should ultimately have no direct internet; evaluate either proxy-based egress restriction or a dedicated update VM / Qubes-like update path
+- Build `sys-usb`
+  - investigate what is feasible on this hardware
+  - keyboard and mouse should remain on the host
+  - Bluetooth should move off the host
+  - likely explore a hybrid approach: PCI passthrough or controller-level isolation where possible, plus blacklisting/restricting host USB access except for keyboard and mouse
+  - collected hardware clues:
+    - USB controller: `00:14.0 Intel Raptor Lake USB 3.2 Gen 2x2 XHCI Host Controller`
+    - Bluetooth currently appears as USB device `8087:0033 Intel Corp. AX211 Bluetooth`
 - General refactoring and cleanup
 - Remove unused host/ not strictly needed host software
 - Debug and fix occasionally occurring shared libs error in nvim-vm
