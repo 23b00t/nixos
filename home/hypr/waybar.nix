@@ -203,6 +203,7 @@
           "modules-right": [
             "backlight",
             "tray",
+            "custom/bluetooth",
             "pulseaudio",
             "pulseaudio#microphone",
             "battery",
@@ -314,7 +315,7 @@
             "tooltip": false,
             "exec": "echo ",
             "interval": 3600,
-            "on-click": "vm-run su blueman-manager"
+            "on-click": "vm-run su dbus-run-session -- blueman-manager"
           },
 
           "custom/sensorsinfo": {

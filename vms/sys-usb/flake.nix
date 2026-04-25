@@ -56,6 +56,11 @@
                   withDefaultPkgs = false;
                 };
 
+                boot.kernelModules = [
+                  "btusb"
+                  "btintel"
+                ];
+
                 microvm = {
                   registerClosure = false;
 
@@ -85,6 +90,7 @@
                   blueman
                   bluez
                   bluez-tools
+                  dbus
                   wprs
                   xwayland
                 ];
@@ -103,6 +109,7 @@
                 # connect AA:BB:CC:DD:EE:FF
                 #
                 services.blueman.enable = true;
+                hardware.enableRedistributableFirmware = true;
                 hardware.bluetooth = {
                   enable = true;
                   settings = {
