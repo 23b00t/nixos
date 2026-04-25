@@ -22,6 +22,8 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
+      vmRegistry = import ../registry.nix;
+      usb = vmRegistry.hardware.usb.byName;
     in
     {
       packages.${system} = {
@@ -90,10 +92,10 @@
                       path = "vendorid=0x1209,productid=0x2303";
                     }
 
-                    # AX211 Bluetooth
+                    # AX211 Bluetooth (phase A keeps current steam capability; ownership cleanup follows)
                     {
                       bus = "usb";
-                      path = "vendorid=0x8087,productid=0x0033";
+                      path = usb."bluetooth-ax211".microvmUsbPath;
                     }
                   ];
                   mem = 16384;

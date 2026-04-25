@@ -236,7 +236,6 @@
         "waybar"
         "systemctl --user restart wpaperd.service"
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
-        "blueman-applet"
         "sleep 5 && vm-run sn nm-applet --indicator"
         "sleep 5 && vm-run c vesktop -m"
         "sleep 5 && vm-run c element-desktop --hidden"

@@ -1,5 +1,5 @@
 {
-  description = "Chat MicroVM";
+  description = "sys-usb MicroVM";
 
   inputs = {
     microvm = {
@@ -13,7 +13,6 @@
       self,
       nixpkgs,
       microvm,
-      ...
     }:
     let
       system = "x86_64-linux";
@@ -21,52 +20,47 @@
       pkgs = import nixpkgs { inherit system; };
       vmRegistry = import ../registry.nix;
       usb = vmRegistry.hardware.usb.byName;
+      sysUsbIp = vmRegistry.byName."sys-usb".ip;
     in
     {
       packages.${system} = {
-        default = self.packages.${system}.chat;
-        chat = self.nixosConfigurations.chat.config.microvm.declaredRunner;
+        default = self.packages.${system}.sys-usb;
+        sys-usb = self.nixosConfigurations.sys-usb.config.microvm.declaredRunner;
       };
       nixosConfigurations = {
-        chat = nixpkgs.lib.nixosSystem {
+        sys-usb = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
             microvm.nixosModules.microvm
             ../modules/net-config.nix
             ../modules/common-config.nix
+            ../modules/yazi-config.nix
             (
               { config, pkgs, ... }:
               {
+                networking.hostName = "sys-usb-vm";
                 services.net-config = {
                   enable = true;
-                  index = 2;
-                  mac = "00:00:00:00:00:02";
+                  address4 = "${sysUsbIp}/24";
+                  mac = "00:00:00:00:00:fc";
                 };
+
                 services.common-config = {
                   enable = true;
-                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
+                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsMuzfPPoWJ9bgKKPBWx/l5qYuWtwEG5s/yHs4rUrJn sys-usb-vm";
+                  withDefaultPkgs = false;
                 };
-                nixpkgs.config.allowUnfree = true;
-                networking.hostName = "chat-vm";
 
                 microvm = {
                   registerClosure = false;
+
                   hypervisor = "qemu";
                   optimize.enable = false;
-
-                  qemu.extraArgs = [
-                    "-nodefaults"
-                    "-device"
-                    "usb-ehci,id=ehci"
-                    "-device"
-                    "usb-host,bus=ehci.0,${usb."webcam-main".microvmUsbPath},guest-reset=false,pipeline=false"
-                  ];
-
                   volumes = [
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 4096;
+                      size = 10000;
                     }
                   ];
                   shares = [
@@ -77,8 +71,48 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  mem = 8192;
-                  vcpu = 2;
+                  devices = [
+                    # AX211 Bluetooth (default owner; Highlander handoff to steam later)
+                    {
+                      bus = "usb";
+                      path = usb."bluetooth-ax211".microvmUsbPath;
+                    }
+                    # TODO: Can we have one usb controller per pci?
+                  ];
+                  mem = 2048;
+                  vcpu = 1;
+                };
+
+                environment.systemPackages = with pkgs; [
+                  blueman
+                  bluez
+                  bluez-tools
+                  wprs
+                  xwayland
+                ];
+
+                services.dbus.enable = true;
+                programs.dconf.enable = true;
+
+                # NOTE:
+                # bluetoothctl
+                # power on
+                # agent on
+                # default-agent
+                # scan on
+                # pair AA:BB:CC:DD:EE:FF
+                # trust AA:BB:CC:DD:EE:FF
+                # connect AA:BB:CC:DD:EE:FF
+                #
+                services.blueman.enable = true;
+                hardware.bluetooth = {
+                  enable = true;
+                  settings = {
+                    General = {
+                      AutoEnable = true;
+                      FastConnectable = true;
+                    };
+                  };
                 };
 
                 systemd.user.services.wprsd = {
@@ -94,24 +128,6 @@
                   };
                   wantedBy = [ "default.target" ];
                 };
-
-                services.gnome.gnome-keyring.enable = true;
-
-                environment.systemPackages = with pkgs; [
-                  vesktop
-                  telegram-desktop
-                  slack
-                  element-desktop
-                  google-chrome
-                  wprs
-                  xwayland
-
-                  mesa
-                  vulkan-loader
-
-                  kitty
-                ];
-
                 system.stateVersion = "26.05";
               }
             )

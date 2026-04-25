@@ -144,6 +144,14 @@ let
       sshKeyName = "ruby-vm";
     }
     {
+      name = "sys-usb";
+      short = "su";
+      ip = "10.0.0.252";
+      autostart = true;
+      nat = false;
+      sshKeyName = "sys-usb-vm";
+    }
+    {
       name = "sys-net";
       short = "sn";
       ip = "10.0.0.253";
@@ -172,6 +180,107 @@ let
   autostartNames = map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) vms);
 
   globalExtraSSH = [ "RemoteForward /tmp/ssh_dbus.sock /run/user/1000/vm-session-bus.sock" ];
+
+  # Central USB/Bluetooth inventory and ownership policy.
+  usbDevices = [
+    {
+      name = "keyboard-atreus";
+      vendorId = "1209";
+      productId = "2303";
+      serial = "Keyboardio_Atreus_CDatreus";
+      topologyPath = "1-1.1";
+      idPath = "pci-0000:00:14.0-usb-0:1.1";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [ "host" ];
+      microvmUsbPath = "vendorid=0x1209,productid=0x2303";
+    }
+    {
+      name = "mouse-main";
+      vendorId = "093a";
+      productId = "2533";
+      serial = "093a_SHARKFORCE_OpticalMouse";
+      topologyPath = "1-3.1";
+      idPath = "pci-0000:00:14.0-usb-0:3.1";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [ "host" ];
+      microvmUsbPath = "vendorid=0x093a,productid=0x2533";
+    }
+    {
+      name = "bluetooth-ax211";
+      vendorId = "8087";
+      productId = "0033";
+      serial = "8087_0033";
+      topologyPath = "1-14";
+      idPath = "pci-0000:00:14.0-usb-0:14";
+      policy = "vm-reserved";
+      defaultOwner = "sys-usb";
+      allowedOwners = [
+        "sys-usb"
+        "steam"
+      ];
+      microvmUsbPath = "vendorid=0x8087,productid=0x0033";
+    }
+    {
+      name = "webcam-main";
+      vendorId = "2b7e";
+      productId = "c906";
+      serial = "Kingcome_FHD_WebCam_200901010001";
+      topologyPath = "1-5";
+      idPath = "pci-0000:00:14.0-usb-0:5";
+      policy = "vm-reserved";
+      defaultOwner = "chat";
+      allowedOwners = [ "chat" ];
+      microvmUsbPath = "vendorid=0x2b7e,productid=0xc906";
+    }
+    {
+      name = "monitor-hub-main";
+      vendorId = "05e3";
+      productId = "0620";
+      serial = "GenesysLogic_USB3.2_Hub";
+      topologyPath = "2-1";
+      idPath = "pci-0000:00:14.0-usb-0:1";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [ "host" ];
+      allowChildren = false;
+      preserveDisplayPlumbing = true;
+      microvmUsbPath = "vendorid=0x05e3,productid=0x0620";
+    }
+    {
+      name = "ite-8291";
+      vendorId = "048d";
+      productId = "600b";
+      serial = "ITE_Tech._Inc._ITE_Device_8291_";
+      topologyPath = "1-8";
+      idPath = "pci-0000:00:14.0-usb-0:8";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [ "host" ];
+      internal = true;
+      microvmUsbPath = "vendorid=0x048d,productid=0x600b";
+    }
+  ];
+
+  usbByName = builtins.listToAttrs (
+    map (device: {
+      name = device.name;
+      value = device;
+    }) usbDevices
+  );
+
+  hostAllowUsb = builtins.filter (device: device.policy == "host-allow") usbDevices;
+  vmReservedUsb = builtins.filter (device: device.policy == "vm-reserved") usbDevices;
+
+  hardware = {
+    usb = {
+      devices = usbDevices;
+      byName = usbByName;
+      hostAllow = hostAllowUsb;
+      vmReserved = vmReservedUsb;
+    };
+  };
 in
 {
   inherit
@@ -181,5 +290,6 @@ in
     natIPs
     autostartNames
     globalExtraSSH
+    hardware
     ;
 }

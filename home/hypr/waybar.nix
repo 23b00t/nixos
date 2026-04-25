@@ -314,7 +314,7 @@
             "tooltip": false,
             "exec": "echo ",
             "interval": 3600,
-            "on-click": "blueman-manager"
+            "on-click": "vm-run su blueman-manager"
           },
 
           "custom/sensorsinfo": {
