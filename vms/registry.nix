@@ -184,6 +184,19 @@ let
   # Central USB/Bluetooth inventory and ownership policy.
   usbDevices = [
     {
+      name = "keyboard-hub";
+      vendorId = "05e3";
+      productId = "0610";
+      serial = "GenesysLogic_USB2.1_Hub";
+      topologyPath = "1-1";
+      idPath = "pci-0000:00:14.0-usb-0:1";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [ "host" ];
+      allowChildren = false;
+      microvmUsbPath = "vendorid=0x05e3,productid=0x0610";
+    }
+    {
       name = "keyboard-atreus";
       vendorId = "1209";
       productId = "2303";
@@ -197,6 +210,19 @@ let
         "steam"
       ];
       microvmUsbPath = "vendorid=0x1209,productid=0x2303";
+    }
+    {
+      name = "mouse-hub";
+      vendorId = "1a40";
+      productId = "0801";
+      serial = "1a40_USB_2.0_Hub";
+      topologyPath = "1-3";
+      idPath = "pci-0000:00:14.0-usb-0:3";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [ "host" ];
+      allowChildren = false;
+      microvmUsbPath = "vendorid=0x1a40,productid=0x0801";
     }
     {
       name = "mouse-main";

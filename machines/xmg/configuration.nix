@@ -1,6 +1,7 @@
 {
   lib,
   inputs,
+  vmRegistry,
   ...
 }:
 let
@@ -11,6 +12,18 @@ let
     "8086:7a70" # WiFi
     "10ec:8125" # Ethernet
   ];
+
+  usb = vmRegistry.hardware.usb.byName;
+
+  mkUsbAllowRule = device: extraAssignments: let
+    assignments =
+      [ ''ATTR{authorized}="1"'' ]
+      ++ extraAssignments;
+  in
+    ''ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", KERNEL=="${device.topologyPath}", ${lib.concatStringsSep ", " assignments}, GOTO="xmg_usb_policy_end"'';
+
+  mkUsbDenyRule = topologyPath:
+    ''ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", KERNEL=="${topologyPath}", ATTR{authorized}="0", GOTO="xmg_usb_policy_end"'';
 in
 {
   boot = {
@@ -45,6 +58,13 @@ in
       "i2c_nvidia_gpu"
       "r8169"
       "iwlwifi"
+      "uvcvideo"
+      "btusb"
+      "bluetooth"
+      "btintel"
+      "btrtl"
+      "btmtk"
+      "btbcm"
     ];
   };
 
@@ -62,10 +82,28 @@ in
   services.xserver.xkb.options = "grp:alt_shift_toggle";
 
   services.udev.extraRules = ''
-    # KVM Group Access for USB Devices for Webcam pass through to MicroVM
-    SUBSYSTEM=="usb", ATTR{idVendor}=="2b7e", ATTR{idProduct}=="c906", GROUP="kvm"
-    # Intel AX211 Bluetooth
-    SUBSYSTEM=="usb", ATTR{idVendor}=="8087", ATTR{idProduct}=="0033", GROUP="kvm", MODE="0660"
+    # Keep root hubs managed by the host.
+    ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", KERNEL=="usb*", GOTO="xmg_usb_policy_end"
+
+    # Explicit host-allowed USB plumbing and input devices.
+    ${mkUsbAllowRule usb."keyboard-hub" [ ]}
+    ${mkUsbAllowRule usb."keyboard-atreus" [ ]}
+    ${mkUsbAllowRule usb."mouse-hub" [ ]}
+    ${mkUsbAllowRule usb."mouse-main" [ ]}
+    ${mkUsbAllowRule usb."monitor-hub-main" [ ]}
+    ${mkUsbAllowRule usb."ite-8291" [ ]}
+
+    # VM-reserved devices stay authorized for passthrough, but host drivers are blacklisted.
+    ${mkUsbAllowRule usb."webcam-main" [ ''GROUP="kvm"'' ''MODE="0660"'' ]}
+    ${mkUsbAllowRule usb."bluetooth-ax211" [ ''GROUP="kvm"'' ''MODE="0660"'' ]}
+
+    # Monitor hub descendants are untrusted by default.
+    ${mkUsbDenyRule "2-1.*"}
+
+    # Default deny for every other external USB device.
+    ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{authorized}="0"
+
+    LABEL="xmg_usb_policy_end"
   '';
 
   services.keyd = {
