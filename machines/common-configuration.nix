@@ -421,6 +421,15 @@ in
           linkConfig.RequiredForOnline = "no";
         };
 
+        "31-vm-usb" = {
+          matchConfig.Name = "vm-usb";
+          networkConfig = {
+            Bridge = "vm-internal";
+            ConfigureWithoutCarrier = true;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
         "32-vm-internal" = {
           matchConfig.Name = "vm-internal";
           address = [ "10.0.0.254/24" ];

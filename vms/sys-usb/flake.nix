@@ -46,6 +46,8 @@
                 networking.hostName = "sys-usb-vm";
                 services.net-config = {
                   enable = true;
+                  tapId = "vm-usb";
+                  interfaceName = "vm-lan";
                   address4 = "${sysUsbIp}/24";
                   mac = "00:00:00:00:00:fc";
                 };
@@ -77,7 +79,7 @@
                     }
                   ];
                   devices = map mkUsbDevice defaultUsbDevices;
-                  mem = 2048;
+                  mem = 1024;
                   vcpu = 1;
                 };
 
