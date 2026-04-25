@@ -21,6 +21,8 @@
       pkgs = import nixpkgs { inherit system; };
       vmRegistry = import ../registry.nix;
       usb = vmRegistry.hardware.usb.byName;
+      defaultUsbDevices = vmRegistry.hardware.usb.defaultForOwner "chat";
+      webcamUsbDevice = builtins.head defaultUsbDevices;
     in
     {
       packages.${system} = {
@@ -59,7 +61,7 @@
                     "-device"
                     "usb-ehci,id=ehci"
                     "-device"
-                    "usb-host,bus=ehci.0,${usb."webcam-main".microvmUsbPath},guest-reset=false,pipeline=false"
+                    "usb-host,bus=ehci.0,${webcamUsbDevice.microvmUsbPath},guest-reset=false,pipeline=false"
                   ];
 
                   volumes = [

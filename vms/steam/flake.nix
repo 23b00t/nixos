@@ -24,6 +24,19 @@
       pkgs = import nixpkgs { inherit system; };
       vmRegistry = import ../registry.nix;
       usb = vmRegistry.hardware.usb.byName;
+      allowedUsbDevices = vmRegistry.hardware.usb.allowedForOwner "steam";
+      bluetoothUsbDevice = usb."bluetooth-ax211";
+      steamUsbDevices = builtins.filter (
+        device: builtins.elem device.name [
+          "mouse-main"
+          "keyboard-atreus"
+          bluetoothUsbDevice.name
+        ]
+      ) allowedUsbDevices;
+      mkUsbDevice = device: {
+        bus = "usb";
+        path = device.microvmUsbPath;
+      };
     in
     {
       packages.${system} = {
@@ -81,23 +94,7 @@
                       bus = "pci";
                       path = "0000:02:00.1";
                     }
-                    # Mouse
-                    {
-                      bus = "usb";
-                      path = "vendorid=0x093a,productid=0x2533";
-                    }
-                    # Keyboard (Atreus)
-                    {
-                      bus = "usb";
-                      path = "vendorid=0x1209,productid=0x2303";
-                    }
-
-                    # AX211 Bluetooth (phase A keeps current steam capability; ownership cleanup follows)
-                    {
-                      bus = "usb";
-                      path = usb."bluetooth-ax211".microvmUsbPath;
-                    }
-                  ];
+                  ] ++ map mkUsbDevice steamUsbDevices;
                   mem = 16384;
                   vcpu = 10;
                 };

@@ -192,7 +192,10 @@ let
       idPath = "pci-0000:00:14.0-usb-0:1.1";
       policy = "host-allow";
       defaultOwner = "host";
-      allowedOwners = [ "host" ];
+      allowedOwners = [
+        "host"
+        "steam"
+      ];
       microvmUsbPath = "vendorid=0x1209,productid=0x2303";
     }
     {
@@ -204,7 +207,10 @@ let
       idPath = "pci-0000:00:14.0-usb-0:3.1";
       policy = "host-allow";
       defaultOwner = "host";
-      allowedOwners = [ "host" ];
+      allowedOwners = [
+        "host"
+        "steam"
+      ];
       microvmUsbPath = "vendorid=0x093a,productid=0x2533";
     }
     {
@@ -272,6 +278,8 @@ let
 
   hostAllowUsb = builtins.filter (device: device.policy == "host-allow") usbDevices;
   vmReservedUsb = builtins.filter (device: device.policy == "vm-reserved") usbDevices;
+  defaultUsbForOwner = owner: builtins.filter (device: (device.defaultOwner or null) == owner) usbDevices;
+  allowedUsbForOwner = owner: builtins.filter (device: builtins.elem owner (device.allowedOwners or [ ])) usbDevices;
 
   hardware = {
     usb = {
@@ -279,6 +287,8 @@ let
       byName = usbByName;
       hostAllow = hostAllowUsb;
       vmReserved = vmReservedUsb;
+      defaultForOwner = defaultUsbForOwner;
+      allowedForOwner = allowedUsbForOwner;
     };
   };
 in

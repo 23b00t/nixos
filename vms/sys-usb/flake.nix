@@ -21,6 +21,11 @@
       vmRegistry = import ../registry.nix;
       usb = vmRegistry.hardware.usb.byName;
       sysUsbIp = vmRegistry.byName."sys-usb".ip;
+      defaultUsbDevices = vmRegistry.hardware.usb.defaultForOwner "sys-usb";
+      mkUsbDevice = device: {
+        bus = "usb";
+        path = device.microvmUsbPath;
+      };
     in
     {
       packages.${system} = {
@@ -71,14 +76,7 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  devices = [
-                    # AX211 Bluetooth (default owner; Highlander handoff to steam later)
-                    {
-                      bus = "usb";
-                      path = usb."bluetooth-ax211".microvmUsbPath;
-                    }
-                    # TODO: Can we have one usb controller per pci?
-                  ];
+                  devices = map mkUsbDevice defaultUsbDevices;
                   mem = 2048;
                   vcpu = 1;
                 };
