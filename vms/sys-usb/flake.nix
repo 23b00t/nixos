@@ -68,6 +68,10 @@
 
                   hypervisor = "qemu";
                   optimize.enable = false;
+                  qemu.extraArgs = [
+                    "-qmp"
+                    "unix:/run/microvm-sys-usb/qmp.sock,server=on,wait=off"
+                  ];
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -120,6 +124,19 @@
                       FastConnectable = true;
                     };
                   };
+                };
+
+                systemd.user.services.obexd = {
+                  description = "Bluetooth OBEX daemon";
+                  after = [ "dbus.service" "network.target" ];
+                  wants = [ "dbus.service" ];
+                  serviceConfig = {
+                    Type = "simple";
+                    ExecStart = "${pkgs.bluez}/libexec/bluetooth/obexd";
+                    Restart = "on-failure";
+                    RestartSec = 2;
+                  };
+                  wantedBy = [ "default.target" ];
                 };
 
                 systemd.user.services.wprsd = {

@@ -147,7 +147,7 @@ let
       name = "sys-usb";
       short = "su";
       ip = "10.0.0.252";
-      autostart = true;
+      autostart = false;
       nat = false;
       sshKeyName = "sys-usb-vm";
     }
