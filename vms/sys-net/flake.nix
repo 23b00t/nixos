@@ -144,7 +144,10 @@
               networking = {
                 networkmanager = {
                   enable = true;
-                  unmanaged = [ "interface-name:vm-lan" ] ++ map (iface: "interface-name:${iface}") bridgeZoneInterfaces;
+                  unmanaged = [
+                    "interface-name:vm-lan"
+                  ]
+                  ++ map (iface: "interface-name:${iface}") bridgeZoneInterfaces;
                 };
                 nftables.enable = true;
                 firewall = {
@@ -160,7 +163,9 @@
                     iifname "vm-lan" ip saddr 10.0.0.254 reject with icmpx type admin-prohibited
 
                     iifname "vm-lan" oifname != "vm-lan" accept
-                    ${lib.concatMapStringsSep "\n" (iface: "iifname \"${iface}\" oifname != \"${iface}\" accept") bridgeZoneInterfaces}
+                    ${lib.concatMapStringsSep "\n" (
+                      iface: "iifname \"${iface}\" oifname != \"${iface}\" accept"
+                    ) bridgeZoneInterfaces}
                     ct state established,related accept
                   '';
                 };
@@ -237,6 +242,7 @@
                 dnsutils
                 tcpdump
                 nftables
+                iftop # network monitoring
 
                 wprs
                 xwayland

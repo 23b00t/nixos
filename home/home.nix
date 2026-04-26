@@ -51,7 +51,6 @@ in
 
     btop # replacement of htop/nmon
     iotop # io monitoring
-    iftop # network monitoring
 
     # system call monitoring
     # strace # system call monitoring
@@ -59,7 +58,6 @@ in
     lsof # list open files
     # system tools
     sysstat
-    ethtool
     pciutils # lspci
     usbutils # lsusb
     nerd-fonts.fira-code

@@ -93,6 +93,7 @@
                   dbus
                   dosfstools
                   exfatprogs
+                  exfat # exFAT support
                   ntfs3g
                   parted
                   udisks2

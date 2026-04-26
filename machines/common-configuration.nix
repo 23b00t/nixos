@@ -106,8 +106,6 @@ in
       };
   };
 
-
-  # TODO: Check what should be done by home-manager
   environment.systemPackages = with pkgs; [
     # Flakes clones its dependencies through the git command,
     # so git must be installed first
@@ -148,13 +146,8 @@ in
     # sddm
     sddm-astronaut
 
-    # Network
-    networkmanager
-
     # Hardware
     brightnessctl # screen brightness control
-    ntfs3g # ntfs support
-    exfat # exFAT support
     libinput # libinput library
     lm_sensors # system sensors
     pciutils # pci utils
@@ -193,7 +186,6 @@ in
 
   programs.dconf.enable = true;
   programs.vim.enable = true;
-  environment.variables.EDITOR = "vim";
 
   # For polkit authentication
   security.polkit.enable = true;
@@ -219,8 +211,6 @@ in
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   };
 
-  # sddm
-  # Add this section to ensure cursor theme is properly loaded
   environment.sessionVariables = {
     XCURSOR_THEME = "Bibata-Modern-Ice";
     XCURSOR_SIZE = "24";
@@ -260,10 +250,8 @@ in
       isNormalUser = true;
       extraGroups = [
         "wheel"
-        "networkmanager"
         "libvirtd"
         "tun"
-        "docker"
         "kvm"
         "input"
       ];
@@ -274,9 +262,6 @@ in
   };
 
   # Sound
-
-  ## Remove sound.enable or set it to false if you had it set previously, as sound.enable is only meant for ALSA-based configurations
-
   services.pulseaudio.enable = false;
 
   services = {
@@ -371,7 +356,7 @@ in
     );
 
   programs.ssh.startAgent = true;
-  # networking.useNetworkd = true;
+
   # Host provides the internal L2 fabric; sys-net provides routing/NAT.
   systemd.network = {
     netdevs = {
