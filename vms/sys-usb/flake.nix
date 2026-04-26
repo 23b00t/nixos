@@ -77,7 +77,7 @@
                     }
                   ];
                   devices = map mkUsbDevice defaultUsbDevices;
-                  mem = 2048;
+                  mem = 1024;
                   vcpu = 1;
                 };
 

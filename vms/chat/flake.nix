@@ -51,6 +51,8 @@
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "chat-vm";
 
+                users.users.user.extraGroups = lib.mkAfter [ "video" ];
+
                 microvm = {
                   registerClosure = false;
                   hypervisor = "qemu";
@@ -83,6 +85,21 @@
                   vcpu = 2;
                 };
 
+                services.pulseaudio.enable = false;
+                security.rtkit.enable = true;
+                services.pipewire = {
+                  enable = true;
+                  alsa.enable = true;
+                  pulse.enable = true;
+                };
+
+                xdg.portal = {
+                  enable = true;
+                  xdgOpenUsePortal = true;
+                  extraPortals = with pkgs; [ xdg-desktop-portal-gtk ];
+                  config.common.default = [ "gtk" ];
+                };
+
                 systemd.user.services.wprsd = {
                   description = "wprsd instance";
                   after = [ "network.target" ];
@@ -112,6 +129,7 @@
                   vulkan-loader
 
                   kitty
+                  v4l-utils
                 ];
 
                 system.stateVersion = "26.05";
