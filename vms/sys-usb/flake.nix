@@ -20,7 +20,6 @@
       pkgs = import nixpkgs { inherit system; };
       vmRegistry = import ../registry.nix;
       usb = vmRegistry.hardware.usb.byName;
-      sysUsbIp = vmRegistry.byName."sys-usb".ip;
       defaultUsbDevices = vmRegistry.hardware.usb.defaultForOwner "sys-usb";
       mkUsbDevice = device: {
         bus = "usb";
@@ -44,9 +43,10 @@
               { config, pkgs, ... }:
               {
                 networking.hostName = "sys-usb-vm";
+
                 services.net-config = {
                   enable = true;
-                  address4 = "${sysUsbIp}/24";
+                  index = 23;
                   mac = "00:00:00:00:00:fc";
                 };
 
@@ -91,11 +91,32 @@
                   bluez
                   bluez-tools
                   dbus
+                  dosfstools
+                  exfatprogs
+                  ntfs3g
+                  parted
+                  udisks2
+                  usbutils
+                  util-linux
                   wprs
                   xwayland
                 ];
 
                 services.dbus.enable = true;
+                services.udisks2.enable = true;
+                security.polkit = {
+                  enable = true;
+                  extraConfig = ''
+                    polkit.addRule(function(action, subject) {
+                      if (
+                        subject.isInGroup("wheel") &&
+                        action.id.indexOf("org.freedesktop.udisks2.") == 0
+                      ) {
+                        return polkit.Result.YES;
+                      }
+                    });
+                  '';
+                };
                 programs.dconf.enable = true;
 
                 # NOTE:

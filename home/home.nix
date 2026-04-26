@@ -64,6 +64,7 @@ in
     usbutils # lsusb
     nerd-fonts.fira-code
     chromium
+    bibata-cursors
     (import ./vm-management/remote-zellij.nix { inherit pkgs; })
     (import ./vm-management/backup.nix { inherit pkgs lib inputs; })
   ];

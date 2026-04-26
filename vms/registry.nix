@@ -146,8 +146,8 @@ let
     {
       name = "sys-usb";
       short = "su";
-      ip = "10.0.0.252";
-      autostart = true;
+      ip = "10.0.0.23";
+      autostart = false;
       nat = false;
       sshKeyName = "sys-usb-vm";
     }
@@ -187,9 +187,6 @@ let
       name = "keyboard-atreus";
       vendorId = "1209";
       productId = "2303";
-      serial = "Keyboardio_Atreus_CDatreus";
-      topologyPath = "1-1.1";
-      idPath = "pci-0000:00:14.0-usb-0:1.1";
       policy = "host-allow";
       defaultOwner = "host";
       allowedOwners = [
@@ -202,9 +199,6 @@ let
       name = "mouse-main";
       vendorId = "093a";
       productId = "2533";
-      serial = "093a_SHARKFORCE_OpticalMouse";
-      topologyPath = "1-3.1";
-      idPath = "pci-0000:00:14.0-usb-0:3.1";
       policy = "host-allow";
       defaultOwner = "host";
       allowedOwners = [
@@ -217,9 +211,6 @@ let
       name = "bluetooth-ax211";
       vendorId = "8087";
       productId = "0033";
-      serial = "8087_0033";
-      topologyPath = "1-14";
-      idPath = "pci-0000:00:14.0-usb-0:14";
       policy = "vm-reserved";
       defaultOwner = "sys-usb";
       allowedOwners = [
@@ -227,26 +218,27 @@ let
         "steam"
       ];
       microvmUsbPath = "vendorid=0x8087,productid=0x0033";
+      udev = {
+        group = "kvm";
+        mode = "0660";
+      };
     }
     {
       name = "webcam-main";
       vendorId = "2b7e";
       productId = "c906";
-      serial = "Kingcome_FHD_WebCam_200901010001";
-      topologyPath = "1-5";
-      idPath = "pci-0000:00:14.0-usb-0:5";
       policy = "vm-reserved";
       defaultOwner = "chat";
       allowedOwners = [ "chat" ];
       microvmUsbPath = "vendorid=0x2b7e,productid=0xc906";
+      udev = {
+        group = "kvm";
+      };
     }
     {
       name = "monitor-hub-main";
       vendorId = "05e3";
       productId = "0620";
-      serial = "GenesysLogic_USB3.2_Hub";
-      topologyPath = "2-1";
-      idPath = "pci-0000:00:14.0-usb-0:1";
       policy = "host-allow";
       defaultOwner = "host";
       allowedOwners = [ "host" ];
@@ -258,14 +250,25 @@ let
       name = "ite-8291";
       vendorId = "048d";
       productId = "600b";
-      serial = "ITE_Tech._Inc._ITE_Device_8291_";
-      topologyPath = "1-8";
-      idPath = "pci-0000:00:14.0-usb-0:8";
       policy = "host-allow";
       defaultOwner = "host";
       allowedOwners = [ "host" ];
       internal = true;
       microvmUsbPath = "vendorid=0x048d,productid=0x600b";
+    }
+    {
+      name = "verbatim usb-stick";
+      vendorId = "18a5";
+      productId = "0243";
+      policy = "vm-reserved";
+      defaultOwner = "sys-usb";
+      allowedOwners = [ "sys-usb" ];
+      microvmUsbPath = "vendorid=0x18a5,productid=0x0243";
+      udev = {
+        group = "kvm";
+        mode = "0660";
+        udisksIgnore = true;
+      };
     }
   ];
 
