@@ -49,40 +49,25 @@
         "zap-zsh/sudo"
         "wintermi/zsh-oh-my-posh"
         "kutsan/zsh-system-clipboard"
-        # "ohmyzsh/ohmyzsh path:plugins/git"
       ];
     };
     initContent = ''
-          # Oh My Posh: OMP_CONFIG (aus DevShell/Alias) > POSH_THEME > Default (1_shell)
-          # _omp_default="$HOME/.cache/oh-my-posh/themes/1_shell.omp.json"
-          # _omp_cfg="''${OMP_CONFIG:-''${POSH_THEME:-$_omp_default}}"
+      if command -v oh-my-posh >/dev/null 2>&1; then
+        eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/slimfat.omp.json")"
+      fi
+      # Load custom functions
+      [ -f "$HOME/nixos-config/home/resources/paste_functions.zsh" ] && source "$HOME/nixos-config/home/resources/paste_functions.zsh"
+      [ -f "$HOME/nixos-config/home/resources/nvim.zsh" ] && source "$HOME/nixos-config/home/resources/nvim.zsh"
 
-          if command -v oh-my-posh >/dev/null 2>&1; then
-            eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/slimfat.omp.json")"
-          fi
-          # unset _omp_cfg _omp_default
-
-          # GitHub Copilot CLI Aliases
-          # if command -v ${pkgs.gh}/bin/gh >/dev/null 2>&1; then
-          #   eval "$(${pkgs.gh}/bin/gh copilot alias -- zsh)"
-          # fi
-          # if command -v zoxide >/dev/null 2>&1; then
-          #   eval "$(zoxide init zsh)"
-          # fi
-
-          # Load custom functions
-          [ -f "$HOME/nixos-config/home/resources/paste_functions.zsh" ] && source "$HOME/nixos-config/home/resources/paste_functions.zsh"
-          [ -f "$HOME/nixos-config/home/resources/nvim.zsh" ] && source "$HOME/nixos-config/home/resources/nvim.zsh"
-
-          ms() {
-              systemctl start microvm@"$1".service
-          }
-          mst() {
-              systemctl stop microvm@"$1".service
-          }
-          mr() {
-              systemctl restart microvm@"$1".service
-          }
-      	'';
+      ms() {
+          systemctl start microvm@"$1".service
+      }
+      mst() {
+          systemctl stop microvm@"$1".service
+      }
+      mr() {
+          systemctl restart microvm@"$1".service
+      }
+    '';
   };
 }
