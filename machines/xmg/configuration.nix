@@ -4,9 +4,27 @@
   ...
 }:
 let
+  vmRegistry = import ../../vms/registry.nix;
+
+  mkVmReservedUsbRule =
+    device:
+    let
+      udev = device.udev or { };
+      group = udev.group or "kvm";
+      modePart = lib.optionalString (udev ? mode) '' , MODE="${udev.mode}"'';
+      udisksPart = lib.optionalString (udev.udisksIgnore or false)
+        '' , ENV{UDISKS_IGNORE}="1", TAG-="uaccess"'';
+    in
+    ''SUBSYSTEM=="usb", ATTR{idVendor}=="${device.vendorId}", ATTR{idProduct}=="${device.productId}", GROUP="${group}"${modePart}${udisksPart}'';
+
+  vmReservedUsbRules = lib.concatMapStringsSep "\n" mkVmReservedUsbRule vmRegistry.hardware.usb.vmReserved;
+
+  # e.g. lspci -n -s 00:14.3 (for WiFi)
   devices = [
     "10de:2d19" # NVIDIA RTX 5060 Max-Q (VGA)
     "10de:22eb" # NVIDIA RTX 5060 Audio
+    "8086:7a70" # WiFi
+    "10ec:8125" # Ethernet
   ];
 in
 {
@@ -40,6 +58,8 @@ in
       "nvidia_drm"
       "nvidia_modeset"
       "i2c_nvidia_gpu"
+      "r8169"
+      "iwlwifi"
     ];
   };
 
@@ -57,10 +77,8 @@ in
   services.xserver.xkb.options = "grp:alt_shift_toggle";
 
   services.udev.extraRules = ''
-    # KVM Group Access for USB Devices for Webcam pass through to MicroVM
-    SUBSYSTEM=="usb", ATTR{idVendor}=="2b7e", ATTR{idProduct}=="c906", GROUP="kvm"
-    # Intel AX211 Bluetooth
-    SUBSYSTEM=="usb", ATTR{idVendor}=="8087", ATTR{idProduct}=="0033", GROUP="kvm", MODE="0660"
+    # VM-reserved USB devices are generated from vms/registry.nix
+    ${vmReservedUsbRules}
   '';
 
   services.keyd = {
@@ -85,7 +103,5 @@ in
   # Steam VM CPU pinning
   systemd.services."microvm@steam".serviceConfig.CPUAffinity = "0 1 2 3 4 5 6 7 8 9";
 
-  # Optional
-  # networking.hostName = lib.mkForce "xmg";
   networking.hostName = lib.mkForce "xmg";
 }

@@ -143,6 +143,22 @@ let
       nat = true;
       sshKeyName = "ruby-vm";
     }
+    {
+      name = "sys-usb";
+      short = "su";
+      ip = "10.0.0.23";
+      autostart = false;
+      nat = false;
+      sshKeyName = "sys-usb-vm";
+    }
+    {
+      name = "sys-net";
+      short = "sn";
+      ip = "10.0.0.253";
+      autostart = true;
+      nat = false;
+      sshKeyName = "sys-net-vm";
+    }
   ];
 
   byName = builtins.listToAttrs (
@@ -164,6 +180,120 @@ let
   autostartNames = map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) vms);
 
   globalExtraSSH = [ "RemoteForward /tmp/ssh_dbus.sock /run/user/1000/vm-session-bus.sock" ];
+
+  # Central USB/Bluetooth inventory and ownership policy.
+  usbDevices = [
+    {
+      name = "keyboard-atreus";
+      vendorId = "1209";
+      productId = "2303";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [
+        "host"
+        "steam"
+      ];
+      microvmUsbPath = "vendorid=0x1209,productid=0x2303";
+    }
+    {
+      name = "mouse-main";
+      vendorId = "093a";
+      productId = "2533";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [
+        "host"
+        "steam"
+      ];
+      microvmUsbPath = "vendorid=0x093a,productid=0x2533";
+    }
+    {
+      name = "bluetooth-ax211";
+      vendorId = "8087";
+      productId = "0033";
+      policy = "vm-reserved";
+      defaultOwner = "sys-usb";
+      allowedOwners = [
+        "sys-usb"
+        "steam"
+      ];
+      microvmUsbPath = "vendorid=0x8087,productid=0x0033";
+      udev = {
+        group = "kvm";
+        mode = "0660";
+      };
+    }
+    {
+      name = "webcam-main";
+      vendorId = "2b7e";
+      productId = "c906";
+      policy = "vm-reserved";
+      defaultOwner = "chat";
+      allowedOwners = [ "chat" ];
+      microvmUsbPath = "vendorid=0x2b7e,productid=0xc906";
+      udev = {
+        group = "kvm";
+      };
+    }
+    {
+      name = "monitor-hub-main";
+      vendorId = "05e3";
+      productId = "0620";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [ "host" ];
+      allowChildren = false;
+      preserveDisplayPlumbing = true;
+      microvmUsbPath = "vendorid=0x05e3,productid=0x0620";
+    }
+    {
+      name = "ite-8291";
+      vendorId = "048d";
+      productId = "600b";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [ "host" ];
+      internal = true;
+      microvmUsbPath = "vendorid=0x048d,productid=0x600b";
+    }
+    {
+      name = "verbatim usb-stick";
+      vendorId = "18a5";
+      productId = "0243";
+      policy = "vm-reserved";
+      defaultOwner = "sys-usb";
+      allowedOwners = [ "sys-usb" ];
+      microvmUsbPath = "vendorid=0x18a5,productid=0x0243";
+      udev = {
+        group = "kvm";
+        mode = "0660";
+        udisksIgnore = true;
+      };
+    }
+  ];
+
+  usbByName = builtins.listToAttrs (
+    map (device: {
+      name = device.name;
+      value = device;
+    }) usbDevices
+  );
+
+  hostAllowUsb = builtins.filter (device: device.policy == "host-allow") usbDevices;
+  vmReservedUsb = builtins.filter (device: device.policy == "vm-reserved") usbDevices;
+  defaultUsbForOwner = owner: builtins.filter (device: (device.defaultOwner or null) == owner) usbDevices;
+  allowedUsbForOwner = owner: builtins.filter (device: builtins.elem owner (device.allowedOwners or [ ])) usbDevices;
+
+  hardware = {
+    usb = {
+      devices = usbDevices;
+      byName = usbByName;
+      hostAllow = hostAllowUsb;
+      vmReserved = vmReservedUsb;
+      defaultForOwner = defaultUsbForOwner;
+      allowedForOwner = allowedUsbForOwner;
+    };
+  };
 in
 {
   inherit
@@ -173,5 +303,6 @@ in
     natIPs
     autostartNames
     globalExtraSSH
+    hardware
     ;
 }

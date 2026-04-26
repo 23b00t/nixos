@@ -51,7 +51,6 @@ in
 
     btop # replacement of htop/nmon
     iotop # io monitoring
-    iftop # network monitoring
 
     # system call monitoring
     # strace # system call monitoring
@@ -59,11 +58,11 @@ in
     lsof # list open files
     # system tools
     sysstat
-    ethtool
     pciutils # lspci
     usbutils # lsusb
     nerd-fonts.fira-code
     chromium
+    bibata-cursors
     (import ./vm-management/remote-zellij.nix { inherit pkgs; })
     (import ./vm-management/backup.nix { inherit pkgs lib inputs; })
   ];

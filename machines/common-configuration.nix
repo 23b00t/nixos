@@ -72,6 +72,7 @@ in
   imports = [
     inputs.microvm.nixosModules.host
     inputs.home-manager.nixosModules.home-manager
+    ../modules/libvirt-bridge-networks.nix
 
     # Hardware Configuration - Uncomment lines that match your hardware
     # Run `lshw -short` or `lspci` to identify your hardware
@@ -105,42 +106,6 @@ in
       };
   };
 
-  networking = {
-    # hostName = "machine";
-    # TODO: Use nftables - check rules
-    # nftables.enable = true;
-    firewall = {
-      enable = true;
-      allowedTCPPorts = [
-        9003
-        631
-      ];
-      extraCommands = ''
-        iptables -A INPUT -p tcp --dport 22 -s 10.0.0.9 -j ACCEPT
-        iptables -A INPUT -p tcp --dport 22 -j DROP
-      '';
-      extraStopCommands = ''
-        iptables -D INPUT -p tcp --dport 22 -s 10.0.0.9 -j ACCEPT || true
-        iptables -D INPUT -p tcp --dport 22 -j DROP || true
-      '';
-      # TODO: Test to remove after Docker has been removed
-      # Erlaubt Traffic auf der Bridge (nötig wegen Docker/br_netfilter)
-      trustedInterfaces = [ "virbr2" ];
-    };
-  };
-  services.openssh = {
-    enable = true;
-    # listenAddresses = [
-    #   {
-    #     addr = "10.0.0.0";
-    #     port = 22;
-    #   }
-    # ];
-    settings.PermitRootLogin = "no";
-  };
-  services.fail2ban.enable = true;
-
-  # TODO: Check what should be done by home-manager
   environment.systemPackages = with pkgs; [
     # Flakes clones its dependencies through the git command,
     # so git must be installed first
@@ -181,22 +146,13 @@ in
     # sddm
     sddm-astronaut
 
-    # Network
-    networkmanager
-    networkmanagerapplet
-
     # Hardware
     brightnessctl # screen brightness control
-    ntfs3g # ntfs support
-    exfat # exFAT support
     libinput # libinput library
     lm_sensors # system sensors
     pciutils # pci utils
 
     # Audio
-    bluez
-    bluez-tools
-    blueman
     pipewire
     wireplumber
     pavucontrol
@@ -221,17 +177,6 @@ in
 
   programs.nix-ld.enable = true;
 
-  hardware.bluetooth = {
-    enable = true;
-    powerOnBoot = true;
-    settings = {
-      General = {
-        Enable = "Source,Sink,Media,Socket";
-        Experimental = true;
-      };
-    };
-  };
-
   services = {
     dbus.enable = true;
 
@@ -241,7 +186,6 @@ in
 
   programs.dconf.enable = true;
   programs.vim.enable = true;
-  environment.variables.EDITOR = "vim";
 
   # For polkit authentication
   security.polkit.enable = true;
@@ -267,8 +211,6 @@ in
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   };
 
-  # sddm
-  # Add this section to ensure cursor theme is properly loaded
   environment.sessionVariables = {
     XCURSOR_THEME = "Bibata-Modern-Ice";
     XCURSOR_SIZE = "24";
@@ -308,10 +250,8 @@ in
       isNormalUser = true;
       extraGroups = [
         "wheel"
-        "networkmanager"
         "libvirtd"
         "tun"
-        "docker"
         "kvm"
         "input"
       ];
@@ -322,9 +262,6 @@ in
   };
 
   # Sound
-
-  ## Remove sound.enable or set it to false if you had it set previously, as sound.enable is only meant for ALSA-based configurations
-
   services.pulseaudio.enable = false;
 
   services = {
@@ -335,23 +272,7 @@ in
         support32Bit = true;
       };
       pulse.enable = true;
-      wireplumber = {
-        enable = true;
-        extraConfig.bluetoothEnhancements = {
-          "monitor.bluez.properties" = {
-            "bluez5.enable-sbc-xq" = true;
-            "bluez5.enable-msbc" = true;
-            "bluez5.enable-hw-volume" = true;
-            "bluez5.roles" = [
-              "hsp_hs"
-              "hsp_ag"
-              "hfp_hf"
-              "hfp_ag"
-            ];
-          };
-        };
-
-      };
+      wireplumber.enable = true;
       # If you want to use JACK applications, uncomment this
       # jack.enable = true;
       # Netzwerk-Audio aktivieren
@@ -370,7 +291,6 @@ in
         };
       };
     };
-    blueman.enable = true;
   };
 
   # networking.wireless.enable = true;
@@ -394,18 +314,6 @@ in
 
   virtualisation.libvirtd.enable = true;
   # virtualisation.spiceUSBRedirection.enable = true;
-
-  systemd.services."libvirt-default-net" = {
-    description = "Start libvirt default network";
-    wantedBy = [ "multi-user.target" ];
-    wants = [ "libvirtd.service" ];
-    after = [ "libvirtd.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "-${pkgs.libvirt}/bin/virsh net-start default";
-      RemainAfterExit = true;
-    };
-  };
   programs.virt-manager.enable = true;
 
   # TODO: Check if this is done in home-manager already
@@ -448,52 +356,117 @@ in
     );
 
   programs.ssh.startAgent = true;
-  # networking.useNetworkd = true;
-  # Generiere Netzwerke für alle VMs
-  # Netzwerke für Standard-VMs (10.0.0.x)
-  systemd.network.networks =
-    (builtins.listToAttrs (
-      map (index: {
-        name = "30-vm${toString index}";
-        value = {
-          matchConfig.Name = "vm${toString index}";
-          # Host-Adresse für die P2P Verbindung
-          address = [
-            "10.0.0.0/32" # Host auf diesem Interface
-            "10.0.0.254/32" # Feste Host-IP für alle VMs
-            "fec0::/128"
-            "fec0::ff/128" # Feste Host-IPv6 für alle VMs
-          ];
-          # Route zur VM
-          routes = [
-            { Destination = "10.0.0.${toString index}/32"; }
-            { Destination = "fec0::${lib.toHexString index}/128"; }
-          ];
-          networkConfig = {
-            IPv4Forwarding = true;
-            IPv6Forwarding = true;
-          };
+
+  # Host provides the internal L2 fabric; sys-net provides routing/NAT.
+  systemd.network = {
+    netdevs = {
+      "20-vm-internal" = {
+        netdevConfig = {
+          Name = "vm-internal";
+          Kind = "bridge";
         };
-      }) (lib.genList (i: i + 1) maxVMs)
-    ))
-    // {
-      # IMPORTANT: Ignore Tor interfaces for VMs
-      "35-vm11-tor-ignore" = {
-        matchConfig.Name = "vm11-tor";
-        linkConfig.Unmanaged = "yes";
+      };
+
+      "21-virbr0" = {
+        netdevConfig = {
+          Name = "virbr0";
+          Kind = "bridge";
+        };
+      };
+
+      "22-virbr1" = {
+        netdevConfig = {
+          Name = "virbr1";
+          Kind = "bridge";
+        };
       };
     };
 
-  # NAT only for 4 VMs
-  networking.nat =
-    let
-      vmRegistry = import ../vms/registry.nix;
-    in
-    {
-      enable = true;
-      internalIPs = map (ip: "${ip}/32") vmRegistry.natIPs;
-      # externalInterface = "wlo1";
-    };
+    networks =
+      (builtins.listToAttrs (
+        map (index: {
+          name = "30-vm${toString index}";
+          value = {
+            matchConfig.Name = "vm${toString index}";
+            networkConfig = {
+              Bridge = "vm-internal";
+              ConfigureWithoutCarrier = true;
+            };
+            linkConfig.RequiredForOnline = "no";
+          };
+        }) (lib.genList (i: i + 1) maxVMs)
+      ))
+      // {
+        "31-vm-router" = {
+          matchConfig.Name = "vm-router";
+          networkConfig = {
+            Bridge = "vm-internal";
+            ConfigureWithoutCarrier = true;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        "32-vm-internal" = {
+          matchConfig.Name = "vm-internal";
+          address = [ "10.0.0.254/24" ];
+          routes = [
+            {
+              Destination = "0.0.0.0/0";
+              Gateway = "10.0.0.253";
+            }
+          ];
+          networkConfig.ConfigureWithoutCarrier = true;
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        "33-virbr0" = {
+          matchConfig.Name = "virbr0";
+          networkConfig = {
+            ConfigureWithoutCarrier = true;
+            IPv6AcceptRA = false;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        "34-virbr1" = {
+          matchConfig.Name = "virbr1";
+          networkConfig = {
+            ConfigureWithoutCarrier = true;
+            IPv6AcceptRA = false;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        "35-vm-libv-def" = {
+          matchConfig.Name = "vm-libv-def";
+          networkConfig = {
+            Bridge = "virbr0";
+            ConfigureWithoutCarrier = true;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        "36-vm-whx-ext" = {
+          matchConfig.Name = "vm-whx-ext";
+          networkConfig = {
+            Bridge = "virbr1";
+            ConfigureWithoutCarrier = true;
+          };
+          linkConfig.RequiredForOnline = "no";
+        };
+
+        # IMPORTANT: Ignore Tor interfaces for VMs
+        "37-vm11-tor-ignore" = {
+          matchConfig.Name = "vm11-tor";
+          linkConfig.Unmanaged = "yes";
+        };
+
+        "38-vnet-libvirt-ignore" = {
+          matchConfig.Name = "vnet*";
+          linkConfig.Unmanaged = "yes";
+        };
+      };
+  };
 
   systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
 
@@ -563,17 +536,6 @@ in
     })
   ];
 
-  # Printer
-  services.printing = {
-    enable = true;
-  };
-
-  services.avahi = {
-    enable = true;
-    nssmdns4 = true;
-    openFirewall = true;
-  };
-
   fonts.packages = with pkgs; [
     nerd-fonts.fira-code
   ];
@@ -583,6 +545,7 @@ in
     unmanaged = [
       "interface-name:vm*"
       "interface-name:virbr*"
+      "interface-name:vnet*"
     ];
   };
 

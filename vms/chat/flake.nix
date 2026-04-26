@@ -19,6 +19,10 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
+      vmRegistry = import ../registry.nix;
+      usb = vmRegistry.hardware.usb.byName;
+      defaultUsbDevices = vmRegistry.hardware.usb.defaultForOwner "chat";
+      webcamUsbDevice = builtins.head defaultUsbDevices;
     in
     {
       packages.${system} = {
@@ -47,6 +51,8 @@
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "chat-vm";
 
+                users.users.user.extraGroups = lib.mkAfter [ "video" ];
+
                 microvm = {
                   registerClosure = false;
                   hypervisor = "qemu";
@@ -57,7 +63,7 @@
                     "-device"
                     "usb-ehci,id=ehci"
                     "-device"
-                    "usb-host,bus=ehci.0,vendorid=0x2b7e,productid=0xc906,guest-reset=false,pipeline=false"
+                    "usb-host,bus=ehci.0,${webcamUsbDevice.microvmUsbPath},guest-reset=false,pipeline=false"
                   ];
 
                   volumes = [
@@ -77,6 +83,21 @@
                   ];
                   mem = 8192;
                   vcpu = 2;
+                };
+
+                services.pulseaudio.enable = false;
+                security.rtkit.enable = true;
+                services.pipewire = {
+                  enable = true;
+                  alsa.enable = true;
+                  pulse.enable = true;
+                };
+
+                xdg.portal = {
+                  enable = true;
+                  xdgOpenUsePortal = true;
+                  extraPortals = with pkgs; [ xdg-desktop-portal-gtk ];
+                  config.common.default = [ "gtk" ];
                 };
 
                 systemd.user.services.wprsd = {
@@ -108,6 +129,7 @@
                   vulkan-loader
 
                   kitty
+                  v4l-utils
                 ];
 
                 system.stateVersion = "26.05";

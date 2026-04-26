@@ -1,5 +1,9 @@
 { pkgs, ... }:
-
+# NOTE: Debug with: busctl --user list | grep -E 'StatusNotifier|Notifications|NetworkManager'
+# busctl --user monitor org.freedesktop.DBus
+# --log \
+# --see=org.gtk.Settings \
+# --talk=org.gtk.Settings \
 {
   systemd.user.services.vm-session-bus-proxy = {
     description = "Filtered host D-Bus proxy for VMs";
@@ -18,6 +22,7 @@
         --talk=org.kde.StatusNotifierWatcher \
         --see=org.freedesktop.StatusNotifierWatcher \
         --talk=org.freedesktop.StatusNotifierWatcher \
+        --own=org.freedesktop.network-manager-applet \
         --broadcast=org.kde.StatusNotifierWatcher=/StatusNotifierWatcher,org.kde.StatusNotifierWatcher,* \
         --broadcast=org.freedesktop.StatusNotifierWatcher=/StatusNotifierWatcher,org.freedesktop.StatusNotifierWatcher,*
     '';

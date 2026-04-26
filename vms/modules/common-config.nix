@@ -19,6 +19,11 @@ in
       default = "user";
       description = "Username for the main user.";
     };
+    withDefaultPkgs = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Enable the default set of packages defined in default-pkgs.nix";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -111,15 +116,14 @@ in
       Host *
           StrictHostKeyChecking no
           UserKnownHostsFile /dev/null
-      Host 10.0.0.254 
-          IdentitiesOnly yes
     '';
 
     systemd.tmpfiles.rules = [
-      "L+ /home/${cfg.user}/.ssh/config - - - - /etc/ssh_config"
       "d /home/${cfg.user} 0755 ${cfg.user} users -"
+      "d /home/${cfg.user}/.ssh 0700 ${cfg.user} users -"
+      "L+ /home/${cfg.user}/.ssh/config - - - - /etc/ssh_config"
     ];
 
-    environment.systemPackages = mkBefore defaultPkgs;
+    environment.systemPackages = mkIf cfg.withDefaultPkgs (mkBefore defaultPkgs);
   };
 }
