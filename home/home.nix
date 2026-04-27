@@ -67,6 +67,7 @@ in
     (import ./vm-management/backup.nix { inherit pkgs lib inputs; })
     (import ./vm-management/vmcopy-keys.nix { inherit pkgs; })
     (import ./vm-management/github-agent.nix { inherit pkgs; })
+    # GitHub agent is now also started automatically as user service below.
   ];
 
   home.file.".config/kitty/kitty.conf" = {
@@ -81,6 +82,24 @@ in
 
   # oh-my-posh theme
   home.file.".cache/oh-my-posh/themes/slimfat.omp.json".source = ./resources/slimfat.omp.json;
+
+  home.sessionVariables = {
+    SSH_AUTH_SOCK = "$HOME/.ssh/agent/github.sock";
+  };
+
+  systemd.user.services.github-agent = {
+    Unit = {
+      Description = "GitHub SSH Agent";
+      After = [ "network.target" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${pkgs.github-agent}/bin/github-agent";
+      Environment = "HOME=%h";
+      Restart = "on-failure";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
 
   home.stateVersion = "26.05";
 }
