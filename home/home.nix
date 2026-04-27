@@ -8,6 +8,7 @@
 }:
 let
   kittyConf = import ./kitty/kitty.nix;
+  myGithubAgent = import ./vm-management/github-agent.nix { inherit pkgs; };
 in
 {
   imports = [
@@ -66,7 +67,7 @@ in
     (import ./vm-management/remote-zellij.nix { inherit pkgs; })
     (import ./vm-management/backup.nix { inherit pkgs lib inputs; })
     (import ./vm-management/vmcopy-keys.nix { inherit pkgs; })
-    (import ./vm-management/github-agent.nix { inherit pkgs; })
+    myGithubAgent
     # GitHub agent is now also started automatically as user service below.
   ];
 
@@ -94,7 +95,7 @@ in
     };
     Service = {
       Type = "simple";
-      ExecStart = "${pkgs.github-agent}/bin/github-agent";
+      ExecStart = "${myGithubAgent}/bin/github-agent";
       Environment = "HOME=%h";
       Restart = "on-failure";
     };
