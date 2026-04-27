@@ -120,6 +120,7 @@
 
                 services.ide = {
                   enable = true;
+                  githubAgent.enable = true;
                   lazyvimRepo = "git@github.com:23b00t/lazyvim.git";
                 };
 

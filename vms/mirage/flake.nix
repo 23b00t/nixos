@@ -42,7 +42,10 @@
                   index = 14;
                   mac = "00:00:00:00:00:0e";
                 };
-                services.ide.enable = true;
+                services.ide = {
+                  enable = true;
+                  githubAgent.enable = true;
+                };
                 services.zsh-env.enable = true;
                 services.common-config = {
                   enable = true;

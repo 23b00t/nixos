@@ -66,6 +66,7 @@ in
     (import ./vm-management/remote-zellij.nix { inherit pkgs; })
     (import ./vm-management/backup.nix { inherit pkgs lib inputs; })
     (import ./vm-management/vmcopy-keys.nix { inherit pkgs; })
+    (import ./vm-management/github-agent.nix { inherit pkgs; })
   ];
 
   home.file.".config/kitty/kitty.conf" = {

@@ -7,6 +7,7 @@ let
   #   autostart   : whether the VM should autostart via microvm.host
   #   nat         : whether the VM should be included in networking.nat.internalIPs
   #   allowVmCopy : whether the VM should participate in inter-VM copy; defaults to true
+  #   allowGitHubAgent : whether the VM should receive the dedicated forwarded GitHub SSH agent/socket
   #   extraSSH    : extra SSH matchOptions for home.ssh (may be [])
   vms = [
     {
@@ -15,6 +16,7 @@ let
       ip = "10.0.0.1";
       autostart = true;
       nat = true;
+      allowGitHubAgent = true;
       extraSSH = [
         "RemoteForward 4713 localhost:4713"
       ];
@@ -105,6 +107,7 @@ let
       ip = "10.0.0.13";
       autostart = false;
       nat = true;
+      allowGitHubAgent = true;
     }
     {
       name = "mirage";
@@ -112,6 +115,7 @@ let
       ip = "10.0.0.14";
       autostart = false;
       nat = true;
+      allowGitHubAgent = true;
     }
     {
       name = "php";
@@ -119,6 +123,7 @@ let
       ip = "10.0.0.15";
       autostart = false;
       nat = true;
+      allowGitHubAgent = true;
     }
     {
       name = "ruby";
@@ -126,6 +131,7 @@ let
       ip = "10.0.0.16";
       autostart = false;
       nat = true;
+      allowGitHubAgent = true;
     }
     {
       name = "sys-usb";

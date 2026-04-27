@@ -6,6 +6,7 @@
 }:
 let
   cfg = config.services.ide;
+  githubAgentSocket = "/tmp/ssh-github-agent.sock";
   lazyvimSyncScript = pkgs.writeShellScript "ide-lazyvim-sync" ''
     set -e
 
@@ -28,6 +29,12 @@ in
       type = lib.types.str;
       default = "user";
       description = "Target user for IDE-related configuration";
+    };
+
+    githubAgent.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Expose the dedicated forwarded GitHub SSH agent/socket inside this VM.";
     };
 
     lazyvimRepo = lib.mkOption {
@@ -104,6 +111,18 @@ in
         commit.gpgsign = true;
         user.signingkey = "937A32679620DC68";
       };
+    };
+
+    programs.ssh = lib.mkIf cfg.githubAgent.enable {
+      extraConfig = ''
+        Host github.com
+          IdentityAgent ${githubAgentSocket}
+          IdentitiesOnly yes
+      '';
+    };
+
+    environment.variables = lib.mkIf cfg.githubAgent.enable {
+      SSH_AUTH_SOCK = githubAgentSocket;
     };
 
     environment.variables.EDITOR = "nvim";

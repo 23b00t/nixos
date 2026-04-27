@@ -32,7 +32,8 @@
   nvim.url = "path:./vms/nvim";
   ```
 - Add a flake to vms/{name}/flake.nix which defines the microvm
-  - Create a ssh key for the VM: ssh-keygen -C my-vm
+  - Create a host ssh key for the VM: ssh-keygen -C my-vm
+- If the VM should participate in file sharing between vms, use on the host: `vmcopy-keys <new-vm-name>` and rebuild again
 - Import modules as needed, the usage of nearly all available modules is shown in vms/nvim/flake.nix
 
 ### Additional setup for ide vms

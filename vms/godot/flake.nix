@@ -107,7 +107,10 @@
                   enable = true;
                   sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhv6q3siBUASk16LN8tCa2nPUp4g2isRuwo1ndDPz7g godot-vm";
                 };
-                services.ide.enable = true;
+                services.ide = {
+                  enable = true;
+                  githubAgent.enable = true;
+                };
                 services.zellij-env = {
                   enable = true;
                   tabsKdlFile = builtins.path {

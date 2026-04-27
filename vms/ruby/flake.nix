@@ -45,7 +45,10 @@
                   enable = true;
                   sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkF7qniIZVKtoIrUUWkU8t/1QeK34BSEgI54MbqbieC ruby-vm";
                 };
-                services.ide.enable = true;
+                services.ide = {
+                  enable = true;
+                  githubAgent.enable = true;
+                };
                 services.zsh-env = {
                   enable = true;
                   extraShellInit = ''

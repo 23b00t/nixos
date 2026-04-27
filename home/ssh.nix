@@ -3,6 +3,8 @@ let
   vmRegistry = import ../vms/registry.nix;
 
   hosts = vmRegistry.vms;
+  githubAgentHosts = builtins.filter (h: h.allowGitHubAgent or false) hosts;
+  githubAgentSocket = "~/.ssh/agent/github.sock";
 
   hostStrings = builtins.concatStringsSep "\n" (
     map (
@@ -28,6 +30,10 @@ let
     "*" = {
       addKeysToAgent = "yes";
     };
+    "github.com" = {
+      identityAgent = githubAgentSocket;
+      identitiesOnly = true;
+    };
   } hosts;
 
 in
@@ -35,7 +41,15 @@ in
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
-    extraConfig = hostStrings;
+    extraConfig = hostStrings + "\n"
+      + builtins.concatStringsSep "\n" (
+        map (h: ''
+          Host ${h.name}-vm ${h.ip}
+            IdentityAgent none
+            ForwardAgent no
+            RemoteForward /tmp/ssh-github-agent.sock ${githubAgentSocket}
+        '') githubAgentHosts
+      );
     inherit matchBlocks;
   };
 }
