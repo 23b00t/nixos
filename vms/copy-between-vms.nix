@@ -29,15 +29,15 @@ pkgs.writeShellScriptBin "cp-vm" ''
   # Notes:
   # - only transfer-capable VMs from the registry are valid targets
   # - uploads land below /home/user/incoming/<source-vm>/ on the target
-  # - the dedicated transfer key will later be deployed automatically; for now the
-  #   script expects it at $VM_COPY_KEY_PATH or /run/vmcopy/id_ed25519
+  # - the script expects a per-VM transfer key at $VM_COPY_KEY_PATH or
+  #   /home/user/.ssh/vmcopy by default
 
   set -eu
 
   SELF_HOSTNAME="$(hostname)"
   SELF_VM="''${SELF_HOSTNAME%-vm}"
   DEFAULT_USER="vmcopy"
-  DEFAULT_KEY_PATH="/run/vmcopy/id_ed25519"
+  DEFAULT_KEY_PATH="/home/user/.ssh/vmcopy"
   KEY_PATH="''${VM_COPY_KEY_PATH:-$DEFAULT_KEY_PATH}"
   HOSTTABLE="${hostTable}"
 
@@ -83,7 +83,6 @@ pkgs.writeShellScriptBin "cp-vm" ''
 
   if [ ! -r "$KEY_PATH" ]; then
     echo "Transfer key not found at '$KEY_PATH'." >&2
-    echo "Set VM_COPY_KEY_PATH to a readable temporary key until agenix is added." >&2
     exit 6
   fi
 

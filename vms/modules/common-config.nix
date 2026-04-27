@@ -12,8 +12,20 @@ let
   vmCopyEnabled = cfg.vmCopy.enable && (currentVm.allowVmCopy or true);
   vmCopyRoot = cfg.vmCopy.homeDirectory;
   vmCopyIncomingDir = cfg.vmCopy.incomingDirectory;
+  vmCopyKeyDirectory = ../vmcopy-keys;
   vmCopySourceDirectories = map (vm: vm.name) (
     builtins.filter (vm: vm.name != vmName) vmRegistry.vmCopyParticipants
+  );
+  vmCopyAutoAuthorizedKeys = map (
+    sourceVm:
+      let
+        keyPath = vmCopyKeyDirectory + "/${sourceVm}.pub";
+      in
+        removeSuffix "\n" (builtins.readFile keyPath)
+  ) (
+    builtins.filter (
+      sourceVm: builtins.pathExists (vmCopyKeyDirectory + "/${sourceVm}.pub")
+    ) vmCopySourceDirectories
   );
 in
 {
@@ -58,7 +70,7 @@ in
       authorizedKeys = mkOption {
         type = types.listOf types.str;
         default = [ ];
-        description = "Authorized SSH public keys for the restricted inter-VM copy account.";
+        description = "Extra authorized SSH public keys for the restricted inter-VM copy account.";
       };
     };
   };
@@ -154,7 +166,7 @@ in
           group = cfg.vmCopy.user;
           home = vmCopyRoot;
           createHome = false;
-          openssh.authorizedKeys.keys = cfg.vmCopy.authorizedKeys;
+          openssh.authorizedKeys.keys = vmCopyAutoAuthorizedKeys ++ cfg.vmCopy.authorizedKeys;
         };
       })
     ];
