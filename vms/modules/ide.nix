@@ -6,6 +6,7 @@
 }:
 let
   cfg = config.services.ide;
+  # Path where the agent socket will be available in the VM (matches SSH RemoteForward)
   githubAgentSocket = "/tmp/ssh-github-agent.sock";
   lazyvimSyncScript = pkgs.writeShellScript "ide-lazyvim-sync" ''
     set -e
@@ -114,19 +115,25 @@ in
     };
 
     programs.ssh = lib.mkIf cfg.githubAgent.enable {
+      # DO NOT set "IdentitiesOnly yes" for github.com if you rely on agent forwarding!
+      # This disables forwarded keys and allows only explicit local IdentityFile-entries.
+      # To use agent forwarding, simply let ssh's default handle it.
       extraConfig = ''
         Host github.com
-          IdentityAgent ${githubAgentSocket}
-          IdentitiesOnly yes
+          # IdentityAgent can be set if you need a nonstandard socket (usually not required)
+          # IdentityAgent ${githubAgentSocket}
       '';
     };
 
-    environment.variables = lib.mkIf cfg.githubAgent.enable {
-      SSH_AUTH_SOCK = githubAgentSocket;
-    };
-
-    environment.variables.EDITOR = "nvim";
-    environment.variables.VISUAL = "nvim";
+    environment.variables =
+      {
+        EDITOR = "nvim";
+        VISUAL = "nvim";
+      }
+      // lib.optionalAttrs cfg.githubAgent.enable {
+        # Set SSH_AUTH_SOCK for all environments to the correct agent socket path
+        SSH_AUTH_SOCK = githubAgentSocket;
+      };
 
     nixpkgs.config.allowUnfree = true;
 

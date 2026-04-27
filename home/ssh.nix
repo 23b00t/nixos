@@ -4,7 +4,7 @@ let
 
   hosts = vmRegistry.vms;
   githubAgentHosts = builtins.filter (h: h.allowGitHubAgent or false) hosts;
-  githubAgentSocket = "~/.ssh/agent/github.sock";
+  githubAgentSocket = "%d/.ssh/agent/github.sock";
 
   hostStrings = builtins.concatStringsSep "\n" (
     map (
@@ -47,6 +47,7 @@ in
           Host ${h.name}-vm ${h.ip}
             IdentityAgent none
             ForwardAgent no
+            ExitOnForwardFailure yes
             RemoteForward /tmp/ssh-github-agent.sock ${githubAgentSocket}
         '') githubAgentHosts
       );
