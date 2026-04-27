@@ -6,7 +6,7 @@ let
   #   ip          : IPv4 address on the 10.0.0.0/24 network
   #   autostart   : whether the VM should autostart via microvm.host
   #   nat         : whether the VM should be included in networking.nat.internalIPs
-  #   sshKeyName  : basename of SSH key in ~/.ssh
+  #   allowVmCopy : whether the VM should participate in inter-VM copy; defaults to true
   #   extraSSH    : extra SSH matchOptions for home.ssh (may be [])
   vms = [
     {
@@ -15,7 +15,6 @@ let
       ip = "10.0.0.1";
       autostart = true;
       nat = true;
-      sshKeyName = "nvim-vm";
       extraSSH = [
         "RemoteForward 4713 localhost:4713"
       ];
@@ -26,7 +25,6 @@ let
       ip = "10.0.0.2";
       autostart = true;
       nat = true;
-      sshKeyName = "chat-vm";
     }
     # {
     #   name = "test";
@@ -34,7 +32,6 @@ let
     #   ip = "10.0.0.3";
     #   autostart = false;
     #   nat = true;
-    #   sshKeyName = "test-vm";
     # }
     {
       name = "music";
@@ -42,7 +39,6 @@ let
       ip = "10.0.0.4";
       autostart = true;
       nat = true;
-      sshKeyName = "music-vm";
       extraSSH = [
         "RemoteForward 4713 localhost:4713"
       ];
@@ -53,7 +49,6 @@ let
       ip = "10.0.0.5";
       autostart = true;
       nat = true;
-      sshKeyName = "net-vm";
     }
     {
       name = "net-private";
@@ -61,7 +56,6 @@ let
       ip = "10.0.0.6";
       autostart = false;
       nat = true;
-      sshKeyName = "net-private-vm";
     }
     {
       name = "wine";
@@ -69,7 +63,6 @@ let
       ip = "10.0.0.7";
       autostart = false;
       nat = true;
-      sshKeyName = "wine-vm";
     }
     {
       name = "kali";
@@ -77,7 +70,6 @@ let
       ip = "10.0.0.8";
       autostart = false;
       nat = true;
-      sshKeyName = "kali-vm";
     }
     {
       name = "office";
@@ -85,7 +77,6 @@ let
       ip = "10.0.0.9";
       autostart = false;
       nat = false;
-      sshKeyName = "office-vm";
     }
     {
       name = "vault";
@@ -93,7 +84,6 @@ let
       ip = "10.0.0.10";
       autostart = false;
       nat = false;
-      sshKeyName = "vault-vm";
     }
     {
       name = "irc";
@@ -101,7 +91,6 @@ let
       ip = "10.0.0.11";
       autostart = true;
       nat = false;
-      sshKeyName = "irc-vm";
     }
     {
       name = "steam";
@@ -109,7 +98,6 @@ let
       ip = "10.0.0.12";
       autostart = false;
       nat = true;
-      sshKeyName = "steam-vm";
     }
     {
       name = "godot";
@@ -117,7 +105,6 @@ let
       ip = "10.0.0.13";
       autostart = false;
       nat = true;
-      sshKeyName = "godot-vm";
     }
     {
       name = "mirage";
@@ -125,7 +112,6 @@ let
       ip = "10.0.0.14";
       autostart = false;
       nat = true;
-      sshKeyName = "mirage-vm";
     }
     {
       name = "php";
@@ -133,7 +119,6 @@ let
       ip = "10.0.0.15";
       autostart = false;
       nat = true;
-      sshKeyName = "php-vm";
     }
     {
       name = "ruby";
@@ -141,7 +126,6 @@ let
       ip = "10.0.0.16";
       autostart = false;
       nat = true;
-      sshKeyName = "ruby-vm";
     }
     {
       name = "sys-usb";
@@ -149,7 +133,6 @@ let
       ip = "10.0.0.23";
       autostart = false;
       nat = false;
-      sshKeyName = "sys-usb-vm";
     }
     {
       name = "sys-net";
@@ -157,7 +140,7 @@ let
       ip = "10.0.0.253";
       autostart = true;
       nat = false;
-      sshKeyName = "sys-net-vm";
+      allowVmCopy = false;
     }
   ];
 
@@ -178,6 +161,8 @@ let
   natIPs = map (vm: vm.ip) (builtins.filter (vm: vm.nat or false) vms);
 
   autostartNames = map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) vms);
+
+  vmCopyParticipants = builtins.filter (vm: vm.allowVmCopy or true) vms;
 
   globalExtraSSH = [ "RemoteForward /tmp/ssh_dbus.sock /run/user/1000/vm-session-bus.sock" ];
 
@@ -302,6 +287,7 @@ in
     byShort
     natIPs
     autostartNames
+    vmCopyParticipants
     globalExtraSSH
     hardware
     ;

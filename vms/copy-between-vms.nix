@@ -2,8 +2,8 @@
 let
   vmRegistry = import ./registry.nix;
 
-  # Host table: <hostname> <ip> [username]
-  # We include both long and short names; default user is 'user'.
+  # Host table: <hostname> <ip>
+  # We include both long and short names for transfer-capable VMs only.
   hostTable = builtins.concatStringsSep "\n" (
     map (vm:
       let
@@ -13,35 +13,43 @@ let
           base + "\n" + "${vm.short} ${vm.ip}"
         else
           base
-    ) vmRegistry.vms
+    ) vmRegistry.vmCopyParticipants
   );
 
 in
 pkgs.writeShellScriptBin "cp-vm" ''
-  # cp-vm: Copy or move a file/folder via rsync to a target VM using a host table.
+  # cp-vm: Copy or move a file/folder to another VM using the restricted vmcopy account.
   #
   # Syntax:
   #   cp-vm [-m] <vm-name-or-short> ./filename
-  #     -m               : move (instead of copy)
+  #     -m                : move (instead of copy)
   #     <vm-name-or-short>: destination VM, long or short name from registry
-  #     ./filename       : file or directory to transfer (relative or absolute path)
+  #     ./filename        : file or directory to transfer (relative or absolute path)
   #
-  # The host table is generated from Nix VM registry.
+  # Notes:
+  # - only transfer-capable VMs from the registry are valid targets
+  # - uploads land below /home/user/incoming/<source-vm>/ on the target
+  # - the dedicated transfer key will later be deployed automatically; for now the
+  #   script expects it at $VM_COPY_KEY_PATH or /run/vmcopy/id_ed25519
 
-  set -e
+  set -eu
 
-  DEFAULT_USER="user"
-
+  SELF_HOSTNAME="$(hostname)"
+  SELF_VM="''${SELF_HOSTNAME%-vm}"
+  DEFAULT_USER="vmcopy"
+  DEFAULT_KEY_PATH="/run/vmcopy/id_ed25519"
+  KEY_PATH="''${VM_COPY_KEY_PATH:-$DEFAULT_KEY_PATH}"
   HOSTTABLE="${hostTable}"
 
   usage() {
-    echo "Usage: $0 [-m] <vm-name-or-short> ./filename"
-    echo "  -m               : move (instead of copy)"
+    echo "Usage: $0 [-m] <vm-name-or-short> ./filename" >&2
+    echo "  -m                : move (instead of copy)" >&2
+    echo "  VM_COPY_KEY_PATH   : optional override for the transfer SSH key" >&2
     exit 1
   }
 
   MOVE=0
-  if [ "$1" == "-m" ]; then
+  if [ "''${1:-}" = "-m" ]; then
     MOVE=1
     shift
   fi
@@ -53,25 +61,19 @@ pkgs.writeShellScriptBin "cp-vm" ''
   TARGET="$1"
   FILE="$2"
 
-  # Lookup host in host table
-  LINE=$(echo "$HOSTTABLE" | grep -E "^$TARGET[[:space:]]+" || true)
+  LINE=$(printf '%s\n' "$HOSTTABLE" | awk -v target="$TARGET" '$1 == target { print; exit }')
   if [ -z "$LINE" ]; then
-    echo "Host '$TARGET' not found in host table." >&2
+    echo "Transfer target '$TARGET' is not allowed." >&2
     exit 3
   fi
 
-  # Parse values
   set -- $LINE
-  HOSTNAME="$1"
+  TARGET_NAME="$1"
   IP="$2"
+
   if [ -z "$IP" ]; then
     echo "Malformed host table entry for '$TARGET'." >&2
     exit 5
-  fi
-  if [ -n "$3" ]; then
-    USERNAME="$3"
-  else
-    USERNAME="$DEFAULT_USER"
   fi
 
   if [ ! -e "$FILE" ]; then
@@ -79,21 +81,26 @@ pkgs.writeShellScriptBin "cp-vm" ''
     exit 4
   fi
 
-  RSYNC_OPTS="-a --info=progress2 --no-group --no-owner"
-  RSYNC_PATH="mkdir -p ~/incoming/$(hostname) && rsync"
-  DEST="''${USERNAME}@''${IP}:~/incoming/$(hostname)/"
-
-  # Copy or move using rsync
-  if [ $MOVE -eq 1 ]; then
-    rsync $RSYNC_OPTS --rsync-path="$RSYNC_PATH" --remove-source-files "$FILE" "$DEST"
-    # Remove empty source directories if moving
-    if [ -d "$FILE" ]; then
-      find "$FILE" -type d -empty -delete
-    fi
-  else
-    rsync $RSYNC_OPTS --rsync-path="$RSYNC_PATH" "$FILE" "$DEST"
+  if [ ! -r "$KEY_PATH" ]; then
+    echo "Transfer key not found at '$KEY_PATH'." >&2
+    echo "Set VM_COPY_KEY_PATH to a readable temporary key until agenix is added." >&2
+    exit 6
   fi
 
-  echo "Transfer to $TARGET ($IP) completed."
+  FILE_BASENAME="$(basename "$FILE")"
+  REMOTE_DIR="./$SELF_VM/"
+  SSH_OPTS="-i $KEY_PATH -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+
+  if [ -d "$FILE" ]; then
+    scp $SSH_OPTS -r -- "$FILE" "''${DEFAULT_USER}@''${IP}:$REMOTE_DIR"
+  else
+    scp $SSH_OPTS -- "$FILE" "''${DEFAULT_USER}@''${IP}:$REMOTE_DIR"
+  fi
+
+  if [ $MOVE -eq 1 ]; then
+    rm -rf -- "$FILE"
+  fi
+
+  echo "Transfer to $TARGET_NAME ($IP) completed."
 ''
 

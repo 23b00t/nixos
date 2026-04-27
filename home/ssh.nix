@@ -19,9 +19,8 @@ let
   mkMatchBlock = h: {
     "${h.name}-vm ${h.ip}" = {
       user = "user";
-      identityFile = "~/.ssh/${h.sshKeyName}";
+      identityFile = "~/.ssh/${h.name}-vm";
       identitiesOnly = true;
-      forwardAgent = true;
     };
   };
 

@@ -5,6 +5,16 @@ with lib;
 let
   cfg = config.services.common-config;
   defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
+  vmRegistry = import ../registry.nix;
+  hostName = config.networking.hostName or "";
+  vmName = if hasSuffix "-vm" hostName then removeSuffix "-vm" hostName else hostName;
+  currentVm = if builtins.hasAttr vmName vmRegistry.byName then builtins.getAttr vmName vmRegistry.byName else { };
+  vmCopyEnabled = cfg.vmCopy.enable && (currentVm.allowVmCopy or true);
+  vmCopyRoot = cfg.vmCopy.homeDirectory;
+  vmCopyIncomingDir = cfg.vmCopy.incomingDirectory;
+  vmCopySourceDirectories = map (vm: vm.name) (
+    builtins.filter (vm: vm.name != vmName) vmRegistry.vmCopyParticipants
+  );
 in
 {
   options.services.common-config = {
@@ -23,6 +33,33 @@ in
       type = types.bool;
       default = true;
       description = "Enable the default set of packages defined in default-pkgs.nix";
+    };
+    vmCopy = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Enable the restricted inter-VM copy account on transfer-capable VMs.";
+      };
+      user = mkOption {
+        type = types.str;
+        default = "vmcopy";
+        description = "Name of the restricted inter-VM copy account.";
+      };
+      homeDirectory = mkOption {
+        type = types.str;
+        default = "/home/user/incoming";
+        description = "Home directory for the restricted inter-VM copy account.";
+      };
+      incomingDirectory = mkOption {
+        type = types.str;
+        default = "/home/user/incoming";
+        description = "Persistent incoming directory used for inter-VM copy uploads.";
+      };
+      authorizedKeys = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        description = "Authorized SSH public keys for the restricted inter-VM copy account.";
+      };
     };
   };
 
@@ -59,6 +96,17 @@ in
         UseDNS no
         # DBus Forwarding
         StreamLocalBindUnlink yes
+      ''
+      + optionalString vmCopyEnabled ''
+
+        Match User ${cfg.vmCopy.user}
+          AllowAgentForwarding no
+          AllowStreamLocalForwarding no
+          AllowTcpForwarding no
+          PermitTunnel no
+          X11Forwarding no
+          PermitTTY no
+          ForceCommand internal-sftp -d ${vmCopyIncomingDir}
       '';
     };
 
@@ -82,14 +130,34 @@ in
       wheelNeedsPassword = false;
     };
 
-    users.groups.users = { };
+    users.groups = mkMerge [
+      {
+        users = { };
+      }
+      (mkIf vmCopyEnabled {
+        "${cfg.vmCopy.user}" = { };
+      })
+    ];
 
-    users.users.${cfg.user} = {
-      isNormalUser = true;
-      group = "users";
-      extraGroups = [ "wheel" ];
-      openssh.authorizedKeys.keys = mkIf (cfg.sshKey != null) [ cfg.sshKey ];
-    };
+    users.users = mkMerge [
+      {
+        "${cfg.user}" = {
+          isNormalUser = true;
+          group = "users";
+          extraGroups = [ "wheel" ];
+          openssh.authorizedKeys.keys = mkIf (cfg.sshKey != null) [ cfg.sshKey ];
+        };
+      }
+      (mkIf vmCopyEnabled {
+        "${cfg.vmCopy.user}" = {
+          isSystemUser = true;
+          group = cfg.vmCopy.user;
+          home = vmCopyRoot;
+          createHome = false;
+          openssh.authorizedKeys.keys = cfg.vmCopy.authorizedKeys;
+        };
+      })
+    ];
 
     environment.sessionVariables = {
       TERM = "xterm-256color";
@@ -112,17 +180,17 @@ in
       fi
     '';
 
-    environment.etc."ssh_config".text = ''
-      Host *
-          StrictHostKeyChecking no
-          UserKnownHostsFile /dev/null
-    '';
-
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user} 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.ssh 0700 ${cfg.user} users -"
-      "L+ /home/${cfg.user}/.ssh/config - - - - /etc/ssh_config"
-    ];
+    ] ++ optionals vmCopyEnabled (
+      [
+        "d ${vmCopyIncomingDir} 0755 ${cfg.user} users -"
+      ]
+      ++ map (
+        sourceVm: "d ${vmCopyIncomingDir}/${sourceVm} 2770 ${cfg.vmCopy.user} users -"
+      ) vmCopySourceDirectories
+    );
 
     environment.systemPackages = mkIf cfg.withDefaultPkgs (mkBefore defaultPkgs);
   };
