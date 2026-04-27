@@ -193,7 +193,12 @@
                   {
                     mountPoint = "/home/user";
                     image = "home.img";
-                    size = 5000;
+                    size = 512;
+                  }
+                  {
+                    mountPoint = "/etc/NetworkManager/system-connections";
+                    image = "networkmanager.img";
+                    size = 512;
                   }
                 ];
                 shares = [
