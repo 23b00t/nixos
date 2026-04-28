@@ -181,21 +181,12 @@ nmcli radio wifi on
 - Setup microvm binary
   - Solve manual vm adding to flake.nix -> registry should be improved and with sed we'll manipulate the main flake before nix evaluation
 - Test migrated printing path via `sys-net` end-to-end
-- Host should ultimately have no direct internet; evaluate either proxy-based egress restriction or a dedicated update VM / Qubes-like update path
-- Build `sys-usb`
-  - investigate what is feasible on this hardware
-  - keyboard and mouse should remain on the host
-  - Bluetooth should move off the host
-  - likely explore a hybrid approach: PCI passthrough or controller-level isolation where possible, plus blacklisting/restricting host USB access except for keyboard and mouse
-  - collected hardware clues:
-    - USB controller: `00:14.0 Intel Raptor Lake USB 3.2 Gen 2x2 XHCI Host Controller`
-    - Bluetooth currently appears as USB device `8087:0033 Intel Corp. AX211 Bluetooth`
 - General refactoring and cleanup
 - Remove unused host/ not strictly needed host software
 - Debug and fix occasionally occurring shared libs error in nvim-vm
 - cp-vm bug fix: script has to use the right key and not brute-force
 - Improve ssh key sharing
-- Fix element-desktop tray issue
+- Monitor element-desktop tray issue
 - Fix bug that occasionally occurs at boot: Bootscreen isn't displayed and tty seems frozen till password is typed in blindly and boot finished successfully
 - Check where we can enable microvm.optimization
 

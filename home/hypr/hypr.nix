@@ -232,14 +232,15 @@
       ];
 
       # Startup-Apps (Hyprland-Panel, Waybar, Notifier, etc.)
+      # TODO: use a more robust script that checks if the vms are up and responding before starting the tray apps.
       exec-once = [
         "waybar"
         "systemctl --user restart wpaperd.service"
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
         "sleep 10 && vm-run sn nm-applet --indicator"
-        "sleep 5 && vm-run c vesktop -m"
-        "sleep 5 && vm-run c element-desktop --hidden"
-        "sleep 5 && vm-run c Telegram -startintray"
+        "sleep 8 && vm-run c vesktop -m"
+        "sleep 8 && vm-run c element-desktop --hidden"
+        "sleep 8 && vm-run c Telegram -startintray"
         "[workspace 2 silent] sleep 5 && kitty"
         "[workspace 3 silent] sleep 8 && kitty --session=none remote-zellij i"
         "[workspace special:magic silent] sleep 5 && vm-run net zen"
