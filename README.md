@@ -72,10 +72,11 @@ sudo resize2fs /dev/vdX
 - And directly remove it again:
   - sudo iptables -D INPUT -p tcp --dport 22 -s 10.0.0.1 -j ACCEPT
 
-### Notification forwarding
+### Notification and tray forwarding
 
 - https://nikhilism.com/post/2023/remote-dbus-notifications/
 - Implemented in common-config.nix and registry.nix (changed ssh.nix logic for it to make it possible to have the same key twice)
+- Configured dbus-proxy
 
 ## Network architecture and documentation
 
@@ -162,6 +163,7 @@ Note: this printer migration is configured, but end-to-end runtime testing is st
 <!-- TODO: Build sth. working - idealy with only sharing specific windows, would be fine if only chat-vm is the target (but should be addable by module) -->
 vm: mpv http://192.168.178.20:8082/stream
 host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1video -b:v 3000k -bf 0 http://0.0.0.0:8082/stream
+- Actually only sharing should be on per module basis per vm which participates in sharable. If that could be possible with wprs?
 
 ## No WiFi
 
@@ -175,20 +177,35 @@ nmcli radio wifi on
 
 ## TODOs <!-- TODO: -->
 
+- Remove not strictly needed host software
+- why do we get: Error: remote port forwarding failed for listen port 4713
+  - remove ExitOnForwardFailure yes if we can't fix it otherwise
+- remove home/electron/
+- move home/resources/paste_functions.zsh and cmds to nvim-vm
+- refactor all scripts
+- think over dropping zellij and zsh on the host
+- split nvim-vm in real nvim-vm and coding-vm
+- modularize config
+- zen as module
+- wprs as module
+- remove pkgs/ and overlays/
+- remove net-private-vm
+- think about removing fluxbox workflow. in office-vm it's possible, but what's with wine vm? a libvirt vm could be an alternative.
+- restructure vms/ vm folders should not live on the same level as modules/ vmcopy-keys/ etc.
+- improve and use manage-vms.nix
+- refactor key management; the keys should be part of registry.nix? or can they for the public host keys also just in a folder?
+- create hyprland start script or actually better: improve vm-run, so there are no sleeps needed anymore as vm-run is more robust as just checking bare reachablity.
+- create a very basic script for vm creation, including keys and all entries. use in flake.nix and registry.nix simple comment markers like `# <vm-name> vm entry end ---->` to make it possible to easily add the new vm to the flake and registry with sed. Create some templates for the flake etc.
 - cp-vm should read multiple files, not only one and folders
 - backup and restore should be better tested and have a better output over success and failure
   - vms started by the scripts should be stoped after backup and restore
-- Setup microvm binary
-  - Solve manual vm adding to flake.nix -> registry should be improved and with sed we'll manipulate the main flake before nix evaluation
 - Test migrated printing path via `sys-net` end-to-end
-- General refactoring and cleanup
-- Remove unused host/ not strictly needed host software
-- Debug and fix occasionally occurring shared libs error in nvim-vm
-- cp-vm bug fix: script has to use the right key and not brute-force
-- Improve ssh key sharing
+
+- Monitor occasionally occurring shared libs error in nvim-vm
 - Monitor element-desktop tray issue
 - Fix bug that occasionally occurs at boot: Bootscreen isn't displayed and tty seems frozen till password is typed in blindly and boot finished successfully
 - Check where we can enable microvm.optimization
+- create sys-firewall
 
 ## Misc
 
