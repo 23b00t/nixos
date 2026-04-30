@@ -237,13 +237,13 @@
         "waybar"
         "systemctl --user restart wpaperd.service"
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
-        "sleep 10 && vm-run sn nm-applet --indicator"
-        "sleep 8 && vm-run c vesktop -m"
-        "sleep 8 && vm-run c element-desktop --hidden"
-        "sleep 8 && vm-run c Telegram -startintray"
-        "[workspace 2 silent] sleep 5 && kitty"
-        "[workspace 3 silent] sleep 8 && kitty --session=none remote-zellij i"
-        "[workspace special:magic silent] sleep 5 && vm-run net zen"
+        "vm-run sn nm-applet --indicator"
+        "vm-run c vesktop -m"
+        "vm-run c element-desktop --hidden"
+        "vm-run c Telegram -startintray"
+        "[workspace 2 silent] kitty"
+        "[workspace 3 silent] kitty --session=none remote-zellij i"
+        "[workspace special:magic silent] vm-run net zen"
       ];
 
       bindm = [

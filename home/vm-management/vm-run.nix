@@ -87,18 +87,34 @@ ${vmCases}
     if ! systemctl is-active --quiet "$SERVICE"; then
       ${pkgs.libnotify}/bin/notify-send "Starting VM: $FULL_NAME" "Please wait..."
       systemctl start "$SERVICE"
-      MAX_RETRIES=30
-      COUNT=0
-      while ! ping -c 1 -W 1 "$IP" >/dev/null 2>&1; do
-        sleep 1
-        COUNT=$((COUNT+1))
-        if [ $COUNT -ge $MAX_RETRIES ]; then
-          ${pkgs.libnotify}/bin/notify-send "Error" "VM $FULL_NAME failed to start network."
-          exit 1
-        fi
-      done
-      sleep 2
     fi
+
+    MAX_RETRIES=30
+    COUNT=0
+    while ! ping -c 1 -W 1 "$IP" >/dev/null 2>&1; do
+      sleep 1
+      COUNT=$((COUNT+1))
+      if [ $COUNT -ge $MAX_RETRIES ]; then
+        ${pkgs.libnotify}/bin/notify-send "Error" "VM $FULL_NAME failed to start network."
+        exit 1
+      fi
+    done
+
+    COUNT=0
+    while ! ssh -i "$KEY" \
+      -o IdentitiesOnly=yes \
+      -o StrictHostKeyChecking=accept-new \
+      -o BatchMode=yes \
+      -o ConnectTimeout=2 \
+      -o ConnectionAttempts=1 \
+      "$VM_USER@$IP" true >/dev/null 2>&1; do
+      sleep 1
+      COUNT=$((COUNT+1))
+      if [ $COUNT -ge $MAX_RETRIES ]; then
+        ${pkgs.libnotify}/bin/notify-send "Error" "VM $FULL_NAME is reachable by ping but SSH is not ready."
+        exit 1
+      fi
+    done
 
     if [ "$CLI_MODE" -eq 1 ]; then
       exec ssh -i "$KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "''${EXTRA_SSH_ARGS[@]}" "$VM_USER@$IP" -t -- "$BINARY" "$@"
