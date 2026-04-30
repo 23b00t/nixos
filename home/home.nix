@@ -91,14 +91,14 @@ in
 
   systemd.user.services.github-agent = {
     Unit = {
-      Description = "GitHub SSH Agent";
-      After = [ "network.target" ];
+      Description = "GitHub SSH Agent bootstrap";
+      After = [ "default.target" ];
     };
     Service = {
-      Type = "simple";
+      Type = "oneshot";
+      RemainAfterExit = true;
       ExecStart = "${myGithubAgent}/bin/github-agent";
       Environment = "HOME=%h";
-      Restart = "on-failure";
     };
     Install.WantedBy = [ "default.target" ];
   };

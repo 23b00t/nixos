@@ -57,11 +57,43 @@ pkgs.writeShellScriptBin "github-agent" ''
     chmod 600 "$ENV_PATH"
   fi
 
-  if ! ${pkgs.openssh}/bin/ssh-add -l >/dev/null 2>&1; then
-    ${pkgs.openssh}/bin/ssh-add "$KEY_PATH"
-  elif ! ${pkgs.openssh}/bin/ssh-add -L 2>/dev/null | ${pkgs.gnugrep}/bin/grep -F "$(cat "$KEY_PATH.pub")" >/dev/null; then
-    ${pkgs.openssh}/bin/ssh-add "$KEY_PATH"
-  fi
+  can_prompt_for_passphrase() {
+    if [ -t 0 ] || [ -t 1 ]; then
+      return 0
+    fi
+
+    if [ -n "''${SSH_ASKPASS:-}" ] && { [ -n "''${DISPLAY:-}" ] || [ -n "''${WAYLAND_DISPLAY:-}" ]; }; then
+      return 0
+    fi
+
+    return 1
+  }
+
+  ensure_key_loaded() {
+    if ! ${pkgs.openssh}/bin/ssh-add -l >/dev/null 2>&1; then
+      if can_prompt_for_passphrase; then
+        ${pkgs.openssh}/bin/ssh-add "$KEY_PATH"
+      else
+        echo "Agent is running, but key is locked and no interactive prompt is available. Run 'github-agent' manually once per login to unlock." >&2
+      fi
+      return
+    fi
+
+    if [ ! -f "$KEY_PATH.pub" ]; then
+      echo "Warning: '$KEY_PATH.pub' not found; skipping identity content check." >&2
+      return
+    fi
+
+    if ! ${pkgs.openssh}/bin/ssh-add -L 2>/dev/null | ${pkgs.gnugrep}/bin/grep -F "$(cat "$KEY_PATH.pub")" >/dev/null; then
+      if can_prompt_for_passphrase; then
+        ${pkgs.openssh}/bin/ssh-add "$KEY_PATH"
+      else
+        echo "Agent is running, but target key is not loaded and no interactive prompt is available. Run 'github-agent' manually once per login to unlock." >&2
+      fi
+    fi
+  }
+
+  ensure_key_loaded
 
   echo "GitHub agent ready at $SOCKET_PATH"
 ''
