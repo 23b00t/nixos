@@ -1,98 +1,5 @@
-{ pkgs, lib, ... }:
+{ lib, ... }:
 let
-  vmRegistry = import ../../vms/registry.nix;
-
-  vmCases = builtins.concatStringsSep "\n" (map (vm:
-    let
-      patterns =
-        if vm.short != null && vm.short != vm.name then
-          "\"" + vm.name + "\"|\"" + vm.short + "\""
-        else
-          "\"" + vm.name + "\"";
-    in
-      "      " + patterns + ")\n" +
-      "        IP=\"" + vm.ip + "\"\n" +
-      "        FULL_NAME=\"" + vm.name + "\"\n" +
-      "        ;;"
-  ) vmRegistry.vms);
-
-  vmList = builtins.concatStringsSep "\n" (map (vm:
-    if vm.short != null && vm.short != vm.name then
-      "  ${vm.name} (${vm.short})"
-    else
-      "  ${vm.name}"
-  ) vmRegistry.vms);
-
-  # Generisches Wrapper-Skript: vm-run [-c] <vm-name-or-short> <binary> [args...]
-  vmRunner = pkgs.writeShellScriptBin "vm-run" ''
-    #!/usr/bin/env bash
-
-    CLI_MODE=0
-    EXTRA_SSH_ARGS=""
-
-    while getopts "ce:" opt; do
-      case $opt in
-        c) CLI_MODE=1 ;;
-        e) EXTRA_SSH_ARGS="$OPTARG" ;;
-        *) ;;
-      esac
-    done
-    shift $((OPTIND -1))
-
-    VM_KEY="$1"
-    BINARY="$2"
-    shift 2
-
-    if [ -z "$VM_KEY" ] || [ -z "$BINARY" ]; then
-      echo "Usage: vm-run [-c] [-e <ssh-args>] <vm-name-or-short> <binary> [args...]"
-      echo "Available VMs:"
-      cat <<EOF
-${vmList}
-EOF
-      exit 1
-    fi
-
-    # Resolve VM by name or short name using generated case statement
-    case "$VM_KEY" in
-${vmCases}
-      *)
-        echo "Error: Unknown VM '$VM_KEY'"
-        exit 1
-        ;;
-    esac
-
-    USER="user"
-    KEY="$HOME/.ssh/''${FULL_NAME}-vm"
-    SERVICE="microvm@''${FULL_NAME}.service"
-
-    # Prüfen, ob der Service läuft
-    if ! systemctl is-active --quiet "$SERVICE"; then
-      ${pkgs.libnotify}/bin/notify-send "Starting VM: ''${FULL_NAME}" "Please wait..."
-      systemctl start "$SERVICE"
-      MAX_RETRIES=30
-      COUNT=0
-      while ! ping -c 1 -W 1 "$IP" &> /dev/null; do
-        sleep 1
-        COUNT=$((COUNT+1))
-        if [ $COUNT -ge $MAX_RETRIES ]; then
-          ${pkgs.libnotify}/bin/notify-send "Error" "VM ''${FULL_NAME} failed to start network."
-          exit 1
-        fi
-      done
-      sleep 2 # short break to ensure VM is ready
-    fi
-
-    if [ "$CLI_MODE" -eq 1 ]; then
-      exec ssh -i "$KEY" $EXTRA_SSH_ARGS "$USER@$IP" -t -- "$BINARY" "$@"
-    else
-      wprs "$IP" run -- "$BINARY" "$@" &
-      WPRS_PID=$!
-      wait $WPRS_PID
-      # SSH-Session aufräumen
-      pkill -P $WPRS_PID ssh || true
-    fi
-  '';
-
   # Helper für Desktop-Entries: nutzt VM-Key (name oder short), nicht IP-Suffix
   mkVmEntry =
     {
@@ -116,18 +23,15 @@ ${vmCases}
           ;
         exec =
           if args == "" then
-            "${lib.getExe vmRunner} ${vm} ${binary} %U"
+            "vm-run ${vm} ${binary} %U"
           else
-            "${lib.getExe vmRunner} ${vm} ${binary} ${args} %U";
+            "vm-run ${vm} ${binary} ${args} %U";
         terminal = false;
         type = "Application";
       };
     };
 in
 {
-  # vm-run für Debug / CLI verfügbar machen
-  home.packages = [ vmRunner ];
-
   xdg.desktopEntries = lib.mkMerge [
     # --- Chat VM ---
     (mkVmEntry {

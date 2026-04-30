@@ -20,6 +20,7 @@ in
     (import ./hypr/hypr.nix { inherit config pkgs hostname; })
     (import ./hypr/xdg-gtk-qt.nix { inherit config pkgs; })
     ./ssh.nix
+    ./vm-management/vm-run.nix
     ./vm-management/desktop-entries.nix
     ./vm-management/vm-connect.nix
   ];

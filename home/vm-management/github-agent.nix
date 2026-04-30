@@ -1,10 +1,35 @@
 { pkgs, ... }:
 pkgs.writeShellScriptBin "github-agent" ''
+  #!/usr/bin/env bash
   set -eu
 
-  AGENT_DIR="$HOME/.ssh/agent"
-  SOCKET_PATH="$AGENT_DIR/github.sock"
   KEY_PATH="$HOME/.ssh/id_ed25519"
+  AGENT_DIR="$HOME/.ssh/agent"
+
+  usage() {
+    echo "Usage: github-agent [-k <private-key-path>] [-d <agent-dir>]" >&2
+    echo "Defaults:" >&2
+    echo "  key:   $HOME/.ssh/id_ed25519" >&2
+    echo "  dir:   $HOME/.ssh/agent" >&2
+    exit 1
+  }
+
+  while getopts ":k:d:h" opt; do
+    case "$opt" in
+      k) KEY_PATH="$OPTARG" ;;
+      d) AGENT_DIR="$OPTARG" ;;
+      h) usage ;;
+      :) echo "Option -$OPTARG requires an argument." >&2; usage ;;
+      \?) echo "Unknown option: -$OPTARG" >&2; usage ;;
+    esac
+  done
+  shift $((OPTIND - 1))
+
+  if [ $# -ne 0 ]; then
+    usage
+  fi
+
+  SOCKET_PATH="$AGENT_DIR/github.sock"
   ENV_PATH="$AGENT_DIR/github-agent.env"
 
   mkdir -p "$AGENT_DIR"
@@ -40,3 +65,4 @@ pkgs.writeShellScriptBin "github-agent" ''
 
   echo "GitHub agent ready at $SOCKET_PATH"
 ''
+

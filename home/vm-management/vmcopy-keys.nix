@@ -1,38 +1,51 @@
 { pkgs, ... }:
 let
   vmRegistry = import ../../vms/registry.nix;
+  vmScriptLib = import ./vm-script-lib.nix { };
 
-  vmCases = builtins.concatStringsSep "\n" (map (vm:
-    let
-      patterns =
-        if vm.short != null && vm.short != vm.name then
-          "\"" + vm.name + "\"|\"" + vm.short + "\""
-        else
-          "\"" + vm.name + "\"";
-    in
-      "      " + patterns + ")\n" +
-      "        IP=\"" + vm.ip + "\"\n" +
-      "        FULL_NAME=\"" + vm.name + "\"\n" +
-      "        ;;"
-  ) vmRegistry.vmCopyParticipants);
+  vmCases = vmScriptLib.vmCaseBlock {
+    vms = vmRegistry.vmCopyParticipants;
+    assignments = [
+      {
+        shellName = "IP";
+        attr = "ip";
+      }
+      {
+        shellName = "FULL_NAME";
+        attr = "name";
+      }
+      {
+        shellName = "VM_USER";
+        valueFrom = vmScriptLib.vmUser;
+      }
+    ];
+  };
 
-  vmList = builtins.concatStringsSep "\n" (map (vm:
-    if vm.short != null && vm.short != vm.name then
-      "  ${vm.name} (${vm.short})"
-    else
-      "  ${vm.name}"
-  ) vmRegistry.vmCopyParticipants);
+  vmList = vmScriptLib.vmList vmRegistry.vmCopyParticipants;
 in
 pkgs.writeShellScriptBin "vmcopy-keys" ''
+  #!/usr/bin/env bash
   set -eu
 
-  if [ $# -lt 1 ]; then
+  usage() {
     echo "Usage: $0 <vm-name-or-short> [...]" >&2
     echo "Available transfer-capable VMs:" >&2
     cat <<EOF >&2
 ${vmList}
 EOF
     exit 1
+  }
+
+  while getopts ":h" opt; do
+    case "$opt" in
+      h) usage ;;
+      \?) echo "Unknown option: -$OPTARG" >&2; usage ;;
+    esac
+  done
+  shift $((OPTIND - 1))
+
+  if [ $# -lt 1 ]; then
+    usage
   fi
 
   if ${pkgs.git}/bin/git rev-parse --show-toplevel >/dev/null 2>&1; then
@@ -50,9 +63,6 @@ EOF
   ${pkgs.coreutils}/bin/mkdir -p "$KEY_DIR"
 
   for NAME in "$@"; do
-    FULL_NAME=""
-    IP=""
-
     case "$NAME" in
 ${vmCases}
       *)
@@ -72,7 +82,7 @@ ${vmCases}
       -i "$SSH_KEY" \
       -o IdentitiesOnly=yes \
       -o StrictHostKeyChecking=accept-new \
-      "user@$IP" \
+      "$VM_USER@$IP" \
       'set -eu
        mkdir -p ~/.ssh
        chmod 700 ~/.ssh
@@ -94,3 +104,4 @@ ${vmCases}
 
   echo "Done. Review and commit the updated public key files under vms/vmcopy-keys/."
 ''
+

@@ -1,58 +1,50 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 let
   vmRegistry = import ./registry.nix;
 
-  # Host table: <hostname> <ip>
+  # Host table: <hostname-or-short> <ip>
   # We include both long and short names for transfer-capable VMs only.
   hostTable = builtins.concatStringsSep "\n" (
     map (vm:
       let
         base = "${vm.name} ${vm.ip}";
       in
-        if vm.short != null && vm.short != vm.name then
-          base + "\n" + "${vm.short} ${vm.ip}"
-        else
-          base
+      if vm.short != null && vm.short != vm.name then
+        base + "\n" + "${vm.short} ${vm.ip}"
+      else
+        base
     ) vmRegistry.vmCopyParticipants
   );
-
 in
 pkgs.writeShellScriptBin "cp-vm" ''
+  #!/usr/bin/env bash
   # cp-vm: Copy or move a file/folder to another VM using the restricted vmcopy account.
-  #
-  # Syntax:
-  #   cp-vm [-m] <vm-name-or-short> ./filename
-  #     -m                : move (instead of copy)
-  #     <vm-name-or-short>: destination VM, long or short name from registry
-  #     ./filename        : file or directory to transfer (relative or absolute path)
-  #
-  # Notes:
-  # - only transfer-capable VMs from the registry are valid targets
-  # - uploads land below /home/user/incoming/<source-vm>/ on the target
-  # - the script expects a per-VM transfer key at $VM_COPY_KEY_PATH or
-  #   /home/user/.ssh/vmcopy by default
-
   set -eu
 
   SELF_HOSTNAME="$(hostname)"
   SELF_VM="''${SELF_HOSTNAME%-vm}"
-  DEFAULT_USER="vmcopy"
-  DEFAULT_KEY_PATH="/home/user/.ssh/vmcopy"
+  DEFAULT_USER="''${VM_COPY_USER:-vmcopy}"
+  DEFAULT_KEY_PATH="$HOME/.ssh/vmcopy"
   KEY_PATH="''${VM_COPY_KEY_PATH:-$DEFAULT_KEY_PATH}"
   HOSTTABLE="${hostTable}"
+  MOVE=0
 
   usage() {
-    echo "Usage: $0 [-m] <vm-name-or-short> ./filename" >&2
-    echo "  -m                : move (instead of copy)" >&2
-    echo "  VM_COPY_KEY_PATH   : optional override for the transfer SSH key" >&2
+    echo "Usage: $0 [-m] <vm-name-or-short> <path>" >&2
+    echo "  -m                 move source after successful transfer" >&2
+    echo "  VM_COPY_KEY_PATH    optional override for transfer SSH key" >&2
+    echo "  VM_COPY_USER        optional override for transfer SSH user" >&2
     exit 1
   }
 
-  MOVE=0
-  if [ "''${1:-}" = "-m" ]; then
-    MOVE=1
-    shift
-  fi
+  while getopts ":mh" opt; do
+    case "$opt" in
+      m) MOVE=1 ;;
+      h) usage ;;
+      \?) echo "Unknown option: -$OPTARG" >&2; usage ;;
+    esac
+  done
+  shift $((OPTIND - 1))
 
   if [ $# -ne 2 ]; then
     usage
@@ -86,14 +78,17 @@ pkgs.writeShellScriptBin "cp-vm" ''
     exit 6
   fi
 
-  FILE_BASENAME="$(basename "$FILE")"
   REMOTE_DIR="./$SELF_VM/"
-  SSH_OPTS="-i $KEY_PATH -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+  SSH_OPTS=(
+    -i "$KEY_PATH"
+    -o IdentitiesOnly=yes
+    -o StrictHostKeyChecking=accept-new
+  )
 
   if [ -d "$FILE" ]; then
-    scp $SSH_OPTS -r -- "$FILE" "''${DEFAULT_USER}@''${IP}:$REMOTE_DIR"
+    scp "''${SSH_OPTS[@]}" -r -- "$FILE" "$DEFAULT_USER@$IP:$REMOTE_DIR"
   else
-    scp $SSH_OPTS -- "$FILE" "''${DEFAULT_USER}@''${IP}:$REMOTE_DIR"
+    scp "''${SSH_OPTS[@]}" -- "$FILE" "$DEFAULT_USER@$IP:$REMOTE_DIR"
   fi
 
   if [ $MOVE -eq 1 ]; then

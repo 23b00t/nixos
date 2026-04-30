@@ -1,75 +1,76 @@
-# filepath: home/vm-connect.nix
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 let
   vmRegistry = import ../../vms/registry.nix;
+  vmScriptLib = import ./vm-script-lib.nix { };
 
-  vmCases = builtins.concatStringsSep "\n" (map (vm:
-    let
-      patterns =
-        if vm.short != null && vm.short != vm.name then
-          "\"" + vm.name + "\"|\"" + vm.short + "\""
-        else
-          "\"" + vm.name + "\"";
-    in
-      "      " + patterns + ")\n" +
-      "        IP=\"" + vm.ip + "\"\n" +
-      "        FULL_NAME=\"" + vm.name + "\"\n" +
-      "        ;;"
-  ) vmRegistry.vms);
+  vmCases = vmScriptLib.vmCaseBlock {
+    vms = vmRegistry.vms;
+    assignments = [
+      {
+        shellName = "IP";
+        attr = "ip";
+      }
+      {
+        shellName = "FULL_NAME";
+        attr = "name";
+      }
+      {
+        shellName = "VM_USER";
+        valueFrom = vmScriptLib.vmUser;
+      }
+    ];
+  };
 
-  vmList = builtins.concatStringsSep "\n" (map (vm:
-    if vm.short != null && vm.short != vm.name then
-      "  ${vm.name} (${vm.short})"
-    else
-      "  ${vm.name}"
-  ) vmRegistry.vms);
+  vmList = vmScriptLib.vmList vmRegistry.vms;
 
   vmScript = pkgs.writeShellScriptBin "vm" ''
+    #!/usr/bin/env bash
+    set -eu
+
     USE_KITTEN=0
 
-    # Check for -k flag
-    if [ "$1" = "-k" ]; then
-      USE_KITTEN=1
-      shift
+    usage() {
+      echo "Usage: vm [-k] <vm-name-or-short>" >&2
+      echo "Available VMs:" >&2
+      cat <<EOF >&2
+${vmList}
+EOF
+      exit 1
+    }
+
+    while getopts ":kh" opt; do
+      case "$opt" in
+        k) USE_KITTEN=1 ;;
+        h) usage ;;
+        \?) echo "Unknown option: -$OPTARG" >&2; usage ;;
+      esac
+    done
+    shift $((OPTIND - 1))
+
+    if [ $# -ne 1 ]; then
+      usage
     fi
 
     NAME="$1"
 
-    if [ -z "$NAME" ]; then
-      echo "Usage: vm [-k] <vm-name-or-short>"
-      echo "Available VMs:"
-      cat <<EOF
-${vmList}
-EOF
-      exit 1
-    fi
-
-    # Resolve VM by name or short name using generated case statement
     case "$NAME" in
 ${vmCases}
       *)
-        echo "Error: Unknown VM '$NAME'"
+        echo "Error: Unknown VM '$NAME'" >&2
         exit 1
         ;;
     esac
 
-    USER="user"
-
-    if [ -z "''${FULL_NAME:-}" ]; then
-      echo "Internal error: FULL_NAME not set for VM '$NAME'" >&2
-      exit 1
-    fi
-
-    KEY="$HOME/.ssh/''${FULL_NAME}-vm"
+    KEY="$HOME/.ssh/$FULL_NAME-vm"
 
     if [ "$USE_KITTEN" -eq 1 ]; then
-      exec kitten ssh -i "$KEY" "$USER@$IP" -t
+      exec kitten ssh -i "$KEY" "$VM_USER@$IP" -t
     else
-      exec ssh -i "$KEY" "$USER@$IP" -t
+      exec ssh -i "$KEY" "$VM_USER@$IP" -t
     fi
   '';
-
 in
 {
   home.packages = [ vmScript ];
 }
+

@@ -1,128 +1,130 @@
-{ pkgs, lib, inputs }:
+{ pkgs, ... }:
 let
   vmRegistry = import ../../vms/registry.nix;
+  vmScriptLib = import ./vm-script-lib.nix { };
 
-  # Build a simple host table with both long and short names mapped to IPs.
-  hostTable = builtins.concatStringsSep "\n" (map (vm:
-    let
-      base = "${vm.name} ${vm.ip}";
-    in
-      if vm.short != null && vm.short != vm.name then
-        base + "\n" + "${vm.short} ${vm.ip}"
-      else
-        base
-  ) vmRegistry.vms);
+  hostTable = vmScriptLib.hostTable {
+    vms = vmRegistry.vms;
+    includeUser = true;
+  };
 
+  vmNames = builtins.concatStringsSep " " (map (vm: vm.name) vmRegistry.vms);
 in
-  pkgs.writeShellScriptBin "backup" ''
-  set -e
+pkgs.writeShellScriptBin "backup" ''
+  #!/usr/bin/env bash
+  set -eu
 
   HOSTTABLE="${hostTable}"
+  ALL_VM_NAMES="${vmNames}"
 
   usage() {
-    echo "Usage: $0 destination target-host-name next-target ..."
-    echo "or: $0 -a destination (to backup all targets in the list)"
-    echo "or: $0 -r source-dir (to restore backups from source-dir)"
+    echo "Usage: $0 destination target-host-name [next-target ...]" >&2
+    echo "   or: $0 -a destination                 (backup all VMs)" >&2
+    echo "   or: $0 -r source-dir                  (restore backups)" >&2
     exit 1
   }
 
-  restore() {
-    # Iterate over all directories in SOURCE
-    for DIR in $(find "$SOURCE" -mindepth 1 -maxdepth 1 -type d); do
-      TARGET=$(basename "$DIR")
-      # Check if TARGET exists in HOSTTABLE
-      LINE=$(echo "$HOSTTABLE" | grep -E "^$TARGET[[:space:]]+" || true)
-      if [ -n "$LINE" ]; then
-        set -- $LINE
-        HOSTNAME="$1"
-        IP="$2"
-        VM_NAME="$HOSTNAME"
-        SERVICE="microvm@$VM_NAME.service"
+  resolve_target() {
+    local target="$1"
+    local line
 
-        # Start VM if not running
-        if ! systemctl is-active --quiet "$SERVICE"; then
-          ${pkgs.libnotify}/bin/notify-send "Starting VM: $VM_NAME" "Please wait..."
-          systemctl start "$SERVICE"
-          MAX_RETRIES=30
-          COUNT=0
-          while ! ping -c 1 -W 1 "$IP" &> /dev/null; do
-            sleep 1
-            COUNT=$((COUNT+1))
-            if [ $COUNT -ge $MAX_RETRIES ]; then
-              ${pkgs.libnotify}/bin/notify-send "Error" "VM $VM_NAME failed to start network."
-              continue
-            fi
-          done
-          sleep 2
-        fi
+    line=$(printf '%s\n' "$HOSTTABLE" | awk -v t="$target" '$1 == t { print; exit }')
+    if [ -z "$line" ]; then
+      return 1
+    fi
 
-        echo "Restoring backup to $TARGET ($IP)..."
-        LOGFILE="$SOURCE/restore-errors-$TARGET.log"
-        rsync -a --update --no-group --no-owner --numeric-ids -e ssh \
-          --info=progress2 \
-          --log-file="$LOGFILE" \
-          "$DIR/home/user/" "user@$IP:/home/user/"
-        RSYNC_STATUS=$?
-        echo "Restore to $TARGET ($IP) completed with status $RSYNC_STATUS."
-
-        # Print errors
-        if grep -qE '^(rsync:|rsync error:|ERROR|failed|IO error)' "$LOGFILE"; then
-          echo "Errors during restore to $TARGET:"
-          grep -E '^(rsync:|rsync error:|ERROR|failed|IO error)' "$LOGFILE"
-        fi
-      fi
-    done
-    exit 0
+    set -- $line
+    RESOLVED_HOSTNAME="$1"
+    RESOLVED_IP="$2"
+    RESOLVED_USER="$3"
+    return 0
   }
 
-  backup_host() {
-    TARGET="$1"
-    LINE=$(echo "$HOSTTABLE" | grep -E "^[[:space:]]*$TARGET[[:space:]]+" || true)
-    if [ -z "$LINE" ]; then
-      echo "Host '$TARGET' not found in host table." >&2
-      return 3
-    fi
+  ensure_vm_online() {
+    local vm_name="$1"
+    local ip="$2"
+    local service="microvm@$vm_name.service"
 
-    set -- $LINE
-    HOSTNAME="$1"
-    IP="$2"
-    if [ -z "$IP" ]; then
-      echo "Malformed host table entry for '$TARGET'." >&2
-      return 5
-    fi
+    if ! systemctl is-active --quiet "$service"; then
+      ${pkgs.libnotify}/bin/notify-send "Starting VM: $vm_name" "Please wait..."
+      systemctl start "$service"
 
-    VM_NAME="$HOSTNAME"
-    SERVICE="microvm@$VM_NAME.service"
-
-    if ! systemctl is-active --quiet "$SERVICE"; then
-      ${pkgs.libnotify}/bin/notify-send "Starting VM: $VM_NAME" "Please wait..."
-      systemctl start "$SERVICE"
-      MAX_RETRIES=30
-      COUNT=0
-      while ! ping -c 1 -W 1 "$IP" &> /dev/null; do
+      local max_retries=30
+      local count=0
+      while ! ping -c 1 -W 1 "$ip" >/dev/null 2>&1; do
         sleep 1
-        COUNT=$((COUNT+1))
-        if [ $COUNT -ge $MAX_RETRIES ]; then
-          ${pkgs.libnotify}/bin/notify-send "Error" "VM $VM_NAME failed to start network."
+        count=$((count+1))
+        if [ $count -ge $max_retries ]; then
+          ${pkgs.libnotify}/bin/notify-send "Error" "VM $vm_name failed to start network."
           return 1
         fi
       done
       sleep 2
     fi
+  }
 
-    echo "Starting backup of $TARGET ($IP)..."
-    LOGFILE="$DESTINATION/backup-errors-$TARGET.log"
-    mkdir -p "$DESTINATION/$TARGET"
-    rsync -a --delete --no-group --no-owner --numeric-ids --relative -e ssh \
+  restore() {
+    local dir target logfile rsync_rsh
+
+    for dir in "$SOURCE"/*; do
+      [ -d "$dir" ] || continue
+
+      target="$(basename "$dir")"
+      if ! resolve_target "$target"; then
+        continue
+      fi
+
+      if ! ensure_vm_online "$RESOLVED_HOSTNAME" "$RESOLVED_IP"; then
+        continue
+      fi
+
+      echo "Restoring backup to $target ($RESOLVED_IP)..."
+      logfile="$SOURCE/restore-errors-$target.log"
+      rsync_rsh="ssh -i \"$HOME/.ssh/$RESOLVED_HOSTNAME-vm\" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+
+      rsync -a --update --no-group --no-owner --numeric-ids -e "$rsync_rsh" \
+        --info=progress2 \
+        --log-file="$logfile" \
+        "$dir/home/$RESOLVED_USER/" "$RESOLVED_USER@$RESOLVED_IP:/home/$RESOLVED_USER/"
+
+      echo "Restore to $target ($RESOLVED_IP) completed."
+
+      if grep -qE '^(rsync:|rsync error:|ERROR|failed|IO error)' "$logfile"; then
+        echo "Errors during restore to $target:"
+        grep -E '^(rsync:|rsync error:|ERROR|failed|IO error)' "$logfile"
+      fi
+    done
+  }
+
+  backup_host() {
+    local target="$1"
+    local logfile rsync_rsh
+
+    if ! resolve_target "$target"; then
+      echo "Host '$target' not found in host table." >&2
+      return 3
+    fi
+
+    if ! ensure_vm_online "$RESOLVED_HOSTNAME" "$RESOLVED_IP"; then
+      return 1
+    fi
+
+    echo "Starting backup of $target ($RESOLVED_IP)..."
+    logfile="$DESTINATION/backup-errors-$target.log"
+    mkdir -p "$DESTINATION/$target"
+
+    rsync_rsh="ssh -i \"$HOME/.ssh/$RESOLVED_HOSTNAME-vm\" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+
+    rsync -a --delete --no-group --no-owner --numeric-ids --relative -e "$rsync_rsh" \
       --info=progress2 \
-      --log-file="$LOGFILE" \
-      "user@$IP:/home/user/" "$DESTINATION/$TARGET/"
-    RSYNC_STATUS=$?
-    echo "Backup of $TARGET ($IP) completed with status $RSYNC_STATUS."
+      --log-file="$logfile" \
+      "$RESOLVED_USER@$RESOLVED_IP:/home/$RESOLVED_USER/" "$DESTINATION/$target/"
 
-    if grep -qE '^(rsync:|rsync error:|ERROR|failed|IO error)' "$LOGFILE"; then
-      echo "Errors of $TARGET:"
-      grep -E '^(rsync:|rsync error:|ERROR|failed|IO error)' "$LOGFILE"
+    echo "Backup of $target ($RESOLVED_IP) completed."
+
+    if grep -qE '^(rsync:|rsync error:|ERROR|failed|IO error)' "$logfile"; then
+      echo "Errors of $target:"
+      grep -E '^(rsync:|rsync error:|ERROR|failed|IO error)' "$logfile"
     fi
   }
 
@@ -130,23 +132,17 @@ in
   ALL=false
   DESTINATION=""
   SOURCE=""
-  TARGETS=()
 
-  while getopts ":ar:" opt; do
-    case $opt in
-      a)
-        ALL=true
-        ;;
-      r)
-        RESTORE=true
-        SOURCE="$OPTARG"
-        ;;
-      \?)
-        usage
-        ;;
+  while getopts ":ar:h" opt; do
+    case "$opt" in
+      a) ALL=true ;;
+      r) RESTORE=true; SOURCE="$OPTARG" ;;
+      h) usage ;;
+      :) echo "Option -$OPTARG requires an argument." >&2; usage ;;
+      \?) echo "Unknown option: -$OPTARG" >&2; usage ;;
     esac
   done
-  shift $((OPTIND -1))
+  shift $((OPTIND - 1))
 
   if [ "$RESTORE" = true ]; then
     if [ -z "$SOURCE" ]; then
@@ -157,9 +153,12 @@ in
   fi
 
   if [ "$ALL" = true ]; then
+    if [ $# -lt 1 ]; then
+      usage
+    fi
     DESTINATION="$1"
     shift
-    TARGETS=($(echo "$HOSTTABLE" | awk '{print $1}'))
+    TARGETS=( $ALL_VM_NAMES )
   else
     if [ $# -lt 2 ]; then
       usage
@@ -169,7 +168,8 @@ in
     TARGETS=("$@")
   fi
 
-  for TARGET in ''${TARGETS[@]}; do
+  for TARGET in "''${TARGETS[@]}"; do
     backup_host "$TARGET"
   done
 ''
+

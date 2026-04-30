@@ -189,7 +189,6 @@ nmcli radio wifi on
 - think about removing fluxbox workflow. in office-vm it's possible, but what's with wine vm? a libvirt vm could be an alternative.
 - restructure vms/ vm folders should not live on the same level as modules/ vmcopy-keys/ etc.
 - improve and use manage-vms.nix
-- refactor key management; the keys should be part of registry.nix? or can they for the public host keys also just in a folder?
 - create hyprland start script or actually better: improve vm-run, so there are no sleeps needed anymore as vm-run is more robust as just checking bare reachablity.
 - create a very basic script for vm creation, including keys and all entries. use in flake.nix and registry.nix simple comment markers like `# <vm-name> vm entry end ---->` to make it possible to easily add the new vm to the flake and registry with sed. Create some templates for the flake etc.
 - cp-vm should read multiple files, not only one and folders
