@@ -178,8 +178,6 @@ nmcli radio wifi on
 ## TODOs <!-- TODO: -->
 
 - Remove not strictly needed host software
-- why do we get: Error: remote port forwarding failed for listen port 4713
-  - remove ExitOnForwardFailure yes if we can't fix it otherwise
 - remove home/electron/
 - move home/resources/paste_functions.zsh and cmds to nvim-vm
 - refactor all scripts
@@ -200,6 +198,7 @@ nmcli radio wifi on
 - backup and restore should be better tested and have a better output over success and failure
   - vms started by the scripts should be stoped after backup and restore
 - Test migrated printing path via `sys-net` end-to-end
+- Is there any virtue in exposing nvim to the host? Remove the host-share and implement proper write back or remove exposing nvim to the host.
 
 - Monitor occasionally occurring shared libs error in nvim-vm
 - Monitor element-desktop tray issue

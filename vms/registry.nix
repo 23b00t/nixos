@@ -17,9 +17,6 @@ let
       autostart = true;
       nat = true;
       allowGitHubAgent = true;
-      extraSSH = [
-        "RemoteForward 4713 localhost:4713"
-      ];
     }
     {
       name = "chat";
@@ -41,9 +38,6 @@ let
       ip = "10.0.0.4";
       autostart = true;
       nat = true;
-      extraSSH = [
-        "RemoteForward 4713 localhost:4713"
-      ];
     }
     {
       name = "net";

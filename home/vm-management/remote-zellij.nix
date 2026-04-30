@@ -8,6 +8,17 @@ pkgs.writeShellScriptBin "remote-zellij" ''
   fi
 
   VMNAME="$1"
+  shift
+
+  EXTRA_SSH_ARGS=""
+
+  while getopts "e:" opt; do
+    case $opt in
+      e) EXTRA_SSH_ARGS="$OPTARG" ;;
+      *) ;;
+    esac
+  done
+  shift $((OPTIND -1))
 
   ZJ_SESSIONS="$(vm-run -c "''${VMNAME}" zellij list-sessions \
     | sed -r 's/\x1B\[[0-9;]*[mK]//g' \
@@ -17,9 +28,9 @@ pkgs.writeShellScriptBin "remote-zellij" ''
   if [ "''${NO_SESSIONS}" -ge 2 ]; then
     CHOICE=$( (echo "''${ZJ_SESSIONS}"; echo "[Start new session]") | fzf )
     if [ "''${CHOICE}" = "[Start new session]" ]; then
-      vm-run -c "''${VMNAME}" zellij --layout /home/user/.config/zellij/layouts/tabs.kdl
+      vm-run -c -e "$EXTRA_SSH_ARGS" "''${VMNAME}" zellij --layout /home/user/.config/zellij/layouts/tabs.kdl
     elif [ -n "''${CHOICE}" ]; then
-      vm-run -c "''${VMNAME}" zellij attach "''${CHOICE}"
+      vm-run -c -e "$EXTRA_SSH_ARGS" "''${VMNAME}" zellij attach "''${CHOICE}"
     else
       echo "Cancelled."
       exit 1

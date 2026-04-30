@@ -28,15 +28,13 @@ let
     #!/usr/bin/env bash
 
     CLI_MODE=0
+    EXTRA_SSH_ARGS=""
 
-    # -c: direkt ssh statt wprs
-    while getopts "c" opt; do
+    while getopts "ce:" opt; do
       case $opt in
-        c)
-          CLI_MODE=1
-          ;;
-        *)
-          ;;
+        c) CLI_MODE=1 ;;
+        e) EXTRA_SSH_ARGS="$OPTARG" ;;
+        *) ;;
       esac
     done
     shift $((OPTIND -1))
@@ -46,7 +44,7 @@ let
     shift 2
 
     if [ -z "$VM_KEY" ] || [ -z "$BINARY" ]; then
-      echo "Usage: vm-run [-c] <vm-name-or-short> <binary> [args...]"
+      echo "Usage: vm-run [-c] [-e <ssh-args>] <vm-name-or-short> <binary> [args...]"
       echo "Available VMs:"
       cat <<EOF
 ${vmList}
@@ -85,7 +83,7 @@ ${vmCases}
     fi
 
     if [ "$CLI_MODE" -eq 1 ]; then
-      exec ssh -i "$KEY" "$USER@$IP" -t -- "$BINARY" "$@"
+      exec ssh -i "$KEY" $EXTRA_SSH_ARGS "$USER@$IP" -t -- "$BINARY" "$@"
     else
       wprs "$IP" run -- "$BINARY" "$@" &
       WPRS_PID=$!

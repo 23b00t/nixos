@@ -22,7 +22,7 @@
       # ddate = "nix run 'nixpkgs#ddate'";
       countdown = "$HOME/nixos-config/home/scripts/countdown.sh";
       n = "nvim_vm";
-      tm = "vm-run -c music termusic";
+      tm = "vm-run -c -e '-R 4713:localhost:4713' music termusic";
       oo = "remmina --disable-toolbar -c ~/.local/share/remmina/group_rdp_onlyoffice_10-0-0-9.remmina > /dev/null 2>&1 &";
     };
 
