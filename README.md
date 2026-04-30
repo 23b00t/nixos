@@ -189,6 +189,9 @@ nmcli radio wifi on
 - Test migrated printing path via `sys-net` end-to-end
 - Is there any virtue in exposing nvim to the host? Remove the host-share and implement proper write back or remove exposing nvim to the host.
 
+- fix steam-vm bug: reboot is needed
+- improve steam-vm: initial wlserver: backend/hedless... is taking quiet long till steam starts (about 30s)
+- let steam-vm participate in file sharing?
 - Monitor occasionally occurring shared libs error in nvim-vm
 - Monitor element-desktop tray issue
 - Fix bug that occasionally occurs at boot: Bootscreen isn't displayed and tty seems frozen till password is typed in blindly and boot finished successfully
