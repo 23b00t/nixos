@@ -43,7 +43,7 @@
                 };
                 services.common-config = {
                   enable = true;
-                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkF7qniIZVKtoIrUUWkU8t/1QeK34BSEgI54MbqbieC ruby-vm";
+                  
                 };
                 services.ide = {
                   enable = true;

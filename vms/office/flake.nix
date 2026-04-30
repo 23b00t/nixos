@@ -51,7 +51,7 @@
 
                 services.common-config = {
                   enable = true;
-                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm";
+                  
                 };
                 microvm = {
                   registerClosure = false;

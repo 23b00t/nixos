@@ -52,7 +52,7 @@
 
                 services.common-config = {
                   enable = true;
-                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsMuzfPPoWJ9bgKKPBWx/l5qYuWtwEG5s/yHs4rUrJn sys-usb-vm";
+                  
                   withDefaultPkgs = false;
                 };
 

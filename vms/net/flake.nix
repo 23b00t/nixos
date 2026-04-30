@@ -48,7 +48,7 @@
                 };
                 services.common-config = {
                   enable = true;
-                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
+                  
                 };
 
                 microvm = {

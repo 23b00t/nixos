@@ -71,7 +71,7 @@
 
               services.common-config = {
                 enable = true;
-                sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2rxZHd/9pzQeQz3VDwlpcEP9KGOASXYsajKbcZdJ4/ sys-net-vm";
+                
                 withDefaultPkgs = false;
                 vmCopy.enable = false;
               };

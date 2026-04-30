@@ -43,7 +43,7 @@
                 };
                 services.common-config = {
                   enable = true;
-                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDtJWssP02QsNahmgCZDcCOFqSnfwscUUpibbxWAk+ag net-private-vm";
+                  
                 };
                 microvm = {
                   registerClosure = false;

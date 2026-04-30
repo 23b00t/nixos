@@ -45,7 +45,7 @@
                 services.rdp.enable = true;
                 services.common-config = {
                   enable = true;
-                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRYiHWjGyucuX6XJq2U3ENx7MHACcX0t8YzB2JEgfyR wine-vm";
+                  
                 };
                 microvm = {
                   registerClosure = false;

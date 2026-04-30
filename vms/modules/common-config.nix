@@ -9,6 +9,7 @@ let
   hostName = config.networking.hostName or "";
   vmName = if hasSuffix "-vm" hostName then removeSuffix "-vm" hostName else hostName;
   currentVm = if builtins.hasAttr vmName vmRegistry.byName then builtins.getAttr vmName vmRegistry.byName else { };
+  hostSSHKey = currentVm.hostSSHKey or null;
   vmCopyEnabled = cfg.vmCopy.enable && (currentVm.allowVmCopy or true);
   vmCopyRoot = cfg.vmCopy.homeDirectory;
   vmCopyIncomingDir = cfg.vmCopy.incomingDirectory;
@@ -31,11 +32,6 @@ in
 {
   options.services.common-config = {
     enable = mkEnableOption "Enable the common-config module";
-    sshKey = mkOption {
-      type = types.nullOr types.str;
-      default = null;
-      description = "SSH public key for the user.";
-    };
     user = mkOption {
       type = types.str;
       default = "user";
@@ -157,7 +153,7 @@ in
           isNormalUser = true;
           group = "users";
           extraGroups = [ "wheel" ];
-          openssh.authorizedKeys.keys = mkIf (cfg.sshKey != null) [ cfg.sshKey ];
+          openssh.authorizedKeys.keys = mkIf (hostSSHKey != null) [ hostSSHKey ];
         };
       }
       (mkIf vmCopyEnabled {

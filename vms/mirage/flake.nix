@@ -49,7 +49,7 @@
                 services.zsh-env.enable = true;
                 services.common-config = {
                   enable = true;
-                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAXSVOR0aTAo/5lDeG+3r3QeOygbLKY7WrkB8wSK+rh9 mirage-vm";
+                  
                 };
 
                 microvm = {

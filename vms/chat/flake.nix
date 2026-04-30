@@ -46,7 +46,7 @@
                 };
                 services.common-config = {
                   enable = true;
-                  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
+                  
                 };
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "chat-vm";

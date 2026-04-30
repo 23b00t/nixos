@@ -16,6 +16,7 @@ let
       ip = "10.0.0.1";
       autostart = true;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzJjZw0V2CdaWI/IBFcTQPwQhYtFn/31i5iNPSc1j8G nvim-vm";
       allowGitHubAgent = true;
     }
     {
@@ -24,6 +25,7 @@ let
       ip = "10.0.0.2";
       autostart = true;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
     }
     # {
     #   name = "test";
@@ -31,6 +33,7 @@ let
     #   ip = "10.0.0.3";
     #   autostart = false;
     #   nat = true;
+    #   hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA2091GSIL+SlR1BsWswg+6DZzrL+enxmXo74d/OSUwv test-vm";
     # }
     {
       name = "music";
@@ -38,6 +41,7 @@ let
       ip = "10.0.0.4";
       autostart = true;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF/ca5rt+rbz5EanCgVCaGQEOco670v/gDm+Op/fM4Y7 music-vm";
     }
     {
       name = "net";
@@ -45,6 +49,7 @@ let
       ip = "10.0.0.5";
       autostart = true;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
     }
     {
       name = "net-private";
@@ -52,6 +57,7 @@ let
       ip = "10.0.0.6";
       autostart = false;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDtJWssP02QsNahmgCZDcCOFqSnfwscUUpibbxWAk+ag net-private-vm";
     }
     {
       name = "wine";
@@ -59,6 +65,7 @@ let
       ip = "10.0.0.7";
       autostart = false;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRYiHWjGyucuX6XJq2U3ENx7MHACcX0t8YzB2JEgfyR wine-vm";
     }
     {
       name = "kali";
@@ -66,6 +73,7 @@ let
       ip = "10.0.0.8";
       autostart = false;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
     }
     {
       name = "office";
@@ -73,6 +81,7 @@ let
       ip = "10.0.0.9";
       autostart = false;
       nat = false;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm";
     }
     {
       name = "vault";
@@ -80,6 +89,7 @@ let
       ip = "10.0.0.10";
       autostart = false;
       nat = false;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPbWqbgvB7bf39HteuS/bmSDqLuPiZn5AV63fjRXEVw vault-vm";
     }
     {
       name = "irc";
@@ -87,6 +97,7 @@ let
       ip = "10.0.0.11";
       autostart = true;
       nat = false;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm";
     }
     {
       name = "steam";
@@ -101,6 +112,7 @@ let
       ip = "10.0.0.13";
       autostart = false;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhv6q3siBUASk16LN8tCa2nPUp4g2isRuwo1ndDPz7g godot-vm";
       allowGitHubAgent = true;
     }
     {
@@ -109,6 +121,7 @@ let
       ip = "10.0.0.14";
       autostart = false;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAXSVOR0aTAo/5lDeG+3r3QeOygbLKY7WrkB8wSK+rh9 mirage-vm";
       allowGitHubAgent = true;
     }
     {
@@ -117,6 +130,7 @@ let
       ip = "10.0.0.15";
       autostart = false;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHpfcEv27hamz0HELXGKpLd6M+/m5m/fopZ3A7fonUVw php-vm";
       allowGitHubAgent = true;
     }
     {
@@ -125,6 +139,7 @@ let
       ip = "10.0.0.16";
       autostart = false;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkF7qniIZVKtoIrUUWkU8t/1QeK34BSEgI54MbqbieC ruby-vm";
       allowGitHubAgent = true;
     }
     {
@@ -133,6 +148,7 @@ let
       ip = "10.0.0.23";
       autostart = false;
       nat = false;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsMuzfPPoWJ9bgKKPBWx/l5qYuWtwEG5s/yHs4rUrJn sys-usb-vm";
     }
     {
       name = "sys-net";
@@ -140,6 +156,7 @@ let
       ip = "10.0.0.253";
       autostart = true;
       nat = false;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2rxZHd/9pzQeQz3VDwlpcEP9KGOASXYsajKbcZdJ4/ sys-net-vm";
       allowVmCopy = false;
     }
   ];
