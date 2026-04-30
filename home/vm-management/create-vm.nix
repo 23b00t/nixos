@@ -316,8 +316,12 @@ EOF
     minimal)
       ;;
     coding)
+      if [ "$ALLOW_GITHUB_AGENT" = "true" ]; then
+        EXTRA_SERVICE_BLOCKS=$'\n              services.ide = {\n                enable = true;\n                githubAgent.enable = true;\n              };\n              services.zsh-env.enable = true;\n              services.zellij-env.enable = true;'
+      else
+        EXTRA_SERVICE_BLOCKS=$'\n              services.ide.enable = true;\n              services.zsh-env.enable = true;\n              services.zellij-env.enable = true;'
+      fi
       MODULE_IMPORTS+=$'\n          ../modules/ide.nix\n          ../modules/zsh.nix\n          ../modules/zellij.nix'
-      EXTRA_SERVICE_BLOCKS=$'\n              services.ide.enable = true;\n              services.zsh-env.enable = true;\n              services.zellij-env.enable = true;'
       ;;
   esac
 

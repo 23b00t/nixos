@@ -46,7 +46,10 @@
 
               services.common-config.enable = true;
 
-              services.ide.enable = true;
+              services.ide = {
+                enable = true;
+                githubAgent.enable = true;
+              };
               services.zsh-env.enable = true;
               services.zellij-env.enable = true;
 
@@ -71,6 +74,9 @@
                 mem = 4096;
                 vcpu = 2;
               };
+
+              environment.systemPackages = with pkgs; [
+              ];
 
               system.stateVersion = "26.05";
             }

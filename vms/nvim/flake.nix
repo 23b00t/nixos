@@ -114,7 +114,6 @@
                 };
                 services.common-config = {
                   enable = true;
-
                 };
 
                 services.ide = {

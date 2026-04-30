@@ -123,7 +123,7 @@
     "microvm_10": {
       "inputs": {
         "nixpkgs": [
-          "nvim",
+          "nix",
           "nixpkgs"
         ],
         "spectrum": "spectrum_10"
@@ -145,7 +145,7 @@
     "microvm_11": {
       "inputs": {
         "nixpkgs": [
-          "office",
+          "nvim",
           "nixpkgs"
         ],
         "spectrum": "spectrum_11"
@@ -167,7 +167,7 @@
     "microvm_12": {
       "inputs": {
         "nixpkgs": [
-          "php",
+          "office",
           "nixpkgs"
         ],
         "spectrum": "spectrum_12"
@@ -189,7 +189,7 @@
     "microvm_13": {
       "inputs": {
         "nixpkgs": [
-          "ruby",
+          "php",
           "nixpkgs"
         ],
         "spectrum": "spectrum_13"
@@ -211,7 +211,7 @@
     "microvm_14": {
       "inputs": {
         "nixpkgs": [
-          "steam",
+          "ruby",
           "nixpkgs"
         ],
         "spectrum": "spectrum_14"
@@ -233,7 +233,7 @@
     "microvm_15": {
       "inputs": {
         "nixpkgs": [
-          "sys-net",
+          "steam",
           "nixpkgs"
         ],
         "spectrum": "spectrum_15"
@@ -255,7 +255,7 @@
     "microvm_16": {
       "inputs": {
         "nixpkgs": [
-          "sys-usb",
+          "sys-net",
           "nixpkgs"
         ],
         "spectrum": "spectrum_16"
@@ -277,7 +277,7 @@
     "microvm_17": {
       "inputs": {
         "nixpkgs": [
-          "vault",
+          "sys-usb",
           "nixpkgs"
         ],
         "spectrum": "spectrum_17"
@@ -299,10 +299,32 @@
     "microvm_18": {
       "inputs": {
         "nixpkgs": [
-          "wine",
+          "vault",
           "nixpkgs"
         ],
         "spectrum": "spectrum_18"
+      },
+      "locked": {
+        "lastModified": 1776340739,
+        "narHash": "sha256-s4FDictJlPtY6Shd6scG5hgrDMiHth09+svtvTA5NLA=",
+        "owner": "microvm-nix",
+        "repo": "microvm.nix",
+        "rev": "2f2f62fdfdca2750e3399f66bd03986ab967e5ca",
+        "type": "github"
+      },
+      "original": {
+        "owner": "microvm-nix",
+        "repo": "microvm.nix",
+        "type": "github"
+      }
+    },
+    "microvm_19": {
+      "inputs": {
+        "nixpkgs": [
+          "wine",
+          "nixpkgs"
+        ],
+        "spectrum": "spectrum_19"
       },
       "locked": {
         "lastModified": 1776340739,
@@ -554,6 +576,21 @@
       },
       "parent": []
     },
+    "nix": {
+      "inputs": {
+        "microvm": "microvm_10",
+        "nixpkgs": "nixpkgs_9"
+      },
+      "locked": {
+        "path": "./vms/nix",
+        "type": "path"
+      },
+      "original": {
+        "path": "./vms/nix",
+        "type": "path"
+      },
+      "parent": []
+    },
     "nixos-hardware": {
       "locked": {
         "lastModified": 1776983936,
@@ -586,16 +623,18 @@
     },
     "nixpkgs_10": {
       "locked": {
-        "lastModified": 1777425547,
-        "narHash": "sha256-d57AbflkNfZNoFaZDzssEq1RfPoM9dLtOGI2O+N/68Q=",
-        "owner": "NixOS",
+        "lastModified": 1777268161,
+        "narHash": "sha256-bxrdOn8SCOv8tN4JbTF/TXq7kjo9ag4M+C8yzzIRYbE=",
+        "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "ebc08544afa77957cc348ba72dc490ec73b87f68",
+        "rev": "1c3fe55ad329cbcb28471bb30f05c9827f724c76",
         "type": "github"
       },
       "original": {
-        "id": "nixpkgs",
-        "type": "indirect"
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
       }
     },
     "nixpkgs_11": {
@@ -712,18 +751,16 @@
     },
     "nixpkgs_19": {
       "locked": {
-        "lastModified": 1776329215,
-        "narHash": "sha256-a8BYi3mzoJ/AcJP8UldOx8emoPRLeWqALZWu4ZvjPXw=",
+        "lastModified": 1777425547,
+        "narHash": "sha256-d57AbflkNfZNoFaZDzssEq1RfPoM9dLtOGI2O+N/68Q=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "b86751bc4085f48661017fa226dee99fab6c651b",
+        "rev": "ebc08544afa77957cc348ba72dc490ec73b87f68",
         "type": "github"
       },
       "original": {
-        "owner": "NixOS",
-        "ref": "nixpkgs-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
+        "id": "nixpkgs",
+        "type": "indirect"
       }
     },
     "nixpkgs_2": {
@@ -738,6 +775,22 @@
       "original": {
         "id": "nixpkgs",
         "type": "indirect"
+      }
+    },
+    "nixpkgs_20": {
+      "locked": {
+        "lastModified": 1776329215,
+        "narHash": "sha256-a8BYi3mzoJ/AcJP8UldOx8emoPRLeWqALZWu4ZvjPXw=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "b86751bc4085f48661017fa226dee99fab6c651b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
       }
     },
     "nixpkgs_3": {
@@ -826,24 +879,22 @@
     },
     "nixpkgs_9": {
       "locked": {
-        "lastModified": 1777268161,
-        "narHash": "sha256-bxrdOn8SCOv8tN4JbTF/TXq7kjo9ag4M+C8yzzIRYbE=",
-        "owner": "nixos",
+        "lastModified": 1777425547,
+        "narHash": "sha256-d57AbflkNfZNoFaZDzssEq1RfPoM9dLtOGI2O+N/68Q=",
+        "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "1c3fe55ad329cbcb28471bb30f05c9827f724c76",
+        "rev": "ebc08544afa77957cc348ba72dc490ec73b87f68",
         "type": "github"
       },
       "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
+        "id": "nixpkgs",
+        "type": "indirect"
       }
     },
     "nvim": {
       "inputs": {
-        "microvm": "microvm_10",
-        "nixpkgs": "nixpkgs_10"
+        "microvm": "microvm_11",
+        "nixpkgs": "nixpkgs_11"
       },
       "locked": {
         "path": "./vms/nvim",
@@ -857,8 +908,8 @@
     },
     "office": {
       "inputs": {
-        "microvm": "microvm_11",
-        "nixpkgs": "nixpkgs_11"
+        "microvm": "microvm_12",
+        "nixpkgs": "nixpkgs_12"
       },
       "locked": {
         "path": "./vms/office",
@@ -872,8 +923,8 @@
     },
     "php": {
       "inputs": {
-        "microvm": "microvm_12",
-        "nixpkgs": "nixpkgs_12"
+        "microvm": "microvm_13",
+        "nixpkgs": "nixpkgs_13"
       },
       "locked": {
         "path": "./vms/php",
@@ -897,8 +948,9 @@
         "music": "music",
         "net": "net",
         "net-private": "net-private",
+        "nix": "nix",
         "nixos-hardware": "nixos-hardware",
-        "nixpkgs": "nixpkgs_9",
+        "nixpkgs": "nixpkgs_10",
         "nvim": "nvim",
         "office": "office",
         "php": "php",
@@ -913,8 +965,8 @@
     },
     "ruby": {
       "inputs": {
-        "microvm": "microvm_13",
-        "nixpkgs": "nixpkgs_13"
+        "microvm": "microvm_14",
+        "nixpkgs": "nixpkgs_14"
       },
       "locked": {
         "path": "./vms/ruby",
@@ -1107,6 +1159,22 @@
         "url": "https://spectrum-os.org/git/spectrum"
       }
     },
+    "spectrum_19": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1772189877,
+        "narHash": "sha256-i1p90Rgssb//aNiTDFq46ZG/fk3LmyRLChtp/9lddyA=",
+        "ref": "refs/heads/main",
+        "rev": "fe39e122d898f66e89ffa17d4f4209989ccb5358",
+        "revCount": 1255,
+        "type": "git",
+        "url": "https://spectrum-os.org/git/spectrum"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://spectrum-os.org/git/spectrum"
+      }
+    },
     "spectrum_2": {
       "flake": false,
       "locked": {
@@ -1237,8 +1305,8 @@
     },
     "steam": {
       "inputs": {
-        "microvm": "microvm_14",
-        "nixpkgs": "nixpkgs_14"
+        "microvm": "microvm_15",
+        "nixpkgs": "nixpkgs_15"
       },
       "locked": {
         "path": "./vms/steam",
@@ -1252,8 +1320,8 @@
     },
     "sys-net": {
       "inputs": {
-        "microvm": "microvm_15",
-        "nixpkgs": "nixpkgs_15"
+        "microvm": "microvm_16",
+        "nixpkgs": "nixpkgs_16"
       },
       "locked": {
         "path": "./vms/sys-net",
@@ -1267,8 +1335,8 @@
     },
     "sys-usb": {
       "inputs": {
-        "microvm": "microvm_16",
-        "nixpkgs": "nixpkgs_16"
+        "microvm": "microvm_17",
+        "nixpkgs": "nixpkgs_17"
       },
       "locked": {
         "path": "./vms/sys-usb",
@@ -1297,8 +1365,8 @@
     },
     "vault": {
       "inputs": {
-        "microvm": "microvm_17",
-        "nixpkgs": "nixpkgs_17"
+        "microvm": "microvm_18",
+        "nixpkgs": "nixpkgs_18"
       },
       "locked": {
         "path": "./vms/vault",
@@ -1312,8 +1380,8 @@
     },
     "wine": {
       "inputs": {
-        "microvm": "microvm_18",
-        "nixpkgs": "nixpkgs_18"
+        "microvm": "microvm_19",
+        "nixpkgs": "nixpkgs_19"
       },
       "locked": {
         "path": "./vms/wine",
@@ -1328,7 +1396,7 @@
     "yazi": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs_19",
+        "nixpkgs": "nixpkgs_20",
         "rust-overlay": "rust-overlay"
       },
       "locked": {
