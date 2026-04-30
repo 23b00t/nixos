@@ -178,7 +178,6 @@ nmcli radio wifi on
 ## TODOs <!-- TODO: -->
 
 - Remove not strictly needed host software
-- remove home/electron/
 - move home/resources/paste_functions.zsh and cmds to nvim-vm
 - refactor all scripts
 - think over dropping zellij and zsh on the host
@@ -186,7 +185,6 @@ nmcli radio wifi on
 - modularize config
 - zen as module
 - wprs as module
-- remove pkgs/ and overlays/
 - remove net-private-vm
 - think about removing fluxbox workflow. in office-vm it's possible, but what's with wine vm? a libvirt vm could be an alternative.
 - restructure vms/ vm folders should not live on the same level as modules/ vmcopy-keys/ etc.
