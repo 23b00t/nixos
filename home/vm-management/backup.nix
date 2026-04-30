@@ -17,6 +17,9 @@ pkgs.writeShellScriptBin "backup" ''
   HOSTTABLE="${hostTable}"
   ALL_VM_NAMES="${vmNames}"
 
+  SUCCESS_COUNT=0
+  FAIL_COUNT=0
+
   usage() {
     echo "Usage: $0 destination target-host-name [next-target ...]" >&2
     echo "   or: $0 -a destination                 (backup all VMs)" >&2
@@ -45,87 +48,131 @@ pkgs.writeShellScriptBin "backup" ''
     local ip="$2"
     local service="microvm@$vm_name.service"
 
+    ENSURE_STARTED_BY_SCRIPT=0
+
     if ! systemctl is-active --quiet "$service"; then
       ${pkgs.libnotify}/bin/notify-send "Starting VM: $vm_name" "Please wait..."
       systemctl start "$service"
+      ENSURE_STARTED_BY_SCRIPT=1
+    fi
 
-      local max_retries=30
-      local count=0
-      while ! ping -c 1 -W 1 "$ip" >/dev/null 2>&1; do
-        sleep 1
-        count=$((count+1))
-        if [ $count -ge $max_retries ]; then
-          ${pkgs.libnotify}/bin/notify-send "Error" "VM $vm_name failed to start network."
-          return 1
+    local max_retries=30
+    local count=0
+    while ! ping -c 1 -W 1 "$ip" >/dev/null 2>&1; do
+      sleep 1
+      count=$((count+1))
+      if [ $count -ge $max_retries ]; then
+        ${pkgs.libnotify}/bin/notify-send "Error" "VM $vm_name failed to start network."
+        if [ "$ENSURE_STARTED_BY_SCRIPT" -eq 1 ]; then
+          systemctl stop "$service" >/dev/null 2>&1 || true
         fi
-      done
-      sleep 2
+        return 1
+      fi
+    done
+
+    return 0
+  }
+
+  stop_vm_if_started_by_script() {
+    local vm_name="$1"
+    local started_by_script="$2"
+    local service="microvm@$vm_name.service"
+
+    if [ "$started_by_script" -eq 1 ]; then
+      if ! systemctl stop "$service" >/dev/null 2>&1; then
+        echo "[warn] Could not stop VM '$vm_name' after operation." >&2
+      fi
     fi
   }
 
   restore() {
-    local dir target logfile rsync_rsh
+    local dir target started_by_script logfile rsync_rsh
+    local fail_log_dir="$SOURCE/.restore-failures"
+
+    mkdir -p "$fail_log_dir"
 
     for dir in "$SOURCE"/*; do
       [ -d "$dir" ] || continue
 
       target="$(basename "$dir")"
       if ! resolve_target "$target"; then
+        echo "[restore][error] Unknown target directory '$target' (not in VM registry)." >&2
+        FAIL_COUNT=$((FAIL_COUNT+1))
         continue
       fi
 
       if ! ensure_vm_online "$RESOLVED_HOSTNAME" "$RESOLVED_IP"; then
+        echo "[restore][error] VM '$target' is not reachable." >&2
+        FAIL_COUNT=$((FAIL_COUNT+1))
         continue
       fi
 
-      echo "Restoring backup to $target ($RESOLVED_IP)..."
-      logfile="$SOURCE/restore-errors-$target.log"
+      started_by_script="$ENSURE_STARTED_BY_SCRIPT"
+      logfile="$fail_log_dir/restore-$target.log"
       rsync_rsh="ssh -i \"$HOME/.ssh/$RESOLVED_HOSTNAME-vm\" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
 
-      rsync -a --update --no-group --no-owner --numeric-ids -e "$rsync_rsh" \
-        --info=progress2 \
-        --log-file="$logfile" \
-        "$dir/home/$RESOLVED_USER/" "$RESOLVED_USER@$RESOLVED_IP:/home/$RESOLVED_USER/"
-
-      echo "Restore to $target ($RESOLVED_IP) completed."
-
-      if grep -qE '^(rsync:|rsync error:|ERROR|failed|IO error)' "$logfile"; then
-        echo "Errors during restore to $target:"
-        grep -E '^(rsync:|rsync error:|ERROR|failed|IO error)' "$logfile"
+      if rsync -a --update --no-group --no-owner --numeric-ids -e "$rsync_rsh" \
+        "$dir/home/$RESOLVED_USER/" "$RESOLVED_USER@$RESOLVED_IP:/home/$RESOLVED_USER/" \
+        >"$logfile" 2>&1; then
+        rm -f "$logfile"
+        SUCCESS_COUNT=$((SUCCESS_COUNT+1))
+      else
+        echo "[restore][error] '$target' failed. See: $logfile" >&2
+        FAIL_COUNT=$((FAIL_COUNT+1))
       fi
+
+      stop_vm_if_started_by_script "$RESOLVED_HOSTNAME" "$started_by_script"
     done
   }
 
   backup_host() {
     local target="$1"
-    local logfile rsync_rsh
+    local started_by_script logfile rsync_rsh
+    local fail_log_dir="$DESTINATION/.backup-failures"
 
     if ! resolve_target "$target"; then
-      echo "Host '$target' not found in host table." >&2
-      return 3
+      echo "[backup][error] Host '$target' not found in VM registry." >&2
+      FAIL_COUNT=$((FAIL_COUNT+1))
+      return
     fi
 
     if ! ensure_vm_online "$RESOLVED_HOSTNAME" "$RESOLVED_IP"; then
-      return 1
+      echo "[backup][error] VM '$target' is not reachable." >&2
+      FAIL_COUNT=$((FAIL_COUNT+1))
+      return
     fi
 
-    echo "Starting backup of $target ($RESOLVED_IP)..."
-    logfile="$DESTINATION/backup-errors-$target.log"
+    started_by_script="$ENSURE_STARTED_BY_SCRIPT"
+
     mkdir -p "$DESTINATION/$target"
+    mkdir -p "$fail_log_dir"
+    logfile="$fail_log_dir/backup-$target.log"
 
     rsync_rsh="ssh -i \"$HOME/.ssh/$RESOLVED_HOSTNAME-vm\" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
 
-    rsync -a --delete --no-group --no-owner --numeric-ids --relative -e "$rsync_rsh" \
-      --info=progress2 \
-      --log-file="$logfile" \
-      "$RESOLVED_USER@$RESOLVED_IP:/home/$RESOLVED_USER/" "$DESTINATION/$target/"
-
-    echo "Backup of $target ($RESOLVED_IP) completed."
-
-    if grep -qE '^(rsync:|rsync error:|ERROR|failed|IO error)' "$logfile"; then
-      echo "Errors of $target:"
-      grep -E '^(rsync:|rsync error:|ERROR|failed|IO error)' "$logfile"
+    if rsync -a --delete --no-group --no-owner --numeric-ids --relative -e "$rsync_rsh" \
+      "$RESOLVED_USER@$RESOLVED_IP:/home/$RESOLVED_USER/" "$DESTINATION/$target/" \
+      >"$logfile" 2>&1; then
+      rm -f "$logfile"
+      SUCCESS_COUNT=$((SUCCESS_COUNT+1))
+    else
+      echo "[backup][error] '$target' failed. See: $logfile" >&2
+      FAIL_COUNT=$((FAIL_COUNT+1))
     fi
+
+    stop_vm_if_started_by_script "$RESOLVED_HOSTNAME" "$started_by_script"
+  }
+
+  print_summary_and_exit() {
+    local mode="$1"
+
+    if [ "$FAIL_COUNT" -eq 0 ]; then
+      echo "[$mode] success: $SUCCESS_COUNT target(s) completed without errors."
+      exit 0
+    fi
+
+    echo "[$mode] failed: $FAIL_COUNT target(s), succeeded: $SUCCESS_COUNT." >&2
+    exit 1
   }
 
   RESTORE=false
@@ -149,7 +196,7 @@ pkgs.writeShellScriptBin "backup" ''
       usage
     fi
     restore
-    exit 0
+    print_summary_and_exit "restore"
   fi
 
   if [ "$ALL" = true ]; then
@@ -171,5 +218,7 @@ pkgs.writeShellScriptBin "backup" ''
   for TARGET in "''${TARGETS[@]}"; do
     backup_host "$TARGET"
   done
+
+  print_summary_and_exit "backup"
 ''
 
