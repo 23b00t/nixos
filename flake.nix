@@ -40,9 +40,9 @@
     sys-net.url = "path:./vms/sys-net";
   };
 
-    outputs =
-      { self, nixpkgs, ... }@inputs:
-      let
+  outputs =
+    { self, nixpkgs, ... }@inputs:
+    let
       system = "x86_64-linux";
 
       vmRegistry = import ./vms/registry.nix;
@@ -71,15 +71,10 @@
       xmgConfig = mkMachine [
         ./machines/xmg/configuration.nix
       ];
-
-      hpConfig = mkMachine [
-        ./machines/hp/configuration.nix
-      ];
-      in
-      {
-        nixosConfigurations = {
+    in
+    {
+      nixosConfigurations = {
         xmg = xmgConfig;
-        hp = hpConfig;
 
         default = xmgConfig;
       };

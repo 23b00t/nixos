@@ -73,42 +73,18 @@
     systemd.enable = false;
 
     settings = {
-      # Monitore pro Host
-      monitor =
-        if hostname == "xmg" then
-          [
-            "eDP-1,1920x1200@60.00,0x0,1"
-            "DP-1,1920x1080@60.00,1920x0,1"
-            "DP-2,1680x1050@59.88,3840x0,1"
-          ]
-        else if hostname == "hp" then
-          [
-            "HDMI-A-1,1920x1080@60,0x0,1"
-            "eDP-1,1920x1080@60,1920x0,1"
-          ]
-        else
-          [
-            "eDP-1,preferred,auto,1"
-          ];
+      monitor = [
+        "eDP-1,1920x1200@60.00,0x0,1"
+        "DP-1,1920x1080@60.00,1920x0,1"
+        "DP-2,1680x1050@59.88,3840x0,1"
+      ];
 
       # Keyboard pro Host
-      input =
-        if hostname == "xmg" then
-          {
-            kb_layout = "us";
-            kb_variant = "altgr-intl";
-            kb_options = "grp:alt_shift_toggle";
-          }
-        else if hostname == "hp" then
-          {
-            kb_layout = "us,de";
-            kb_variant = "altgr-intl";
-            kb_options = "grp:alt_shift_toggle";
-          }
-        else
-          {
-            kb_layout = "us";
-          };
+      input = {
+        kb_layout = "us";
+        kb_variant = "altgr-intl";
+        kb_options = "grp:alt_shift_toggle";
+      };
 
       decoration = {
         rounding = 10;
