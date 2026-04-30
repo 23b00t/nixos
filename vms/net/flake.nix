@@ -18,6 +18,7 @@
       nixpkgs,
       microvm,
       zen-browser,
+      ...
     }:
     let
       system = "x86_64-linux";
@@ -32,10 +33,14 @@
       nixosConfigurations = {
         net = nixpkgs.lib.nixosSystem {
           inherit system;
+          specialArgs = {
+            inherit zen-browser;
+          };
           modules = [
             microvm.nixosModules.microvm
             ../modules/net-config.nix
             ../modules/common-config.nix
+            ../modules/zen-firefox.nix
             (
               { config, pkgs, ... }:
               {
@@ -102,8 +107,6 @@
                 environment.systemPackages = [
                   pkgs.wprs
                   pkgs.xwayland
-                  (import ../zen-firefox.nix { inherit lib pkgs zen-browser; })
-
                 ];
 
                 system.stateVersion = "26.05";
