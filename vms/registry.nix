@@ -293,7 +293,47 @@ let
   defaultUsbForOwner = owner: builtins.filter (device: (device.defaultOwner or null) == owner) usbDevices;
   allowedUsbForOwner = owner: builtins.filter (device: builtins.elem owner (device.allowedOwners or [ ])) usbDevices;
 
+  pciDeviceIds = {
+    gpu = [
+      "10de:2d19" # NVIDIA RTX 5060 Max-Q (VGA)
+    ];
+    gpuAudio = [
+      "10de:22eb" # NVIDIA RTX 5060 Audio
+    ];
+    nic = [
+      "8086:7a70" # WiFi
+      "10ec:8125" # Ethernet
+    ];
+  };
+
+  pciDevicePaths = {
+    gpu = [
+      "0000:02:00.0"
+      "0000:02:00.1"
+    ];
+    nic = [
+      "0000:05:00.0"
+      "0000:00:14.3"
+    ];
+  };
+
+  pciVfioIds = pciDeviceIds.gpu ++ pciDeviceIds.gpuAudio ++ pciDeviceIds.nic;
+
+  hostProfile = {
+    cpuVendor = "intel";
+    dGpuVendor = "nvidia";
+    blockedHostDrivers = {
+      nic = [ "r8169" ];
+      wifi = [ "iwlwifi" ];
+    };
+  };
+
   hardware = {
+    pci = {
+      deviceIds = pciDeviceIds;
+      devicePaths = pciDevicePaths;
+      vfioIds = pciVfioIds;
+    };
     usb = {
       devices = usbDevices;
       byName = usbByName;
@@ -315,5 +355,6 @@ in
     dbusForwardParticipants
     globalExtraSSH
     hardware
+    hostProfile
     ;
 }

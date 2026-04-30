@@ -20,6 +20,12 @@
       pkgs = import nixpkgs {
         inherit system;
       };
+      vmRegistry = import ../registry.nix;
+      nicPciPaths = vmRegistry.hardware.pci.devicePaths.nic or [ ];
+      mkPciDevice = path: {
+        bus = "pci";
+        inherit path;
+      };
       bridgeZones = [
         {
           tapId = "vm-libv-def";
@@ -211,16 +217,7 @@
                     mountPoint = "/nix/.ro-store";
                   }
                 ];
-                devices = [
-                  {
-                    bus = "pci";
-                    path = "0000:05:00.0"; # Ethernet Controller
-                  }
-                  {
-                    bus = "pci";
-                    path = "0000:00:14.3"; # WiFi Controller
-                  }
-                ];
+                devices = map mkPciDevice nicPciPaths;
                 mem = 1024;
               };
 

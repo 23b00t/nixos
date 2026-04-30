@@ -20,6 +20,12 @@
       system = "x86_64-linux";
       inherit (nixpkgs) lib;
       pkgs = import nixpkgs { inherit system; };
+      vmRegistry = import ../registry.nix;
+      gpuPciPaths = vmRegistry.hardware.pci.devicePaths.gpu or [ ];
+      mkPciDevice = path: {
+        bus = "pci";
+        inherit path;
+      };
     in
     {
       packages.${system} = {
@@ -84,16 +90,7 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  devices = [
-                    {
-                      bus = "pci";
-                      path = "0000:02:00.0";
-                    }
-                    {
-                      bus = "pci";
-                      path = "0000:02:00.1";
-                    }
-                  ];
+                  devices = map mkPciDevice gpuPciPaths;
                   mem = 16384;
                   vcpu = 6;
                 };

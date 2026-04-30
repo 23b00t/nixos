@@ -13,6 +13,68 @@ let
     config.allowUnfree = true;
   };
   maxVMs = 23;
+  vfioPciIds = vmRegistry.hardware.pci.vfioIds or [ ];
+  hostProfile = vmRegistry.hostProfile or { };
+  cpuVendor = hostProfile.cpuVendor or "intel";
+  dGpuVendor = hostProfile.dGpuVendor or null;
+  blockedHostDrivers = hostProfile.blockedHostDrivers or { };
+
+  iommuKernelParam =
+    if cpuVendor == "intel" then
+      "intel_iommu=on"
+    else if cpuVendor == "amd" then
+      "amd_iommu=on"
+    else
+      null;
+
+  gpuBlacklistModules =
+    if dGpuVendor == "nvidia" then
+      [
+        "nouveau"
+        "nvidia"
+        "nvidia_drm"
+        "nvidia_modeset"
+        "i2c_nvidia_gpu"
+      ]
+    else if dGpuVendor == "amd" then
+      [ "amdgpu" ]
+    else
+      [ ];
+
+  vfioPreSoftdeps =
+    if dGpuVendor == "nvidia" then
+      [
+        "softdep nvidia pre: vfio-pci"
+        "softdep drm pre: vfio-pci"
+        "softdep nouveau pre: vfio-pci"
+      ]
+    else if dGpuVendor == "amd" then
+      [
+        "softdep amdgpu pre: vfio-pci"
+        "softdep drm pre: vfio-pci"
+      ]
+    else
+      [ ];
+
+  hostBlockedNicDrivers = blockedHostDrivers.nic or [ ];
+  hostBlockedWifiDrivers = blockedHostDrivers.wifi or [ ];
+  hostBlacklistedKernelModules =
+    gpuBlacklistModules ++ hostBlockedNicDrivers ++ hostBlockedWifiDrivers;
+
+  mkVmReservedUsbRule =
+    device:
+    let
+      udev = device.udev or { };
+      group = udev.group or "kvm";
+      modePart = lib.optionalString (udev ? mode) '', MODE="${udev.mode}"'';
+      udisksPart = lib.optionalString (udev.udisksIgnore or false
+      ) '', ENV{UDISKS_IGNORE}="1", TAG-="uaccess"'';
+    in
+    ''SUBSYSTEM=="usb", ATTR{idVendor}=="${device.vendorId}", ATTR{idProduct}=="${device.productId}", GROUP="${group}"${modePart}${udisksPart}'';
+
+  vmReservedUsbRules = lib.concatMapStringsSep "\n" mkVmReservedUsbRule (
+    vmRegistry.hardware.usb.vmReserved or [ ]
+  );
 in
 {
   boot = {
@@ -21,15 +83,35 @@ in
     plymouth.enable = true;
     initrd = {
       systemd.enable = true;
-      kernelModules = [
-        "nvme"
-        "sd_mod"
-        "dm-crypt"
-        "dm-mod"
-      ];
+      kernelModules = lib.mkAfter (
+        [
+          "nvme"
+          "sd_mod"
+          "dm-crypt"
+          "dm-mod"
+        ]
+        ++ lib.optionals (vfioPciIds != [ ]) [
+          "vfio_pci"
+          "vfio"
+          "vfio_iommu_type1"
+        ]
+      );
       services.lvm.enable = true;
     };
     kernelPackages = pkgs.linuxPackages_zen;
+
+    kernelParams =
+      (lib.optionals (iommuKernelParam != null) [ iommuKernelParam ])
+      ++ (lib.optionals (vfioPciIds != [ ]) [
+        "iommu=pt"
+        "vfio-pci.ids=${lib.concatStringsSep "," vfioPciIds}"
+      ]);
+
+    extraModprobeConfig = lib.optionalString (vfioPreSoftdeps != [ ]) ''
+      ${lib.concatStringsSep "\n" vfioPreSoftdeps}
+    '';
+
+    blacklistedKernelModules = hostBlacklistedKernelModules;
 
     kernel.sysctl = {
       # Disable bridge netfilter for Whonix Gateway compatibility
@@ -515,6 +597,11 @@ in
     SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
     # Mouse
     SUBSYSTEM=="usb", ATTR{idVendor}=="093a", ATTR{idProduct}=="2533", GROUP="kvm"
+  ''
+  + lib.optionalString (vmReservedUsbRules != "") ''
+
+    # VM-reserved USB devices are generated from vms/registry.nix
+    ${vmReservedUsbRules}
   '';
   services.udev.packages = [
     (pkgs.writeTextFile {
@@ -539,22 +626,6 @@ in
       "interface-name:virbr*"
       "interface-name:vnet*"
     ];
-  };
-
-  services.usbguard = {
-    enable = true;
-    rules = ''
-      allow id 05e3:0610 name "USB2.1 Hub" with-interface { 09:00:01 09:00:02 }
-      allow id 1a40:0801 name "USB 2.0 Hub" with-interface 09:00:00
-      allow id 05e3:0620 name "USB3.2 Hub" with-interface 09:00:00
-
-      allow id 093a:2533 name "SHARKFORCE OpticalMouse" with-interface { 03:01:02 03:00:01 }
-      allow id 1209:2303 serial "CDatreus" name "Atreus" with-interface { 02:02:00 0a:00:00 03:01:01 03:00:00 03:00:00 }
-
-      allow id 2b7e:c906 serial "200901010001" name "FHD WebCam" with-interface { 0e:01:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:01:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 fe:01:01 }
-      allow id 8087:0033 with-interface { e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 }
-    '';
-
   };
 
   systemd.network.enable = true;

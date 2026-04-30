@@ -33,9 +33,14 @@
           bluetoothUsbDevice.name
         ]
       ) allowedUsbDevices;
+      gpuPciPaths = vmRegistry.hardware.pci.devicePaths.gpu or [ ];
       mkUsbDevice = device: {
         bus = "usb";
         path = device.microvmUsbPath;
+      };
+      mkPciDevice = path: {
+        bus = "pci";
+        inherit path;
       };
     in
     {
@@ -85,16 +90,7 @@
                       mountPoint = "/nix/.ro-store";
                     }
                   ];
-                  devices = [
-                    {
-                      bus = "pci";
-                      path = "0000:02:00.0";
-                    }
-                    {
-                      bus = "pci";
-                      path = "0000:02:00.1";
-                    }
-                  ] ++ map mkUsbDevice steamUsbDevices;
+                  devices = (map mkPciDevice gpuPciPaths) ++ map mkUsbDevice steamUsbDevices;
                   mem = 16384;
                   vcpu = 10;
                 };
