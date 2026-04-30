@@ -28,30 +28,34 @@ pkgs.writeShellScriptBin "cp-vm" ''
   KEY_PATH="''${VM_COPY_KEY_PATH:-$DEFAULT_KEY_PATH}"
   HOSTTABLE="${hostTable}"
   MOVE=0
+  DRY_RUN=0
 
   usage() {
-    echo "Usage: $0 [-m] <vm-name-or-short> <path>" >&2
-    echo "  -m                 move source after successful transfer" >&2
+    echo "Usage: $0 [-m] [-n] <vm-name-or-short> <path> [path ...]" >&2
+    echo "  -m                 move sources after successful transfer" >&2
+    echo "  -n                 dry-run (print actions, do not transfer or delete)" >&2
     echo "  VM_COPY_KEY_PATH    optional override for transfer SSH key" >&2
     echo "  VM_COPY_USER        optional override for transfer SSH user" >&2
     exit 1
   }
 
-  while getopts ":mh" opt; do
+  while getopts ":mnh" opt; do
     case "$opt" in
       m) MOVE=1 ;;
+      n) DRY_RUN=1 ;;
       h) usage ;;
       \?) echo "Unknown option: -$OPTARG" >&2; usage ;;
     esac
   done
   shift $((OPTIND - 1))
 
-  if [ $# -ne 2 ]; then
+  if [ $# -lt 2 ]; then
     usage
   fi
 
   TARGET="$1"
-  FILE="$2"
+  shift
+  SOURCES=("$@")
 
   LINE=$(printf '%s\n' "$HOSTTABLE" | awk -v target="$TARGET" '$1 == target { print; exit }')
   if [ -z "$LINE" ]; then
@@ -68,10 +72,12 @@ pkgs.writeShellScriptBin "cp-vm" ''
     exit 5
   fi
 
-  if [ ! -e "$FILE" ]; then
-    echo "File or directory '$FILE' not found." >&2
-    exit 4
-  fi
+  for src in "''${SOURCES[@]}"; do
+    if [ ! -e "$src" ]; then
+      echo "File or directory '$src' not found." >&2
+      exit 4
+    fi
+  done
 
   if [ ! -r "$KEY_PATH" ]; then
     echo "Transfer key not found at '$KEY_PATH'." >&2
@@ -85,14 +91,45 @@ pkgs.writeShellScriptBin "cp-vm" ''
     -o StrictHostKeyChecking=accept-new
   )
 
-  if [ -d "$FILE" ]; then
-    scp "''${SSH_OPTS[@]}" -r -- "$FILE" "$DEFAULT_USER@$IP:$REMOTE_DIR"
+  NEED_RECURSIVE=0
+  for src in "''${SOURCES[@]}"; do
+    if [ -d "$src" ]; then
+      NEED_RECURSIVE=1
+      break
+    fi
+  done
+
+  if [ $DRY_RUN -eq 1 ]; then
+    echo "Target VM: $TARGET_NAME ($IP)"
+    echo "Remote user: $DEFAULT_USER"
+    echo "Remote dir: $REMOTE_DIR"
+    echo "Sources:"
+    for src in "''${SOURCES[@]}"; do
+      echo "  - $src"
+    done
+
+    if [ $NEED_RECURSIVE -eq 1 ]; then
+      echo "[dry-run] Would run: scp [ssh-opts] -r -- <sources...> $DEFAULT_USER@$IP:$REMOTE_DIR"
+    else
+      echo "[dry-run] Would run: scp [ssh-opts] -- <sources...> $DEFAULT_USER@$IP:$REMOTE_DIR"
+    fi
+
+    if [ $MOVE -eq 1 ]; then
+      echo "[dry-run] Would remove local sources after successful transfer."
+    fi
+
+    echo "[dry-run] No changes were made."
+    exit 0
+  fi
+
+  if [ $NEED_RECURSIVE -eq 1 ]; then
+    scp "''${SSH_OPTS[@]}" -r -- "''${SOURCES[@]}" "$DEFAULT_USER@$IP:$REMOTE_DIR"
   else
-    scp "''${SSH_OPTS[@]}" -- "$FILE" "$DEFAULT_USER@$IP:$REMOTE_DIR"
+    scp "''${SSH_OPTS[@]}" -- "''${SOURCES[@]}" "$DEFAULT_USER@$IP:$REMOTE_DIR"
   fi
 
   if [ $MOVE -eq 1 ]; then
-    rm -rf -- "$FILE"
+    rm -rf -- "''${SOURCES[@]}"
   fi
 
   echo "Transfer to $TARGET_NAME ($IP) completed."

@@ -179,7 +179,6 @@ nmcli radio wifi on
 
 - Remove not strictly needed host software
 - move home/resources/paste_functions.zsh and cmds to nvim-vm
-- refactor all scripts
 - think over dropping zellij and zsh on the host
 - split nvim-vm in real nvim-vm and coding-vm
 - modularize config
@@ -191,7 +190,6 @@ nmcli radio wifi on
 - improve and use manage-vms.nix
 - create hyprland start script or actually better: improve vm-run, so there are no sleeps needed anymore as vm-run is more robust as just checking bare reachablity.
 - create a very basic script for vm creation, including keys and all entries. use in flake.nix and registry.nix simple comment markers like `# <vm-name> vm entry end ---->` to make it possible to easily add the new vm to the flake and registry with sed. Create some templates for the flake etc.
-- cp-vm should read multiple files, not only one and folders
 - backup and restore should be better tested and have a better output over success and failure
   - vms started by the scripts should be stoped after backup and restore
 - Test migrated printing path via `sys-net` end-to-end
