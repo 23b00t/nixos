@@ -33,7 +33,6 @@
             ../modules/common-config.nix
             ../modules/yazi-config.nix
             ../modules/common-config.nix
-            ../modules/rdp.nix
             ../modules/wprs.nix
             (
               { config, pkgs, ... }:
@@ -43,7 +42,6 @@
               {
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "office-vm";
-                services.rdp.enable = true;
                 services.net-config = {
                   enable = true;
                   index = 9;
@@ -80,18 +78,6 @@
                   ];
                   mem = 6144;
                   vcpu = 4;
-                };
-
-                # Setup xrdp with fluxbox
-                services.xrdp = {
-                  defaultWindowManager = ''
-                    exec fluxbox -no-toolbar &
-                    fbpid=$!
-                    sleep 2
-                    setxkbmap -layout "us" -variant "intl" -option "grp:alt_shift_toggle"
-                    onlyoffice-desktopeditors &
-                    wait $fbpid
-                  '';
                 };
 
                 services.printing.enable = true;
