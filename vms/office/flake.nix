@@ -34,6 +34,7 @@
             ../modules/yazi-config.nix
             ../modules/common-config.nix
             ../modules/rdp.nix
+            ../modules/wprs.nix
             (
               { config, pkgs, ... }:
               let
@@ -79,20 +80,6 @@
                   ];
                   mem = 6144;
                   vcpu = 4;
-                };
-
-                systemd.user.services.wprsd = {
-                  description = "wprsd instance";
-                  after = [ "network.target" ];
-                  serviceConfig = {
-                    Type = "simple";
-                    Environment = [
-                      "PATH=/run/current-system/sw/bin"
-                      "RUST_BACKTRACE=1"
-                    ];
-                    ExecStart = "/run/current-system/sw/bin/wprsd";
-                  };
-                  wantedBy = [ "default.target" ];
                 };
 
                 # Setup xrdp with fluxbox
@@ -142,8 +129,6 @@
                   pdfarranger
 
                   adwaita-icon-theme
-                  wprs
-                  xwayland
                   kitty
 
                   # DEBUG: wprs 10.0.0.9 run -- env QT_DEBUG_PLUGINS=1 GTK_DEBUG=all XDG_RUNTIME_DIR=/run/user/1000 onlyoffice-desktopeditors --native-file-dialog

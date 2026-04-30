@@ -32,6 +32,7 @@
             ../modules/common-config.nix
             ../modules/rdp.nix
             ../modules/net-config.nix
+            ../modules/wprs.nix
             (
               { config, pkgs, ... }:
               {
@@ -45,7 +46,7 @@
                 services.rdp.enable = true;
                 services.common-config = {
                   enable = true;
-                  
+
                 };
                 microvm = {
                   registerClosure = false;
@@ -85,24 +86,7 @@
                 environment.systemPackages = [
                   pkgs.wine
                   pkgs.kitty
-                  pkgs.wprs
-                  pkgs.xwayland
-
                 ];
-
-                systemd.user.services.wprsd = {
-                  description = "wprsd instance";
-                  after = [ "network.target" ];
-                  serviceConfig = {
-                    Type = "simple";
-                    Environment = [
-                      "PATH=/run/current-system/sw/bin"
-                      "RUST_BACKTRACE=1"
-                    ];
-                    ExecStart = "/run/current-system/sw/bin/wprsd";
-                  };
-                  wantedBy = [ "default.target" ];
-                };
 
                 system.stateVersion = "26.05";
               }

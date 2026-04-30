@@ -52,6 +52,7 @@
           microvm.nixosModules.microvm
           ../modules/net-config.nix
           ../modules/common-config.nix
+          ../modules/wprs.nix
           (
             { lib, ... }:
             let
@@ -71,7 +72,7 @@
 
               services.common-config = {
                 enable = true;
-                
+
                 withDefaultPkgs = false;
                 vmCopy.enable = false;
               };
@@ -223,20 +224,6 @@
                 mem = 1024;
               };
 
-              systemd.user.services.wprsd = {
-                description = "wprsd instance";
-                after = [ "network.target" ];
-                serviceConfig = {
-                  Type = "simple";
-                  Environment = [
-                    "PATH=/run/current-system/sw/bin"
-                    "RUST_BACKTRACE=1"
-                  ];
-                  ExecStart = "/run/current-system/sw/bin/wprsd";
-                };
-                wantedBy = [ "default.target" ];
-              };
-
               environment.systemPackages = with pkgs; [
                 networkmanager
                 networkmanagerapplet
@@ -249,9 +236,6 @@
                 tcpdump
                 nftables
                 iftop # network monitoring
-
-                wprs
-                xwayland
               ];
 
               system.stateVersion = "26.05";

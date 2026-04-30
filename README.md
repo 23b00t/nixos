@@ -182,7 +182,6 @@ nmcli radio wifi on
 - think over dropping zellij and zsh on the host
 - split nvim-vm in real nvim-vm and coding-vm
 - modularize config
-- zen as module
 - wprs as module
 - remove net-private-vm
 - think about removing fluxbox workflow. in office-vm it's possible, but what's with wine vm? a libvirt vm could be an alternative.

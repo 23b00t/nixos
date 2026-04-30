@@ -36,6 +36,7 @@
             microvm.nixosModules.microvm
             ../modules/net-config.nix
             ../modules/common-config.nix
+            ../modules/wprs.nix
             (
               { config, pkgs, ... }:
               {
@@ -46,7 +47,7 @@
                 };
                 services.common-config = {
                   enable = true;
-                  
+
                 };
                 nixpkgs.config.allowUnfree = true;
                 networking.hostName = "chat-vm";
@@ -100,20 +101,6 @@
                   config.common.default = [ "gtk" ];
                 };
 
-                systemd.user.services.wprsd = {
-                  description = "wprsd instance";
-                  after = [ "network.target" ];
-                  serviceConfig = {
-                    Type = "simple";
-                    Environment = [
-                      "PATH=/run/current-system/sw/bin"
-                      "RUST_BACKTRACE=1"
-                    ];
-                    ExecStart = "/run/current-system/sw/bin/wprsd";
-                  };
-                  wantedBy = [ "default.target" ];
-                };
-
                 services.gnome.gnome-keyring.enable = true;
 
                 environment.systemPackages = with pkgs; [
@@ -122,8 +109,6 @@
                   slack
                   element-desktop
                   google-chrome
-                  wprs
-                  xwayland
 
                   mesa
                   vulkan-loader

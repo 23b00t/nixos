@@ -32,6 +32,7 @@
             ../modules/net-config.nix
             ../modules/common-config.nix
             ../modules/yazi-config.nix
+            ../modules/wprs.nix
             (
               { config, pkgs, ... }:
               {
@@ -44,7 +45,7 @@
                 };
                 services.common-config = {
                   enable = true;
-                  
+
                 };
                 microvm = {
                   registerClosure = false;
@@ -68,25 +69,8 @@
                   mem = 1024;
                 };
 
-                systemd.user.services.wprsd = {
-                  description = "wprsd instance";
-                  after = [ "network.target" ];
-                  serviceConfig = {
-                    Type = "simple";
-                    Environment = [
-                      "PATH=/run/current-system/sw/bin"
-                      "RUST_BACKTRACE=1"
-                    ];
-                    ExecStart = "/run/current-system/sw/bin/wprsd";
-                  };
-                  wantedBy = [ "default.target" ];
-                };
-
                 environment.systemPackages = [
-                  pkgs.wprs
-                  pkgs.xwayland
                   pkgs.keepassxc
-
                 ];
 
                 system.stateVersion = "26.05";

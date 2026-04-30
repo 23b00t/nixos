@@ -32,11 +32,9 @@
             ../modules/net-config.nix
             ../modules/common-config.nix
             ../modules/yazi-config.nix
+            ../modules/wprs.nix
             (
               { config, pkgs, ... }:
-              let
-
-              in
               {
                 services.net-config = {
                   enable = true;
@@ -45,7 +43,7 @@
                 };
                 services.common-config = {
                   enable = true;
-                  
+
                 };
                 networking.hostName = "kali-vm";
 
@@ -72,20 +70,6 @@
                   vcpu = 6;
                 };
 
-                systemd.user.services.wprsd = {
-                  description = "wprsd instance";
-                  after = [ "network.target" ];
-                  serviceConfig = {
-                    Type = "simple";
-                    Environment = [
-                      "PATH=/run/current-system/sw/bin"
-                      "RUST_BACKTRACE=1"
-                    ];
-                    ExecStart = "/run/current-system/sw/bin/wprsd";
-                  };
-                  wantedBy = [ "default.target" ];
-                };
-
                 virtualisation.podman = {
                   enable = true;
                   dockerCompat = true;
@@ -93,9 +77,6 @@
 
                 environment.systemPackages = [
                   pkgs.distrobox
-                  pkgs.wprs
-                  pkgs.xwayland
-
                 ];
 
                 system.stateVersion = "26.05";

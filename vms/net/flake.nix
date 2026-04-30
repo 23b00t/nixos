@@ -40,6 +40,7 @@
             microvm.nixosModules.microvm
             ../modules/net-config.nix
             ../modules/common-config.nix
+            ../modules/wprs.nix
             ../modules/zen-firefox.nix
             (
               { config, pkgs, ... }:
@@ -79,20 +80,6 @@
                   vcpu = 2;
                 };
 
-                systemd.user.services.wprsd = {
-                  description = "wprsd instance";
-                  after = [ "network.target" ];
-                  serviceConfig = {
-                    Type = "simple";
-                    Environment = [
-                      "PATH=/run/current-system/sw/bin"
-                      "RUST_BACKTRACE=1"
-                    ];
-                    ExecStart = "/run/current-system/sw/bin/wprsd";
-                  };
-                  wantedBy = [ "default.target" ];
-                };
-
                 # TODO: Mangage extensions declerativly by policies
                 programs = {
                   firefox = {
@@ -104,10 +91,6 @@
                   };
                 };
 
-                environment.systemPackages = [
-                  pkgs.wprs
-                  pkgs.xwayland
-                ];
 
                 system.stateVersion = "26.05";
               }
