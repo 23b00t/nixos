@@ -164,6 +164,16 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2rxZHd/9pzQeQz3VDwlpcEP9KGOASXYsajKbcZdJ4/ sys-net-vm";
       allowVmCopy = false;
     }
+    {
+      name = "nix";
+      short = "nix";
+      ip = "10.0.0.24";
+      autostart = false;
+      nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK1BBz8Jz9CHLkp7C7gfxG+HuEfj+PK+xXxiJGh2pE+H nix-vm";
+      allowGitHubAgent = true;
+      enableHostDbusForward = false;
+    }
   ];
 
   byName = builtins.listToAttrs (

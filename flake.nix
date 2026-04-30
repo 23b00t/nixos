@@ -38,6 +38,7 @@
     ruby.url = "path:./vms/ruby";
     sys-usb.url = "path:./vms/sys-usb";
     sys-net.url = "path:./vms/sys-net";
+    nix.url = "path:./vms/nix";
   };
 
   outputs =
