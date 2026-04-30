@@ -109,6 +109,7 @@
                   slack
                   element-desktop
                   google-chrome
+                  chromium
 
                   mesa
                   vulkan-loader

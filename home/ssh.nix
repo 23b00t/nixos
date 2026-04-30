@@ -43,7 +43,7 @@ in
     enableDefaultConfig = false;
     extraConfig = hostStrings + "\n"
       + builtins.concatStringsSep "\n" (
-        map (h: ''
+    map (h: ''
           Host ${h.name}-vm ${h.ip}
             IdentityAgent none
             ForwardAgent no

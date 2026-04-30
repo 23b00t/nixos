@@ -8,6 +8,7 @@ let
   #   nat         : whether the VM should be included in networking.nat.internalIPs
   #   allowVmCopy : whether the VM should participate in inter-VM copy; defaults to true
   #   allowGitHubAgent : whether the VM should receive the dedicated forwarded GitHub SSH agent/socket
+  #   enableHostDbusForward : whether host should keep persistent forwarded /tmp/ssh_dbus.sock for this VM (defaults to true)
   #   extraSSH    : extra SSH matchOptions for home.ssh (may be [])
   vms = [
     {
@@ -105,6 +106,7 @@ let
       ip = "10.0.0.12";
       autostart = false;
       nat = true;
+      enableHostDbusForward = false;
     }
     {
       name = "godot";
@@ -123,6 +125,7 @@ let
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAXSVOR0aTAo/5lDeG+3r3QeOygbLKY7WrkB8wSK+rh9 mirage-vm";
       allowGitHubAgent = true;
+      enableHostDbusForward = false;
     }
     {
       name = "php";
@@ -132,6 +135,7 @@ let
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHpfcEv27hamz0HELXGKpLd6M+/m5m/fopZ3A7fonUVw php-vm";
       allowGitHubAgent = true;
+      enableHostDbusForward = false;
     }
     {
       name = "ruby";
@@ -141,6 +145,7 @@ let
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkF7qniIZVKtoIrUUWkU8t/1QeK34BSEgI54MbqbieC ruby-vm";
       allowGitHubAgent = true;
+      enableHostDbusForward = false;
     }
     {
       name = "sys-usb";
@@ -181,7 +186,9 @@ let
 
   vmCopyParticipants = builtins.filter (vm: vm.allowVmCopy or true) vms;
 
-  globalExtraSSH = [ "RemoteForward /tmp/ssh_dbus.sock /run/user/1000/vm-session-bus.sock" ];
+  dbusForwardParticipants = builtins.filter (vm: vm.enableHostDbusForward or true) vms;
+
+  globalExtraSSH = [ ];
 
   # Central USB/Bluetooth inventory and ownership policy.
   usbDevices = [
@@ -305,6 +312,7 @@ in
     natIPs
     autostartNames
     vmCopyParticipants
+    dbusForwardParticipants
     globalExtraSSH
     hardware
     ;

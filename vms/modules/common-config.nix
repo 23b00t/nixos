@@ -10,6 +10,8 @@ let
   vmName = if hasSuffix "-vm" hostName then removeSuffix "-vm" hostName else hostName;
   currentVm = if builtins.hasAttr vmName vmRegistry.byName then builtins.getAttr vmName vmRegistry.byName else { };
   hostSSHKey = currentVm.hostSSHKey or null;
+  dbusForwardParticipants = vmRegistry.dbusForwardParticipants or [ ];
+  dbusForwardEnabled = builtins.elem vmName (map (vm: vm.name) dbusForwardParticipants);
   vmCopyEnabled = cfg.vmCopy.enable && (currentVm.allowVmCopy or true);
   vmCopyRoot = cfg.vmCopy.homeDirectory;
   vmCopyIncomingDir = cfg.vmCopy.incomingDirectory;
@@ -182,9 +184,12 @@ in
       nerd-fonts.fira-code
     ];
 
-    environment.shellInit = ''
-      if [ -n "$SSH_CONNECTION" ]; then
+    environment.shellInit = mkIf dbusForwardEnabled ''
+      if [ -n "$SSH_CONNECTION" ] && [ -S /tmp/ssh_dbus.sock ] \
+        && ${pkgs.systemd}/bin/busctl --address=unix:path=/tmp/ssh_dbus.sock --timeout=200ms status >/dev/null 2>&1; then
         export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_dbus.sock
+      else
+        unset DBUS_SESSION_BUS_ADDRESS
       fi
     '';
 

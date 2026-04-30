@@ -23,6 +23,7 @@ in
     ./vm-management/vm-run.nix
     ./vm-management/desktop-entries.nix
     ./vm-management/vm-connect.nix
+    ./vm-management/vm-dbus-forward.nix
   ];
 
   home = {
