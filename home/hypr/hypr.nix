@@ -212,7 +212,7 @@
         "waybar"
         "systemctl --user restart wpaperd.service"
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
-        "vm-run sn nm-applet --indicator"
+        "sleep 8 && vm-run sn nm-applet --indicator"
         "vm-run c vesktop -m"
         "vm-run c element-desktop --hidden"
         "vm-run c Telegram -startintray"
