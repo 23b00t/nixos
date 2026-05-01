@@ -3,6 +3,23 @@ let
   vmRegistry = import ../../vms/registry.nix;
   githubAgentHosts = builtins.filter (h: h.allowGitHubAgent or false) vmRegistry.vms;
   githubAgentBin = import ./github-agent.nix { inherit pkgs; };
+  vmUser = "user";
+  localGitHubAgentSocket = "%h/.ssh/agent/github.sock";
+  remoteGitHubAgentSocket = "/tmp/ssh-github-agent.sock";
+  sshVmOptions = builtins.concatStringsSep " " [
+    "-o BatchMode=yes"
+    "-o ExitOnForwardFailure=yes"
+    "-o ServerAliveInterval=30"
+    "-o ServerAliveCountMax=3"
+    "-o ControlMaster=no"
+    "-o IdentitiesOnly=yes"
+    "-o StrictHostKeyChecking=no"
+    "-o UserKnownHostsFile=/dev/null"
+    "-o IdentityAgent=none"
+    "-o ForwardAgent=no"
+    "-o StreamLocalBindUnlink=yes"
+    "-o ConnectTimeout=5"
+  ];
 in
 {
   systemd.user.services = {
@@ -36,8 +53,8 @@ in
             Type = "simple";
             Restart = "always";
             RestartSec = 5;
-            ExecStartPre = "${pkgs.coreutils}/bin/test -S %h/.ssh/agent/github.sock";
-            ExecStart = "${pkgs.openssh}/bin/ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ControlMaster=no -o StreamLocalBindUnlink=yes ${vm.name}-vm";
+            ExecStartPre = "${pkgs.coreutils}/bin/test -S ${localGitHubAgentSocket}";
+            ExecStart = "${pkgs.openssh}/bin/ssh -N ${sshVmOptions} -i %h/.ssh/${vm.name}-vm -R ${remoteGitHubAgentSocket}:${localGitHubAgentSocket} ${vmUser}@${vm.ip}";
           };
           Install = {
             WantedBy = [ "default.target" ];

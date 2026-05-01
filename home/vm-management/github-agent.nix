@@ -40,21 +40,42 @@ pkgs.writeShellScriptBin "github-agent" ''
     exit 1
   fi
 
-  existing_pid=""
-  if [ -f "$ENV_PATH" ]; then
-    # shellcheck disable=SC1090
-    . "$ENV_PATH"
-    existing_pid="''${SSH_AGENT_PID:-}"
-  fi
+  agent_is_reachable() {
+    local status=0
+    ${pkgs.openssh}/bin/ssh-add -l >/dev/null 2>&1 || status=$?
+    [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+  }
 
-  if [ -S "$SOCKET_PATH" ] && [ -n "$existing_pid" ] && kill -0 "$existing_pid" 2>/dev/null; then
-    export SSH_AUTH_SOCK="$SOCKET_PATH"
-    export SSH_AGENT_PID="$existing_pid"
-  else
-    rm -f "$SOCKET_PATH"
+  reset_agent_state() {
+    if [ -n "''${SSH_AGENT_PID:-}" ] && kill -0 "$SSH_AGENT_PID" 2>/dev/null; then
+      SSH_AUTH_SOCK="''${SSH_AUTH_SOCK:-$SOCKET_PATH}" \
+        SSH_AGENT_PID="$SSH_AGENT_PID" \
+        ${pkgs.openssh}/bin/ssh-agent -k >/dev/null 2>&1 || true
+    fi
+
+    rm -f "$SOCKET_PATH" "$ENV_PATH"
+    unset SSH_AUTH_SOCK SSH_AGENT_PID
+  }
+
+  start_agent() {
     eval "$(${pkgs.openssh}/bin/ssh-agent -a "$SOCKET_PATH" -s)" >/dev/null
     printf 'SSH_AUTH_SOCK=%s\nSSH_AGENT_PID=%s\n' "$SSH_AUTH_SOCK" "$SSH_AGENT_PID" > "$ENV_PATH"
     chmod 600 "$ENV_PATH"
+  }
+
+  if [ -f "$ENV_PATH" ]; then
+    # shellcheck disable=SC1090
+    . "$ENV_PATH"
+    export SSH_AUTH_SOCK="''${SSH_AUTH_SOCK:-$SOCKET_PATH}"
+    export SSH_AGENT_PID="''${SSH_AGENT_PID:-}"
+  else
+    export SSH_AUTH_SOCK="$SOCKET_PATH"
+    export SSH_AGENT_PID=""
+  fi
+
+  if [ ! -S "$SOCKET_PATH" ] || [ -z "''${SSH_AGENT_PID:-}" ] || ! kill -0 "$SSH_AGENT_PID" 2>/dev/null || ! agent_is_reachable; then
+    reset_agent_state
+    start_agent
   fi
 
   can_prompt_for_passphrase() {

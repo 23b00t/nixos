@@ -3,7 +3,6 @@ let
   vmRegistry = import ../vms/registry.nix;
 
   hosts = vmRegistry.vms;
-  githubAgentHosts = builtins.filter (h: h.allowGitHubAgent or false) hosts;
   githubAgentSocket = "%d/.ssh/agent/github.sock";
 
   hostStrings = builtins.concatStringsSep "\n" (
@@ -41,16 +40,7 @@ in
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
-    extraConfig = hostStrings + "\n"
-      + builtins.concatStringsSep "\n" (
-    map (h: ''
-          Host ${h.name}-vm ${h.ip}
-            IdentityAgent none
-            ForwardAgent no
-            ExitOnForwardFailure yes
-            RemoteForward /tmp/ssh-github-agent.sock ${githubAgentSocket}
-        '') githubAgentHosts
-      );
+    extraConfig = hostStrings;
     inherit matchBlocks;
   };
 }
