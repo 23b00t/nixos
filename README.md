@@ -291,3 +291,13 @@ chmod +x ~/.local/bin/devenv
 - gpg --list-secret-keys --keyid-format LONG
 - gpg --export-secret-keys XXXXXXXXXX > privat.asc
 - gpg --export XXXXXXXXXX > public.asc
+
+### Lazyvim
+
+- workaround for oom errors
+```bash
+export MAKEFLAGS="-j1"
+export CFLAGS="-O0"
+export CXXFLAGS="-O0"
+nvim --headless "+TSUninstall gitcommit" "+TSInstall gitcommit" +qa
+```

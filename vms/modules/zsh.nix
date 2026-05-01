@@ -55,6 +55,7 @@ in
           la = "ls -la";
           sc = "systemctl";
           n = "nvim";
+          y = "yazi";
         }
         // cfg.extraAliases;
 

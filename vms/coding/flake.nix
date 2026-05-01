@@ -34,6 +34,7 @@
           ../modules/zellij.nix
           ../modules/persistent-store-overlay.nix
           ../modules/wprs.nix
+          ../modules/yazi-config.nix
           (
             { pkgs, ... }:
             {
@@ -74,12 +75,15 @@
                   enable = true;
                   extraAliases = {
                     dc = "docker compose";
+                    cmd = "eval $(fzf < ~/cmds)";
+                    pcmd = "cmd=$(fzf < ~/cmds); vared -p '> ' -c cmd; eval '$cmd'";
                   };
                   extraShellInit = ''
                     # Countdown shell function
                     countdown() {
                       termdown "$1" -c 10 && paplay --volume=43000 ~/Music/airhorn.wav
                     }
+                  [ -f "$HOME/paste_functions.zsh" ] && source "$HOME/paste_functions.zsh"
                   '';
                 };
 

@@ -32,6 +32,7 @@
           ../modules/ide.nix
           ../modules/zsh.nix
           ../modules/zellij.nix
+          ../modules/yazi-config.nix
           (
             { pkgs, ... }:
             {

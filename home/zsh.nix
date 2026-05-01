@@ -56,7 +56,6 @@
         eval "$(oh-my-posh init zsh --config "$HOME/.cache/oh-my-posh/themes/slimfat.omp.json")"
       fi
       # Load custom functions
-      [ -f "$HOME/nixos-config/home/resources/paste_functions.zsh" ] && source "$HOME/nixos-config/home/resources/paste_functions.zsh"
       [ -f "$HOME/nixos-config/home/resources/nvim.zsh" ] && source "$HOME/nixos-config/home/resources/nvim.zsh"
 
       ms() {
