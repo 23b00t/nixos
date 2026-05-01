@@ -92,19 +92,5 @@ in
     SSH_AUTH_SOCK = "$HOME/.ssh/agent/github.sock";
   };
 
-  systemd.user.services.github-agent = {
-    Unit = {
-      Description = "GitHub SSH Agent bootstrap";
-      After = [ "default.target" ];
-    };
-    Service = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "${myGithubAgent}/bin/github-agent";
-      Environment = "HOME=%h";
-    };
-    Install.WantedBy = [ "default.target" ];
-  };
-
   home.stateVersion = "26.05";
 }
