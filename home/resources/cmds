@@ -37,3 +37,7 @@ wl-screenrec -g "$(slurp)" -f ~/Videos/screen.mp4 --audio --low-power=off # reco
 wl-screenrec -f -o eDP-1 ~/Videos/screen.mp4 --audio --low-power=off # record full screen video
 
 curl -sI URL | grep -i Content-Length | awk '{gsub(/\r$/,""); print $2}' | numfmt --to=iec # human readable content length from URL
+
+## Encrypted disks
+udisksctl unlock -b /dev/sda2
+Unlocked /dev/sda2 as /dev/dm-2

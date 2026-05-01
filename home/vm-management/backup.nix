@@ -8,7 +8,9 @@ let
     includeUser = true;
   };
 
-  vmNames = builtins.concatStringsSep " " (map (vm: vm.name) vmRegistry.vms);
+  vmNames = builtins.concatStringsSep " " (
+    map (vm: vm.name) (builtins.filter (vm: vm.name != "steam") vmRegistry.vms)
+  );
 in
 pkgs.writeShellScriptBin "backup" ''
   #!/usr/bin/env bash
@@ -16,6 +18,7 @@ pkgs.writeShellScriptBin "backup" ''
 
   HOSTTABLE="${hostTable}"
   ALL_VM_NAMES="${vmNames}"
+  REMOTE_RSYNC="sudo -n ${pkgs.rsync}/bin/rsync"
 
   SUCCESS_COUNT=0
   FAIL_COUNT=0
@@ -111,7 +114,7 @@ pkgs.writeShellScriptBin "backup" ''
       logfile="$fail_log_dir/restore-$target.log"
       rsync_rsh="ssh -i \"$HOME/.ssh/$RESOLVED_HOSTNAME-vm\" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
 
-      if rsync -a --update --no-group --no-owner --numeric-ids -e "$rsync_rsh" \
+      if ${pkgs.rsync}/bin/rsync -aHAX --update --numeric-ids --rsync-path="$REMOTE_RSYNC" -e "$rsync_rsh" \
         "$dir/home/$RESOLVED_USER/" "$RESOLVED_USER@$RESOLVED_IP:/home/$RESOLVED_USER/" \
         >"$logfile" 2>&1; then
         rm -f "$logfile"
@@ -150,7 +153,7 @@ pkgs.writeShellScriptBin "backup" ''
 
     rsync_rsh="ssh -i \"$HOME/.ssh/$RESOLVED_HOSTNAME-vm\" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
 
-    if rsync -a --delete --no-group --no-owner --numeric-ids --relative -e "$rsync_rsh" \
+    if ${pkgs.rsync}/bin/rsync -aHAX --delete --numeric-ids --relative --rsync-path="$REMOTE_RSYNC" -e "$rsync_rsh" \
       "$RESOLVED_USER@$RESOLVED_IP:/home/$RESOLVED_USER/" "$DESTINATION/$target/" \
       >"$logfile" 2>&1; then
       rm -f "$logfile"

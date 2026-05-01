@@ -178,16 +178,12 @@ nmcli radio wifi on
 ## TODOs <!-- TODO: -->
 
 - Remove not strictly needed host software
-- move home/resources/paste_functions.zsh and cmds to nvim-vm
 - think over dropping zellij and zsh on the host
-- split nvim-vm in real nvim-vm and coding-vm
 - modularize config
-- remove net-private-vm
 - think about removing fluxbox workflow. what's with wine vm? a libvirt vm could be an alternative.
 - restructure vms/ vm folders should not live on the same level as modules/ vmcopy-keys/ etc.
-- create a very basic script for vm creation, including keys and all entries. use in flake.nix and registry.nix simple comment markers like `# <vm-name> vm entry end ---->` to make it possible to easily add the new vm to the flake and registry with sed. Create some templates for the flake etc.
 - Test migrated printing path via `sys-net` end-to-end
-- Is there any virtue in exposing nvim to the host? Remove the host-share and implement proper write back or remove exposing nvim to the host.
+- Is there any virtue in exposing nvim to the host? Remove the host-share and implement proper write back or remove exposing host to nvim.
 
 - fix steam-vm bug: reboot is needed
 - improve steam-vm: initial wlserver: backend/hedless... is taking quiet long till steam starts (about 30s)

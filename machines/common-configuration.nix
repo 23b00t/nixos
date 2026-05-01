@@ -233,6 +233,7 @@ in
     libinput # libinput library
     lm_sensors # system sensors
     pciutils # pci utils
+    udisks2
 
     # Audio
     pipewire
@@ -628,6 +629,7 @@ in
     ];
   };
 
+  services.udisks2.enable = true;
   systemd.network.enable = true;
 
   system.stateVersion = "26.05";
