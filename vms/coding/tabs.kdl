@@ -12,10 +12,13 @@ layout {
     tab name="user" cwd="~/" {
         pane
     }
-    tab name="ruby" cwd="~/code/ruby/" {
+    tab name="code" cwd="~/code/" {
         pane
     }
-    tab name="artDB" cwd="~/code/Künstlerschmuck/EasyArtDB/" {
+    tab name="tauri" cwd="~/code/rust/tauri/" {
         pane
+    }
+    tab name="yazi" cwd="~/" {
+        pane command="yazi"
     }
 }

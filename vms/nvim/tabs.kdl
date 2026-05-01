@@ -15,22 +15,4 @@ layout {
     tab name="org" cwd="~/org" {
         pane
     }
-    tab name="code" cwd="~/code/" {
-        pane
-    }
-    tab name="ruby" cwd="~/code/ruby/" {
-        pane
-    }
-    tab name="artDB" cwd="~/code/Künstlerschmuck/EasyArtDB/" {
-        pane
-    }
-    tab name="tauri" cwd="~/code/rust/tauri/" {
-        pane
-    }
-    tab name="user" cwd="~/" {
-        pane
-    }
-    tab name="yazi" cwd="~/" {
-        pane command="yazi"
-    }
 }

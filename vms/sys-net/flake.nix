@@ -199,11 +199,6 @@
                 optimize.enable = false;
                 volumes = [
                   {
-                    mountPoint = "/home/user";
-                    image = "home.img";
-                    size = 512;
-                  }
-                  {
                     mountPoint = "/etc/NetworkManager/system-connections";
                     image = "networkmanager.img";
                     size = 512;

@@ -25,12 +25,10 @@
     office.url = "path:./vms/office";
     music.url = "path:./vms/music";
     net.url = "path:./vms/net";
-    net-private.url = "path:./vms/net-private";
     wine.url = "path:./vms/wine";
     kali.url = "path:./vms/kali";
     vault.url = "path:./vms/vault";
     # test.url = "path:./vms/test";
-    # onlyoffice.url = "path:./vms/onlyoffice";
     steam.url = "path:./vms/steam";
     godot.url = "path:./vms/godot";
     mirage.url = "path:./vms/mirage";
@@ -39,6 +37,7 @@
     sys-usb.url = "path:./vms/sys-usb";
     sys-net.url = "path:./vms/sys-net";
     nix.url = "path:./vms/nix";
+    coding.url = "path:./vms/coding";
   };
 
   outputs =

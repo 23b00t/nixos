@@ -53,14 +53,6 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
     }
     {
-      name = "net-private";
-      short = "np";
-      ip = "10.0.0.6";
-      autostart = false;
-      nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDtJWssP02QsNahmgCZDcCOFqSnfwscUUpibbxWAk+ag net-private-vm";
-    }
-    {
       name = "wine";
       short = "w";
       ip = "10.0.0.7";
@@ -173,6 +165,16 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK1BBz8Jz9CHLkp7C7gfxG+HuEfj+PK+xXxiJGh2pE+H nix-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = false;
+    }
+    {
+      name = "coding";
+      short = "cc";
+      ip = "10.0.0.6";
+      autostart = true;
+      nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9Co+A8G16ciSIU3vldErgRNpmZ+JVHzsj2oNteV1e+ coding-vm";
+      allowGitHubAgent = true;
+      enableHostDbusForward = true;
     }
   ];
 

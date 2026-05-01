@@ -258,26 +258,6 @@ in
       ];
     })
 
-    # --- Net Private VM ---
-    (mkVmEntry {
-      name = "Firefox Private Browser";
-      genericName = "Web Browser";
-      vm = "net-private";
-      binary = "firefox";
-      icon = "firefox";
-      categories = [
-        "Network"
-        "WebBrowser"
-      ];
-      mimeType = [
-        "text/html"
-        "application/xhtml+xml"
-        "application/xml"
-        "application/pdf"
-        "application/x-xpinstall"
-      ];
-    })
-
     # ---- Vault VM ---
     (mkVmEntry {
       name = "KeePassXC";
@@ -298,7 +278,7 @@ in
     (mkVmEntry {
       name = "postman";
       genericName = "API Client";
-      vm = "nvim";
+      vm = "coding";
       binary = "postman";
       icon = "postman";
       categories = [
@@ -310,7 +290,7 @@ in
     (mkVmEntry {
       name = "dbeaver";
       genericName = "Database Manager";
-      vm = "nvim";
+      vm = "coding";
       binary = "dbeaver";
       icon = "dbeaver";
       categories = [
@@ -322,7 +302,7 @@ in
     (mkVmEntry {
       name = "firefox coding vm";
       genericName = "Web Browser";
-      vm = "nvim";
+      vm = "coding";
       binary = "firefox";
       icon = "firefox";
       categories = [

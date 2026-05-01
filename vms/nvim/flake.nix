@@ -35,13 +35,10 @@
             ../modules/ide.nix
             ../modules/zsh.nix
             ../modules/zellij.nix
-            ../modules/persistent-store-overlay.nix
             ../modules/common-config.nix
-            ../modules/wprs.nix
             (
               { config, pkgs, ... }:
               {
-                nixpkgs.config.allowUnfree = true;
                 networking.hostName = "nvim-vm";
 
                 microvm = {
@@ -51,7 +48,7 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 80000;
+                      size = 10000;
                     }
                   ];
                   shares = [
@@ -62,8 +59,8 @@
                       mountPoint = "/mnt/host";
                     }
                   ];
-                  mem = 8192;
-                  vcpu = 4;
+                  mem = 4096;
+                  vcpu = 1;
                 };
 
                 environment.systemPackages = with pkgs; [
@@ -73,41 +70,7 @@
                   nixfmt
                   nil
                   nixdoc
-
-                  ddate
-                  cowsay
-
-                  postman
-                  dbeaver-bin
-                  devenv
-                  firefox
-
-                  ruby
-
-                  pulseaudio
-                  termdown
                 ];
-
-                networking.firewall = {
-                  enable = true;
-                  allowedTCPPorts = [
-                    8080
-                    8082
-                    3000
-                  ];
-                  allowedTCPPortRanges = [
-                    {
-                      from = 8500;
-                      to = 8523;
-                    }
-                  ];
-                };
-
-                # direnv
-                programs.direnv = {
-                  enable = true;
-                  nix-direnv.enable = true;
-                };
 
                 services.net-config = {
                   enable = true;
@@ -143,41 +106,7 @@
 
                   extraAliases = {
                     edit = "sudo -e";
-                    dc = "docker compose";
                   };
-
-                  extraShellInit = ''
-                    # Countdown shell function
-                    countdown() {
-                      termdown "$1" -c 10 && paplay --volume=43000 ~/Music/airhorn.wav
-                    }
-                  '';
-                };
-
-                services.persistentStoreOverlay.enable = true;
-
-                virtualisation = {
-                  docker = {
-                    enable = true;
-                    # Für rootless Docker (optional)
-                    # rootless = {
-                    #   enable = true;
-                    #   setSocketVariable = true;
-                    # };
-                    # BuildX-Plugin aktivieren
-                    # enableOnBoot = true; # Docker beim Systemstart starten
-                    extraOptions = "--experimental"; # Experimentelle Features aktivieren
-                    extraPackages = [ pkgs.docker-buildx ]; # BuildX-Plugin hinzufügen
-                  };
-                  podman = {
-                    enable = true;
-                    # Keine Docker-Kompatibilität, wenn Docker selbst installiert ist
-                    dockerCompat = false;
-                  };
-                };
-
-                environment.variables = {
-                  PULSE_SERVER = "tcp:localhost:4713";
                 };
 
                 system.stateVersion = "26.05";
