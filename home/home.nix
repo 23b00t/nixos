@@ -24,6 +24,7 @@ in
     ./vm-management/desktop-entries.nix
     ./vm-management/vm-connect.nix
     ./vm-management/vm-dbus-forward.nix
+    ./vm-management/github-agent-forward.nix
   ];
 
   home = {
