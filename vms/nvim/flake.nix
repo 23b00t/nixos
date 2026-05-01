@@ -71,6 +71,8 @@
                   lua51Packages.lua
                   lua51Packages.luarocks
                   nixfmt
+                  nil
+                  nixdoc
 
                   ddate
                   cowsay

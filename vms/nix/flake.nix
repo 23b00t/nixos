@@ -76,6 +76,10 @@
               };
 
               environment.systemPackages = with pkgs; [
+                nil
+                nixd
+                nixdoc
+                nixfmt
               ];
 
               system.stateVersion = "26.05";

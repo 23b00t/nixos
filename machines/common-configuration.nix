@@ -12,7 +12,7 @@ let
     inherit system;
     config.allowUnfree = true;
   };
-  maxVMs = 23;
+  maxVMs = 50;
   vfioPciIds = vmRegistry.hardware.pci.vfioIds or [ ];
   hostProfile = vmRegistry.hostProfile or { };
   cpuVendor = hostProfile.cpuVendor or "intel";
