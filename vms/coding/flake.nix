@@ -40,44 +40,6 @@
               nixpkgs.config.allowUnfree = true;
               networking.hostName = "coding-vm";
 
-              services.net-config = {
-                enable = true;
-                index = 6;
-                mac = "00:00:00:00:00:06";
-              };
-
-              services.common-config.enable = true;
-
-              services.ide = {
-                enable = true;
-                githubAgent.enable = true;
-              };
-              services.zsh-env = {
-                enable = true;
-                extraAliases = {
-                  dc = "docker compose";
-                };
-
-                extraShellInit = ''
-                  # Countdown shell function
-                  countdown() {
-                    termdown "$1" -c 10 && paplay --volume=43000 ~/Music/airhorn.wav
-                  }
-                '';
-              };
-
-              services.persistentStoreOverlay.enable = true;
-
-              services.zellij-env = {
-                enable = true;
-                tabsKdlFile = builtins.path {
-                  name = "tabs.kdl";
-                  path = ./tabs.kdl;
-                };
-              };
-
-              services.persistentStoreOverlay.enable = true;
-
               microvm = {
                 registerClosure = false;
                 hypervisor = "cloud-hypervisor";
@@ -88,16 +50,46 @@
                     size = 70000;
                   }
                 ];
-                shares = [
-                  {
-                    proto = "virtiofs";
-                    tag = "ro-store";
-                    source = "/nix/store";
-                    mountPoint = "/nix/.ro-store";
-                  }
-                ];
                 mem = 8192;
                 vcpu = 4;
+              };
+
+              services = {
+                persistentStoreOverlay.enable = true;
+
+                net-config = {
+                  enable = true;
+                  index = 6;
+                  mac = "00:00:00:00:00:06";
+                };
+
+                common-config.enable = true;
+
+                ide = {
+                  enable = true;
+                  githubAgent.enable = true;
+                };
+
+                zsh-env = {
+                  enable = true;
+                  extraAliases = {
+                    dc = "docker compose";
+                  };
+                  extraShellInit = ''
+                    # Countdown shell function
+                    countdown() {
+                      termdown "$1" -c 10 && paplay --volume=43000 ~/Music/airhorn.wav
+                    }
+                  '';
+                };
+
+                zellij-env = {
+                  enable = true;
+                  tabsKdlFile = builtins.path {
+                    name = "tabs.kdl";
+                    path = ./tabs.kdl;
+                  };
+                };
               };
 
               networking.firewall = {

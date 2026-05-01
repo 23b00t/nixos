@@ -15,6 +15,21 @@
       },
       "parent": []
     },
+    "coding": {
+      "inputs": {
+        "microvm": "microvm_2",
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "path": "./vms/coding",
+        "type": "path"
+      },
+      "original": {
+        "path": "./vms/coding",
+        "type": "path"
+      },
+      "parent": []
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -35,8 +50,8 @@
     },
     "godot": {
       "inputs": {
-        "microvm": "microvm_2",
-        "nixpkgs": "nixpkgs_2"
+        "microvm": "microvm_3",
+        "nixpkgs": "nixpkgs_3"
       },
       "locked": {
         "path": "./vms/godot",
@@ -70,8 +85,8 @@
     },
     "irc": {
       "inputs": {
-        "microvm": "microvm_3",
-        "nixpkgs": "nixpkgs_3"
+        "microvm": "microvm_4",
+        "nixpkgs": "nixpkgs_4"
       },
       "locked": {
         "path": "./vms/irc",
@@ -85,8 +100,8 @@
     },
     "kali": {
       "inputs": {
-        "microvm": "microvm_4",
-        "nixpkgs": "nixpkgs_4"
+        "microvm": "microvm_5",
+        "nixpkgs": "nixpkgs_5"
       },
       "locked": {
         "path": "./vms/kali",
@@ -343,7 +358,7 @@
     "microvm_2": {
       "inputs": {
         "nixpkgs": [
-          "godot",
+          "coding",
           "nixpkgs"
         ],
         "spectrum": "spectrum_2"
@@ -365,7 +380,7 @@
     "microvm_3": {
       "inputs": {
         "nixpkgs": [
-          "irc",
+          "godot",
           "nixpkgs"
         ],
         "spectrum": "spectrum_3"
@@ -387,7 +402,7 @@
     "microvm_4": {
       "inputs": {
         "nixpkgs": [
-          "kali",
+          "irc",
           "nixpkgs"
         ],
         "spectrum": "spectrum_4"
@@ -409,6 +424,7 @@
     "microvm_5": {
       "inputs": {
         "nixpkgs": [
+          "kali",
           "nixpkgs"
         ],
         "spectrum": "spectrum_5"
@@ -430,7 +446,6 @@
     "microvm_6": {
       "inputs": {
         "nixpkgs": [
-          "mirage",
           "nixpkgs"
         ],
         "spectrum": "spectrum_6"
@@ -452,7 +467,7 @@
     "microvm_7": {
       "inputs": {
         "nixpkgs": [
-          "music",
+          "mirage",
           "nixpkgs"
         ],
         "spectrum": "spectrum_7"
@@ -474,7 +489,7 @@
     "microvm_8": {
       "inputs": {
         "nixpkgs": [
-          "net",
+          "music",
           "nixpkgs"
         ],
         "spectrum": "spectrum_8"
@@ -496,7 +511,7 @@
     "microvm_9": {
       "inputs": {
         "nixpkgs": [
-          "net-private",
+          "net",
           "nixpkgs"
         ],
         "spectrum": "spectrum_9"
@@ -517,8 +532,8 @@
     },
     "mirage": {
       "inputs": {
-        "microvm": "microvm_6",
-        "nixpkgs": "nixpkgs_5"
+        "microvm": "microvm_7",
+        "nixpkgs": "nixpkgs_6"
       },
       "locked": {
         "path": "./vms/mirage",
@@ -532,8 +547,8 @@
     },
     "music": {
       "inputs": {
-        "microvm": "microvm_7",
-        "nixpkgs": "nixpkgs_6"
+        "microvm": "microvm_8",
+        "nixpkgs": "nixpkgs_7"
       },
       "locked": {
         "path": "./vms/music",
@@ -547,8 +562,8 @@
     },
     "net": {
       "inputs": {
-        "microvm": "microvm_8",
-        "nixpkgs": "nixpkgs_7",
+        "microvm": "microvm_9",
+        "nixpkgs": "nixpkgs_8",
         "zen-browser": "zen-browser"
       },
       "locked": {
@@ -557,21 +572,6 @@
       },
       "original": {
         "path": "./vms/net",
-        "type": "path"
-      },
-      "parent": []
-    },
-    "net-private": {
-      "inputs": {
-        "microvm": "microvm_9",
-        "nixpkgs": "nixpkgs_8"
-      },
-      "locked": {
-        "path": "./vms/net-private",
-        "type": "path"
-      },
-      "original": {
-        "path": "./vms/net-private",
         "type": "path"
       },
       "parent": []
@@ -939,15 +939,15 @@
     "root": {
       "inputs": {
         "chat": "chat",
+        "coding": "coding",
         "godot": "godot",
         "home-manager": "home-manager",
         "irc": "irc",
         "kali": "kali",
-        "microvm": "microvm_5",
+        "microvm": "microvm_6",
         "mirage": "mirage",
         "music": "music",
         "net": "net",
-        "net-private": "net-private",
         "nix": "nix",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_10",

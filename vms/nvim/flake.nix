@@ -58,6 +58,12 @@
                       source = "/home/nx";
                       mountPoint = "/mnt/host";
                     }
+                    {
+                      proto = "virtiofs";
+                      tag = "ro-store";
+                      source = "/nix/store";
+                      mountPoint = "/nix/.ro-store";
+                    }
                   ];
                   mem = 4096;
                   vcpu = 1;
