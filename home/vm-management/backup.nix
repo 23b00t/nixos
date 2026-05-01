@@ -49,7 +49,9 @@ pkgs.writeShellScriptBin "backup" ''
   ensure_vm_online() {
     local vm_name="$1"
     local ip="$2"
+    local user="$3"
     local service="microvm@$vm_name.service"
+    local key="$HOME/.ssh/$vm_name-vm"
 
     ENSURE_STARTED_BY_SCRIPT=0
 
@@ -72,6 +74,25 @@ pkgs.writeShellScriptBin "backup" ''
         return 1
       fi
     done
+
+    if [ "$ENSURE_STARTED_BY_SCRIPT" -eq 1 ]; then
+      count=0
+      while ! ssh -i "$key" \
+        -o IdentitiesOnly=yes \
+        -o StrictHostKeyChecking=accept-new \
+        -o BatchMode=yes \
+        -o ConnectTimeout=2 \
+        -o ConnectionAttempts=1 \
+        "$user@$ip" true >/dev/null 2>&1; do
+        sleep 1
+        count=$((count+1))
+        if [ $count -ge $max_retries ]; then
+          ${pkgs.libnotify}/bin/notify-send "Error" "VM $vm_name is reachable by ping but SSH is not ready."
+          systemctl stop "$service" >/dev/null 2>&1 || true
+          return 1
+        fi
+      done
+    fi
 
     return 0
   }
@@ -104,7 +125,7 @@ pkgs.writeShellScriptBin "backup" ''
         continue
       fi
 
-      if ! ensure_vm_online "$RESOLVED_HOSTNAME" "$RESOLVED_IP"; then
+      if ! ensure_vm_online "$RESOLVED_HOSTNAME" "$RESOLVED_IP" "$RESOLVED_USER"; then
         echo "[restore][error] VM '$target' is not reachable." >&2
         FAIL_COUNT=$((FAIL_COUNT+1))
         continue
@@ -139,7 +160,7 @@ pkgs.writeShellScriptBin "backup" ''
       return
     fi
 
-    if ! ensure_vm_online "$RESOLVED_HOSTNAME" "$RESOLVED_IP"; then
+    if ! ensure_vm_online "$RESOLVED_HOSTNAME" "$RESOLVED_IP" "$RESOLVED_USER"; then
       echo "[backup][error] VM '$target' is not reachable." >&2
       FAIL_COUNT=$((FAIL_COUNT+1))
       return
