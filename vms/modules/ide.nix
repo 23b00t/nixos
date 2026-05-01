@@ -125,20 +125,20 @@ in
       '';
     };
 
-    environment.variables =
-      {
-        EDITOR = "nvim";
-        VISUAL = "nvim";
-      }
-      // lib.optionalAttrs cfg.githubAgent.enable {
-        # Set SSH_AUTH_SOCK for all environments to the correct agent socket path
-        SSH_AUTH_SOCK = githubAgentSocket;
-      };
+    environment.variables = {
+      EDITOR = "nvim";
+      VISUAL = "nvim";
+    }
+    // lib.optionalAttrs cfg.githubAgent.enable {
+      # Set SSH_AUTH_SOCK for all environments to the correct agent socket path
+      SSH_AUTH_SOCK = githubAgentSocket;
+    };
 
     nixpkgs.config.allowUnfree = true;
 
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user}/.config 0755 ${cfg.user} users -"
+      "d /home/${cfg.user}/.gnupg 0700 ${cfg.user} users -"
       "L+ /home/${cfg.user}/.gnupg/gpg-agent.conf - - - - /etc/gpg-agent.conf"
     ];
 
