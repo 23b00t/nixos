@@ -19,25 +19,24 @@
     # Hardware Configuration's, used in ./configuration.nix. Feel free to remove if unused
     nixos-hardware.url = "github:nixos/nixos-hardware/master";
 
-    irc.url = "path:./vms/irc";
-    nvim.url = "path:./vms/nvim";
-    chat.url = "path:./vms/chat";
-    office.url = "path:./vms/office";
-    music.url = "path:./vms/music";
-    net.url = "path:./vms/net";
-    wine.url = "path:./vms/wine";
-    kali.url = "path:./vms/kali";
-    vault.url = "path:./vms/vault";
-    # test.url = "path:./vms/test";
-    steam.url = "path:./vms/steam";
-    godot.url = "path:./vms/godot";
-    mirage.url = "path:./vms/mirage";
-    php.url = "path:./vms/php";
-    ruby.url = "path:./vms/ruby";
-    sys-usb.url = "path:./vms/sys-usb";
-    sys-net.url = "path:./vms/sys-net";
-    nix.url = "path:./vms/nix";
-    coding.url = "path:./vms/coding";
+    irc.url = "git+file:///home/nx/nixos-config?dir=vms/irc";
+    nvim.url = "git+file:///home/nx/nixos-config?dir=vms/nvim";
+    chat.url = "git+file:///home/nx/nixos-config?dir=vms/chat";
+    office.url = "git+file:///home/nx/nixos-config?dir=vms/office";
+    music.url = "git+file:///home/nx/nixos-config?dir=vms/music";
+    net.url = "git+file:///home/nx/nixos-config?dir=vms/net";
+    wine.url = "git+file:///home/nx/nixos-config?dir=vms/wine";
+    kali.url = "git+file:///home/nx/nixos-config?dir=vms/kali";
+    vault.url = "git+file:///home/nx/nixos-config?dir=vms/vault";
+    steam.url = "git+file:///home/nx/nixos-config?dir=vms/steam";
+    godot.url = "git+file:///home/nx/nixos-config?dir=vms/godot";
+    mirage.url = "git+file:///home/nx/nixos-config?dir=vms/mirage";
+    php.url = "git+file:///home/nx/nixos-config?dir=vms/php";
+    ruby.url = "git+file:///home/nx/nixos-config?dir=vms/ruby";
+    sys-usb.url = "git+file:///home/nx/nixos-config?dir=vms/sys-usb";
+    sys-net.url = "git+file:///home/nx/nixos-config?dir=vms/sys-net";
+    nix.url = "git+file:///home/nx/nixos-config?dir=vms/nix";
+    coding.url = "git+file:///home/nx/nixos-config?dir=vms/coding";
   };
 
   outputs =
