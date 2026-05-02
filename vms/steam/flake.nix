@@ -132,7 +132,7 @@
                   modesetting.enable = true;
                   open = true;
 
-                  package = config.boot.kernelPackages.nvidiaPackages.stable;
+                  package = config.boot.kernelPackages.nvidiaPackages.beta;
                   prime.offload.enable = false;
                   prime.sync.enable = false;
                   nvidiaSettings = true;
