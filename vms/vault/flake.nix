@@ -50,7 +50,7 @@
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
-                  optimize.enable = false;
+                  # optimize.enable = false;
                   volumes = [
                     {
                       mountPoint = "/home/user";

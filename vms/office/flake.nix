@@ -49,12 +49,10 @@
 
                 services.common-config = {
                   enable = true;
-                  
                 };
                 microvm = {
                   registerClosure = false;
                   hypervisor = "cloud-hypervisor";
-                  optimize.enable = false;
                   volumes = [
                     {
                       mountPoint = "/home/user";
@@ -107,6 +105,7 @@
 
                 environment.systemPackages = with pkgs; [
                   onlyoffice-desktopeditors
+                  libreoffice
                   gimp
                   inkscape
                   vlc
@@ -114,7 +113,6 @@
                   pdfarranger
 
                   adwaita-icon-theme
-                  kitty
 
                   # DEBUG: wprs 10.0.0.9 run -- env QT_DEBUG_PLUGINS=1 GTK_DEBUG=all XDG_RUNTIME_DIR=/run/user/1000 onlyoffice-desktopeditors --native-file-dialog
                   # Provoke crash: wprs 10.0.0.9 run -- env -u DBUS_SESSION_BUS_ADDRESS -u XDG_CURRENT_DESKTOP -u XDG_SESSION_TYPE onlyoffice-desktopeditors --native-file-dialog

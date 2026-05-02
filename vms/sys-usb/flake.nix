@@ -53,7 +53,6 @@
 
                 services.common-config = {
                   enable = true;
-
                   withDefaultPkgs = false;
                 };
 

@@ -169,10 +169,33 @@ in
     })
 
     (mkVmEntry {
+      name = "libreoffice";
+      genericName = "LibreOffice Suite";
+      vm = "office";
+      binary = "libreoffice";
+      icon = "libreoffice";
+      categories = [
+        "Office"
+        "WordProcessor"
+        "Spreadsheet"
+        "Presentation"
+      ];
+      mimeType = [
+        "application/vnd.oasis.opendocument.text"
+        "application/vnd.oasis.opendocument.spreadsheet"
+        "application/vnd.oasis.opendocument.presentation"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+      ];
+    })
+
+    (mkVmEntry {
       name = "inkscape";
       genericName = "Vector Graphics Editor";
       vm = "office";
-      binary = "inkscape";
+      binary = "dbus-run-session";
+      args = "inkscape";
       icon = "inkscape";
       categories = [
         "Graphics"

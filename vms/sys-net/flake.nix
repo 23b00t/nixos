@@ -195,8 +195,6 @@
               microvm = {
                 registerClosure = false;
                 hypervisor = "cloud-hypervisor";
-                # TODO: Can we set this to true?
-                optimize.enable = false;
                 volumes = [
                   {
                     mountPoint = "/etc/NetworkManager/system-connections";

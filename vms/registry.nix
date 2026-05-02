@@ -67,6 +67,7 @@ let
       autostart = false;
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
+      enableHostDbusForward = false;
     }
     {
       name = "office";

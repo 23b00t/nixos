@@ -49,7 +49,6 @@
                 };
                 services.common-config = {
                   enable = true;
-                  
                 };
                 networking.hostName = "music-vm";
 
