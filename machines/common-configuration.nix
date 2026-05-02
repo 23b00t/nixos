@@ -199,7 +199,6 @@ in
     vim
     gnupg
     pinentry-curses
-    wget
     virt-manager
     libvirt
     qemu
@@ -218,7 +217,6 @@ in
     upower # power management/battery status daemon
     mesa # OpenGL implementation and GPU drivers
     dconf # configuration storage system
-    dconf-editor # dconf editor
     xdg-utils # Collection of XDG desktop integration tools
     desktop-file-utils # for updating desktop database
     hicolor-icon-theme # Base fallback icon theme
@@ -226,7 +224,6 @@ in
     egl-wayland # for wayland support
     xwayland # for x11 support
     coreutils # coreutils implementation
-    hypridle
 
     # sddm
     sddm-astronaut
