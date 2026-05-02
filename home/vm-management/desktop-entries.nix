@@ -340,5 +340,27 @@ in
         "application/x-xpinstall"
       ];
     })
+
+    # ---- Kali VM ---
+    # vm-run kali distrobox enter kali -- firefox-esr
+    (mkVmEntry {
+      name = "firefox kali";
+      genericName = "Web Browser";
+      vm = "kali";
+      binary = "distrobox";
+      args = "enter kali -- firefox-esr";
+      icon = "firefox";
+      categories = [
+        "Network"
+        "WebBrowser"
+      ];
+      mimeType = [
+        "text/html"
+        "application/xhtml+xml"
+        "application/xml"
+        "application/pdf"
+        "application/x-xpinstall"
+      ];
+    })
   ];
 }

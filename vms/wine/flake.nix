@@ -1,3 +1,6 @@
+# Install protonup-rs proton for steam
+# wprs 10.0.0.7 run -- env WINEPREFIX=/home/user/.local/share/wineprefixes/test-app GAMEID=test-app PROTONPATH=/home/user/.steam/root/compatibilitytools.d/GE-Proton10-34 umu-run '/home/user/WISO-Pool/VCE\ Software/VCE\ Exam\ Simulator\ Demo/designer.exe'
+# TODO: Add godot like setup (maybe even with gpu passthrough) to make this usefull. Above is very unstable over wprs
 {
   description = "Wine MicroVM";
 
@@ -30,20 +33,19 @@
           modules = [
             microvm.nixosModules.microvm
             ../modules/common-config.nix
-            ../modules/rdp.nix
             ../modules/net-config.nix
             ../modules/wprs.nix
             (
               { config, pkgs, ... }:
               {
                 networking.hostName = "wine-vm";
+                nixpkgs.config.allowUnfree = true;
 
                 services.net-config = {
                   enable = true;
                   index = 7;
                   mac = "00:00:00:00:00:07";
                 };
-                services.rdp.enable = true;
                 services.common-config = {
                   enable = true;
 
@@ -55,7 +57,7 @@
                     {
                       mountPoint = "/home/user";
                       image = "home.img";
-                      size = 2048;
+                      size = 20000;
                     }
                   ];
                   shares = [
@@ -70,21 +72,9 @@
                   vcpu = 4;
                 };
 
-                # Setup xrdp with fluxbox
-                services.xrdp = {
-                  defaultWindowManager = ''
-                    exec fluxbox -no-toolbar &
-                    fbpid=$!
-                    sleep 2
-                    setxkbmap -layout "us" -variant "intl" -option "grp:alt_shift_toggle"
-                    kitty &
-                    wait $fbpid
-                  '';
-                };
-
                 environment.systemPackages = [
-                  pkgs.wine
-                  pkgs.kitty
+                  pkgs.protonup-rs
+                  pkgs.umu-launcher
                 ];
 
                 system.stateVersion = "26.05";

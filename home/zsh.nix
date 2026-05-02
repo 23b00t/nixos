@@ -20,6 +20,7 @@
       kk = "kitty @ kitten";
       n = "nvim_vm";
       tm = "vm-run -c -e '-R 4713:localhost:4713' music termusic";
+      kali = "vm-run -c kali distrobox enter kali";
     };
 
     history.size = 10000;
