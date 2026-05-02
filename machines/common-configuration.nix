@@ -105,9 +105,12 @@ in
       ++ (lib.optionals (vfioPciIds != [ ]) [
         "iommu=pt"
         "vfio-pci.ids=${lib.concatStringsSep "," vfioPciIds}"
+        "vfio-pci.disable_idle_d3=1"
       ]);
 
-    extraModprobeConfig = lib.optionalString (vfioPreSoftdeps != [ ]) ''
+    extraModprobeConfig = lib.optionalString (vfioPciIds != [ ] || vfioPreSoftdeps != [ ]) ''
+      ${lib.optionalString (vfioPciIds != [ ]) "options vfio-pci disable_idle_d3=1"}
+      ${lib.optionalString (vfioPciIds != [ ] && vfioPreSoftdeps != [ ]) "\n"}
       ${lib.concatStringsSep "\n" vfioPreSoftdeps}
     '';
 

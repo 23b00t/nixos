@@ -57,7 +57,8 @@
       allow id 8087:0033 with-interface { e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 }
     '';
   };
-  # Steam VM CPU pinning
+
+  # Keep only CPU pinning override for Steam VM.
   systemd.services."microvm@steam".serviceConfig.CPUAffinity = "0 1 2 3 4 5 6 7 8 9";
 
   networking.hostName = lib.mkForce "xmg";

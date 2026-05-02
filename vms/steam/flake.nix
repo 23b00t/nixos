@@ -104,10 +104,12 @@
                 # Don't use legacy GRUB in the image
                 boot.loader.grub.enable = lib.mkForce false;
 
-                # To fix first startup bug
+                # To fix first startup bug / PCI BAR allocation issues
                 boot.kernelParams = [
                   "vfio-pci.disable_idle_d3=1"
                   "nvidia-drm.modeset=1"
+                  "pci=realloc=on"
+                  "pci=assign-busses"
                   # "nvidia.NVreg_EnableGpuFirmware=0"
                 ];
                 boot.extraModprobeConfig = ''
@@ -130,7 +132,7 @@
                   modesetting.enable = true;
                   open = true;
 
-                  package = config.boot.kernelPackages.nvidiaPackages.beta;
+                  package = config.boot.kernelPackages.nvidiaPackages.stable;
                   prime.offload.enable = false;
                   prime.sync.enable = false;
                   nvidiaSettings = true;
@@ -178,7 +180,6 @@
                   if [[ "$(tty)" = "/dev/tty1" ]]; then
                     # mkdir -p "$HOME/.local/state"
                     # exec > >(tee -a "$HOME/.local/state/steam-autostart.log") 2>&1
-                    set -x
                     exec "$HOME/gs.sh"
                   fi
                 '';
@@ -228,11 +229,10 @@
                       -steamos3
                     )
 
-                    export GAMESCOPE_LAYER_FORCE_NO_GAMMA=1
-                    export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
-                    export LIBGL_DRIVERS_PATH=/run/opengl-driver/lib/dri
+                    # export GAMESCOPE_LAYER_FORCE_NO_GAMMA=1
+                    # export LIBGL_DRIVERS_PATH=/run/opengl-driver/lib/dri
                     export __GLX_VENDOR_LIBRARY_NAME=nvidia
-                    export GAMESCOPE_DISABLE_HARDWARE_CURSOR=1
+                    # export GAMESCOPE_DISABLE_HARDWARE_CURSOR=1
 
                     exec dbus-run-session -- gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
                   '';
@@ -349,3 +349,35 @@
       };
     };
 }
+
+# Teste vor dem ersten VM-Start:
+# - `sudo chgrp kvm /dev/vfio/15`
+# - `sudo chmod 660 /dev/vfio/15`
+# Minimal imperative VFIO rebind/reset (before first Steam VM boot)
+
+# ```bash
+# # 1) Ensure vfio-pci is loaded
+# sudo modprobe vfio-pci
+#
+# # 2) Rebind GPU + GPU-audio to vfio-pci
+# for dev in 0000:02:00.0 0000:02:00.1; do
+#   [ -e /sys/bus/pci/devices/$dev ] || continue
+#   echo vfio-pci | sudo tee /sys/bus/pci/devices/$dev/driver_override >/dev/null
+#   if [ -L /sys/bus/pci/devices/$dev/driver ]; then
+#     echo $dev | sudo tee /sys/bus/pci/devices/$dev/driver/unbind >/dev/null
+#   fi
+#   echo $dev | sudo tee /sys/bus/pci/drivers/vfio-pci/bind >/dev/null
+# done
+#
+# # 3) Function reset (if available)
+# [ -w /sys/bus/pci/devices/0000:02:00.0/reset ] && echo 1 | sudo tee /sys/bus/pci/devices/0000:02:00.0/reset >/dev/null
+# [ -w /sys/bus/pci/devices/0000:02:00.1/reset ] && echo 1 | sudo tee /sys/bus/pci/devices/0000:02:00.1/reset >/dev/null
+#
+# # 4) Optional fallback: upstream bridge reset
+# [ -w /sys/bus/pci/devices/0000:00:01.1/reset ] && echo 1 | sudo tee /sys/bus/pci/devices/0000:00:01.1/reset >/dev/null
+#
+# # 5) Brief wait, then start VM
+# sleep 2
+# sudo systemctl restart microvm@steam
+# ```
+

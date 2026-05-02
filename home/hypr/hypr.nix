@@ -307,11 +307,6 @@
         outline: none;
       }
 
-      .notification-row:focus,
-      .notification-row:hover {
-        background: #7aa2f7;
-      }
-
       .notification {
         border-radius: 12px;
         margin: 6px 12px;
