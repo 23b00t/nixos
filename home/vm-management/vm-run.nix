@@ -18,10 +18,15 @@ let
         shellName = "VM_USER";
         valueFrom = vmScriptLib.vmUser;
       }
+      {
+        shellName = "DBUS_FORWARD_REQUIRED";
+        valueFrom = vm: if builtins.elem vm.name dbusForwardNames then 1 else 0;
+      }
     ];
   };
 
   vmList = vmScriptLib.vmList vmRegistry.vms;
+  dbusForwardNames = map (vm: vm.name) (vmRegistry.dbusForwardParticipants or [ ]);
 
   vmRunner = pkgs.writeShellScriptBin "vm-run" ''
     #!/usr/bin/env bash
@@ -115,6 +120,29 @@ ${vmCases}
         exit 1
       fi
     done
+
+    if [ "$DBUS_FORWARD_REQUIRED" -eq 1 ]; then
+      DBUS_FORWARD_SERVICE="vm-dbus-forward@$FULL_NAME.service"
+      if ! systemctl --user is-active --quiet "$DBUS_FORWARD_SERVICE"; then
+        systemctl --user start "$DBUS_FORWARD_SERVICE" || true
+      fi
+
+      COUNT=0
+      while ! ssh -i "$KEY" \
+        -o IdentitiesOnly=yes \
+        -o StrictHostKeyChecking=accept-new \
+        -o BatchMode=yes \
+        -o ConnectTimeout=2 \
+        -o ConnectionAttempts=1 \
+        "$VM_USER@$IP" 'test -S /tmp/ssh_dbus.sock && busctl --address=unix:path=/tmp/ssh_dbus.sock --timeout=200ms status >/dev/null 2>&1'; do
+        sleep 1
+        COUNT=$((COUNT+1))
+        if [ $COUNT -ge $MAX_RETRIES ]; then
+          ${pkgs.libnotify}/bin/notify-send "Error" "VM $FULL_NAME SSH is ready but DBus tunnel is not ready."
+          exit 1
+        fi
+      done
+    fi
 
     if [ "$CLI_MODE" -eq 1 ]; then
       exec ssh -i "$KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "''${EXTRA_SSH_ARGS[@]}" "$VM_USER@$IP" -t -- "$BINARY" "$@"

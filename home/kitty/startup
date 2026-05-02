@@ -9,7 +9,7 @@ launch zsh -c "remote-zellij nvim"
 
 new_tab coding 
 layout stack 
-launch zsh -c "remote-zellij coding -e '-R 4713:localhost:4713'"
+launch zsh -c "remote-zellij -e '-R 4713:localhost:4713' coding"
 
 new_tab remote
 layout stack
