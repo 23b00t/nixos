@@ -16,8 +16,6 @@
     }:
     let
       system = "x86_64-linux";
-      inherit (nixpkgs) lib;
-      pkgs = import nixpkgs { inherit system; };
     in
     {
       packages.${system} = {
@@ -36,6 +34,7 @@
             (
               { config, pkgs, ... }:
               {
+                nix.package = pkgs.lixPackageSets.latest.lix;
                 networking.hostName = "mirage-vm";
                 services.net-config = {
                   enable = true;
@@ -49,7 +48,7 @@
                 services.zsh-env.enable = true;
                 services.common-config = {
                   enable = true;
-                  
+
                 };
 
                 microvm = {

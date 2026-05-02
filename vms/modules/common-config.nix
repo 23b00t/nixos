@@ -1,4 +1,9 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 with lib;
 
@@ -8,7 +13,11 @@ let
   vmRegistry = import ../registry.nix;
   hostName = config.networking.hostName or "";
   vmName = if hasSuffix "-vm" hostName then removeSuffix "-vm" hostName else hostName;
-  currentVm = if builtins.hasAttr vmName vmRegistry.byName then builtins.getAttr vmName vmRegistry.byName else { };
+  currentVm =
+    if builtins.hasAttr vmName vmRegistry.byName then
+      builtins.getAttr vmName vmRegistry.byName
+    else
+      { };
   hostSSHKey = currentVm.hostSSHKey or null;
   dbusForwardParticipants = vmRegistry.dbusForwardParticipants or [ ];
   dbusForwardEnabled = builtins.elem vmName (map (vm: vm.name) dbusForwardParticipants);
@@ -19,17 +28,20 @@ let
   vmCopySourceDirectories = map (vm: vm.name) (
     builtins.filter (vm: vm.name != vmName) vmRegistry.vmCopyParticipants
   );
-  vmCopyAutoAuthorizedKeys = map (
-    sourceVm:
-      let
-        keyPath = vmCopyKeyDirectory + "/${sourceVm}.pub";
-      in
+  vmCopyAutoAuthorizedKeys =
+    map
+      (
+        sourceVm:
+        let
+          keyPath = vmCopyKeyDirectory + "/${sourceVm}.pub";
+        in
         removeSuffix "\n" (builtins.readFile keyPath)
-  ) (
-    builtins.filter (
-      sourceVm: builtins.pathExists (vmCopyKeyDirectory + "/${sourceVm}.pub")
-    ) vmCopySourceDirectories
-  );
+      )
+      (
+        builtins.filter (
+          sourceVm: builtins.pathExists (vmCopyKeyDirectory + "/${sourceVm}.pub")
+        ) vmCopySourceDirectories
+      );
 in
 {
   options.services.common-config = {
@@ -74,6 +86,20 @@ in
   };
 
   config = mkIf cfg.enable {
+    nixpkgs.overlays = [
+      (final: prev: {
+        inherit (final.lixPackageSets.latest)
+          nixpkgs-review
+          nix-direnv
+          nix-eval-jobs
+          nix-fast-build
+          colmena
+          ;
+      })
+    ];
+
+    nix.package = pkgs.lixPackageSets.latest.lix;
+
     time.timeZone = "Europe/Berlin";
     i18n.defaultLocale = "en_US.UTF-8";
     i18n.extraLocaleSettings = {
@@ -196,7 +222,8 @@ in
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user} 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.ssh 0700 ${cfg.user} users -"
-    ] ++ optionals vmCopyEnabled (
+    ]
+    ++ optionals vmCopyEnabled (
       [
         "d ${vmCopyIncomingDir} 0755 ${cfg.user} users -"
       ]
