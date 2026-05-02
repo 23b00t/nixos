@@ -11,6 +11,15 @@ let
   pkgs = import inputs.nixpkgs {
     inherit system;
     config.allowUnfree = true;
+    overlays = [
+      (final: prev: {
+        inherit (prev.lixPackageSets.latest)
+          nixpkgs-review
+          nix-eval-jobs
+          nix-fast-build
+          colmena;
+      })
+    ];
   };
   maxVMs = 50;
   vfioPciIds = vmRegistry.hardware.pci.vfioIds or [ ];
@@ -555,6 +564,7 @@ in
 
   # use cache
   nix = {
+    package = pkgs.lixPackageSets.latest.lix;
     settings = {
       auto-optimise-store = true;
       experimental-features = [
