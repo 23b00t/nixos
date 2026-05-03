@@ -12,7 +12,7 @@ in
   music = mkVm "music";
   net = (mkVm "net") // {
     specialArgs = {
-      zen-browser = inputs.zen-browser;
+      inherit (inputs) zen-browser;
     };
   };
   wine = mkVm "wine";
@@ -31,5 +31,5 @@ in
   sys-net = mkVm "sys-net";
   nix = mkVm "nix";
   coding = mkVm "coding";
-  test = mkVm "test";
+  # create-vm: definitions
 }

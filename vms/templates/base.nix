@@ -1,10 +1,9 @@
-{ ... }:
+{ pkgs, ... }:
 {
   imports = [
 __MODULE_IMPORTS__
   ];
 
-  nixpkgs.config.allowUnfree = true;
   networking.hostName = "__VM_NAME__-vm";
 
   services.net-config = {

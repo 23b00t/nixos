@@ -177,6 +177,7 @@ let
       allowGitHubAgent = true;
       enableHostDbusForward = true;
     }
+    # create-vm: registry-vms
   ];
 
   byName = builtins.listToAttrs (
