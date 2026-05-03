@@ -9,6 +9,7 @@ in
     ../modules/net-config.nix
     ../modules/common-config.nix
     ../modules/wprs.nix
+    ../modules/yazi-config.nix
   ];
 
   services.net-config = {

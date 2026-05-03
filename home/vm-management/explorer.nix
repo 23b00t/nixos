@@ -1,22 +1,15 @@
 { pkgs, ... }:
+let
+  vmRegistry = import ../../vms/registry.nix;
+  yaziVms = map (vm: vm.name) (vmRegistry.vmHasFeature "yazi");
+in
 pkgs.writeShellScriptBin "explorer" ''
   #!/usr/bin/env bash
   set -euo pipefail
 
-  # define an array of vms importing yazi
-  # TODO: automatically generate this list from registration.nix
+  # Create an array of VM names that have the "yazi" feature
   vms=(
-    "nvim"
-    "chat"
-    "net"
-    "kali"
-    "office"
-    "vault"
-    "php"
-    "ruby"
-    "sys-usb"
-    "nix"
-    "coding"
+    ${builtins.concatStringsSep " " (map (n: "\"${n}\"") yaziVms)}
   )
 
   # Populate rofi with it

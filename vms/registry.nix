@@ -19,6 +19,7 @@ let
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzJjZw0V2CdaWI/IBFcTQPwQhYtFn/31i5iNPSc1j8G nvim-vm";
       allowGitHubAgent = true;
+      features = [ "yazi" ];
     }
     {
       name = "chat";
@@ -27,6 +28,7 @@ let
       autostart = true;
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
+      features = [ "yazi" ];
     }
     # {
     #   name = "test";
@@ -51,6 +53,7 @@ let
       autostart = true;
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
+      features = [ "yazi" ];
     }
     {
       name = "wine";
@@ -68,6 +71,7 @@ let
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
       enableHostDbusForward = false;
+      features = [ "yazi" ];
     }
     {
       name = "office";
@@ -76,6 +80,7 @@ let
       autostart = false;
       nat = false;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm";
+      features = [ "yazi" ];
     }
     {
       name = "vault";
@@ -84,6 +89,7 @@ let
       autostart = false;
       nat = false;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPbWqbgvB7bf39HteuS/bmSDqLuPiZn5AV63fjRXEVw vault-vm";
+      features = [ "yazi" ];
     }
     {
       name = "irc";
@@ -109,6 +115,7 @@ let
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhv6q3siBUASk16LN8tCa2nPUp4g2isRuwo1ndDPz7g godot-vm";
       allowGitHubAgent = true;
+      features = [ "yazi" ];
     }
     {
       name = "mirage";
@@ -129,6 +136,7 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHpfcEv27hamz0HELXGKpLd6M+/m5m/fopZ3A7fonUVw php-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = false;
+      features = [ "yazi" ];
     }
     {
       name = "ruby";
@@ -139,6 +147,7 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkF7qniIZVKtoIrUUWkU8t/1QeK34BSEgI54MbqbieC ruby-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = false;
+      features = [ "yazi" ];
     }
     {
       name = "sys-usb";
@@ -147,6 +156,7 @@ let
       autostart = false;
       nat = false;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsMuzfPPoWJ9bgKKPBWx/l5qYuWtwEG5s/yHs4rUrJn sys-usb-vm";
+      features = [ "yazi" ];
     }
     {
       name = "sys-net";
@@ -166,6 +176,7 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK1BBz8Jz9CHLkp7C7gfxG+HuEfj+PK+xXxiJGh2pE+H nix-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = false;
+      features = [ "yazi" ];
     }
     {
       name = "coding";
@@ -176,6 +187,7 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9Co+A8G16ciSIU3vldErgRNpmZ+JVHzsj2oNteV1e+ coding-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = true;
+      features = [ "yazi" ];
     }
     # create-vm: registry-vms
   ];
@@ -195,13 +207,10 @@ let
   );
 
   natIPs = map (vm: vm.ip) (builtins.filter (vm: vm.nat or false) vms);
-
   autostartNames = map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) vms);
-
   vmCopyParticipants = builtins.filter (vm: vm.allowVmCopy or true) vms;
-
   dbusForwardParticipants = builtins.filter (vm: vm.enableHostDbusForward or true) vms;
-
+  vmHasFeature = feature: builtins.filter (vm: builtins.elem feature (vm.features or [ ])) vms;
   globalExtraSSH = [ ];
 
   # Central USB/Bluetooth inventory and ownership policy.
@@ -304,8 +313,10 @@ let
 
   hostAllowUsb = builtins.filter (device: device.policy == "host-allow") usbDevices;
   vmReservedUsb = builtins.filter (device: device.policy == "vm-reserved") usbDevices;
-  defaultUsbForOwner = owner: builtins.filter (device: (device.defaultOwner or null) == owner) usbDevices;
-  allowedUsbForOwner = owner: builtins.filter (device: builtins.elem owner (device.allowedOwners or [ ])) usbDevices;
+  defaultUsbForOwner =
+    owner: builtins.filter (device: (device.defaultOwner or null) == owner) usbDevices;
+  allowedUsbForOwner =
+    owner: builtins.filter (device: builtins.elem owner (device.allowedOwners or [ ])) usbDevices;
 
   pciDeviceIds = {
     gpu = [
@@ -370,5 +381,6 @@ in
     globalExtraSSH
     hardware
     hostProfile
+    vmHasFeature
     ;
 }
