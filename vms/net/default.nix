@@ -5,6 +5,7 @@
     ../modules/common-config.nix
     ../modules/wprs.nix
     ../modules/zen-firefox.nix
+    ../modules/yazi-config.nix
   ];
 
   networking.hostName = "net-vm";

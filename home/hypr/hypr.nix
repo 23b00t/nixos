@@ -193,7 +193,7 @@
         "$mod, R, exec, screenrec-region"
         "$mod SHIFT, R, exec, screenrec-full"
         # yazi
-        "$mod, E, exec, kitty -e yazi"
+        "$mod, E, exec, explorer"
       ];
 
       bindl = [

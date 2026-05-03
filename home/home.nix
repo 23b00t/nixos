@@ -72,6 +72,7 @@ in
     (import ./vm-management/vmcopy-keys.nix { inherit pkgs; })
     (import ./vm-management/manage-vms.nix { inherit pkgs; })
     (import ./vm-management/create-vm.nix { inherit pkgs; })
+    (import ./vm-management/explorer.nix { inherit pkgs; })
     myGithubAgent
     # GitHub agent is now also started automatically as user service below.
   ];
