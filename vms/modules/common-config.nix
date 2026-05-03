@@ -90,7 +90,18 @@ in
       (final: prev: {
         inherit (final.lixPackageSets.latest)
           nixpkgs-review
-          nix-direnv
+          #         error: infinite recursion encountered
+          # at /nix/store/wjfxdzblindbl9sp2hbwhi4iyh5jh348-source/pkgs/tools/package-management/lix/default.nix:128:24:
+          #    127|
+          #    128|           nix-direnv = nix-direnv.override {
+          #       |                        ^
+          #    129|             nix = self.lix;
+          # note: trace involved the following derivations:
+          # derivation 'microvm-cloud-hypervisor-coding-vm'
+          # derivation 'microvm-coding-vm-microvm-run'
+          # derivation 'nixos-system-coding-vm-26.05.20260430.15f4ee4'
+          # derivation 'etc'
+          # nix-direnv
           nix-eval-jobs
           nix-fast-build
           colmena

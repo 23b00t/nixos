@@ -34,7 +34,6 @@
             (
               { config, pkgs, ... }:
               {
-                nix.package = pkgs.lixPackageSets.latest.lix;
                 networking.hostName = "mirage-vm";
                 services.net-config = {
                   enable = true;
