@@ -1,20 +1,22 @@
-{ ... }:
+{ pkgs, ... }:
 {
   imports = [
-__MODULE_IMPORTS__
+    ../modules/common-config.nix
+    ../modules/net-config.nix
+    ../modules/wprs.nix
   ];
 
+  networking.hostName = "wine-vm";
   nixpkgs.config.allowUnfree = true;
-  networking.hostName = "__VM_NAME__-vm";
 
   services.net-config = {
     enable = true;
-    index = __NET_INDEX__;
-    mac = "__MAC_ADDR__";
+    index = 7;
+    mac = "00:00:00:00:00:07";
   };
-
-  services.common-config.enable = true;
-__EXTRA_SERVICE_BLOCKS____PERSISTENT_SERVICE_LINE__
+  services.common-config = {
+    enable = true;
+  };
   microvm = {
     registerClosure = false;
     hypervisor = "cloud-hypervisor";
@@ -22,7 +24,7 @@ __EXTRA_SERVICE_BLOCKS____PERSISTENT_SERVICE_LINE__
       {
         mountPoint = "/home/user";
         image = "home.img";
-        size = __HOME_IMG_SIZE__;
+        size = 20000;
       }
     ];
     shares = [
@@ -33,9 +35,14 @@ __EXTRA_SERVICE_BLOCKS____PERSISTENT_SERVICE_LINE__
         mountPoint = "/nix/.ro-store";
       }
     ];
-    mem = __MEM__;
-    vcpu = __VCPUS__;
+    mem = 4048;
+    vcpu = 4;
   };
+
+  environment.systemPackages = [
+    pkgs.protonup-rs
+    pkgs.umu-launcher
+  ];
 
   system.stateVersion = "26.05";
 }

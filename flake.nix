@@ -1,14 +1,14 @@
 {
   description = "Nixos config by 23b00t";
 
-  inputs = rec {
-    # Your nixpkgs
+  inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     microvm = {
       url = "github:microvm-nix/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -16,27 +16,12 @@
 
     yazi.url = "github:sxyazi/yazi";
 
-    # Hardware Configuration's, used in ./configuration.nix. Feel free to remove if unused
     nixos-hardware.url = "github:nixos/nixos-hardware/master";
 
-    irc.url = "git+file:///home/nx/nixos-config?dir=vms/irc";
-    nvim.url = "git+file:///home/nx/nixos-config?dir=vms/nvim";
-    chat.url = "git+file:///home/nx/nixos-config?dir=vms/chat";
-    office.url = "git+file:///home/nx/nixos-config?dir=vms/office";
-    music.url = "git+file:///home/nx/nixos-config?dir=vms/music";
-    net.url = "git+file:///home/nx/nixos-config?dir=vms/net";
-    wine.url = "git+file:///home/nx/nixos-config?dir=vms/wine";
-    kali.url = "git+file:///home/nx/nixos-config?dir=vms/kali";
-    vault.url = "git+file:///home/nx/nixos-config?dir=vms/vault";
-    steam.url = "git+file:///home/nx/nixos-config?dir=vms/steam";
-    godot.url = "git+file:///home/nx/nixos-config?dir=vms/godot";
-    mirage.url = "git+file:///home/nx/nixos-config?dir=vms/mirage";
-    php.url = "git+file:///home/nx/nixos-config?dir=vms/php";
-    ruby.url = "git+file:///home/nx/nixos-config?dir=vms/ruby";
-    sys-usb.url = "git+file:///home/nx/nixos-config?dir=vms/sys-usb";
-    sys-net.url = "git+file:///home/nx/nixos-config?dir=vms/sys-net";
-    nix.url = "git+file:///home/nx/nixos-config?dir=vms/nix";
-    coding.url = "git+file:///home/nx/nixos-config?dir=vms/coding";
+    zen-browser = {
+      url = "github:youwen5/zen-browser-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -45,13 +30,7 @@
       system = "x86_64-linux";
 
       vmRegistry = import ./vms/registry.nix;
-
-      vmFlakes = builtins.listToAttrs (
-        map (vm: {
-          name = vm.name;
-          value = inputs.${vm.name};
-        }) vmRegistry.vms
-      );
+      vmDefinitions = import ./vms/definitions.nix { inherit inputs; };
 
       baseModules = [
         ./machines/common-configuration.nix
@@ -62,20 +41,58 @@
         inputs.nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = {
-            inherit inputs vmRegistry vmFlakes;
+            inherit inputs vmRegistry vmDefinitions;
           };
           modules = baseModules ++ extraModules;
         };
+
+      mkVmSystem =
+        name:
+        let
+          vmDefinition = vmDefinitions.${name};
+        in
+        inputs.nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = {
+            inherit inputs vmRegistry;
+          }
+          // (vmDefinition.specialArgs or { });
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            vmDefinition.module
+          ];
+        };
+
+      vmSystems = builtins.mapAttrs (name: _: mkVmSystem name) vmDefinitions;
+
+      vmRunnerPackages = builtins.mapAttrs (
+        _: vmSystem: vmSystem.config.microvm.declaredRunner
+      ) vmSystems;
+
+      vmExtraPackages =
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        builtins.foldl' (
+          acc: name:
+          let
+            vmDefinition = vmDefinitions.${name};
+            extraPackages = (vmDefinition.packages or (_: { })) { inherit pkgs; };
+          in
+          acc // extraPackages
+        ) { } (builtins.attrNames vmDefinitions);
 
       xmgConfig = mkMachine [
         ./machines/xmg/configuration.nix
       ];
     in
     {
-      nixosConfigurations = {
-        xmg = xmgConfig;
+      packages.${system} = vmRunnerPackages // vmExtraPackages;
 
+      nixosConfigurations = vmSystems // {
+        xmg = xmgConfig;
         default = xmgConfig;
       };
     };
 }
+

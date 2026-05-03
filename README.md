@@ -13,8 +13,8 @@
 
 ### Create VMs
 
-- Add entry to vms/registry.nix, e.g.:
-  ```nix
+- Add entry to `vms/registry.nix`, e.g.:
+  ````nix
   {
     name = "nvim";
     short = "n";
@@ -26,15 +26,12 @@
       RemoteForward = "4713 localhost:4713";
     };
   }
-  ```
-- Add entry to flake.nix, e.g.:
-  ```nix
-  nvim.url = "path:./vms/nvim";
-  ```
-- Add a flake to vms/{name}/flake.nix which defines the microvm
-  - Create a host ssh key for the VM: ssh-keygen -C my-vm
-- If the VM should participate in file sharing between vms, use on the host: `vmcopy-keys <new-vm-name>` and rebuild again
-- Import modules as needed, the usage of nearly all available modules is shown in vms/nvim/flake.nix
+  ````
+- Add a local VM definition to `vms/definitions.nix`
+- Create the VM module at `vms/{name}/default.nix`
+  - Create a host ssh key for the VM: `ssh-keygen -C my-vm`
+- If the VM should participate in file sharing between VMs, use on the host: `vmcopy-keys <new-vm-name>` and rebuild again
+- Import modules as needed; examples now live in the VM `default.nix` files such as `vms/nvim/default.nix`
 
 ### Additional setup for ide vms
 
@@ -138,7 +135,7 @@ Current design goal:
   - NTP
   - ICMP for diagnostics
 
-This restriction is enforced in `vms/sys-net/flake.nix` on traffic coming from host address `10.0.0.254` via `vm-lan`.
+This restriction is enforced in `vms/sys-net/default.nix` on traffic coming from host address `10.0.0.254` via `vm-lan`.
 
 ### Printing migration
 

@@ -3,7 +3,7 @@
   config,
   inputs,
   vmRegistry,
-  vmFlakes,
+  vmDefinitions,
   ...
 }:
 let
@@ -430,18 +430,21 @@ in
 
   microvm.vms =
     let
-      # Helper to read autostart flag from registry by name.
       autostartFor = name: (vmRegistry.byName.${name}.autostart or false);
-
-      # If you do not want all registry VMs to be microvms on this host,
-      # filter vmRegistry.vms here.
       selectedVms = vmRegistry.vms;
     in
     builtins.listToAttrs (
       map (vm: {
         name = vm.name;
         value = {
-          flake = vmFlakes.${vm.name};
+          pkgs = null;
+          config = {
+            imports = [ vmDefinitions.${vm.name}.module ];
+          };
+          specialArgs = {
+            inherit inputs vmRegistry;
+          }
+          // (vmDefinitions.${vm.name}.specialArgs or { });
           autostart = autostartFor vm.name;
         };
       }) selectedVms
