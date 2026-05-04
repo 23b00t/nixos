@@ -10,6 +10,7 @@ let
   #   allowGitHubAgent : whether the VM should receive the dedicated forwarded GitHub SSH agent/socket
   #   enableHostDbusForward : whether host should keep persistent forwarded /tmp/ssh_dbus.sock for this VM (defaults to true)
   #   extraSSH    : extra SSH matchOptions for home.ssh (may be [])
+  #   features    : arbitrary list of features/tags used for dynamic grouping in helper tools
   vms = [
     {
       name = "nvim";
@@ -53,6 +54,17 @@ let
       autostart = true;
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
+      features = [ "yazi" ];
+    }
+    {
+      name = "coding";
+      short = "cc";
+      ip = "10.0.0.6";
+      autostart = true;
+      nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9Co+A8G16ciSIU3vldErgRNpmZ+JVHzsj2oNteV1e+ coding-vm";
+      allowGitHubAgent = true;
+      enableHostDbusForward = true;
       features = [ "yazi" ];
     }
     {
@@ -176,17 +188,6 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK1BBz8Jz9CHLkp7C7gfxG+HuEfj+PK+xXxiJGh2pE+H nix-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = false;
-      features = [ "yazi" ];
-    }
-    {
-      name = "coding";
-      short = "cc";
-      ip = "10.0.0.6";
-      autostart = true;
-      nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9Co+A8G16ciSIU3vldErgRNpmZ+JVHzsj2oNteV1e+ coding-vm";
-      allowGitHubAgent = true;
-      enableHostDbusForward = true;
       features = [ "yazi" ];
     }
     # create-vm: registry-vms
