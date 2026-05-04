@@ -82,16 +82,16 @@
           acc // extraPackages
         ) { } (builtins.attrNames vmDefinitions);
 
-      xmgConfig = mkMachine [
-        ./machines/xmg/configuration.nix
+      hpConfig = mkMachine [
+        ./machines/hp/configuration.nix
       ];
     in
     {
       packages.${system} = vmRunnerPackages // vmExtraPackages;
 
       nixosConfigurations = vmSystems // {
-        xmg = xmgConfig;
-        default = xmgConfig;
+        hp = hpConfig;
+        default = hpConfig;
       };
     };
 }
