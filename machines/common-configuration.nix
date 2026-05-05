@@ -17,7 +17,8 @@ let
           nixpkgs-review
           nix-eval-jobs
           nix-fast-build
-          colmena;
+          colmena
+          ;
       })
     ];
   };
@@ -591,6 +592,10 @@ in
         "nx"
       ];
     };
+  };
+
+  systemd.services.nix-daemon.serviceConfig = {
+    SupplementaryGroups = [ "tun" ];
   };
 
   systemd.services.retrigger-vm11-tor-udev = {
