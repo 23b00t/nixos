@@ -338,32 +338,21 @@ in
   # User
   users.groups.tun = { };
 
-  users.users = lib.mkMerge [
-    {
-      nx = {
-        isNormalUser = true;
-        extraGroups = [
-          "wheel"
-          "libvirtd"
-          "tun"
-          "kvm"
-          "input"
-        ];
-      };
-      microvm = {
-        extraGroups = [ "tun" ];
-      };
-    }
-
-    (builtins.listToAttrs (
-      map (n: {
-        name = "nixbld${toString n}";
-        value = {
-          extraGroups = [ "tun" ];
-        };
-      }) (lib.range 1 32)
-    ))
-  ];
+  users.users = {
+    nx = {
+      isNormalUser = true;
+      extraGroups = [
+        "wheel"
+        "libvirtd"
+        "tun"
+        "kvm"
+        "input"
+      ];
+    };
+    microvm = {
+      extraGroups = [ "tun" ];
+    };
+  };
 
   # Sound
   services.pulseaudio.enable = false;
@@ -599,15 +588,9 @@ in
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       ];
       trusted-users = [
-        "root"
         "nx"
       ];
     };
-  };
-
-  systemd.services.nix-daemon.serviceConfig = {
-    SupplementaryGroups = [ "tun" ];
-    DeviceAllow = [ "/dev/net/tun rw" ];
   };
 
   systemd.services.retrigger-vm11-tor-udev = {
