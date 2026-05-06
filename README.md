@@ -174,21 +174,48 @@ nmcli radio wifi on
 
 ## TODOs <!-- TODO: -->
 
-- Remove not strictly needed host software
-- think over dropping zellij and zsh on the host
-- modularize config
-- think about removing fluxbox workflow. what's with wine vm? a libvirt vm could be an alternative.
-- restructure vms/ vm folders should not live on the same level as modules/ vmcopy-keys/ etc.
 - Test migrated printing path via `sys-net` end-to-end
 - Is there any virtue in exposing nvim to the host? Remove the host-share and implement proper write back or remove exposing host to nvim.
 
-- fix steam-vm bug: reboot is needed
+- Remove not strictly needed host software
+- think over dropping zellij and zsh on the host
+- modularize config
+- restructure vms/ vm folders should not live on the same level as modules/ vmcopy-keys/ etc.
+
+- fix steam-vm bug: reboot is needed -> currently no way to do that. Maybe automate early reboot after first start and logging specific issue as trigger.
 - improve steam-vm: initial wlserver: backend/hedless... is taking quiet long till steam starts (about 30s)
 - let steam-vm participate in file sharing?
+
+- think about removing fluxbox workflow. what's with wine vm? a libvirt vm could be an alternative. -> kind of have done that, but wine-vm is still experimental and probably needs hyprland. 
+
 - Monitor occasionally occurring shared libs error in nvim-vm
 - Monitor element-desktop tray issue
-- Fix bug that occasionally occurs at boot: Bootscreen isn't displayed and tty seems frozen till password is typed in blindly and boot finished successfully
-- Check where we can enable microvm.optimization
+
+- Monitor bug that occasionally occurs at boot: Bootscreen isn't displayed and tty seems frozen till password is typed in blindly and boot finished successfully
+  ```bash
+    ~#@❯ sudo dmesg -T | grep -iE "drm"
+  [sudo] password for nx:
+  [Mi Mai  6 19:02:30 2026] ACPI: bus type drm_connector registered
+  [Mi Mai  6 19:02:30 2026] simple-framebuffer simple-framebuffer.0: [drm] Registered 1 planes with drm panic
+  [Mi Mai  6 19:02:30 2026] [drm] Initialized simpledrm 1.0.0 for simple-framebuffer.0 on minor 0
+  [Mi Mai  6 19:02:30 2026] simple-framebuffer simple-framebuffer.0: [drm] fb0: simpledrmdrmfb frame buffer device
+  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] Found alderlake_s/raptorlake_s (device ID a788) integrated display version 12.00 stepping D0
+  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] VT-d active for gfx access
+  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] Using Transparent Hugepages
+  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] Finished loading DMC firmware i915/adls_dmc_ver2_01.bin (v2.1)
+  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: GuC firmware i915/tgl_guc_70.bin version 70.49.4
+  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: HuC firmware i915/tgl_huc.bin version 7.9.3
+  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: HuC: authenticated for all workloads
+  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: GUC: submission enabled
+  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: GUC: SLPC enabled
+  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: GUC: RC enabled
+  [Mi Mai  6 19:02:32 2026] i915 0000:00:02.0: [drm] Registered 4 planes with drm panic
+  [Mi Mai  6 19:02:32 2026] [drm] Initialized i915 1.6.0 for 0000:00:02.0 on minor 1
+  [Mi Mai  6 19:02:32 2026] fbcon: i915drmfb (fb0) is primary device
+  [Mi Mai  6 19:02:32 2026] i915 0000:00:02.0: [drm] fb0: i915drmfb frame buffer device
+  [Mi Mai  6 19:02:55 2026] systemd[1]: Load Kernel Module drm skipped, unmet condition check ConditionKernelModuleLoaded=!drm
+  ```
+
 - create sys-firewall
 
 ## Misc
