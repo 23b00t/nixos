@@ -130,13 +130,19 @@ in
       trustedInterfaces = [ "vm-lan" ] ++ bridgeZoneInterfaces;
       filterForward = true;
       extraForwardRules = ''
-        iifname "vm-lan" ip saddr 10.0.0.254 meta l4proto icmp accept
-        iifname "vm-lan" ip saddr 10.0.0.254 tcp dport { 22, 80, 443 } accept
-        iifname "vm-lan" ip saddr 10.0.0.254 udp dport { 53, 123 } accept
+        iifname "vm-lan" ip saddr 10.0.0.254 ip daddr 10.0.0.0/24 tcp dport 22 accept
+        # host -> internal VMs: SSH only
+        iifname "vm-lan" ip saddr 10.0.0.254 ip daddr 10.0.0.0/24 meta l4proto icmp accept
+        # host -> outside
+        iifname "vm-lan" ip saddr 10.0.0.254 tcp dport 443 accept
+        iifname "vm-lan" ip saddr 10.0.0.254 udp dport 53 accept
         iifname "vm-lan" ip saddr 10.0.0.254 tcp dport 53 accept
+
+        # deny the rest from host
         iifname "vm-lan" ip saddr 10.0.0.254 reject with icmpx type admin-prohibited
 
         iifname "vm-lan" oifname != "vm-lan" accept
+
         ${lib.concatMapStringsSep "\n" (
           iface: "iifname \"${iface}\" oifname != \"${iface}\" accept"
         ) bridgeZoneInterfaces}

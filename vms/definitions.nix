@@ -31,5 +31,6 @@ in
   sys-net = mkVm "sys-net";
   nix = mkVm "nix";
   coding = mkVm "coding";
+  builder = mkVm "builder";
   # create-vm: definitions
 }

@@ -85,6 +85,9 @@ let
   vmReservedUsbRules = lib.concatMapStringsSep "\n" mkVmReservedUsbRule (
     vmRegistry.hardware.usb.vmReserved or [ ]
   );
+
+  builderVm = vmRegistry.byName.builder or null;
+  builderVmIp = if builderVm != null then (builderVm.ip or null) else null;
 in
 {
   boot = {
@@ -563,12 +566,37 @@ in
   # use cache
   nix = {
     package = pkgs.lixPackageSets.latest.lix;
+
+    # Force distributed builds to the dedicated builder VM.
+    distributedBuilds = true;
+    buildMachines = [
+      {
+        # Must match an existing SSH host alias in ~/.ssh/config.
+        hostName = builderVmIp;
+        system = "x86_64-linux";
+        protocol = "ssh-ng";
+        maxJobs = 16;
+        speedFactor = 2;
+        supportedFeatures = [
+          "nixos-test"
+          "benchmark"
+          "big-parallel"
+          "kvm"
+        ];
+        mandatoryFeatures = [ ];
+      }
+    ];
+
     settings = {
+      # Never build locally on the host; fail if remote builders are unavailable.
+      max-jobs = 0;
+
       auto-optimise-store = true;
       experimental-features = [
         "nix-command"
         "flakes"
       ];
+      builders-use-substitutes = true;
       substituters = [
         "https://cache.nixos.org"
         "https://microvm.cachix.org"

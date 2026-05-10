@@ -190,6 +190,16 @@ let
       enableHostDbusForward = false;
       features = [ "yazi" ];
     }
+    {
+      name = "builder";
+      short = "b";
+      ip = "10.0.0.25";
+      autostart = false;
+      nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILoWsQeIghflxVh66NoAOAi87EcZ4qgSbBSKu43Tql9 builder-vm";
+      allowGitHubAgent = false;
+      enableHostDbusForward = false;
+    }
     # create-vm: registry-vms
   ];
 

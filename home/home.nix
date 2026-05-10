@@ -65,7 +65,7 @@ in
     pciutils # lspci
     usbutils # lsusb
     nerd-fonts.fira-code
-    chromium
+    # chromium
     bibata-cursors
     (import ./vm-management/remote-zellij.nix { inherit pkgs; })
     (import ./vm-management/backup.nix { inherit pkgs lib inputs; })
