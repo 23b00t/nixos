@@ -88,6 +88,9 @@ let
 
   builderVm = vmRegistry.byName.builder or null;
   builderVmIp = if builderVm != null then (builderVm.ip or null) else null;
+  builderVmClientSSHKeyPath = "/home/user/.ssh/builder-vm";
+  builderVmSSHUser = "user";
+  builderVmSSHHostKey = if builderVm != null then (builderVm.sshHostKey or null) else null;
 in
 {
   boot = {
@@ -448,7 +451,18 @@ in
       }) selectedVms
     );
 
-  programs.ssh.startAgent = true;
+  programs.ssh = {
+    startAgent = true;
+    knownHosts = lib.optionalAttrs (builderVmIp != null && builderVmSSHHostKey != null) {
+      builder-vm = {
+        hostNames = [
+          "builder-vm"
+          builderVmIp
+        ];
+        publicKey = builderVmSSHHostKey;
+      };
+    };
+  };
 
   # Host provides the internal L2 fabric; sys-net provides routing/NAT.
   systemd.network = {
@@ -571,8 +585,10 @@ in
     distributedBuilds = true;
     buildMachines = [
       {
-        # Must match an existing SSH host alias in ~/.ssh/config.
+        # Builder endpoint and credentials are derived declaratively.
         hostName = builderVmIp;
+        sshUser = builderVmSSHUser;
+        sshKey = builderVmClientSSHKeyPath;
         system = "x86_64-linux";
         protocol = "ssh-ng";
         maxJobs = 16;
