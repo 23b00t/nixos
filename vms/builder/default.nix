@@ -22,6 +22,17 @@
   microvm = {
     registerClosure = false;
     hypervisor = "cloud-hypervisor";
+    writableStoreOverlay = "/nix/.rw-store";
+    preStart = ''
+      rm -f nix-store-overlay.img
+    '';
+    volumes = [
+      {
+        image = "nix-store-overlay.img";
+        mountPoint = config.microvm.writableStoreOverlay;
+        size = 50000;
+      }
+    ];
     shares = [
       {
         proto = "virtiofs";
