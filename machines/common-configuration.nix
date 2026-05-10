@@ -336,21 +336,15 @@ in
   };
 
   # User
-  users.groups.tun = { };
-
   users.users = {
     nx = {
       isNormalUser = true;
       extraGroups = [
         "wheel"
         "libvirtd"
-        "tun"
         "kvm"
         "input"
       ];
-    };
-    microvm = {
-      extraGroups = [ "tun" ];
     };
   };
 
@@ -604,8 +598,7 @@ in
   };
 
   services.udev.extraRules = ''
-    KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
-    # Udev-Regel, die feuert, sobald vm11-tor auftaucht (Hotplug-sicher)
+    # Autowire vm11-tor
     SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm11-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
     # Keyboard
     SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
