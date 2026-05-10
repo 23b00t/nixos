@@ -29,7 +29,7 @@
     volumes = [
       {
         image = "nix-store-overlay.img";
-        mountPoint = config.microvm.writableStoreOverlay;
+        mountPoint = "/nix/.rw-store";
         size = 50000;
       }
     ];
@@ -47,7 +47,6 @@
 
   nix = {
     settings = {
-      auto-optimise-store = true;
       experimental-features = [
         "nix-command"
         "flakes"
