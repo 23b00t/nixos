@@ -197,7 +197,6 @@ let
       autostart = false;
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILoWsQeIghflxVh66NoAOAi87EcZ4qgSbBSKu43Tql9 builder-vm";
-      sshHostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDtVFJavQFAbuLNUMgihNgPuiYePD04nT4XIytnjRpdI builder-vm";
       allowGitHubAgent = false;
       enableHostDbusForward = false;
     }

@@ -88,9 +88,9 @@ let
 
   builderVm = vmRegistry.byName.builder or null;
   builderVmIp = if builderVm != null then (builderVm.ip or null) else null;
-  builderVmClientSSHKeyPath = "/home/user/.ssh/builder-vm";
+  builderVmClientSSHKeyPath = "/home/nx/.ssh/builder-vm";
+  builderVmKnownHostsPath = "/home/nx/.ssh/known_hosts";
   builderVmSSHUser = "user";
-  builderVmSSHHostKey = if builderVm != null then (builderVm.sshHostKey or null) else null;
 in
 {
   boot = {
@@ -453,15 +453,14 @@ in
 
   programs.ssh = {
     startAgent = true;
-    knownHosts = lib.optionalAttrs (builderVmIp != null && builderVmSSHHostKey != null) {
-      builder-vm = {
-        hostNames = [
-          "builder-vm"
-          builderVmIp
-        ];
-        publicKey = builderVmSSHHostKey;
-      };
-    };
+    extraConfig = lib.optionalString (builderVmIp != null) ''
+      Host builder-vm ${builderVmIp}
+        User ${builderVmSSHUser}
+        IdentityFile ${builderVmClientSSHKeyPath}
+        IdentitiesOnly yes
+        UserKnownHostsFile ${builderVmKnownHostsPath}
+        StrictHostKeyChecking accept-new
+    '';
   };
 
   # Host provides the internal L2 fabric; sys-net provides routing/NAT.
