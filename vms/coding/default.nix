@@ -23,6 +23,11 @@
         image = "home.img";
         size = 70000;
       }
+      {
+        mountPoint = "/var";
+        image = "var.img";
+        size = 20000;
+      }
     ];
     mem = 8192;
     vcpu = 4;

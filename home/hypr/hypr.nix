@@ -123,7 +123,7 @@
         "$mod, B, exec, vm-run net zen"
 
         "$mod, V, togglefloating,"
-        "$mod, P, pseudo," # dwindle
+        "$mod, Z, pseudo," # dwindle
         "$mod, J, togglesplit," # dwindle
 
         # Lock screen
