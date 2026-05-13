@@ -44,6 +44,7 @@ pkgs.writeShellScriptBin "remote-zellij" ''
   if [ "$NO_SESSIONS" -ge 2 ]; then
     CHOICE=$( (printf '%s\n' "$ZJ_SESSIONS"; echo "[Start new session]") | fzf )
     if [ "$CHOICE" = "[Start new session]" ]; then
+      vm-run -c "$VMNAME" zellij delete-all-sessions -y
       vm-run -c "''${VM_RUN_SSH_ARGS[@]}" "$VMNAME" zellij --layout "$LAYOUT_PATH"
     elif [ -n "$CHOICE" ]; then
       vm-run -c "''${VM_RUN_SSH_ARGS[@]}" "$VMNAME" zellij attach "$CHOICE"
