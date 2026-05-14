@@ -20,7 +20,7 @@
   networking.hostName = "kali-vm";
 
   microvm = {
-    registerClosure = false;
+    
     hypervisor = "cloud-hypervisor";
     volumes = [
       {

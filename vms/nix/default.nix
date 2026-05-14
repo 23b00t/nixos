@@ -28,7 +28,7 @@
   services.zellij-env.enable = true;
 
   microvm = {
-    vsock.cid = 26;
+    
     hypervisor = "cloud-hypervisor";
     volumes = [
       {

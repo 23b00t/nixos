@@ -122,7 +122,7 @@ in
   environment.etc."zellij-layout".source = ./zellij-layout;
 
   microvm = {
-    vsock.cid = 17;
+    
     hypervisor = "cloud-hypervisor";
     volumes = [
       {
