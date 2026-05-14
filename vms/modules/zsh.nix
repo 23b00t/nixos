@@ -116,6 +116,7 @@ in
       "d /home/${cfg.user}/.cache 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.cache/oh-my-posh 0755 ${cfg.user} users -"
 
+      "z /home/${cfg.user}/.cache/oh-my-posh/themes - - - - -"
       "L+ /home/${cfg.user}/.cache/oh-my-posh/themes - - - - ${ohMyPoshThemes}/themes"
     ];
   };
