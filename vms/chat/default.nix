@@ -28,7 +28,6 @@ in
   users.users.user.extraGroups = lib.mkAfter [ "video" ];
 
   microvm = {
-    registerClosure = false;
     hypervisor = "qemu";
     optimize.enable = false;
 

@@ -34,7 +34,6 @@ in
   ];
 
   microvm = {
-    registerClosure = false;
     hypervisor = "qemu";
     optimize.enable = false;
     volumes = [

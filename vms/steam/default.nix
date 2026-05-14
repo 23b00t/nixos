@@ -48,8 +48,6 @@ in
   };
 
   microvm = {
-    registerClosure = false;
-
     hypervisor = "qemu";
     optimize.enable = false;
     qemu.extraArgs = [

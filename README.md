@@ -193,8 +193,7 @@ nmcli radio wifi on
 
 - Monitor bug that occasionally occurs at boot: Bootscreen isn't displayed and tty seems frozen till password is typed in blindly and boot finished successfully
   ```bash
-    ~#@❯ sudo dmesg -T | grep -iE "drm"
-  [sudo] password for nx:
+  sudo dmesg -T | grep -iE "drm"
   [Mi Mai  6 19:02:30 2026] ACPI: bus type drm_connector registered
   [Mi Mai  6 19:02:30 2026] simple-framebuffer simple-framebuffer.0: [drm] Registered 1 planes with drm panic
   [Mi Mai  6 19:02:30 2026] [drm] Initialized simpledrm 1.0.0 for simple-framebuffer.0 on minor 0
@@ -215,6 +214,7 @@ nmcli radio wifi on
   [Mi Mai  6 19:02:32 2026] i915 0000:00:02.0: [drm] fb0: i915drmfb frame buffer device
   [Mi Mai  6 19:02:55 2026] systemd[1]: Load Kernel Module drm skipped, unmet condition check ConditionKernelModuleLoaded=!drm
   ```
+  - Same on 14.05.2026
 
 - create sys-firewall
 

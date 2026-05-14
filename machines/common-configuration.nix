@@ -441,6 +441,7 @@ in
           }
           // (vmDefinitions.${vm.name}.specialArgs or { });
           autostart = autostartFor vm.name;
+          restartIfChanged = false;
         };
       }) selectedVms
     );

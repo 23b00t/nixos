@@ -18,7 +18,7 @@
   networking.hostName = "music-vm";
 
   microvm = {
-    registerClosure = false;
+    vsock.cid = 6;
     hypervisor = "cloud-hypervisor";
     volumes = [
       {

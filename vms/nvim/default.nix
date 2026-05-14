@@ -12,7 +12,7 @@
   networking.hostName = "nvim-vm";
 
   microvm = {
-    registerClosure = false;
+    vsock.cid = 3;
     hypervisor = "cloud-hypervisor";
     volumes = [
       {

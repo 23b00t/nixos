@@ -5,6 +5,7 @@ let
   #   short       : short alias used in CLI tools (e.g. "n")
   #   ip          : IPv4 address on the 10.0.0.0/24 network
   #   autostart   : whether the VM should autostart via microvm.host
+  #   restartIfChanged: whether the VM should be automatically restarted if its configuration changes; defaults to true
   #   nat         : whether the VM should be included in networking.nat.internalIPs
   #   allowVmCopy : whether the VM should participate in inter-VM copy; defaults to true
   #   allowGitHubAgent : whether the VM should receive the dedicated forwarded GitHub SSH agent/socket

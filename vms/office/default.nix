@@ -21,7 +21,7 @@
   };
 
   microvm = {
-    registerClosure = false;
+    vsock.cid = 11;
     hypervisor = "cloud-hypervisor";
     volumes = [
       {
