@@ -1,11 +1,17 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 let
   vmRegistry = import ../registry.nix;
   usb = vmRegistry.hardware.usb.byName;
   allowedUsbDevices = vmRegistry.hardware.usb.allowedForOwner "steam";
   bluetoothUsbDevice = usb."bluetooth-ax211";
   steamUsbDevices = builtins.filter (
-    device: builtins.elem device.name [
+    device:
+    builtins.elem device.name [
       "mouse-main"
       "keyboard-atreus"
       bluetoothUsbDevice.name
@@ -131,14 +137,14 @@ in
 
   services.getty.autologinUser = "user";
 
-  services.seatd = {
-    enable = true;
-    group = "seat";
-  };
+  # services.seatd = {
+  #   enable = true;
+  #   group = "seat";
+  # };
 
   environment.loginShellInit = ''
     if [[ "$(tty)" = "/dev/tty1" ]]; then
-      exec "$HOME/gs.sh"
+      GAMESCOPE_DEBUG=1 GAMESCOPE_WSI_DEBUG=1 GAMESCOPE_WL_DEBUG=1 exec "$HOME/gs.sh" &> "$HOME/gs.log"
     fi
   '';
 
@@ -146,7 +152,7 @@ in
     mode = "0755";
     text = ''
       #!/usr/bin/env bash
-      set -xeuo pipefail
+      set -xeu pipefail
 
       MAXMODE=$(head -1 /sys/class/drm/card0-HDMI-A-1/modes)
       if [[ "$MAXMODE" == "1920x1080" ]]; then
@@ -183,7 +189,10 @@ in
 
       export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
-      exec dbus-run-session -- gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
+      unset MANGOHUD_CONFIG
+      export MANGOHUD_CONFIGFILE=/etc/MangoHud/MangoHud.conf
+
+      exec gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
     '';
   };
 
@@ -221,14 +230,13 @@ in
     wheelNeedsPassword = false;
   };
   users.groups.users = { };
-  users.groups.seat = { };
+  # users.groups.seat = { };
 
   users.users.user = {
     isNormalUser = true;
     group = "users";
     extraGroups = [
       "wheel"
-      "seat"
       "video"
       "render"
       "input"
@@ -266,7 +274,21 @@ in
 
   environment.sessionVariables = {
     TERM = "xterm-256color";
+    MANGOHUD_CONFIGFILE = "/etc/MangoHud/MangoHud.conf";
   };
+
+  environment.etc."MangoHud/MangoHud.conf".text = ''
+    fps
+    frametime
+    frame_timing
+    gpu_stats
+    gpu_temp
+    gpu_power
+    vram
+    position=top-left
+    font_size=24
+    background_alpha=0.35
+  '';
 
   system.stateVersion = "26.05";
 }
