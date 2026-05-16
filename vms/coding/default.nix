@@ -100,6 +100,10 @@
 
     pulseaudio
     termdown
+
+    helix
+    lazysql
+    serpl
   ];
 
   virtualisation = {
