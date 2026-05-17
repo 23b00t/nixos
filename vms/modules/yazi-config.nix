@@ -72,7 +72,7 @@
   '';
 
   systemd.tmpfiles.rules = [
-    "d /home/user/.config/yazi 0755 user user -"
+    "d /home/user/.config/yazi 0755 user users -"
     "L+ /home/user/.config/yazi/yazi.toml - - - - /etc/yazi/yazi.toml"
     "L+ /home/user/.config/yazi/init.lua - - - - /etc/yazi/init.lua"
   ];

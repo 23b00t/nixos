@@ -189,9 +189,6 @@ in
 
       export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
-      unset MANGOHUD_CONFIG
-      export MANGOHUD_CONFIGFILE=/etc/MangoHud/MangoHud.conf
-
       exec gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
     '';
   };
@@ -199,6 +196,9 @@ in
   systemd.tmpfiles.rules = [
     "L+ /home/user/gs.sh - - - - /etc/gs.sh"
     "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
+    "d /home/user/.config 0755 user users - -"
+    "d /home/user/.config/MangoHud 0755 user users - -"
+    "L+ /home/user/.config/MangoHud/MangoHud.conf - - - - /etc/MangoHud/MangoHud.conf"
   ];
 
   environment.systemPackages = with pkgs; [
@@ -274,7 +274,6 @@ in
 
   environment.sessionVariables = {
     TERM = "xterm-256color";
-    MANGOHUD_CONFIGFILE = "/etc/MangoHud/MangoHud.conf";
   };
 
   environment.etc."MangoHud/MangoHud.conf".text = ''
