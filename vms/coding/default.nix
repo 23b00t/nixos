@@ -104,6 +104,14 @@
     helix
     lazysql
     serpl
+    ec
+    superfile
+
+    lua-language-server
+    selene
+    lua
+
+    rustup
   ];
 
   virtualisation = {
