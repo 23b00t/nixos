@@ -1,4 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
+let
+  yazelixPkg = inputs.yazelix.packages.${pkgs.stdenv.hostPlatform.system}.yazelix;
+in
 {
   imports = [
     ../modules/net-config.nix
@@ -12,6 +15,7 @@
   ];
 
   nixpkgs.config.allowUnfree = true;
+
   networking.hostName = "coding-vm";
 
   microvm = {
@@ -97,6 +101,7 @@
     firefox
 
     ruby
+    yazelixPkg
 
     pulseaudio
     termdown
