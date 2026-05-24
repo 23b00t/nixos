@@ -69,6 +69,7 @@
 
   wayland.windowManager.hyprland = {
     enable = true;
+    configType = "hyprlang";
     systemd.enable = false;
 
     settings = {
@@ -124,7 +125,7 @@
 
         "$mod, V, togglefloating,"
         "$mod, Z, pseudo," # dwindle
-        "$mod, J, togglesplit," # dwindle
+        "$mod, J, layoutmsg, togglesplit" # dwindle
 
         # Lock screen
         "$mod, L, exec, hyprlock"
