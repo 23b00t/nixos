@@ -1,7 +1,4 @@
 { pkgs, inputs, ... }:
-let
-  yazelixPkg = inputs.yazelix.packages.${pkgs.stdenv.hostPlatform.system}.yazelix;
-in
 {
   imports = [
     ../modules/net-config.nix
@@ -101,7 +98,6 @@ in
     firefox
 
     ruby
-    yazelixPkg
 
     pulseaudio
     termdown

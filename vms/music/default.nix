@@ -18,7 +18,7 @@
   networking.hostName = "music-vm";
 
   microvm = {
-    
+
     hypervisor = "cloud-hypervisor";
     volumes = [
       {
@@ -43,16 +43,20 @@
     PULSE_SERVER = "tcp:localhost:4713";
   };
 
-  environment.systemPackages = let
-    termusic-mpv = pkgs.termusic.overrideAttrs (old: {
-      cargoBuildFlags = (old.cargoBuildFlags or [ ]) ++ [ "--features=mpv" ];
-      nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
-      buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.mpv ];
-    });
-  in with pkgs; [
-    termusic-mpv
-    yt-dlp
-  ];
+  environment.systemPackages =
+    let
+      termusic-mpv = pkgs.termusic.overrideAttrs (old: {
+        cargoBuildFlags = (old.cargoBuildFlags or [ ]) ++ [ "--features=mpv" ];
+        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
+        buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.mpv ];
+      });
+    in
+    with pkgs;
+    [
+      termusic-mpv
+      yt-dlp
+      feishin
+    ];
 
   system.stateVersion = "26.05";
 }
