@@ -105,6 +105,7 @@
     helix
     lazysql
     serpl
+    scooter
     ec
     superfile
 
