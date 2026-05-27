@@ -43,17 +43,47 @@
     PULSE_SERVER = "tcp:localhost:4713";
   };
 
+  environment.etc."mpv/mpv.conf".text = ''
+    ao=pulse
+    pulse-buffer=2000
+  '';
+
   environment.systemPackages =
     let
       termusic-mpv = pkgs.termusic.overrideAttrs (old: {
         cargoBuildFlags = (old.cargoBuildFlags or [ ]) ++ [ "--features=mpv" ];
-        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
+        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+          pkgs.pkg-config
+          pkgs.python3
+        ];
         buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.mpv ];
+        postPatch = (old.postPatch or "") + ''
+python3 <<'PY'
+from pathlib import Path
+
+path = Path("playback/src/backends/mpv/mod.rs")
+old = """        mpv.set_property("vo", "null")
+            .expect("Couldn't set vo=null in libmpv");
+"""
+new = """        mpv.set_property("vo", "null")
+            .expect("Couldn't set vo=null in libmpv");
+        mpv.set_property("pulse-buffer", 2000i64)
+            .expect("Couldn't set pulse-buffer property");
+"""
+
+text = path.read_text()
+if old not in text:
+    raise SystemExit("expected mpv init block not found")
+path.write_text(text.replace(old, new, 1))
+PY
+        '';
       });
     in
     with pkgs;
     [
       termusic-mpv
+      mpv
+      pulseaudio
       yt-dlp
     ];
 

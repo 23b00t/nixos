@@ -86,7 +86,7 @@ in
     mesa
     vulkan-loader
     feishin
-    spotube
+    nuclear
 
     kitty
     v4l-utils
