@@ -55,7 +55,6 @@
     [
       termusic-mpv
       yt-dlp
-      feishin
     ];
 
   system.stateVersion = "26.05";
