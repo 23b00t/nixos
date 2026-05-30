@@ -104,10 +104,9 @@
 
     helix
     lazysql
-    serpl
+    lazydocker
     scooter
     ec
-    superfile
 
     lua-language-server
     selene

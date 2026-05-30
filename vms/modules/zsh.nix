@@ -70,6 +70,8 @@ in
         setopt HIST_IGNORE_ALL_DUPS
         export GPG_TTY=$(tty)
 
+        eval "$(zoxide init --cmd cd zsh)"
+
         export ANTIDOTE_HOME="$HOME/.cache/antidote"
         mkdir -p "$ANTIDOTE_HOME"
         source ${pkgs.antidote}/share/antidote/antidote.zsh

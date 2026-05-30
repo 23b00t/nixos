@@ -87,6 +87,8 @@ in
     vulkan-loader
     feishin
     nuclear
+    ffmpeg
+    yt-dlp
 
     kitty
     v4l-utils
