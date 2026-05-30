@@ -64,6 +64,7 @@
           termdown "$1" -c 10 && paplay --volume=43000 ~/Music/airhorn.wav
         }
         [ -f "$HOME/paste_functions.zsh" ] && source "$HOME/paste_functions.zsh"
+        export EDITOR=hx
       '';
     };
 

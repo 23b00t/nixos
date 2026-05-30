@@ -56,6 +56,7 @@ in
           sc = "systemctl";
           n = "nvim";
           y = "yazi";
+          cd = "z";
         }
         // cfg.extraAliases;
 
@@ -70,7 +71,7 @@ in
         setopt HIST_IGNORE_ALL_DUPS
         export GPG_TTY=$(tty)
 
-        eval "$(zoxide init --cmd cd zsh)"
+        eval "$(zoxide init zsh)"
 
         export ANTIDOTE_HOME="$HOME/.cache/antidote"
         mkdir -p "$ANTIDOTE_HOME"

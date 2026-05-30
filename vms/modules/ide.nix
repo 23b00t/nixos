@@ -78,11 +78,12 @@ in
       ripgrep
       fzf
 
-      (pkgs.writeShellScriptBin "lazygit" ''
-        export GPG_TTY=$(tty)
-        ${pkgs.gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
-        exec ${pkgs.lazygit}/bin/lazygit "$@"
-      '')
+      lazygit
+      # (pkgs.writeShellScriptBin "lazygit" ''
+      #   export GPG_TTY=$(tty)
+      #   ${pkgs.gnupg}/bin/gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
+      #   exec ${pkgs.lazygit}/bin/lazygit "$@"
+      # '')
     ];
 
     # für statisch gelinkte Binaries in nvim
@@ -108,9 +109,14 @@ in
         pull.rebase = false;
         "branch \"main\"".mergeoptions = "--no-edit";
         init.defaultBranch = "main";
-        gpg.program = "gpg";
+        # --- SSH Commit Signing ---
+        gpg.format = "ssh";
+        user.signingkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIiMX73JzJQ1gk9fUyiiOgQYeH40DTkcD0NKtzpySORN daniel.kipp@gmail.com";
         commit.gpgsign = true;
-        user.signingkey = "937A32679620DC68";
+
+        # gpg.program = "gpg";
+        # commit.gpgsign = true;
+        # user.signingkey = "937A32679620DC68";
       };
     };
 
