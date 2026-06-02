@@ -22,11 +22,6 @@
       url = "github:youwen5/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    yazelix = {
-      url = "github:luccahuguet/yazelix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =

@@ -191,16 +191,6 @@ let
       enableHostDbusForward = false;
       features = [ "yazi" ];
     }
-    {
-      name = "yazelix";
-      short = "yzx";
-      ip = "10.0.0.25";
-      autostart = false;
-      nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMckPx2g3w+rtYkZa/qSY/+XylF2XHPb/Zf/awF3O9to yazelix-vm";
-      allowGitHubAgent = true;
-      enableHostDbusForward = true;
-    }
     # create-vm: registry-vms
   ];
 
