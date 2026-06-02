@@ -108,12 +108,14 @@
     lazydocker
     scooter
     ec
+    delta
 
     lua-language-server
     selene
     lua
 
     rustup
+    rustfmt
   ];
 
   virtualisation = {

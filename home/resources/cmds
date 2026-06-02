@@ -41,3 +41,12 @@ curl -sI URL | grep -i Content-Length | awk '{gsub(/\r$/,""); print $2}' | numfm
 ## Encrypted disks
 udisksctl unlock -b /dev/sda2
 Unlocked /dev/sda2 as /dev/dm-2
+
+## Copilot sessions
+for d in ~/.copilot/session-state/*; do
+ if [ -f "$d/workspace.yaml" ]; then
+ id=$(basename "$d")
+ summary=$(grep '^summary:' "$d/workspace.yaml" | sed 's/^summary: //')
+ echo "$id: $summary"
+ fi
+ done

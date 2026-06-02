@@ -25,7 +25,8 @@ let
 
   phpTmpfilesRules = [
     "d /home/user/bin 0755 user users -"
-  ] ++ lib.flatten (lib.mapAttrsToList mkRulesFor phpShells);
+  ]
+  ++ lib.flatten (lib.mapAttrsToList mkRulesFor phpShells);
 
   phpTmpfilesFile = pkgs.writeText "php-home-bin.conf" (
     lib.concatStringsSep "\n" phpTmpfilesRules + "\n"
@@ -108,6 +109,8 @@ in
       stop() {
         sudo docker compose stop
       }
+
+      export EDITOR=hx
     '';
   };
 
@@ -122,7 +125,7 @@ in
   environment.etc."zellij-layout".source = ./zellij-layout;
 
   microvm = {
-    
+
     hypervisor = "cloud-hypervisor";
     volumes = [
       {
@@ -156,6 +159,13 @@ in
       intelephense
       vscode-langservers-extracted
       mariadb
+
+      helix
+      lazysql
+      lazydocker
+      scooter
+      ec
+      delta
     ]
     ++ builtins.attrValues phpToolPackages;
 
