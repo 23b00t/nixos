@@ -63,9 +63,9 @@ in
 
       gcc
       gnumake
-      rustc
-      cargo
-      rust-analyzer
+      # rustc
+      # cargo
+      # rust-analyzer
       watchexec
       statix
       tree-sitter

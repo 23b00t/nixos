@@ -65,6 +65,7 @@
         }
         [ -f "$HOME/paste_functions.zsh" ] && source "$HOME/paste_functions.zsh"
         export EDITOR=hx
+        export PATH="$HOME/.cargo/bin:$PATH"
       '';
     };
 
@@ -115,7 +116,8 @@
     lua
 
     rustup
-    rustfmt
+    # rustfmt
+    # targets.wasm32-wasip1.latest.rust-std
   ];
 
   virtualisation = {
