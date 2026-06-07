@@ -122,7 +122,13 @@ in
 
   programs.gamescope = {
     enable = true;
-    capSysNice = true;
+  };
+
+  security.wrappers.bwrap = {
+    source = "${pkgs.bubblewrap}/bin/bwrap";
+    owner = "root";
+    group = "root";
+    setuid = true;
   };
 
   programs.steam = {
@@ -137,10 +143,10 @@ in
 
   services.getty.autologinUser = "user";
 
-  # services.seatd = {
-  #   enable = true;
-  #   group = "seat";
-  # };
+  services.seatd = {
+    enable = true;
+    group = "seat";
+  };
 
   environment.loginShellInit = ''
     if [[ "$(tty)" = "/dev/tty1" ]]; then
@@ -230,7 +236,7 @@ in
     wheelNeedsPassword = false;
   };
   users.groups.users = { };
-  # users.groups.seat = { };
+  users.groups.seat = { };
 
   users.users.user = {
     isNormalUser = true;
@@ -240,6 +246,7 @@ in
       "video"
       "render"
       "input"
+      "seat"
     ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL steam-vm"
