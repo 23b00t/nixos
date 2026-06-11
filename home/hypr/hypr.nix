@@ -217,8 +217,8 @@
         "vm-run c vesktop -m"
         "vm-run c element-desktop --hidden"
         "vm-run c Telegram -startintray"
-        "[workspace 2 silent] kitty"
-        "[workspace 3 silent] kitty --session=none remote-zellij i"
+        "[workspace 3 silent] kitty"
+        "[workspace 2 silent] kitty --session=none remote-zellij i"
         "[workspace special:magic silent] vm-run net zen"
       ];
 
@@ -272,11 +272,11 @@
   services.wpaperd.enable = true;
   services.wpaperd.settings = {
     "DP-1" = {
-      path = "${config.home.homeDirectory}/nixos-config/wallpapers/edger_lucy_neon.jpg";
+      path = "${config.home.homeDirectory}/nixos-config/wallpapers/ntc.jpg";
     };
 
     "DP-2" = {
-      path = "${config.home.homeDirectory}/nixos-config/wallpapers/ntc.jpg";
+      path = "${config.home.homeDirectory}/nixos-config/wallpapers/edger_lucy_neon.jpg";
     };
 
     "eDP-1" = {
