@@ -17,7 +17,6 @@
 
   microvm = {
     registerClosure = false;
-    
     hypervisor = "cloud-hypervisor";
     volumes = [
       {
@@ -114,8 +113,11 @@
     lua-language-server
     selene
     lua
+    marksman
 
     rustup
+    pkg-config
+    openssl.dev
     # rustfmt
     # targets.wasm32-wasip1.latest.rust-std
   ];
