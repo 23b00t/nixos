@@ -51,6 +51,7 @@
       allow id 05e3:0620 name "USB3.2 Hub" with-interface 09:00:00
 
       allow id 093a:2533 name "SHARKFORCE OpticalMouse" with-interface { 03:01:02 03:00:01 }
+      allow id 046a:c092 name "CHERRY Wireless Device" with-interface { 03:01:01 03:01:02 }
       allow id 1209:2303 serial "CDatreus" name "Atreus" with-interface { 02:02:00 0a:00:00 03:01:01 03:00:00 03:00:00 }
 
       allow id 2b7e:c906 serial "200901010001" name "FHD WebCam" with-interface { 0e:01:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:01:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 fe:01:01 }

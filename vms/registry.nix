@@ -242,6 +242,18 @@ let
       microvmUsbPath = "vendorid=0x093a,productid=0x2533";
     }
     {
+      name = "mouse-mobile";
+      vendorId = "046a";
+      productId = "c092";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [
+        "host"
+        "steam"
+      ];
+      microvmUsbPath = "vendorid=0x046a,productid=0xc092";
+    }
+    {
       name = "bluetooth-ax211";
       vendorId = "8087";
       productId = "0033";
