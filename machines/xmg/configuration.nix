@@ -56,6 +56,10 @@
 
       allow id 2b7e:c906 serial "200901010001" name "FHD WebCam" with-interface { 0e:01:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:01:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 0e:02:01 fe:01:01 }
       allow id 8087:0033 with-interface { e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 e0:01:01 }
+
+      # Switch
+      allow id 1a40:0101 via-port "1-1.1" with-interface 09:00:00
+      allow id 1a40:0101 via-port "1-1.2" with-interface 09:00:00
     '';
   };
 

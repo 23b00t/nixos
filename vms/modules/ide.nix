@@ -69,7 +69,7 @@ in
       watchexec
       statix
       tree-sitter
-      vectorcode
+      # vectorcode
       nodejs
       # nodePackages.npm
       watchman
