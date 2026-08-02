@@ -69,204 +69,218 @@
 
   wayland.windowManager.hyprland = {
     enable = true;
-    configType = "hyprlang";
+    configType = "lua";
     systemd.enable = false;
 
     settings = {
+      mod._var = "SUPER";
+
       monitor = [
-        "eDP-1,1920x1200@60.00,0x0,1"
-        "DP-2,1920x1080@60.00,1920x0,1"
-        "DP-1,1920x1080@60.00,3840x0,1"
+        {
+          output = "eDP-1";
+          mode = "1920x1200@60.00";
+          position = "0x0";
+          scale = 1;
+        }
+        {
+          output = "DP-2";
+          mode = "1920x1080@60.00";
+          position = "1920x0";
+          scale = 1;
+        }
+        {
+          output = "DP-1";
+          mode = "1920x1080@60.00";
+          position = "3840x0";
+          scale = 1;
+        }
       ];
 
-      # Keyboard pro Host
-      input = {
-        kb_layout = "us";
-        kb_variant = "altgr-intl";
-        kb_options = "grp:alt_shift_toggle";
-      };
+      config = {
+        # Keyboard pro Host
+        input = {
+          kb_layout = "us";
+          kb_variant = "altgr-intl";
+          kb_options = "grp:alt_shift_toggle";
+        };
 
-      decoration = {
-        rounding = 10;
+        decoration = {
+          rounding = 10;
 
-        # light transparency for all windows
-        active_opacity = 0.95;
-        inactive_opacity = 0.90;
-        fullscreen_opacity = 1.0;
+          # light transparency for all windows
+          active_opacity = 0.95;
+          inactive_opacity = 0.90;
+          fullscreen_opacity = 1.0;
 
-        # blur behind windows
-        blur = {
-          enabled = true;
-          size = 6; # blur strength
-          passes = 2; # more = softer, but slower
-          new_optimizations = true;
+          # blur behind windows
+          blur = {
+            enabled = true;
+            size = 6; # blur strength
+            passes = 2; # more = softer, but slower
+            new_optimizations = true;
+          };
+        };
+
+        general = {
+          gaps_in = 5;
+          gaps_out = 10;
+          border_size = 2;
+          # layout = "dwindle";
+          layout = "master";
+
+          # Window border colors
+          col = {
+            active_border = "rgba(bb9af7ff)";
+            inactive_border = "rgba(d1bfffcc)";
+            nogroup_border = "rgba(d1bfffcc)";
+            nogroup_border_active = "rgba(bb9af7ff)";
+          };
         };
       };
 
-      general = {
-        gaps_in = 5;
-        gaps_out = 10;
-        border_size = 2;
-        # layout = "dwindle";
-        layout = "master";
-
-        # Window border colors
-        "col.active_border" = "rgba(bb9af7ff)";
-        "col.inactive_border" = "rgba(d1bfffcc)";
-        "col.nogroup_border" = "rgba(d1bfffcc)";
-        "col.nogroup_border_active" = "rgba(bb9af7ff)";
-      };
-
-      "$mod" = "SUPER";
-
-      bind = [
-        "$mod, A, exec, pkill rofi || rofi -modi drun,filebrowser,window,run -show drun -theme ~/.config/rofi/config.rasi"
-        "$mod, B, exec, vm-run net zen"
-
-        "$mod, V, togglefloating,"
-        "$mod, Z, pseudo," # dwindle
-        "$mod, J, layoutmsg, togglesplit" # dwindle
-
-        # Lock screen
-        "$mod, L, exec, hyprlock"
-
-        # Focus movement
-        "$mod, left, movefocus, l"
-        "$mod, right, movefocus, r"
-        "$mod, up, movefocus, u"
-        "$mod, down, movefocus, d"
-        # Move windows
-        "$mod SHIFT, left, movewindow, l"
-        "$mod SHIFT, right, movewindow, r"
-        "$mod SHIFT, up, movewindow, u"
-        "$mod SHIFT, down, movewindow, d"
-        # Resize windows
-        "$mod CTRL, left, resizeactive, -20 0"
-        "$mod CTRL, right, resizeactive, 20 0"
-        "$mod CTRL, up, resizeactive, 0 -20"
-        "$mod CTRL, down, resizeactive, 0 20"
-        # Switch layout
-        "$mod, M, layoutmsg, swapwithmaster"
-        "$mod, Y, layoutmsg, focusmaster"
-        "$mod, D, layoutmsg, addmaster"
-
-        # Workspace switching
-        "$mod, 1, workspace, 1"
-        "$mod, 2, workspace, 2"
-        "$mod, 3, workspace, 3"
-        "$mod, 4, workspace, 4"
-        "$mod, 5, workspace, 5"
-        "$mod, 6, workspace, 6"
-        "$mod, 7, workspace, 7"
-        "$mod, 8, workspace, 8"
-        "$mod, 9, workspace, 9"
-        "$mod, 0, workspace, 10"
-
-        # Move window to workspace
-        "$mod SHIFT, 1, movetoworkspace, 1"
-        "$mod SHIFT, 2, movetoworkspace, 2"
-        "$mod SHIFT, 3, movetoworkspace, 3"
-        "$mod SHIFT, 4, movetoworkspace, 4"
-        "$mod SHIFT, 5, movetoworkspace, 5"
-        "$mod SHIFT, 6, movetoworkspace, 6"
-        "$mod SHIFT, 7, movetoworkspace, 7"
-        "$mod SHIFT, 8, movetoworkspace, 8"
-        "$mod SHIFT, 9, movetoworkspace, 9"
-        "$mod SHIFT, 0, movetoworkspace, 10"
-
-        # Special workspace
-        "$mod, S, togglespecialworkspace, magic"
-        "$mod SHIFT, S, movetoworkspace, special:magic"
-        "$mod, Q, killactive,"
-        # Kitty-Special
-        "$mod SHIFT, K, exec, kitty --session=none"
-        "$mod, T, exec, kitty"
-        # emoji picker
-        "$mod, comma, exec, rofimoji --max-recent 10 --action copy --selector-args='-theme ~/.config/rofi/config.rasi'"
-
-        # Fullscreen toggle
-        "$mod, F, fullscreen, 0"
-
-        # Screenshots
-        "$mod, P, exec, grim -g \"$(slurp)\" - | satty --filename -"
-        "$mod SHIFT, P, exec, grim - | satty --filename -"
-        # Screen recording (toggle start/stop)
-        "$mod, R, exec, screenrec-region"
-        "$mod SHIFT, R, exec, screenrec-full"
-        # yazi
-        "$mod, E, exec, explorer"
-      ];
-
-      bindl = [
-        ",XF86MonBrightnessUp, exec, brightnessctl -d intel_backlight -e4 -n2 set 5%+"
-        ",XF86MonBrightnessDown, exec, brightnessctl -d intel_backlight -e4 -n2 set 5%-"
-        ",XF86AudioRaiseVolume, exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"
-        ",XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
-        ",XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-        ",XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
-        ",XF86MonBrightnessUp, exec, brightnessctl -e4 -n2 set 5%+"
-      ];
-
-      # Startup-Apps (Hyprland-Panel, Waybar, Notifier, etc.)
-      # TODO: use a more robust script that checks if the vms are up and responding before starting the tray apps.
-      exec-once = [
-        "waybar"
-        "systemctl --user restart wpaperd.service"
-        "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
-        "vm-run sn nm-applet --indicator"
-        "vm-run c vesktop -m"
-        "vm-run c element-desktop --hidden"
-        "vm-run c Telegram -startintray"
-        "[workspace 3 silent] kitty"
-        "[workspace 2 silent] kitty --session=none remote-zellij i"
-        "[workspace special:magic silent] vm-run net zen"
-      ];
-
-      bindm = [
-        "$mod, mouse:272, movewindow"
-        "$mod, mouse:273, resizewindow"
-        "$mod ALT, mouse:272, resizewindow"
-      ];
-
       # Window rules
-      windowrule = [
+      window_rule = [
         {
           name = "opacity-all";
-          "match:class" = ".*";
+          match.class = ".*";
           opacity = "0.95 0.9 1.0";
         }
         {
           name = "kitty-fullscreen-opaque";
-          "match:class" = "^(kitty|Kitty)$";
-          "match:fullscreen" = true;
+          match.class = "^(kitty|Kitty)$";
+          match.fullscreen = true;
           opacity = "1.0 1.0 1.0";
         }
         {
           name = "kitty-not-fullscreen";
-          "match:class" = "^(kitty|Kitty)$";
-          "match:fullscreen" = false;
+          match.class = "^(kitty|Kitty)$";
+          match.fullscreen = false;
           opacity = "0.9 0.85 1.0";
         }
         # Ignore maximize requests from all apps
         {
           name = "suppress-maximize-events";
-          "match:class" = ".*";
+          match.class = ".*";
           suppress_event = "maximize";
         }
 
         # Fix some dragging issues with XWayland
         {
           name = "fix-xwayland-drags";
-          "match:class" = "^$";
-          "match:title" = "^$";
-          "match:xwayland" = true;
-          "match:float" = true;
-          "match:fullscreen" = false;
-          "match:pin" = false;
+          match = {
+            class = "^$";
+            title = "^$";
+            xwayland = true;
+            float = true;
+            fullscreen = false;
+            pin = false;
+          };
           no_focus = true;
         }
       ];
     };
+
+    extraConfig = ''
+      local function bind_exec(key, command, opts)
+        if opts == nil then
+          hl.bind(key, hl.dsp.exec_cmd(command))
+        else
+          hl.bind(key, hl.dsp.exec_cmd(command), opts)
+        end
+      end
+
+      -- Startup-Apps (Hyprland-Panel, Waybar, Notifier, etc.)
+      -- TODO: use a more robust script that checks if the vms are up and responding before starting the tray apps.
+      hl.on("hyprland.start", function()
+        hl.exec_cmd("waybar")
+        hl.exec_cmd("systemctl --user restart wpaperd.service")
+        hl.exec_cmd("${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1")
+        hl.exec_cmd("vm-run sn nm-applet --indicator")
+        hl.exec_cmd("vm-run c vesktop -m")
+        hl.exec_cmd("vm-run c element-desktop --hidden")
+        hl.exec_cmd("vm-run c Telegram -startintray")
+        hl.exec_cmd("[workspace 3 silent] kitty")
+        hl.exec_cmd("[workspace 2 silent] kitty --session=none remote-zellij i")
+        hl.exec_cmd("[workspace special:magic silent] vm-run net zen")
+      end)
+
+      bind_exec(mod .. " + A", [[pkill rofi || rofi -modi drun,filebrowser,window,run -show drun -theme ~/.config/rofi/config.rasi]])
+      bind_exec(mod .. " + B", "vm-run net zen")
+
+      hl.bind(mod .. " + V", hl.dsp.window.float({ action = "toggle" }))
+      hl.bind(mod .. " + Z", hl.dsp.window.pseudo()) -- dwindle
+      hl.bind(mod .. " + J", hl.dsp.layout("togglesplit")) -- dwindle
+
+      -- Lock screen
+      bind_exec(mod .. " + L", "hyprlock")
+
+      -- Focus movement
+      hl.bind(mod .. " + left", hl.dsp.focus({ direction = "left" }))
+      hl.bind(mod .. " + right", hl.dsp.focus({ direction = "right" }))
+      hl.bind(mod .. " + up", hl.dsp.focus({ direction = "up" }))
+      hl.bind(mod .. " + down", hl.dsp.focus({ direction = "down" }))
+
+      -- Move windows
+      hl.bind(mod .. " + SHIFT + left", hl.dsp.window.move({ direction = "left" }))
+      hl.bind(mod .. " + SHIFT + right", hl.dsp.window.move({ direction = "right" }))
+      hl.bind(mod .. " + SHIFT + up", hl.dsp.window.move({ direction = "up" }))
+      hl.bind(mod .. " + SHIFT + down", hl.dsp.window.move({ direction = "down" }))
+
+      -- Resize windows
+      hl.bind(mod .. " + CTRL + left", hl.dsp.window.resize({ x = -20, y = 0, relative = true }))
+      hl.bind(mod .. " + CTRL + right", hl.dsp.window.resize({ x = 20, y = 0, relative = true }))
+      hl.bind(mod .. " + CTRL + up", hl.dsp.window.resize({ x = 0, y = -20, relative = true }))
+      hl.bind(mod .. " + CTRL + down", hl.dsp.window.resize({ x = 0, y = 20, relative = true }))
+
+      -- Switch layout
+      hl.bind(mod .. " + M", hl.dsp.layout("swapwithmaster"))
+      hl.bind(mod .. " + Y", hl.dsp.layout("focusmaster"))
+      hl.bind(mod .. " + D", hl.dsp.layout("addmaster"))
+
+      for i = 1, 10 do
+        local key = i % 10
+        hl.bind(mod .. " + " .. key, hl.dsp.focus({ workspace = i }))
+        hl.bind(mod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+      end
+
+      -- Special workspace
+      hl.bind(mod .. " + S", hl.dsp.workspace.toggle_special("magic"))
+      hl.bind(mod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }))
+
+      hl.bind(mod .. " + Q", hl.dsp.window.close())
+
+      -- Kitty-Special
+      bind_exec(mod .. " + SHIFT + K", "kitty --session=none")
+      bind_exec(mod .. " + T", "kitty")
+
+      -- emoji picker
+      bind_exec(mod .. " + comma", [[rofimoji --max-recent 10 --action copy --selector-args='-theme ~/.config/rofi/config.rasi']])
+
+      -- Fullscreen toggle
+      hl.bind(mod .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
+
+      -- Screenshots
+      bind_exec(mod .. " + P", [[grim -g "$(slurp)" - | satty --filename -]])
+      bind_exec(mod .. " + SHIFT + P", "grim - | satty --filename -")
+
+      -- Screen recording (toggle start/stop)
+      bind_exec(mod .. " + R", "screenrec-region")
+      bind_exec(mod .. " + SHIFT + R", "screenrec-full")
+
+      -- yazi
+      bind_exec(mod .. " + E", "explorer")
+
+      hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -d intel_backlight -e4 -n2 set 5%+"), { locked = true, repeating = true })
+      hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -d intel_backlight -e4 -n2 set 5%-"), { locked = true, repeating = true })
+      hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+      hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true })
+      hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true, repeating = true })
+      hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true, repeating = true })
+
+      hl.bind(mod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
+      hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+      hl.bind(mod .. " + ALT + mouse:272", hl.dsp.window.resize(), { mouse = true })
+    '';
   };
 
   services.wpaperd.enable = true;
