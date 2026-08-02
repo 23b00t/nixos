@@ -45,15 +45,16 @@
         mountPoint = "/nix/.ro-store";
       }
     ];
-    mem = 4096;
+    mem = 8192;
     vcpu = 2;
   };
 
   environment.systemPackages = with pkgs; [
     nil
-    nixd
+    # nixd
     nixdoc
     nixfmt
+    deadnix
   ];
 
   system.stateVersion = "26.05";
