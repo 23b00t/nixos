@@ -191,7 +191,7 @@
 
           // Layout without external JSONC modules/includes
           "modules-left": [
-            "hyprland/workspaces",
+            "niri/workspaces",
             "wlr/taskbar"
           ],
           "modules-center": [
@@ -210,11 +210,11 @@
             "custom/swaync",
           ],
 
-          "hyprland/workspaces": {
+          "niri/workspaces": {
             "format": "{name}",
-            "sort-by-number": true,
             "all-outputs": true,
-            "disable-scroll": false
+            "current-only": false,
+            "disable-click": false
           },
 
           "wlr/taskbar": {

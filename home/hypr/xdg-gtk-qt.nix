@@ -10,15 +10,11 @@
     portal = {
       enable = true;
       extraPortals = with pkgs; [
-        pkgs.xdg-desktop-portal-hyprland
         xdg-desktop-portal-gtk
-        xdg-desktop-portal
       ];
       xdgOpenUsePortal = true;
       configPackages = with pkgs; [
-        pkgs.xdg-desktop-portal-hyprland
         xdg-desktop-portal-gtk
-        xdg-desktop-portal
       ];
     };
 
