@@ -231,15 +231,15 @@ let
     }
     {
       name = "mouse-main";
-      vendorId = "093a";
-      productId = "2533";
+      vendorId = "260d";
+      productId = "1121";
       policy = "host-allow";
       defaultOwner = "host";
       allowedOwners = [
         "host"
         "steam"
       ];
-      microvmUsbPath = "vendorid=0x093a,productid=0x2533";
+      microvmUsbPath = "vendorid=0x260d,productid=0x1121";
     }
     {
       name = "mouse-mobile";

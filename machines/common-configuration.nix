@@ -604,7 +604,7 @@ in
     # Keyboard
     SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
     # Mouse
-    SUBSYSTEM=="usb", ATTR{idVendor}=="093a", ATTR{idProduct}=="2533", GROUP="kvm"
+    SUBSYSTEM=="usb", ATTR{idVendor}=="260d", ATTR{idProduct}=="1121", GROUP="kvm"
   ''
   + lib.optionalString (vmReservedUsbRules != "") ''
 
