@@ -43,7 +43,7 @@
       mkdir -p "$OUTDIR"
       FILE="$OUTDIR/full-$(date +'%Y-%m-%d_%H-%M-%S').mp4"
 
-      MONITOR="$(${pkgs.niri}/bin/niri msg --json outputs focused | ${pkgs.python3}/bin/python3 -c 'import json, sys; data = json.load(sys.stdin); print(data.get("name", "") if isinstance(data, dict) else "")')"
+      MONITOR="$(${pkgs.niri}/bin/niri msg --json focused-output | ${pkgs.python3}/bin/python3 -c 'import json, sys; data = json.load(sys.stdin); print(data.get("name", "") if isinstance(data, dict) else "")')"
 
       if [[ -z "$MONITOR" ]]; then
         ${pkgs.libnotify}/bin/notify-send -u critical "Screen recording" "Focused output could not be determined"
@@ -440,8 +440,50 @@
         { "spawn-at-startup"._args = [ "vm-run" "c" "vesktop" "-m" ]; }
         { "spawn-at-startup"._args = [ "vm-run" "c" "element-desktop" "--hidden" ]; }
         { "spawn-at-startup"._args = [ "vm-run" "c" "Telegram" "-startintray" ]; }
-        { "spawn-at-startup"._args = [ "kitty" ]; }
-        { "spawn-at-startup"._args = [ "kitty" "--session=none" "remote-zellij" "i" ]; }
+        { "spawn-at-startup"._args = [ "kitty" "--class=kitty-main" ]; }
+        {
+          "spawn-at-startup"._args = [
+            "kitty"
+            "--class=kitty-remote-zellij"
+            "--session=none"
+            "remote-zellij"
+            "i"
+          ];
+        }
+        { "spawn-at-startup"._args = [ "vm-run" "net" "zen" ]; }
+        {
+          "window-rule"._children = [
+            {
+              match._props = {
+                "app-id" = "^kitty-main$";
+                "at-startup" = true;
+              };
+            }
+            { "open-on-workspace" = 3; }
+          ];
+        }
+        {
+          "window-rule"._children = [
+            {
+              match._props = {
+                "app-id" = "^kitty-remote-zellij$";
+                "at-startup" = true;
+              };
+            }
+            { "open-on-workspace" = 2; }
+          ];
+        }
+        {
+          "window-rule"._children = [
+            {
+              match._props = {
+                "app-id" = "^(zen|app\\.zen_browser\\.zen)$";
+                "at-startup" = true;
+              };
+            }
+            { "open-on-workspace" = "magic"; }
+          ];
+        }
         {
           "window-rule"._children = [
             { "geometry-corner-radius" = 10; }

@@ -261,12 +261,7 @@ in
     NIXOS_OZONE_WL = "1";
   };
 
-  programs.hyprland = {
-    package = pkgs.hyprland;
-    portalPackage = pkgs.xdg-desktop-portal-hyprland;
-    enable = true;
-    withUWSM = true;
-  };
+  programs.niri.enable = true;
 
   programs.nix-ld.enable = true;
 
@@ -327,7 +322,7 @@ in
       };
       General = {
         # Set default session globally
-        DefaultSession = "hyprland.desktop";
+        DefaultSession = "niri.desktop";
       };
       Wayland = {
         EnableHiDPI = true;
