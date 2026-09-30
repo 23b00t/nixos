@@ -293,6 +293,15 @@
         "Mod+Shift+Ctrl+J"."move-column-to-monitor-down" = { };
         "Mod+Shift+Ctrl+K"."move-column-to-monitor-up" = { };
 
+        "Mod+Alt+Shift+Left"."move-window-to-monitor-left" = { };
+        "Mod+Alt+Shift+Down"."move-window-to-monitor-down" = { };
+        "Mod+Alt+Shift+Up"."move-window-to-monitor-up" = { };
+        "Mod+Alt+Shift+Right"."move-window-to-monitor-right" = { };
+        "Mod+Alt+Shift+H"."move-window-to-monitor-left" = { };
+        "Mod+Alt+Shift+J"."move-window-to-monitor-down" = { };
+        "Mod+Alt+Shift+K"."move-window-to-monitor-up" = { };
+        "Mod+Alt+Shift+L"."move-window-to-monitor-right" = { };
+
         "Mod+Page_Down"."focus-workspace-down" = { };
         "Mod+Page_Up"."focus-workspace-up" = { };
         "Mod+U"."focus-workspace-down" = { };
@@ -357,9 +366,6 @@
         "Mod+Ctrl+9"."move-column-to-workspace" = 9;
         "Mod+Ctrl+0"."move-column-to-workspace" = 10;
 
-        "Mod+S"."focus-workspace" = "magic";
-        "Mod+Shift+S"."move-column-to-workspace" = "magic";
-
         "Mod+BracketLeft"."consume-or-expel-window-left" = { };
         "Mod+BracketRight"."consume-or-expel-window-right" = { };
         "Mod+Period"."expel-window-from-column" = { };
@@ -399,7 +405,24 @@
       };
 
       _children = [
-        { workspace._args = [ "magic" ]; }
+        {
+          workspace = {
+            _args = [ "terminal" ];
+            "open-on-output" = "DP-2";
+          };
+        }
+        {
+          workspace = {
+            _args = [ "browser" ];
+            "open-on-output" = "DP-2";
+          };
+        }
+        {
+          workspace = {
+            _args = [ "remote" ];
+            "open-on-output" = "DP-1";
+          };
+        }
         {
           output = {
             _args = [ "eDP-1" ];
@@ -456,10 +479,9 @@
             {
               match._props = {
                 "app-id" = "^kitty-main$";
-                "at-startup" = true;
               };
             }
-            { "open-on-workspace" = "3"; }
+            { "open-on-workspace" = "terminal"; }
           ];
         }
         {
@@ -467,10 +489,9 @@
             {
               match._props = {
                 "app-id" = "^kitty-remote-zellij$";
-                "at-startup" = true;
               };
             }
-            { "open-on-workspace" = "2"; }
+            { "open-on-workspace" = "remote"; }
           ];
         }
         {
@@ -478,10 +499,9 @@
             {
               match._props = {
                 "app-id" = "^(zen|app\\.zen_browser\\.zen)$";
-                "at-startup" = true;
               };
             }
-            { "open-on-workspace" = "magic"; }
+            { "open-on-workspace" = "browser"; }
           ];
         }
         {
