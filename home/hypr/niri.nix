@@ -515,7 +515,8 @@
           "window-rule"._children = [
             { "geometry-corner-radius" = 10; }
             { "clip-to-geometry" = true; }
-            { opacity = 0.9; }
+            { "draw-border-with-background" = false; }
+            { opacity = 0.85; }
             {
               "background-effect" = {
                 blur = true;
@@ -532,7 +533,7 @@
                 "is-focused" = true;
               };
             }
-            { opacity = 0.95; }
+            { opacity = 0.9; }
           ];
         }
       ];
