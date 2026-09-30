@@ -191,7 +191,6 @@
 
           // Layout without external JSONC modules/includes
           "modules-left": [
-            "niri/workspaces",
             "wlr/taskbar"
           ],
           "modules-center": [
@@ -209,13 +208,6 @@
             "battery",
             "custom/swaync",
           ],
-
-          "niri/workspaces": {
-            "format": "{name}",
-            "all-outputs": true,
-            "current-only": false,
-            "disable-click": false
-          },
 
           "wlr/taskbar": {
             "format": "{icon}",

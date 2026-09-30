@@ -91,6 +91,8 @@
           numlock = { };
         };
 
+        "focus-follows-mouse" = { };
+
         touchpad = {
           tap = { };
           "natural-scroll" = { };
@@ -269,9 +271,10 @@
         "Mod+Ctrl+Down"."move-window-down" = { };
         "Mod+Ctrl+Up"."move-window-up" = { };
         "Mod+Ctrl+Right"."move-column-right" = { };
-        "Mod+Ctrl+H"."move-column-left" = { };
-        "Mod+Ctrl+J"."move-window-down" = { };
-        "Mod+Ctrl+K"."move-window-up" = { };
+        "Mod+Ctrl+H"."focus-monitor-left" = { };
+        "Mod+Ctrl+J"."focus-monitor-down" = { };
+        "Mod+Ctrl+K"."focus-monitor-up" = { };
+        "Mod+Ctrl+L"."focus-monitor-right" = { };
 
         "Mod+Home"."focus-column-first" = { };
         "Mod+End"."focus-column-last" = { };
@@ -289,18 +292,19 @@
         "Mod+Shift+Ctrl+Down"."move-column-to-monitor-down" = { };
         "Mod+Shift+Ctrl+Up"."move-column-to-monitor-up" = { };
         "Mod+Shift+Ctrl+Right"."move-column-to-monitor-right" = { };
-        "Mod+Shift+Ctrl+H"."move-column-to-monitor-left" = { };
-        "Mod+Shift+Ctrl+J"."move-column-to-monitor-down" = { };
-        "Mod+Shift+Ctrl+K"."move-column-to-monitor-up" = { };
+        "Mod+Shift+Ctrl+H"."move-window-to-monitor-left" = { };
+        "Mod+Shift+Ctrl+J"."move-window-to-monitor-down" = { };
+        "Mod+Shift+Ctrl+K"."move-window-to-monitor-up" = { };
+        "Mod+Shift+Ctrl+L"."move-window-to-monitor-right" = { };
 
-        "Mod+Alt+Shift+Left"."move-window-to-monitor-left" = { };
-        "Mod+Alt+Shift+Down"."move-window-to-monitor-down" = { };
-        "Mod+Alt+Shift+Up"."move-window-to-monitor-up" = { };
-        "Mod+Alt+Shift+Right"."move-window-to-monitor-right" = { };
-        "Mod+Alt+Shift+H"."move-window-to-monitor-left" = { };
-        "Mod+Alt+Shift+J"."move-window-to-monitor-down" = { };
-        "Mod+Alt+Shift+K"."move-window-to-monitor-up" = { };
-        "Mod+Alt+Shift+L"."move-window-to-monitor-right" = { };
+        "Mod+Alt+H"."focus-column-left" = { };
+        "Mod+Alt+J"."focus-window-down" = { };
+        "Mod+Alt+K"."focus-window-up" = { };
+        "Mod+Alt+L"."focus-column-right" = { };
+        "Mod+Alt+Shift+H"."move-column-left" = { };
+        "Mod+Alt+Shift+J"."move-window-down" = { };
+        "Mod+Alt+Shift+K"."move-window-up" = { };
+        "Mod+Alt+Shift+L"."move-column-right" = { };
 
         "Mod+Page_Down"."focus-workspace-down" = { };
         "Mod+Page_Up"."focus-workspace-up" = { };
@@ -386,7 +390,7 @@
 
         "Mod+F"."fullscreen-window" = { };
         "Mod+Shift+F"."maximize-column" = { };
-        "Mod+M"."maximize-window-to-edges" = { };
+        "Mod+M"."maximize-column" = { };
         "Mod+Ctrl+F"."expand-column-to-available-width" = { };
         "Mod+C"."center-column" = { };
         "Mod+Ctrl+C"."center-visible-columns" = { };
@@ -482,6 +486,7 @@
               };
             }
             { "open-on-workspace" = "terminal"; }
+            { "default-column-width".proportion = 1.0; }
           ];
         }
         {
@@ -492,6 +497,7 @@
               };
             }
             { "open-on-workspace" = "remote"; }
+            { "default-column-width".proportion = 1.0; }
           ];
         }
         {
@@ -502,6 +508,7 @@
               };
             }
             { "open-on-workspace" = "browser"; }
+            { "default-column-width".proportion = 1.0; }
           ];
         }
         {
