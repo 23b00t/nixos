@@ -459,7 +459,7 @@
                 "at-startup" = true;
               };
             }
-            { "open-on-workspace" = 3; }
+            { "open-on-workspace" = "3"; }
           ];
         }
         {
@@ -470,7 +470,7 @@
                 "at-startup" = true;
               };
             }
-            { "open-on-workspace" = 2; }
+            { "open-on-workspace" = "2"; }
           ];
         }
         {
