@@ -262,6 +262,7 @@ in
   };
 
   programs.niri.enable = true;
+  services.gnome.gcr-ssh-agent.enable = false;
 
   programs.nix-ld.enable = true;
 
