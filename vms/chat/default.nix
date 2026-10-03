@@ -76,7 +76,14 @@ in
   services.gnome.gnome-keyring.enable = true;
 
   environment.systemPackages = with pkgs; [
-    vesktop
+    (pkgs.symlinkJoin {
+      name = "vesktop";
+      paths = [ pkgs.vesktop ];
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        wrapProgram "$out/bin/vesktop" --add-flags "--disable-gpu"
+      '';
+    })
     telegram-desktop
     slack
     element-desktop
