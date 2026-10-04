@@ -9,6 +9,40 @@
 
 - sudo nixos-rebuild switch --flake ".#hp"
 
+## Xen test phase (hp, v1)
+
+The hp branch turns the HP laptop into a Xen dom0 (`machines/hp/xen.nix`) and runs MicroVMs as Xen PVH domUs via the microvm.nix fork (`github:23b00t/microvm.nix/xen`, input `microvm` in `flake.nix`).
+
+Scope of v1: `microvm.hypervisor = "xen"` is the only change in a VM definition (`vault`, `nvim`, `coding`). `/nix/store` comes from an erofs store disk; other shares are dropped with a warning (nvim has no `/mnt/host`). No PCI/USB passthrough, ballooning or 9pfs yet (v2). There is no sys-net, so VMs only reach the host (`10.0.0.254`), not the internet.
+
+Test-phase extras in `machines/hp/dev-access.nix`: `claude-code`, `google-chrome`, and root SSH with password from `192.168.178.0/24` only (set it with `sudo passwd root`).
+
+### Build and boot
+
+```bash
+git pull
+nix flake update microvm                 # lock the fork's xen branch
+nix build .#nixosConfigurations.hp.config.system.build.toplevel --dry-run
+sudo nixos-rebuild boot --flake .#hp
+```
+
+Reboot and pick the `xen-…` boot entry. The plain NixOS entries stay as fallback.
+
+### Test plan
+
+1. dom0 is up: `sudo xl info` (Xen version, dom0 memory 4096 MB), `sudo xl list` shows `Domain-0`, niri desktop works, `systemctl status xenstored xenconsoled`.
+2. Autostart: `systemctl status microvm@vault microvm@nvim microvm@coding` are active; `sudo xl list` shows `vault-vm`, `nvim-vm`, `coding-vm` with the configured memory/vCPUs.
+3. Guest boot: `sudo xl console vault-vm` (leave with `Ctrl+]`) or the logs in `/var/log/xen/console/`; no emergency shell, `/nix/store` and `/home/user` mounted.
+4. Network: `ip link show master vm-internal` lists `vm10`, `vm1`, `vm6`; `ssh vault-vm` / `ssh nvim-vm` / `ssh coding-vm` work from the host (host keys `~/.ssh/<vm>-vm` must exist on the hp).
+5. Persistence: create a file in `/home/user` of a VM, `sudo systemctl restart microvm@vault`, the file is still there.
+6. Lifecycle: `sudo systemctl stop microvm@vault` shuts the domain down cleanly (gone from `xl list` within 60 s, journal shows no `xl destroy`); `start` brings it back; `vm-run`/`vm` helpers work for the three VMs.
+7. Guest reboot/crash: `sudo reboot` inside a VM → the service restarts it (new domain id in `xl list`).
+8. Stale domain: `sudo kill -9 <xl pid of microvm@vault>` → the service restarts and destroys the leftover domain first.
+9. Host shutdown: reboot dom0; the guests shut down cleanly (no fsck/journal recovery messages on next boot).
+10. Root SSH: from a LAN machine `ssh root@<hp-ip>` works with password; from elsewhere (e.g. a VM on `10.0.0.0/24`) it is refused.
+
+Collect for failures: `journalctl -b -u microvm@<vm>`, `/var/log/xen/console/guest-<vm>-vm.log`, `/var/log/xen/xl-<vm>-vm.log`, `/var/log/xen/xen-hotplug.log`, `sudo xl dmesg | tail -50`.
+
 ## VMs
 
 ### Create VMs

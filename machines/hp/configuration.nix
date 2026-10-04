@@ -6,6 +6,8 @@
 {
   imports = [
     ./hardware-configuration.nix # Auto-generated hardware config
+    ./xen.nix # Xen dom0 instead of KVM
+    ./dev-access.nix # Test phase: claude-code, chrome, LAN-only root SSH
 
     # GPU Configuration (choose one):
     inputs.nixos-hardware.nixosModules.common-gpu-amd # AMD

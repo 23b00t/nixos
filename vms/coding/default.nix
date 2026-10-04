@@ -17,7 +17,7 @@
 
   microvm = {
     registerClosure = false;
-    hypervisor = "cloud-hypervisor";
+    hypervisor = "xen";
     volumes = [
       {
         mountPoint = "/home/user";

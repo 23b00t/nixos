@@ -283,7 +283,7 @@ let
     ];
   };
 
-  pciVfioIds = pciDeviceIds.gpu ++ pciDeviceIds.gpuAudio ++ pciDeviceIds.nic;
+  pciVfioIds = (pciDeviceIds.gpu or [ ]) ++ (pciDeviceIds.gpuAudio or [ ]) ++ pciDeviceIds.nic;
 
   hostProfile = {
     cpuVendor = "amd";
