@@ -2,7 +2,6 @@
 let
   vmRegistry = import ../registry.nix;
   defaultUsbDevices = vmRegistry.hardware.usb.defaultForOwner "chat";
-  webcamUsbDevice = builtins.head defaultUsbDevices;
 in
 {
   imports = [
@@ -31,13 +30,16 @@ in
     hypervisor = "qemu";
     optimize.enable = false;
 
+    # Webcam passthrough; the registry may list none (e.g. on hp)
     qemu.extraArgs = [
       "-nodefaults"
       "-device"
       "usb-ehci,id=ehci"
+    ]
+    ++ lib.concatMap (device: [
       "-device"
-      "usb-host,bus=ehci.0,${webcamUsbDevice.microvmUsbPath},guest-reset=false,pipeline=false"
-    ];
+      "usb-host,bus=ehci.0,${device.microvmUsbPath},guest-reset=false,pipeline=false"
+    ]) defaultUsbDevices;
 
     volumes = [
       {
