@@ -147,11 +147,7 @@ ${vmCases}
     if [ "$CLI_MODE" -eq 1 ]; then
       exec ssh -i "$KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "''${EXTRA_SSH_ARGS[@]}" "$VM_USER@$IP" -t -- "$BINARY" "$@"
     else
-      if [ "$DBUS_FORWARD_REQUIRED" -eq 1 ]; then
-        wprs "$IP" run -- env DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_dbus.sock "$BINARY" "$@" &
-      else
-        wprs "$IP" run -- "$BINARY" "$@" &
-      fi
+      wprs "$IP" run -- "$BINARY" "$@" &
       WPRS_PID=$!
       wait $WPRS_PID
       pkill -P $WPRS_PID ssh || true

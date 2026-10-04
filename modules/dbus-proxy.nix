@@ -22,8 +22,6 @@
         --talk=org.kde.StatusNotifierWatcher \
         --see=org.freedesktop.StatusNotifierWatcher \
         --talk=org.freedesktop.StatusNotifierWatcher \
-        --own=org.kde.* \
-        --own=org.freedesktop.* \
         --own=org.freedesktop.network-manager-applet \
         --broadcast=org.kde.StatusNotifierWatcher=/StatusNotifierWatcher,org.kde.StatusNotifierWatcher,* \
         --broadcast=org.freedesktop.StatusNotifierWatcher=/StatusNotifierWatcher,org.freedesktop.StatusNotifierWatcher,*

@@ -46,6 +46,8 @@
     nixfmt
     nil
     nixdoc
+    deadnix
+    claude-code
   ];
 
   services.net-config = {
