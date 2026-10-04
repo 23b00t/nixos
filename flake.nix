@@ -5,7 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     microvm = {
-      url = "github:23b00t/microvm.nix/xen";
+      url = "git+https://github.com/23b00t/microvm.nix?ref=xen";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
