@@ -17,21 +17,21 @@ let
     ) hosts
   );
 
-  mkMatchBlock = h: {
+  mkSettingsBlock = h: {
     "${h.name}-vm ${h.ip}" = {
-      user = "user";
-      identityFile = "~/.ssh/${h.name}-vm";
-      identitiesOnly = true;
+      User = "user";
+      IdentityFile = "~/.ssh/${h.name}-vm";
+      IdentitiesOnly = true;
     };
   };
 
-  matchBlocks = builtins.foldl' (acc: h: acc // mkMatchBlock h) {
+  settings = builtins.foldl' (acc: h: acc // mkSettingsBlock h) {
     "*" = {
-      addKeysToAgent = "yes";
+      AddKeysToAgent = "yes";
     };
     "github.com" = {
-      identityAgent = githubAgentSocket;
-      identitiesOnly = true;
+      IdentityAgent = githubAgentSocket;
+      IdentitiesOnly = true;
     };
   } hosts;
 
@@ -41,6 +41,6 @@ in
     enable = true;
     enableDefaultConfig = false;
     extraConfig = hostStrings;
-    inherit matchBlocks;
+    inherit settings;
   };
 }

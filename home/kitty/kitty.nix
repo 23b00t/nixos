@@ -81,6 +81,8 @@ let
 
       enabled_layouts stack,tall,vertical,horizontal
 
+      # clear_all_shortcuts no
+ 
     	map ctrl+shift+c copy_to_clipboard
     	map ctrl+shift+v paste_from_clipboard
     	map ctrl+alt+1 goto_tab 1
@@ -92,9 +94,11 @@ let
     	map ctrl+alt+7 goto_tab 7
     	map ctrl+alt+8 goto_tab 8
     	map ctrl+alt+9 goto_tab 9
-
     	map ctrl+alt+enter launch --cwd=current --bias -10
     	map ctrl+alt+w select_tab
+
+      # unmap ctrl+shift+r
+      map kitty_mod+r
   '';
 in
 kittyConf

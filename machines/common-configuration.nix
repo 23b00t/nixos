@@ -17,7 +17,8 @@ let
           nixpkgs-review
           nix-eval-jobs
           nix-fast-build
-          colmena;
+          colmena
+          ;
       })
     ];
   };
@@ -260,12 +261,8 @@ in
     NIXOS_OZONE_WL = "1";
   };
 
-  programs.hyprland = {
-    package = pkgs.hyprland;
-    portalPackage = pkgs.xdg-desktop-portal-hyprland;
-    enable = true;
-    withUWSM = true;
-  };
+  programs.niri.enable = true;
+  services.gnome.gcr-ssh-agent.enable = false;
 
   programs.nix-ld.enable = true;
 
@@ -326,7 +323,7 @@ in
       };
       General = {
         # Set default session globally
-        DefaultSession = "hyprland.desktop";
+        DefaultSession = "niri.desktop";
       };
       Wayland = {
         EnableHiDPI = true;
@@ -335,21 +332,15 @@ in
   };
 
   # User
-  users.groups.tun = { };
-
   users.users = {
     nx = {
       isNormalUser = true;
       extraGroups = [
         "wheel"
         "libvirtd"
-        "tun"
         "kvm"
         "input"
       ];
-    };
-    microvm = {
-      extraGroups = [ "tun" ];
     };
   };
 
@@ -446,6 +437,7 @@ in
           }
           // (vmDefinitions.${vm.name}.specialArgs or { });
           autostart = autostartFor vm.name;
+          restartIfChanged = false;
         };
       }) selectedVms
     );
@@ -587,7 +579,6 @@ in
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       ];
       trusted-users = [
-        "root"
         "nx"
       ];
     };
@@ -604,13 +595,12 @@ in
   };
 
   services.udev.extraRules = ''
-    KERNEL=="tun", GROUP="tun", MODE="0660", OPTIONS+="static_node=tun"
-    # Udev-Regel, die feuert, sobald vm11-tor auftaucht (Hotplug-sicher)
+    # Autowire vm11-tor
     SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm11-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
     # Keyboard
     SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
     # Mouse
-    SUBSYSTEM=="usb", ATTR{idVendor}=="093a", ATTR{idProduct}=="2533", GROUP="kvm"
+    SUBSYSTEM=="usb", ATTR{idVendor}=="260d", ATTR{idProduct}=="1121", GROUP="kvm"
   ''
   + lib.optionalString (vmReservedUsbRules != "") ''
 

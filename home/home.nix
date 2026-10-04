@@ -17,7 +17,7 @@ in
     ./yazi.nix
     (import ./hypr/waybar.nix { inherit config lib pkgs; })
     (import ./hypr/rofi.nix { inherit config lib pkgs; })
-    (import ./hypr/hypr.nix { inherit config pkgs hostname; })
+    (import ./hypr/niri.nix { inherit config pkgs hostname; })
     (import ./hypr/xdg-gtk-qt.nix { inherit config pkgs; })
     ./ssh.nix
     ./vm-management/vm-run.nix
@@ -65,7 +65,7 @@ in
     pciutils # lspci
     usbutils # lsusb
     nerd-fonts.fira-code
-    chromium
+    # chromium
     bibata-cursors
     (import ./vm-management/remote-zellij.nix { inherit pkgs; })
     (import ./vm-management/backup.nix { inherit pkgs lib inputs; })

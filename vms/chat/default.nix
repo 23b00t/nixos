@@ -28,7 +28,6 @@ in
   users.users.user.extraGroups = lib.mkAfter [ "video" ];
 
   microvm = {
-    registerClosure = false;
     hypervisor = "qemu";
     optimize.enable = false;
 
@@ -77,7 +76,14 @@ in
   services.gnome.gnome-keyring.enable = true;
 
   environment.systemPackages = with pkgs; [
-    vesktop
+    (pkgs.symlinkJoin {
+      name = "vesktop";
+      paths = [ pkgs.vesktop ];
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        wrapProgram "$out/bin/vesktop" --add-flags "--disable-gpu"
+      '';
+    })
     telegram-desktop
     slack
     element-desktop
@@ -86,6 +92,10 @@ in
 
     mesa
     vulkan-loader
+    feishin
+    nuclear
+    ffmpeg
+    yt-dlp
 
     kitty
     v4l-utils

@@ -1,35 +1,37 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
+let
+  yazelixPkg = inputs.yazelix.packages.${pkgs.stdenv.hostPlatform.system}.yazelix;
+in
 {
   imports = [
     ../modules/net-config.nix
     ../modules/common-config.nix
-    ../modules/ide.nix
     ../modules/zsh.nix
+    ../modules/wprs.nix
   ];
 
-  networking.hostName = "mirage-vm";
+  networking.hostName = "yazelix-vm";
+
   services.net-config = {
     enable = true;
-    index = 14;
-    mac = "00:00:00:00:00:0e";
+    index = 25;
+    mac = "00:00:00:00:00:19";
   };
-  services.ide = {
-    enable = true;
-    githubAgent.enable = true;
-  };
-  services.zsh-env.enable = true;
-  services.common-config = {
+
+  services.zsh-env = {
     enable = true;
   };
 
+  services.common-config.enable = true;
+
   microvm = {
-    
+    registerClosure = false;
     hypervisor = "cloud-hypervisor";
     volumes = [
       {
         mountPoint = "/home/user";
         image = "home.img";
-        size = 12000;
+        size = 10000;
       }
     ];
     shares = [
@@ -40,21 +42,12 @@
         mountPoint = "/nix/.ro-store";
       }
     ];
-
-    mem = 8192;
-    vcpu = 4;
+    mem = 4096;
+    vcpu = 2;
   };
 
   environment.systemPackages = with pkgs; [
-    opam
-    mercurial
-    darcs
-    bubblewrap
-    gcc
-    gnumake
-    pkg-config
-    rsync
-    pkg-config
+    yazelixPkg
   ];
 
   system.stateVersion = "26.05";

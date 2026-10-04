@@ -10,15 +10,11 @@
     portal = {
       enable = true;
       extraPortals = with pkgs; [
-        pkgs.xdg-desktop-portal-hyprland
         xdg-desktop-portal-gtk
-        xdg-desktop-portal
       ];
       xdgOpenUsePortal = true;
       configPackages = with pkgs; [
-        pkgs.xdg-desktop-portal-hyprland
         xdg-desktop-portal-gtk
-        xdg-desktop-portal
       ];
     };
 
@@ -85,7 +81,7 @@
 
   qt = {
     enable = true;
-    platformTheme.name = "gtk";
+    platformTheme.name = "gtk3";
     style = {
       name = "kvantum";
       package = pkgs.libsForQt5.qtstyleplugin-kvantum;
@@ -115,7 +111,7 @@
     LESSHISTFILE = "/tmp/less-hist";
     PARALLEL_HOME = "${config.xdg.configHome}/parallel";
 
-    QT_QPA_PLATFORMTHEME = "gtk2";
+    QT_QPA_PLATFORMTHEME = "gtk3";
     QT_STYLE_OVERRIDE = "kvantum";
     GTK_THEME = "Adwaita:dark";
   };

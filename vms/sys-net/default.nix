@@ -159,7 +159,7 @@ in
   systemd.services.NetworkManager-wait-online.enable = false;
 
   microvm = {
-    registerClosure = false;
+    
     hypervisor = "cloud-hypervisor";
     volumes = [
       {

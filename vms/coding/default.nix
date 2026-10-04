@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
   imports = [
     ../modules/net-config.nix
@@ -12,6 +12,7 @@
   ];
 
   nixpkgs.config.allowUnfree = true;
+
   networking.hostName = "coding-vm";
 
   microvm = {
@@ -22,6 +23,11 @@
         mountPoint = "/home/user";
         image = "home.img";
         size = 70000;
+      }
+      {
+        mountPoint = "/var";
+        image = "var.img";
+        size = 20000;
       }
     ];
     mem = 8192;
@@ -57,6 +63,8 @@
           termdown "$1" -c 10 && paplay --volume=43000 ~/Music/airhorn.wav
         }
         [ -f "$HOME/paste_functions.zsh" ] && source "$HOME/paste_functions.zsh"
+        export EDITOR=hx
+        export PATH="$HOME/.cargo/bin:$PATH"
       '';
     };
 
@@ -94,6 +102,24 @@
 
     pulseaudio
     termdown
+
+    helix
+    lazysql
+    lazydocker
+    scooter
+    ec
+    delta
+
+    lua-language-server
+    selene
+    lua
+    marksman
+
+    rustup
+    pkg-config
+    openssl.dev
+    # rustfmt
+    # targets.wasm32-wasip1.latest.rust-std
   ];
 
   virtualisation = {

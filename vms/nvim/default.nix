@@ -12,7 +12,7 @@
   networking.hostName = "nvim-vm";
 
   microvm = {
-    registerClosure = false;
+    
     hypervisor = "cloud-hypervisor";
     volumes = [
       {
@@ -46,6 +46,8 @@
     nixfmt
     nil
     nixdoc
+    deadnix
+    claude-code
   ];
 
   services.net-config = {

@@ -56,6 +56,7 @@ in
           sc = "systemctl";
           n = "nvim";
           y = "yazi";
+          cd = "z";
         }
         // cfg.extraAliases;
 
@@ -69,6 +70,8 @@ in
         export HISTIGNORE="rm *:cp *"
         setopt HIST_IGNORE_ALL_DUPS
         export GPG_TTY=$(tty)
+
+        eval "$(zoxide init zsh)"
 
         export ANTIDOTE_HOME="$HOME/.cache/antidote"
         mkdir -p "$ANTIDOTE_HOME"
@@ -116,6 +119,7 @@ in
       "d /home/${cfg.user}/.cache 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.cache/oh-my-posh 0755 ${cfg.user} users -"
 
+      "z /home/${cfg.user}/.cache/oh-my-posh/themes - - - - -"
       "L+ /home/${cfg.user}/.cache/oh-my-posh/themes - - - - ${ohMyPoshThemes}/themes"
     ];
   };

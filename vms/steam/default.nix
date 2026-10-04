@@ -1,11 +1,17 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 let
   vmRegistry = import ../registry.nix;
   usb = vmRegistry.hardware.usb.byName;
   allowedUsbDevices = vmRegistry.hardware.usb.allowedForOwner "steam";
   bluetoothUsbDevice = usb."bluetooth-ax211";
   steamUsbDevices = builtins.filter (
-    device: builtins.elem device.name [
+    device:
+    builtins.elem device.name [
       "mouse-main"
       "keyboard-atreus"
       bluetoothUsbDevice.name
@@ -48,8 +54,6 @@ in
   };
 
   microvm = {
-    registerClosure = false;
-
     hypervisor = "qemu";
     optimize.enable = false;
     qemu.extraArgs = [
@@ -108,7 +112,7 @@ in
     modesetting.enable = true;
     open = true;
 
-    package = config.boot.kernelPackages.nvidiaPackages.beta;
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
     prime.offload.enable = false;
     prime.sync.enable = false;
     nvidiaSettings = true;
@@ -118,7 +122,13 @@ in
 
   programs.gamescope = {
     enable = true;
-    capSysNice = true;
+  };
+
+  security.wrappers.bwrap = {
+    source = "${pkgs.bubblewrap}/bin/bwrap";
+    owner = "root";
+    group = "root";
+    setuid = true;
   };
 
   programs.steam = {
@@ -140,7 +150,7 @@ in
 
   environment.loginShellInit = ''
     if [[ "$(tty)" = "/dev/tty1" ]]; then
-      exec "$HOME/gs.sh"
+      GAMESCOPE_DEBUG=1 GAMESCOPE_WSI_DEBUG=1 GAMESCOPE_WL_DEBUG=1 exec "$HOME/gs.sh" &> "$HOME/gs.log"
     fi
   '';
 
@@ -148,7 +158,7 @@ in
     mode = "0755";
     text = ''
       #!/usr/bin/env bash
-      set -xeuo pipefail
+      set -xeu pipefail
 
       MAXMODE=$(head -1 /sys/class/drm/card0-HDMI-A-1/modes)
       if [[ "$MAXMODE" == "1920x1080" ]]; then
@@ -185,13 +195,16 @@ in
 
       export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
-      exec dbus-run-session -- gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
+      exec gamescope "''${gamescopeArgs[@]}" -- steam "''${steamArgs[@]}"
     '';
   };
 
   systemd.tmpfiles.rules = [
     "L+ /home/user/gs.sh - - - - /etc/gs.sh"
     "L+ /home/user/.ssh/config - - - - /etc/ssh_config"
+    "d /home/user/.config 0755 user users - -"
+    "d /home/user/.config/MangoHud 0755 user users - -"
+    "L+ /home/user/.config/MangoHud/MangoHud.conf - - - - /etc/MangoHud/MangoHud.conf"
   ];
 
   environment.systemPackages = with pkgs; [
@@ -230,10 +243,10 @@ in
     group = "users";
     extraGroups = [
       "wheel"
-      "seat"
       "video"
       "render"
       "input"
+      "seat"
     ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL steam-vm"
@@ -269,6 +282,19 @@ in
   environment.sessionVariables = {
     TERM = "xterm-256color";
   };
+
+  environment.etc."MangoHud/MangoHud.conf".text = ''
+    fps
+    frametime
+    frame_timing
+    gpu_stats
+    gpu_temp
+    gpu_power
+    vram
+    position=top-left
+    font_size=24
+    background_alpha=0.35
+  '';
 
   system.stateVersion = "26.05";
 }
