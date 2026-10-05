@@ -7,13 +7,32 @@ in
 {
   environment.systemPackages = with pkgs; [
     claude-code
-    google-chrome
+    lazygit
   ];
 
   # Dedicated key from xmg (~/.ssh/hp), so login does not depend on passwords
   users.users.nx.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAffatqEOWD3PYvo5A4SOzoBnMGSRttSoONnh9ooylhD hp-dom0"
   ];
+
+  # Same identity and SSH signing as the IDE VMs (vms/modules/ide.nix). The
+  # key path (not the literal key) lets ssh-keygen use the agent if the key
+  # is loaded there and ask for the passphrase otherwise.
+  programs.git = {
+    enable = true;
+    config = {
+      user = {
+        name = "Daniel Kipp";
+        email = "daniel.kipp@gmail.com";
+        signingkey = "/home/nx/.ssh/id_ed25519";
+      };
+      push.default = "simple";
+      pull.rebase = false;
+      init.defaultBranch = "main";
+      gpg.format = "ssh";
+      commit.gpgsign = true;
+    };
+  };
 
   # Lets Claude run the Xen test plan and apply fixes without a password.
   # xl and nixos-rebuild are root-equivalent anyway; boot/reboot stay manual.
