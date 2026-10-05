@@ -11,6 +11,8 @@
 
 ## Xen test phase (hp, v1)
 
+The migration plan (v2+) is in [xen-migration.md](xen-migration.md).
+
 The hp branch turns the HP laptop into a Xen dom0 (`machines/hp/xen.nix`) and runs MicroVMs as Xen PVH domUs via the microvm.nix fork (`github:23b00t/microvm.nix/xen`, input `microvm` in `flake.nix`).
 
 Scope of v1: `microvm.hypervisor = "xen"` is the only change in a VM definition (`vault`, `nvim`, `coding`). `/nix/store` comes from an erofs store disk; other shares are dropped with a warning (nvim has no `/mnt/host`). No PCI/USB passthrough, ballooning or 9pfs yet (v2). There is no sys-net, so VMs only reach the host (`10.0.0.254`), not the internet.
