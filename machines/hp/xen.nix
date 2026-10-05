@@ -18,11 +18,9 @@
     };
   };
 
-  # Touchpad test: under PVH dom0 the AMD GPIO controller (AMDI0030) gets no
-  # IRQ ("IRQ index 0 not found"), so the I2C touchpad (ELAN071A) is dead.
-  # Adds a second Xen boot entry with a PV dom0 (as Qubes uses); Xen parses
-  # `dom0=` in order, so the appended value wins.
-  specialisation.pv-dom0.configuration.virtualisation.xen.boot.params = lib.mkAfter [ "dom0=pv" ];
+  # PVH dom0 is the target. On hp the I2C touchpad only works with a PV dom0
+  # (see README "Known hardware issues"); a PV specialisation doubled the
+  # eval memory, so it was removed again.
 
   # Only the VMs switched to Xen can run; KVM-based ones would fail on start
   microvm.autostart = lib.mkForce [
@@ -39,8 +37,14 @@
   programs.virt-manager.enable = lib.mkForce false;
 
   systemd = {
-    services.libvirt-bridge-networks.enable = false;
-    services.retrigger-vm11-tor-udev.enable = false;
+    services = {
+      # The microvm@ services manage the domains. xendomains (no /etc/xen/auto)
+      # falls back to `xl shutdown --all --wait` in parallel and hangs until
+      # systemd's stop timeout (90 s) on every dom0 shutdown.
+      xendomains.enable = false;
+      libvirt-bridge-networks.enable = false;
+      retrigger-vm11-tor-udev.enable = false;
+    };
 
     # Keep vm-internal (host 10.0.0.254 <-> VMs), but there is no sys-net to
     # route through; the host uses NetworkManager directly

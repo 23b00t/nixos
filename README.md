@@ -26,25 +26,53 @@ nix build .#nixosConfigurations.hp.config.system.build.toplevel --dry-run
 sudo nixos-rebuild boot --flake .#hp
 ```
 
-Reboot and pick the `xen-…` boot entry. The plain NixOS entries stay as fallback. Each generation also gets a `pv-dom0` specialisation entry (PV instead of PVH dom0) to test the touchpad.
+Reboot and pick the `xen-…` boot entry. The plain NixOS entries stay as fallback.
 
-dom0 has 8192 MB; evaluating this flake in 4096 MB thrashes swap. If dom0 is short on memory for a rebuild: `sudo xl mem-set 0 12g`.
+dom0 has 8192 MB. Evaluating the hp configuration peaks at ~6.6 GB; with 4096 MB it thrashes swap for many minutes. If dom0 is short on memory for a rebuild, balloon it up live: `sudo xl mem-set 0 12g`. Don't add specialisations to hp: each one evaluates the host and all MicroVMs again and no longer fits.
+
+Changes in `machines/hp/xen.nix` that remove a running service (e.g. `xendomains`) should be applied with `nixos-rebuild boot` + reboot: stopping `xendomains` runs `xl shutdown --all` and takes all VMs down.
+
+### Test system
+
+| | |
+|---|---|
+| Model | HP Laptop 15s-eq2xxx (board 887A, BIOS F.32 2023-10-03) |
+| CPU / GPU | AMD Ryzen 5 5500U (Zen 2, 6C/12T), Radeon "Lucienne" iGPU `1002:164c` (amdgpu) |
+| RAM | 32 GB (dom0 8192 MB, 4 vCPUs) |
+| WiFi | Realtek RTL8821CE `10ec:c821` (rtw88, NetworkManager in dom0) |
+| Touchpad | ELAN071A (`04f3:30fd`), I2C-HID on `AMDI0010:03` (`\_SB_.I2CD.TPD0`), interrupt via the AMD GPIO controller `AMDI0030` (`\_SB_.GPIO`) |
+| Software | Xen 4.22.0, Linux 7.2.9-zen1, NixOS 26.11 (Lix) |
+
+### Known hardware issues
+
+- **Touchpad dead under PVH dom0.** The AMD GPIO controller gets no interrupt: `amd_gpio AMDI0030:00: error -EINVAL: IRQ index 0 not found`, so `i2c_hid_acpi` cannot bind ELAN071A. With a **PV dom0** (`dom0=pv`) the same kernel probes `amd_gpio` (only a harmless "failed to enable wake-up interrupt") and the touchpad shows up as input device. Tested 2026-10-05. Likely cause (not verified): the PVH dom0 kernel runs with a NULL legacy PIC and cannot register the level/low legacy GSI of the GPIO controller; a PV dom0 registers GSIs through Xen instead. The old `xen` branch (Intel machine) showed the same pattern ("pvh without touchpad").
+- **Rule of thumb:** PVH dom0 stays the target (also for the XMG). If dom0 hardware misbehaves (missing interrupts, dead input devices), try a PV dom0 first: change `"dom0=pvh"` to `"dom0=pv"` in `virtualisation.xen.boot.params` and rebuild with `boot`. Requires `CONFIG_XEN_PV=y` and `CONFIG_XEN_DOM0=y` (set in the zen kernel).
+- Harmless log noise under Xen: `kvm_amd: SVM not supported` (hardware-configuration loads `kvm-amd`), ACPI `VRTC`/`hctosys: unable to read the hardware clock` (Xen owns the RTC, `timedatectl` cannot read it), `ccp … tee: ring init command failed`, `xen_mcelog: Failed to get CPU numbers`.
 
 ### Test plan
 
 1. dom0 is up: `sudo xl info` (Xen version, dom0 memory 8192 MB), `sudo xl list` shows `Domain-0`, niri desktop works, `systemctl status xenstored xenconsoled`.
 2. Autostart: `systemctl status microvm@vault microvm@nvim microvm@coding` are active; `sudo xl list` shows `vault-vm`, `nvim-vm`, `coding-vm` with the configured memory/vCPUs.
 3. Guest boot: `sudo xl console vault-vm` (leave with `Ctrl+]`) or the logs in `/var/log/xen/console/`; no emergency shell, `/nix/store` and `/home/user` mounted.
-4. Network: `ip link show master vm-internal` lists `vm10`, `vm1`, `vm6`; `ssh vault-vm` / `ssh nvim-vm` / `ssh coding-vm` work from the host (host keys `~/.ssh/<vm>-vm` must exist on the hp).
+4. Network: `ip link show master vm-internal` lists `vm10`, `vm1`, `vm6`; `ssh 10.0.0.10` / `ssh 10.0.0.1` / `ssh 10.0.0.6` (or `vm-run -c <vm> …`) work from the host (host keys `~/.ssh/<vm>-vm` must exist on the hp). The `<vm>-vm` names don't resolve (no DNS/hosts entry), only the IPs.
 5. Persistence: create a file in `/home/user` of a VM, `sudo systemctl restart microvm@vault`, the file is still there.
 6. Lifecycle: `sudo systemctl stop microvm@vault` shuts the domain down cleanly (gone from `xl list` within 60 s, journal shows no `xl destroy`); `start` brings it back; `vm-run -c`/`vm` helpers work for the three VMs.
 7. Guest reboot/crash: `sudo reboot` inside a VM → the service restarts it (new domain id in `xl list`).
 8. Stale domain: `sudo kill -9 <xl pid of microvm@vault>` → the service restarts and destroys the leftover domain first.
 9. Host shutdown: reboot dom0; the guests shut down cleanly (no fsck/journal recovery messages on next boot).
 10. SSH: from a LAN machine `ssh nx@<hp-ip>` works with the `hp` key; root login is refused; from a VM on `10.0.0.0/24` port 22 is not reachable.
-11. Touchpad: works in the `pv-dom0` boot entry (under PVH dom0 `amd_gpio AMDI0030` fails with "IRQ index 0 not found", so the I2C touchpad has no interrupt).
+11. Desktop: niri runs in dom0; a GUI app from a VM shows up via wprs (`vm-run cc firefox`).
 
 Collect for failures: `journalctl -b -u microvm@<vm>`, `/var/log/xen/console/guest-<vm>-vm.log`, `/var/log/xen/xl-<vm>-vm.log`, `/var/log/xen/xen-hotplug.log`, `sudo xl dmesg | tail -50`.
+
+### Results (2026-10-05)
+
+All 11 tests passed, with these notes:
+
+- 6: needed the fork fix "wait for domain cleanup on shutdown"; before it, every stop left a shut-down domain behind that the next start destroyed.
+- 9: guests shut down in 1–5 s and boot without ext4 recovery. dom0 shutdown hung 90 s in `xendomains` (it runs `xl shutdown --all --wait` in parallel to the `microvm@` services); `xendomains` is now disabled in `machines/hp/xen.nix` (configured, verify on the next reboot).
+- 11: touchpad only with PV dom0, see "Known hardware issues".
+- Expected on hp: `ide-lazyvim-config` fails in coding (no internet without sys-net); niri's `spawn-at-startup` `vm-run` calls try to start VMs that don't exist on hp (polkit failures in the journal); `vm-dbus-forward@<vm>` units for those VMs restart in a loop.
 
 ## VMs
 
