@@ -11,6 +11,11 @@ in
     google-chrome
   ];
 
+  # Dedicated key from xmg (~/.ssh/hp), so login does not depend on passwords
+  users.users.nx.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAffatqEOWD3PYvo5A4SOzoBnMGSRttSoONnh9ooylhD hp-dom0"
+  ];
+
   services.openssh = {
     enable = true;
     # Port 22 is opened for the LAN only (see firewall below)
