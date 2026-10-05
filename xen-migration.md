@@ -74,6 +74,9 @@ Alles im Xen-Runner und im Host-Modul, möglichst über **bestehende** microvm-O
   - **PV-Gäste sind auf AMD mit Gast-Kernel 6.18 kaputt:** Panic in `print_s5_reset_status_mmio` (liest FCH-MMIO bei `0xfed80…`, das ein PV-Gast nicht hat). Kernel-Bug, nicht unsere Config. PV bleibt als Option drin, ist aber auf dem hp nicht nutzbar (auf dem XMG mit Intel-CPU evtl. schon).
 - **PCI-Passthrough:** bestehendes `microvm.devices` (`bus = "pci"`) → `pci = [ … ]` im xl.cfg; `throw`, wenn nicht `type = "hvm"`.
   - Host: `microvm-pci-devices@<vm>` bindet heute an `vfio-pci`; unter Xen stattdessen `xl pci-assignable-add` (bindet an `pciback`). Gerätelisten weiter aus `registry.nix` (`hardware.pci`).
+  - **Umgesetzt 2026-10-05 (Fork, uncommitted):** Runner schreibt `pci = [ … ]`; `throw` bei PVH/PV (nur HVM), bei `bus = "usb"` (USB geht über sys-usb) und bei `memory < maxmem` (Passthrough verträgt kein Populate-on-Demand, also kein Ballooning beim Boot). `pci-devices.nix` erzeugt für Xen ein `pci-setup` mit `xl pci-assignable-add` (idempotent) statt vfio-pci.
+  - **Getestet auf dem hp mit dem USB-Controller `03:00.3` (Kamera + Bluetooth) in einer HVM-Testdomain:** Controller kommt im Gast an, aber **MSI-X geht nicht**: qemu meldet `msi_msix_setup: Error: Mapping of MSI-X (err: 61 …)` (ENODATA), der Interrupt zählt 0, xHCI-Befehle brechen ab (`Command Aborted`). **Mit `pci=nomsi` im Gast (INTx/GSI) funktioniert alles:** Kamera als UVC-Gerät (`/dev/video0`), Bluetooth-Chip erkannt. Zurückgeben an dom0 mit `xl pci-assignable-remove -r` geht sauber (Treiber wieder `xhci_hcd`, Geräte wieder da) → der sys-usb-Fallback aus v2.6 ist machbar.
+  - **Vorläufige Lösung:** Driver-Domains bekommen `boot.kernelParams = [ "pci=nomsi" ]`. INTx reicht für USB und WLAN; Performance prüfen. Ursache von ENODATA (MSI-X-Mapping bei PVH-dom0, laut Changelog sollte es gehen) bleibt offen.
 - **Speicher:** nur bestehende microvm-Optionen, sie werden für Xen implementiert (heute `throw` im Runner). Abbildung nach der upstream-Bedeutung (bei qemu/cloud-hypervisor ist `mem` die Obergrenze, der Balloon nimmt davon weg):
   - `microvm.balloon = true` → Ballooning an.
   - `microvm.mem` → `maxmem` (Obergrenze).
@@ -161,6 +164,7 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
 - Adressplan für Uplink- und USB-Links festlegen.
 - Woher der Builder das Repo zieht (GitHub direkt vs. Spiegel) und ob Signaturprüfung Pflicht ist.
 - BT-Audio mit sys-usb.
+- MSI-X bei PCI-Passthrough mit PVH-dom0 (ENODATA in qemu `msi_msix_setup`): Ursache klären, damit Driver-Domains ohne `pci=nomsi` laufen. Ansätze: `xl dmesg` mit `iommu=debug`, qemu-xen-Version, Xen-Patches von Jiqian Chen (AMD) zu PVH-dom0-Passthrough.
 
 ## v3
 
