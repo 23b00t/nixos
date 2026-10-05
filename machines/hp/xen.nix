@@ -12,10 +12,17 @@
       params = [ "dom0=pvh" ];
     };
     dom0Resources = {
-      memory = 4096;
+      # 4096 is too small to evaluate this flake on dom0 (swap thrashing)
+      memory = 8192;
       maxVCPUs = 4;
     };
   };
+
+  # Touchpad test: under PVH dom0 the AMD GPIO controller (AMDI0030) gets no
+  # IRQ ("IRQ index 0 not found"), so the I2C touchpad (ELAN071A) is dead.
+  # Adds a second Xen boot entry with a PV dom0 (as Qubes uses); Xen parses
+  # `dom0=` in order, so the appended value wins.
+  specialisation.pv-dom0.configuration.virtualisation.xen.boot.params = lib.mkAfter [ "dom0=pv" ];
 
   # Only the VMs switched to Xen can run; KVM-based ones would fail on start
   microvm.autostart = lib.mkForce [
