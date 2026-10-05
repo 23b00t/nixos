@@ -80,6 +80,7 @@ Alles im Xen-Runner und im Host-Modul, möglichst über **bestehende** microvm-O
     - Boot mit `memory = 1024`, `maxmem = 2048` (PVH) bootet sauber, `xl mem-set` 2048 wächst, 768 schrumpft. Über `maxmem` lehnt libxl ab (`memory_dynamic_max must be <= memory_static_max`).
     - Laufende VM ohne `maxmem`: `xl mem-max` + `xl mem-set` vergrößert per Memory-Hotplug (nvim 4096 → 5120, `MemTotal` 4,0 → 5,06 GB), Schrumpfen gibt den RAM wirklich an Xen zurück (`free_memory` +2 GB).
     - **Folge fürs Design:** `memory`/`maxmem` im xl.cfg reichen; der Daemon bewegt sich nur zwischen beiden. `mem-max` zur Laufzeit ist der Notausgang, um über die Config-Grenze zu gehen.
+  - **Umgesetzt 2026-10-05 (Fork, uncommitted):** Abbildung wie oben im Xen-Runner, plus `setBalloonScript` → `microvm-balloon <size-mb>` (`xl mem-set <vm> (maxmem - size)`, mit `timeout`). Erster Nutzer: vault (`mem = 2048`, `balloon = true`, `initialBalloonMem = 1024`), läuft auf dem hp. `deflateOnOOM` ohne Warnung (Default `true` hätte bei jeder Balloon-VM gewarnt).
 - **Netz-Backend pro Interface:** xen-spezifische Option (z. B. `microvm.xen.interfaceBackends.<id> = "sys-net-vm"`) → `backend=` im vif. Kein Eingriff ins upstream-Interface-Schema.
 - **Geteiltes Store-Image:** `microvm.storeDisk` muss auf ein fremdes (Gruppen-)Image zeigen dürfen; Disk mit `access=ro` (Xens Block-Script erlaubt mehrere Leser).
 - **Driver-Domain-Unterstützung im Gast:** Modul, das in sys-net/sys-usb `xl devd` startet (dort laufen dann die vif-Hotplug-Scripts) und die Xen-Tools bereitstellt.

@@ -35,7 +35,10 @@
         mountPoint = "/nix/.ro-store";
       }
     ];
-    mem = 1024;
+    # Boots with 1024 MB, can balloon up to 2048 MB
+    mem = 2048;
+    balloon = true;
+    initialBalloonMem = 1024;
   };
 
   environment.systemPackages = [
