@@ -1,6 +1,5 @@
 # Test phase only: tooling and remote access for developing on the hp dom0.
-# Root SSH with password is insecure; it is limited to the home LAN.
-# Set the root password imperatively with `sudo passwd root`.
+# SSH is key-only (nx) and limited to the home LAN.
 { pkgs, ... }:
 let
   lan = "192.168.178.0/24";
@@ -16,6 +15,33 @@ in
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAffatqEOWD3PYvo5A4SOzoBnMGSRttSoONnh9ooylhD hp-dom0"
   ];
 
+  # Lets Claude run the Xen test plan and apply fixes without a password.
+  # xl and nixos-rebuild are root-equivalent anyway; boot/reboot stay manual.
+  security.sudo.extraRules = [
+    {
+      users = [ "nx" ];
+      commands =
+        map
+          (command: {
+            inherit command;
+            options = [ "NOPASSWD" ];
+          })
+          (
+            [
+              "/run/current-system/sw/bin/xl *"
+              "/run/current-system/sw/bin/nixos-rebuild switch *"
+            ]
+            ++ map (verb: "/run/current-system/sw/bin/systemctl ${verb} microvm@*") [
+              "start"
+              "stop"
+              "restart"
+              "kill *"
+            ]
+            ++ [ "/run/current-system/sw/bin/systemctl restart home-manager-nx" ]
+          );
+    }
+  ];
+
   services.openssh = {
     enable = true;
     # Port 22 is opened for the LAN only (see firewall below)
@@ -24,11 +50,6 @@ in
       PermitRootLogin = "no";
       PasswordAuthentication = false;
     };
-    extraConfig = ''
-      Match Address ${lan}
-        PermitRootLogin yes
-        PasswordAuthentication yes
-    '';
   };
 
   networking.firewall = {
