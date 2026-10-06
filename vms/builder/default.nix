@@ -50,8 +50,7 @@ in
       enable = true;
       index = 25;
       mac = "00:00:00:00:00:19";
-      # Transitional (hp): internet via NAT in dom0 until sys-net exists (v2.5)
-      gateway4 = "10.0.0.254";
+      # internet via the sys-net uplink (registry `nat = true`)
     };
 
     common-config = {

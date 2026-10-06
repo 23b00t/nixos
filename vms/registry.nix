@@ -297,15 +297,15 @@ let
   allowedUsbForOwner =
     owner: builtins.filter (device: builtins.elem owner (device.allowedOwners or [ ])) usbDevices;
 
+  # Xen: passed-through devices go to pciback (`xl pci-assignable-add` when the
+  # VM starts), not vfio-pci, so they don't belong in the vfio ids
   pciDeviceIds = {
-    nic = [
-      # TODO:
-    ];
+    nic = [ ];
   };
 
   pciDevicePaths = {
     nic = [
-      # TODO:
+      "0000:01:00.0" # RTL8821CE WLAN (10ec:c821) -> sys-net
     ];
   };
 
@@ -314,9 +314,15 @@ let
   hostProfile = {
     cpuVendor = "amd";
     blockedHostDrivers = {
-      # TODO:
-      nic = [ "" ];
-      wifi = [ "" ];
+      nic = [ ];
+      # dom0 never drives the WLAN card; sys-net owns it
+      wifi = [ "rtw88_8821ce" ];
+    };
+    # Test phase (v2.5): dom0 reaches the internet through sys-net (HTTPS/DNS/
+    # NTP only) and is reachable by SSH from this LAN via a port forward in
+    # sys-net. null = dom0 fully offline.
+    dom0TestAccess = {
+      lan = "192.168.178.0/24";
     };
   };
 

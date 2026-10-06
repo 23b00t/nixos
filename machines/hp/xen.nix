@@ -9,7 +9,21 @@
   ...
 }:
 let
-  builderIp = vmRegistry.byName.builder.ip;
+  nicPciPaths = vmRegistry.hardware.pci.devicePaths.nic or [ ];
+  dom0TestAccess = vmRegistry.hostProfile.dom0TestAccess or null;
+
+  # Emergency exit if sys-net does not come up: give the WLAN card back to dom0
+  sysNetRescue = pkgs.writeShellScriptBin "sys-net-rescue" ''
+    set -u
+    sudo systemctl stop microvm@sys-net
+    ${lib.concatMapStrings (path: ''
+      sudo xl pci-assignable-remove -r ${path} || true
+    '') nicPciPaths}
+    # Blacklisted for autoloading only; an explicit modprobe works
+    sudo ${pkgs.kmod}/bin/modprobe rtw88_8821ce
+    echo "WLAN is back in dom0, NetworkManager reconnects as before."
+    echo "Start sys-net again later with: sudo systemctl start microvm@sys-net"
+  '';
 in
 {
   imports = [
@@ -46,29 +60,9 @@ in
   # dom0 pulls its system from the builder VM (v2.4): `dom0-update [--switch]`
   services.dom0-update.enable = true;
 
-  # Transitional until sys-net exists (v2.5): the builder (and only the
-  # builder) reaches the internet through NAT on dom0's WLAN
-  networking = {
-    nat = {
-      enable = true;
-      externalInterface = "wlo1";
-      internalIPs = [ "${builderIp}/32" ];
-    };
-    # NAT turns on forwarding for every interface: drop everything else that
-    # goes from the VM bridge to the WLAN
-    firewall = {
-      extraCommands = ''
-        iptables -w -N builder-only-fwd 2>/dev/null || true
-        iptables -w -F builder-only-fwd
-        iptables -w -D FORWARD -j builder-only-fwd 2>/dev/null || true
-        iptables -w -I FORWARD -j builder-only-fwd
-        iptables -w -A builder-only-fwd -i vm-internal -o wlo1 ! -s ${builderIp} -j DROP
-      '';
-      extraStopCommands = ''
-        iptables -w -D FORWARD -j builder-only-fwd 2>/dev/null || true
-      '';
-    };
-  };
+  # v2.5: the WLAN card belongs to sys-net (registry `hardware.pci`, driver
+  # blacklisted in dom0). `sys-net-rescue` hands it back in an emergency.
+  environment.systemPackages = [ sysNetRescue ];
 
   # PVH dom0 is the target. On hp the I2C touchpad only works with a PV dom0
   # (see README "Known hardware issues"); a PV specialisation doubled the
@@ -76,6 +70,7 @@ in
 
   # Only the VMs switched to Xen can run; KVM-based ones would fail on start
   microvm.autostart = lib.mkForce [
+    "sys-net"
     "vault"
     "nvim"
     "coding"
@@ -98,8 +93,23 @@ in
       retrigger-vm11-tor-udev.enable = false;
     };
 
-    # Keep vm-internal (host 10.0.0.254 <-> VMs), but there is no sys-net to
-    # route through; the host uses NetworkManager directly
-    network.networks."32-vm-internal".routes = lib.mkForce [ ];
+    network.networks =
+      # Admin network: every VM port is isolated, so VMs reach dom0 (the
+      # non-isolated bridge itself) but not each other. Their internet goes
+      # through the uplink served by sys-net.
+      lib.genAttrs (map (i: "30-vm${toString i}") (lib.genList (i: i + 1) 50) ++ [ "31-vm-router" ]) (_: {
+        bridgeConfig.Isolated = true;
+      })
+      // {
+        # dom0: default route via sys-net in the test phase (HTTPS/DNS/NTP
+        # only, see vms/sys-net); without dom0TestAccess dom0 is offline
+        "32-vm-internal" = {
+          routes = lib.mkIf (dom0TestAccess == null) (lib.mkForce [ ]);
+          networkConfig.DNS = lib.mkIf (dom0TestAccess != null) [
+            "9.9.9.9"
+            "149.112.112.112"
+          ];
+        };
+      };
   };
 }
