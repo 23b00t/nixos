@@ -423,6 +423,12 @@ in
     let
       autostartFor = name: (vmRegistry.byName.${name}.autostart or false);
       selectedVms = vmRegistry.vms;
+      # Group store images from the evaluated VMs below (registry `storeGroup`)
+      storeGroups = import ../vms/store-groups.nix {
+        inherit lib vmRegistry;
+        inherit (inputs.microvm.lib) buildStoreDisk;
+        vmSystems = builtins.mapAttrs (_: vm: vm.config) config.microvm.vms;
+      };
     in
     builtins.listToAttrs (
       map (vm: {
@@ -430,7 +436,10 @@ in
         value = {
           pkgs = null;
           config = {
-            imports = [ vmDefinitions.${vm.name}.module ];
+            imports = [
+              vmDefinitions.${vm.name}.module
+              (storeGroups.moduleFor vm.name)
+            ];
           };
           specialArgs = {
             inherit inputs vmRegistry;

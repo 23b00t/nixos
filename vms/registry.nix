@@ -12,10 +12,12 @@ let
   #   enableHostDbusForward : whether host should keep persistent forwarded /tmp/ssh_dbus.sock for this VM (defaults to true)
   #   extraSSH    : extra SSH matchOptions for home.ssh (may be [])
   #   features    : arbitrary list of features/tags used for dynamic grouping in helper tools
+  #   storeGroup  : shared read-only store image (vms/store-groups.nix): "sys" | "dev" | "desktop" | "prop"; absent = own image
   vms = [
     {
       name = "nvim";
       short = "n";
+      storeGroup = "dev";
       ip = "10.0.0.1";
       autostart = true;
       nat = true;
@@ -26,6 +28,7 @@ let
     {
       name = "chat";
       short = "c";
+      storeGroup = "prop";
       ip = "10.0.0.2";
       autostart = true;
       nat = true;
@@ -35,6 +38,7 @@ let
     # {
     #   name = "test";
     #   short = "t";
+    #   storeGroup = "dev";
     #   ip = "10.0.0.3";
     #   autostart = false;
     #   nat = true;
@@ -43,6 +47,7 @@ let
     {
       name = "music";
       short = "m";
+      storeGroup = "desktop";
       ip = "10.0.0.4";
       autostart = true;
       nat = true;
@@ -51,6 +56,7 @@ let
     {
       name = "net";
       short = "net";
+      storeGroup = "desktop";
       ip = "10.0.0.5";
       autostart = true;
       nat = true;
@@ -71,6 +77,7 @@ let
     # {
     #   name = "wine";
     #   short = "w";
+    #   storeGroup = "prop";
     #   ip = "10.0.0.7";
     #   autostart = false;
     #   nat = true;
@@ -79,6 +86,7 @@ let
     # {
     #   name = "kali";
     #   short = "k";
+    #   storeGroup = "dev";
     #   ip = "10.0.0.8";
     #   autostart = false;
     #   nat = true;
@@ -89,6 +97,7 @@ let
     {
       name = "office";
       short = "o";
+      storeGroup = "desktop";
       ip = "10.0.0.9";
       autostart = false;
       nat = false;
@@ -98,6 +107,7 @@ let
     {
       name = "vault";
       short = "v";
+      storeGroup = "desktop";
       ip = "10.0.0.10";
       autostart = false;
       nat = false;
@@ -107,6 +117,7 @@ let
     {
       name = "irc";
       short = "i";
+      storeGroup = "desktop";
       ip = "10.0.0.11";
       autostart = true;
       nat = false;
@@ -115,6 +126,7 @@ let
     {
       name = "sys-usb";
       short = "su";
+      storeGroup = "sys";
       ip = "10.0.0.23";
       autostart = false;
       nat = false;
@@ -124,6 +136,7 @@ let
     {
       name = "sys-net";
       short = "sn";
+      storeGroup = "sys";
       ip = "10.0.0.253";
       autostart = true;
       nat = false;

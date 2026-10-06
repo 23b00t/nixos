@@ -60,10 +60,18 @@
           modules = [
             inputs.microvm.nixosModules.microvm
             vmDefinition.module
+            (storeGroups.moduleFor name)
           ];
         };
 
       vmSystems = builtins.mapAttrs (name: _: mkVmSystem name) vmDefinitions;
+
+      # Group store images, built from the same systems that boot from them
+      storeGroups = import ./vms/store-groups.nix {
+        inherit (nixpkgs) lib;
+        inherit (inputs.microvm.lib) buildStoreDisk;
+        inherit vmRegistry vmSystems;
+      };
 
       vmRunnerPackages = builtins.mapAttrs (
         _: vmSystem: vmSystem.config.microvm.declaredRunner
@@ -95,4 +103,3 @@
       };
     };
 }
-
