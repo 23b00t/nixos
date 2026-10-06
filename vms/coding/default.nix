@@ -16,7 +16,9 @@
   networking.hostName = "coding-vm";
 
   microvm = {
-    registerClosure = false;
+    # Own closure valid in the Nix DB, so builds never delete it from the
+    # persistent store overlay (see vms/builder, 2026-10-06)
+    registerClosure = true;
     hypervisor = "xen";
     volumes = [
       {

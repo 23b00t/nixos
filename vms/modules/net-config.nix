@@ -64,9 +64,10 @@ in
 
     gateway4 = mkOption {
       type = types.nullOr types.str;
-      # With an uplink, the admin network has no default route
-      default = if cfg.uplink.enable then null else "10.0.0.253";
-      defaultText = literalExpression ''if uplink.enable then null else "10.0.0.253"'';
+      # Xen: the admin network never has a default route (internet only via
+      # the uplink, and only for `nat = true`)
+      default = if config.microvm.hypervisor == "xen" then null else "10.0.0.253";
+      defaultText = literalExpression ''if microvm.hypervisor == "xen" then null else "10.0.0.253"'';
       description = "IPv4 default gateway. Set to null to disable.";
     };
 

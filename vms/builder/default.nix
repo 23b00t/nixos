@@ -66,7 +66,11 @@ in
   };
 
   microvm = {
-    registerClosure = false;
+    # The own closure (lower store disk) must be valid in the Nix DB. Otherwise
+    # building a system that contains it (dom0's, which includes the builder)
+    # makes Nix delete those paths as invalid; the overlay keeps that as
+    # whiteouts and hides them on the next boot (lost sshd-keygen, 2026-10-06)
+    registerClosure = true;
     hypervisor = "xen";
     volumes = [
       {
