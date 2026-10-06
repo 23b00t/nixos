@@ -33,6 +33,7 @@ in
   imports = [
     ../../modules/xen-memory.nix
     ../../modules/dom0-update.nix
+    ../../modules/xen-usb.nix
   ];
 
   virtualisation.xen = {
@@ -59,10 +60,16 @@ in
     ''
   );
 
-  services.xen-memory-balancer.enable = true;
+  services = {
+    xen-memory-balancer.enable = true;
 
-  # dom0 pulls its system from the builder VM (v2.4): `dom0-update [--switch]`
-  services.dom0-update.enable = true;
+    # dom0 pulls its system from the builder VM (v2.4): `dom0-update [--switch]`
+    dom0-update.enable = true;
+
+    # v2.6: both USB controllers belong to sys-usb; input devices come back via
+    # the input proxy, the webcam goes to chat via USB/IP. `sys-usb-rescue`.
+    xen-usb.enable = true;
+  };
 
   # v2.5: the WLAN card belongs to sys-net (registry `hardware.pci`, driver
   # blacklisted in dom0). `sys-net-rescue` hands it back in an emergency.
@@ -75,9 +82,11 @@ in
   # Only the VMs switched to Xen can run; KVM-based ones would fail on start
   microvm.autostart = lib.mkForce [
     "sys-net"
+    "sys-usb"
     "vault"
     "nvim"
     "coding"
+    "chat"
   ];
 
   # Xen creates vifs as vif<domid>.<n> before renaming them to vm<N>

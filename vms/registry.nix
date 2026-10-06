@@ -267,6 +267,46 @@ let
     #   internal = true;
     #   microvmUsbPath = "vendorid=0x048d,productid=0x600b";
     # }
+    # hp (Xen, v2.6): both xHCI controllers belong to sys-usb. Owner `host` =
+    # input device forwarded to dom0 by the input proxy; another VM as owner =
+    # exported via USB/IP; owner `sys-usb` = stays there.
+    {
+      name = "webcam-hp";
+      vendorId = "0408";
+      productId = "5365";
+      policy = "vm-reserved";
+      defaultOwner = "chat";
+      allowedOwners = [ "chat" ];
+      microvmUsbPath = "vendorid=0x0408,productid=0x5365";
+    }
+    {
+      name = "bluetooth-hp";
+      vendorId = "0bda";
+      productId = "b00e";
+      policy = "vm-reserved";
+      defaultOwner = "sys-usb";
+      allowedOwners = [ "sys-usb" ];
+      microvmUsbPath = "vendorid=0x0bda,productid=0xb00e";
+    }
+    {
+      name = "fingerprint-hp";
+      vendorId = "04f3";
+      productId = "0c00";
+      policy = "vm-reserved";
+      defaultOwner = "sys-usb";
+      allowedOwners = [ "sys-usb" ];
+      microvmUsbPath = "vendorid=0x04f3,productid=0x0c00";
+    }
+    {
+      # External test mouse for the input proxy
+      name = "mouse-sharkforce";
+      vendorId = "093a";
+      productId = "2533";
+      policy = "host-allow";
+      defaultOwner = "host";
+      allowedOwners = [ "host" ];
+      microvmUsbPath = "vendorid=0x093a,productid=0x2533";
+    }
     {
       name = "verbatim usb-stick";
       vendorId = "18a5";
@@ -306,6 +346,10 @@ let
   pciDevicePaths = {
     nic = [
       "0000:01:00.0" # RTL8821CE WLAN (10ec:c821) -> sys-net
+    ];
+    usb = [
+      "0000:03:00.3" # xHCI (1022:1639): webcam, Bluetooth -> sys-usb
+      "0000:03:00.4" # xHCI (1022:1639): fingerprint, external ports -> sys-usb
     ];
   };
 

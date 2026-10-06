@@ -1,8 +1,4 @@
 { lib, pkgs, ... }:
-let
-  vmRegistry = import ../registry.nix;
-  defaultUsbDevices = vmRegistry.hardware.usb.defaultForOwner "chat";
-in
 {
   imports = [
     ../modules/net-config.nix
@@ -26,20 +22,9 @@ in
 
   users.users.user.extraGroups = lib.mkAfter [ "video" ];
 
+  # Webcam: USB/IP from sys-usb (vms/modules/usbip-client.nix, registry owner)
   microvm = {
-    hypervisor = "qemu";
-    optimize.enable = false;
-
-    # Webcam passthrough; the registry may list none (e.g. on hp)
-    qemu.extraArgs = [
-      "-nodefaults"
-      "-device"
-      "usb-ehci,id=ehci"
-    ]
-    ++ lib.concatMap (device: [
-      "-device"
-      "usb-host,bus=ehci.0,${device.microvmUsbPath},guest-reset=false,pipeline=false"
-    ]) defaultUsbDevices;
+    hypervisor = "xen";
 
     volumes = [
       {
@@ -48,15 +33,10 @@ in
         size = 4096;
       }
     ];
-    shares = [
-      {
-        proto = "virtiofs";
-        tag = "ro-store";
-        source = "/nix/store";
-        mountPoint = "/nix/.ro-store";
-      }
-    ];
+    # Boots with 4096 MB, the RAM balancer grows it up to 8192 MB
     mem = 8192;
+    balloon = true;
+    initialBalloonMem = 4096;
     vcpu = 2;
   };
 

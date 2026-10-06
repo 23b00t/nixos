@@ -44,7 +44,10 @@ let
       );
 in
 {
-  imports = [ ./xen-meminfo.nix ];
+  imports = [
+    ./xen-meminfo.nix
+    ./usbip-client.nix
+  ];
 
   options.services.common-config = {
     enable = mkEnableOption "Enable the common-config module";
