@@ -127,6 +127,7 @@ Alles im Xen-Runner und im Host-Modul, möglichst über **bestehende** microvm-O
   - **dom0-Daemon** `modules/xen-memory.nix` (`services.xen-memory-balancer`, auf hp an): VM-Tabelle zur Build-Zeit aus `microvm.vms` (Untergrenze = Boot-RAM, Obergrenze = `maxmem`, gleiche Abbildung wie der Xen-Runner) + Registry `memPriority` (Default 0). Pro Runde (2 s): Ziel = genutzt (inkl. Swap) × 1,3 + 256 MiB, auf `[Boot, maxmem]` begrenzt, Hysterese 64 MiB. Schrumpfen sofort; Wachsen nur aus `free_memory` minus 2048 MiB Reserve (für VM-Starts), höhere Priorität zuerst, Rest anteilig an die nächste. Gastwerte werden strikt geprüft (vier Zahlen, sonst VM übersprungen). Alles per Option einstellbar.
   - **Opt-in:** verwaltet werden nur VMs mit Ballooning. nvim (2048–4096) und coding (4096–8192) jetzt mit `balloon`, vault wie gehabt (1024–2048).
   - **Getestet:** Build + shellcheck beider Skripte, Daemon-Logik offline mit Fake-`xl`/`xenstore-read` (Schrumpfen, Priorität bei knappem Budget, kein Budget, manipulierte Gastdaten), Dry-Run hp. **Offen (Laufzeit):** Agent schreibt im Gast wirklich (`xenstore-read /local/domain/<id>/data/meminfo` in dom0), Daemon-Log `journalctl -u xen-memory-balancer`, Lasttest aus v2.7.
+  - **Laufzeittest 2026-10-06 (User):** nach Rebuild zeigte `manage-vms status` alle drei VMs als `stale`, `restart --stale` startete genau diese drei neu, danach `ok`. Agent schreibt (vault: `945 640 0 0` → genutzt 305 MiB → Ziel 652 → Untergrenze 1024 = Ist, daher keine Aktion, Daemon-Log korrekt leer). Wachsen unter Last noch offen (v2.7).
   - Hinweis: `microvm-balloon <size>` von Hand wird vom Daemon in der nächsten Runde überschrieben; für manuelle Tests `systemctl stop xen-memory-balancer`.
 
 #### v2.4 Builder-VM und dom0 offline
@@ -146,7 +147,15 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
   - **Ablauf (Pull durch dom0, nie Push vom Builder):** `dom0-update` in dom0 → `ssh builder build-hp` (fetch, optional `git verify-commit`, `nix build .#nixosConfigurations.hp…toplevel`, sign, gcroot, gibt Pfad aus) → `nix copy --from ssh-ng://builder-vm <pfad>` (root in dom0, eigener Key) → `nix-env -p /nix/var/nix/profiles/system --set` → `switch-to-configuration boot|switch`. `nixos-rebuild --target-host` vom Builder aus scheidet aus (VM hätte root in dom0).
   - **Gruppen-Images/Runner** stecken in der hp-Closure → kommen automatisch mit.
   - **Übergangs-NAT in dom0:** heute weder NAT noch Forwarding; VMs haben Gateway `10.0.0.253` (sys-net, auf dem hp nicht da). Builder bräuchte `gateway4 = 10.0.0.254` + `networking.nat` (nur Builder-IP, `externalInterface = wlo1`). Firewall-/NAT-Änderung in dom0 → **Zustimmung des Users nötig**.
-  - **Entscheidungen vor der Umsetzung:** (1) Repo-Quelle: GitHub direkt oder Spiegel; (2) `git verify-commit` Pflicht ja/nein (dann braucht der Builder deinen Signing-Key als `allowedSignersFile`/GPG-Pubkey); (3) Übergangs-NAT in dom0 ok?; (4) Store-Variante A/B; (5) `dom0-update` mit `switch` oder standardmäßig `boot` (Xen-Änderungen brauchen ohnehin Reboot).
+  - **Entscheidungen (User, 2026-10-06):** (1) Repo-Quelle: **GitHub direkt** (`https://github.com/23b00t/nixos`, öffentlich → keine Credentials im Builder; Nachteil: jeder Build braucht einen Push; unfertige Stände später ggf. als `git bundle` über vmcopy); (2) `git verify-commit`: in v2 **nein**, in v3 erneut prüfen; (3) Übergangs-NAT in dom0 (nur Builder, über `wlo1`): **ja**; (4) Store: **`persistent-store-overlay.nix`**; (5) `dom0-update`: Default **`boot`**, `switch` als Option.
+- **Umgesetzt 2026-10-06 (uncommitted):**
+  - **Builder-VM** `vms/builder/default.nix` (Registry `builder`/`b`/`10.0.0.25`, `memPriority = 10`, kein vmcopy, standalone Store): Xen PVH, 8 vCPUs, Ballooning 4096–16384 MB, `persistent-store-overlay` (60 GB Overlay) + Volume `builder.img` (10 GB) unter `/var/lib/builder` (Repo-Checkout, Out-Links, Signing-Key). Lix kommt über `common-config`. Gateway `10.0.0.254` (Übergang).
+  - **Signing-Key** wird beim ersten Boot im Builder erzeugt (`builder-signing-key.service`, `nix key generate-secret`, Name `builder-vm-1`); nur der Public Key verlässt die VM (`vms/builder/signing-key.pub` im Repo, dom0 vertraut ihm, sobald die Datei existiert; Muster wie `vms/vmcopy-keys`).
+  - **`builder-build <machine> [branch]`** (im Builder): clone/fetch von GitHub, `--detach FETCH_HEAD`, `nix build` mit Out-Link `/var/lib/builder/systems/<machine>`, `nix store sign --recursive`, gibt den Toplevel-Pfad aus. Out-Links per tmpfiles als GC-Roots (`/nix/var` ist flüchtig), damit der DB-Dump des Overlays die letzten Builds behält.
+  - **`dom0-update [--switch] [--machine] [--branch]`** (dom0, `modules/dom0-update.nix`): `ssh 10.0.0.25 builder-build …` → Plausibilitätsprüfung des Pfads → `nix copy --from ssh-ng://10.0.0.25` **als normaler User** (der nix-daemon nimmt die Pfade nur mit gültiger Builder-Signatur an) → `sudo nix-env -p …/system --set` → `switch-to-configuration boot` (Default) bzw. `switch`. Ohne `signing-key.pub` bricht es mit Hinweis ab. Per IP, weil die SSH-Blöcke `Host <vm>-vm <ip>` keinen `HostName` haben.
+  - **Übergangs-NAT** (`machines/hp/xen.nix`): `networking.nat` nur für `10.0.0.25/32` über `wlo1`, plus eigene iptables-Kette `builder-only-fwd`, die alles andere von `vm-internal` nach `wlo1` verwirft (NAT schaltet Forwarding global ein).
+  - dom0 behält bis v2.5 seine Substituter (additiv nur Builder-Key). Mit v2.5: `substituters = [ ]`, nur Builder-Key.
+  - **Getestet:** Build + shellcheck beider Skripte; `dom0-update --help` und Abbruch ohne Key; `builder-build vault hp` lokal mit Scratch-Verzeichnis (Clone von GitHub, Branch, Build, Out-Link; Signieren ausgelassen); Key-Erzeugung; iptables-Regeln im generierten Firewall-Skript (`bash -n`); Dry-Run hp. **Offen (Laufzeit):** Builder booten, Internet über NAT, erster `dom0-update`.
 
 #### v2.5 sys-net (mit Firewall) und Netz-Topologie
 
@@ -156,6 +165,14 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
   - **Uplink-Netz** mit Backend sys-net (eigenes Subnetz, z. B. `10.1.0.0/24`, sys-net `.254`): Default-Route der VM. Nur VMs mit `nat = true` in der Registry bekommen einen Uplink (vault z. B. nicht).
   - dom0 hängt **nicht** am Uplink-Netz.
 - **Inter-VM-Copy (`cp-vm`/vmcopy):** läuft heute VM↔VM per SSH. Mit isoliertem Admin-Netz geht das über das Uplink-Netz mit expliziten Firewall-Regeln pro erlaubtem Paar in sys-net (Qubes-Prinzip: die Firewall entscheidet). Langfristig über vchan (siehe "Nach v2").
+- **Vorbereitung 2026-10-06 (Recherche, nichts umgesetzt):**
+  - **Ist-Stand:** `vms/sys-net/default.nix` ist cloud-hypervisor mit virtiofs-Store, tap `vm-router` (`10.0.0.253`), libvirt-Zonen (`vm-libv-def`, `vm-whx-ext`, dnsmasq), nftables mit Host-Egress-Regeln für `10.0.0.254`, NAT, NM, CUPS/Avahi. Registry auf dem hp: `pciDevicePaths.nic`/`pciDeviceIds.nic`/`blockedHostDrivers` sind leere TODOs. WLAN `0000:01:00.0` (`10ec:c821`, Treiber `rtw88_8821ce`) hängt heute an dom0 (`wlo1`, auch Übergangs-NAT aus v2.4).
+  - **Umbau sys-net (VM):** `hypervisor = "xen"`, `xen.type = "hvm"`, `xen.driverDomain = true`, `boot.kernelParams = [ "pci=nomsi" ]` (MSI-X-Problem aus v2.1), `devices` aus der Registry, `mem` ohne Ballooning (Passthrough), `storeGroup = "sys"` steht schon. libvirt-Zonen + dnsmasq auf dem hp weglassen (libvirt ist dort aus). Neue Bridge `vm-uplink` in sys-net (`10.1.0.254/24`), NAT/Forward von `vm-uplink` ins WLAN; NM verwaltet nur das WLAN.
+  - **Uplink je VM:** zweites Interface `uplink` (`type = "bridge"`, `bridge = "vm-uplink"`, `xen.interfaceBackends.uplink = "sys-net-vm"`, vif ohne `vifname`, siehe v2.1) nur für `nat = true`. `net-config.nix` braucht dafür eine Erweiterung: Admin-Interface ohne Default-Route, Uplink-Interface `10.1.0.<index>/24` mit Gateway `10.1.0.254` + DNS. Builder wechselt vom Übergangs-NAT auf den Uplink.
+  - **Admin-Netz isolieren:** Bridge-Port-Isolation per networkd (`[Bridge] Isolated = true` in den `.network`-Dateien der `vm*`-Ports in dom0). Isolierte Ports reden nur mit nicht-isolierten → dom0 (Bridge-Interface selbst) ↔ VM geht weiter (SSH, wprs, vm-run, DBus/Agent-Forwards), VM ↔ VM nicht mehr.
+  - **Folgen der Isolation:** vmcopy (VM↔VM-SSH über Admin-Netz) und der Druck-Tunnel office → sys-net (`10.0.0.253`) brechen; beide müssten über das Uplink-Netz + Regeln in sys-net laufen.
+  - **dom0 offline:** WLAN-Gerät per `xl pci-assignable-add` beim sys-net-Start (vorhandene Fork-Logik, mit dem USB-Controller getestet) oder schon beim Boot per `xen-pciback.hide=(0000:01:00.0)` (Qubes-Weg, dom0 sieht die Karte nie; braucht pciback vor `rtw88`). Danach: Übergangs-NAT + `builder-only-fwd` aus v2.4 entfernen, dom0 `substituters = [ ]` + nur Builder-Key, NM in dom0 ohne WLAN. **Notausgang** (falls sys-net nicht hochkommt): `xl pci-assignable-remove -r 0000:01:00.0` gibt die Karte an dom0 zurück (mit dem USB-Controller getestet), als kleines Script `sys-net-rescue` mitliefern.
+  - **Entscheidungen vor der Umsetzung (Firewall/SSH = nur mit Zustimmung):** (a) sys-net-Firewall: bestehende Regeln auf `vm-uplink` umschreiben (Host-Regeln für `10.0.0.254` entfallen, dom0 hängt nicht am Uplink), ok?; (b) Adressplan Uplink `10.1.0.0/24`, VM = `10.1.0.<index>`, sys-net `.254`, ok?; (c) vmcopy + Druck-Tunnel in v2.5: Paar-Regeln in sys-net über das Uplink-Netz, oder bis vchan vorübergehend aus?; (d) WLAN-Übergabe: `pci-assignable-add` beim VM-Start (erprobt) oder `xen-pciback.hide` beim Boot?; (e) In jeder VM eine Regel „auf dem Admin-Interface nur SSH von `10.0.0.254`“ (Gast-Firewall) jetzt schon oder erst mit vchan?; (f) `pci=nomsi` für WLAN akzeptieren (Durchsatz testen)?
 
 #### v2.6 sys-usb und Webcam
 
@@ -200,6 +217,7 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
 - Ausführliche Review des bisherigen Codes
 - Alles VMs lauffähig auf Test
 - Build VM und dom0 RAM reduzieren
+- Builder: `git verify-commit` vor jedem Build (Signing-Pubkey als `allowedSignersFile` im Builder), aus v2.4 zurückgestellt
 - Lösung für Tails als HVM testen.
 - Lösung für Steam VM als HVM (ist das auch ohne dGPU testbar?)
 - Whonix Stack und Kali als PVH integrieren
@@ -216,6 +234,7 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
 
 - Installer entwickeln
 - Admin Tooling, Scripts, TUI etc. entwickeln
+- Alle Scripts (manage-vms, vm-run, vm, dom0-update, …) bekommen Shell-Autocompletion (zsh)
 - Feintuning (Niri etc.)
 - Neue VMs und Services: z.B. SSH und GPG in eigener VM, Socket teilen
 

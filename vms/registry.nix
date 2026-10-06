@@ -144,6 +144,19 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2rxZHd/9pzQeQz3VDwlpcEP9KGOASXYsajKbcZdJ4/ sys-net-vm";
       allowVmCopy = false;
     }
+    {
+      name = "builder";
+      short = "b";
+      ip = "10.0.0.25";
+      autostart = false;
+      nat = true;
+      # TODO: public part of ~/.ssh/builder-vm on the host (ssh-keygen -t ed25519 -f ~/.ssh/builder-vm -C builder-vm)
+      hostSSHKey = "ssh-ed25519 TODO builder-vm";
+      allowGitHubAgent = false;
+      enableHostDbusForward = false;
+      allowVmCopy = false;
+      memPriority = 10;
+    }
     # create-vm: registry-vms
   ];
 

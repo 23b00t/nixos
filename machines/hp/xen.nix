@@ -5,10 +5,17 @@
   lib,
   pkgs,
   config,
+  vmRegistry,
   ...
 }:
+let
+  builderIp = vmRegistry.byName.builder.ip;
+in
 {
-  imports = [ ../../modules/xen-memory.nix ];
+  imports = [
+    ../../modules/xen-memory.nix
+    ../../modules/dom0-update.nix
+  ];
 
   virtualisation.xen = {
     enable = true;
@@ -35,6 +42,33 @@
   );
 
   services.xen-memory-balancer.enable = true;
+
+  # dom0 pulls its system from the builder VM (v2.4): `dom0-update [--switch]`
+  services.dom0-update.enable = true;
+
+  # Transitional until sys-net exists (v2.5): the builder (and only the
+  # builder) reaches the internet through NAT on dom0's WLAN
+  networking = {
+    nat = {
+      enable = true;
+      externalInterface = "wlo1";
+      internalIPs = [ "${builderIp}/32" ];
+    };
+    # NAT turns on forwarding for every interface: drop everything else that
+    # goes from the VM bridge to the WLAN
+    firewall = {
+      extraCommands = ''
+        iptables -w -N builder-only-fwd 2>/dev/null || true
+        iptables -w -F builder-only-fwd
+        iptables -w -D FORWARD -j builder-only-fwd 2>/dev/null || true
+        iptables -w -I FORWARD -j builder-only-fwd
+        iptables -w -A builder-only-fwd -i vm-internal -o wlo1 ! -s ${builderIp} -j DROP
+      '';
+      extraStopCommands = ''
+        iptables -w -D FORWARD -j builder-only-fwd 2>/dev/null || true
+      '';
+    };
+  };
 
   # PVH dom0 is the target. On hp the I2C touchpad only works with a PV dom0
   # (see README "Known hardware issues"); a PV specialisation doubled the

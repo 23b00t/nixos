@@ -23,5 +23,6 @@ in
   sys-usb = mkVm "sys-usb";
   sys-net = mkVm "sys-net";
   coding = mkVm "coding";
+  builder = mkVm "builder";
   # create-vm: definitions
 }
