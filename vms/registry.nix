@@ -150,8 +150,7 @@ let
       ip = "10.0.0.25";
       autostart = false;
       nat = true;
-      # TODO: public part of ~/.ssh/builder-vm on the host (ssh-keygen -t ed25519 -f ~/.ssh/builder-vm -C builder-vm)
-      hostSSHKey = "ssh-ed25519 TODO builder-vm";
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINX+ZshJR9vhy9Fq1J6VteXQASQhNEzFtQ1bV1L+j1eY builder-vm";
       allowGitHubAgent = false;
       enableHostDbusForward = false;
       allowVmCopy = false;

@@ -13,8 +13,9 @@ let
   cfg = config.services.dom0-update;
   builderIp = vmRegistry.byName.builder.ip;
   keyFile = ../vms/builder/signing-key.pub;
-  builderKey =
-    if builtins.pathExists keyFile then lib.removeSuffix "\n" (builtins.readFile keyFile) else null;
+  keyText = if builtins.pathExists keyFile then lib.trim (builtins.readFile keyFile) else "";
+  # An empty file (e.g. from a failed `ssh … > signing-key.pub`) counts as no key
+  builderKey = if keyText != "" then keyText else null;
 
   dom0Update = pkgs.writeShellScriptBin "dom0-update" ''
     set -euo pipefail
