@@ -70,9 +70,16 @@ in
     hypervisor = "xen";
     volumes = [
       {
+        # Repo checkout, out-links, signing key and the build directories
         image = "builder.img";
         mountPoint = stateDir;
-        size = 10000;
+        size = 40000;
+      }
+      {
+        # Persistent journal (e.g. to see OOM kills after a restart)
+        image = "log.img";
+        mountPoint = "/var/log";
+        size = 2048;
       }
     ];
     # Boots with 4096 MB, the RAM balancer grows it up to 16384 MB
@@ -83,35 +90,47 @@ in
     vcpu = 8;
   };
 
-  systemd.tmpfiles.rules = [
-    "d ${stateDir} 0755 user users -"
-    "d ${stateDir}/systems 0755 user users -"
-    # Out-links survive reboots, /nix/var does not: re-register them as GC
-    # roots so the persistent store overlay keeps the last builds in its DB
-    "L+ /nix/var/nix/gcroots/builder-hp - - - - ${stateDir}/systems/hp"
-    "L+ /nix/var/nix/gcroots/builder-xmg - - - - ${stateDir}/systems/xmg"
-  ];
+  systemd = {
+    tmpfiles.rules = [
+      "d ${stateDir} 0755 user users -"
+      "d ${stateDir}/systems 0755 user users -"
+      "d ${stateDir}/tmp 1777 root root -"
+      # Out-links survive reboots, /nix/var does not: re-register them as GC
+      # roots so the persistent store overlay keeps the last builds in its DB
+      "L+ /nix/var/nix/gcroots/builder-hp - - - - ${stateDir}/systems/hp"
+      "L+ /nix/var/nix/gcroots/builder-xmg - - - - ${stateDir}/systems/xmg"
+    ];
 
-  # Signing key, generated in the VM on first boot; only the public part
-  # leaves it (vms/builder/signing-key.pub, trusted by dom0)
-  systemd.services.builder-signing-key = {
-    description = "Generate the builder's Nix signing key";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "local-fs.target" ];
-    unitConfig.RequiresMountsFor = [ stateDir ];
-    serviceConfig = {
-      Type = "oneshot";
-      User = "user";
-      UMask = "0077";
+    services = {
+      # Signing key, generated in the VM on first boot; only the public part
+      # leaves it (vms/builder/signing-key.pub, trusted by dom0)
+      builder-signing-key = {
+        description = "Generate the builder's Nix signing key";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "local-fs.target" ];
+        unitConfig.RequiresMountsFor = [ stateDir ];
+        serviceConfig = {
+          Type = "oneshot";
+          User = "user";
+          UMask = "0077";
+        };
+        path = [ config.nix.package ];
+        script = ''
+          if [ ! -e ${stateDir}/signing-key ]; then
+            nix key generate-secret --key-name builder-vm-1 > ${stateDir}/signing-key
+            nix key convert-secret-to-public < ${stateDir}/signing-key > ${stateDir}/signing-key.pub
+            chmod 644 ${stateDir}/signing-key.pub
+          fi
+        '';
+      };
+
+      # Build directories on the volume instead of the RAM-backed root, so
+      # unpacked sources don't count as guest memory
+      nix-daemon = {
+        environment.TMPDIR = "${stateDir}/tmp";
+        unitConfig.RequiresMountsFor = [ stateDir ];
+      };
     };
-    path = [ config.nix.package ];
-    script = ''
-      if [ ! -e ${stateDir}/signing-key ]; then
-        nix key generate-secret --key-name builder-vm-1 > ${stateDir}/signing-key
-        nix key convert-secret-to-public < ${stateDir}/signing-key > ${stateDir}/signing-key.pub
-        chmod 644 ${stateDir}/signing-key.pub
-      fi
-    '';
   };
 
   # nix.package (Lix, like dom0) comes from common-config

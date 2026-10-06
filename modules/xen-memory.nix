@@ -3,8 +3,9 @@
 # via xenstore (~/data/meminfo, written by vms/modules/xen-meminfo.nix).
 #
 # Per VM: target = used * (100 + overheadPercent) / 100 + bufferMB, clamped
-# to [boot memory, maxmem]. Shrinking always happens; growing only out of
+# to [boot memory, maxmem]. Growing is immediate, only out of
 # Xen's free memory minus reserveMB, higher registry `memPriority` first.
+# Shrinking waits until the VM wanted less for shrinkDelay seconds.
 # dom0 is never touched.
 {
   lib,
@@ -52,8 +53,13 @@ let
       ]
     }
 
+    # Shrinking waits until a VM wanted less for shrinkDelay seconds in a row,
+    # then goes to the highest target seen in that time (bursty builds)
+    declare -A low_since low_max
+
     while true; do
       grows=""
+      now=$(date +%s)
 
       while read -r domain min max prio; do
         domid="$(xl domid "$domain" 2>/dev/null)" || continue
@@ -73,12 +79,25 @@ let
         (( want > max )) && want=$max
 
         diff=$(( want - cur ))
-        (( ''${diff#-} < ${toString cfg.hysteresisMB} )) && continue
+        if (( ''${diff#-} < ${toString cfg.hysteresisMB} )); then
+          unset "low_since[$domain]" "low_max[$domain]"
+          continue
+        fi
 
         if (( want < cur )); then
-          echo "$domain: $cur -> $want MiB (used $used)"
-          timeout 30 xl mem-set "$domain" "''${want}m" || true
+          if [ -z "''${low_since[$domain]:-}" ]; then
+            low_since[$domain]=$now
+            low_max[$domain]=$want
+          fi
+          (( want > low_max[$domain] )) && low_max[$domain]=$want
+          if (( now - low_since[$domain] >= ${toString cfg.shrinkDelay} )); then
+            new=''${low_max[$domain]}
+            echo "$domain: $cur -> $new MiB (used $used, low for ${toString cfg.shrinkDelay}s)"
+            timeout 30 xl mem-set "$domain" "''${new}m" || true
+            unset "low_since[$domain]" "low_max[$domain]"
+          fi
         else
+          unset "low_since[$domain]" "low_max[$domain]"
           grows+="$prio $domain $cur $want $used"$'\n'
         fi
       done < ${vmTable}
@@ -127,6 +146,12 @@ in
       type = lib.types.ints.positive;
       default = 64;
       description = "Only change a VM's memory if its target moved by at least this much (MiB).";
+    };
+
+    shrinkDelay = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      default = 30;
+      description = "Seconds a VM must want less memory before it is shrunk (growing is immediate).";
     };
 
     reserveMB = lib.mkOption {

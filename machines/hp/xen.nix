@@ -16,6 +16,10 @@ let
   sysNetRescue = pkgs.writeShellScriptBin "sys-net-rescue" ''
     set -u
     sudo systemctl stop microvm@sys-net
+    # A domain left behind (e.g. paused/shut down) would keep the card
+    if sudo xl domid sys-net-vm >/dev/null 2>&1; then
+      sudo xl destroy sys-net-vm || true
+    fi
     ${lib.concatMapStrings (path: ''
       sudo xl pci-assignable-remove -r ${path} || true
     '') nicPciPaths}
@@ -104,7 +108,15 @@ in
         # dom0: default route via sys-net in the test phase (HTTPS/DNS/NTP
         # only, see vms/sys-net); without dom0TestAccess dom0 is offline
         "32-vm-internal" = {
-          routes = lib.mkIf (dom0TestAccess == null) (lib.mkForce [ ]);
+          # High metric: after `sys-net-rescue` the WLAN route from
+          # NetworkManager (metric 600) wins over the dead sys-net
+          routes = lib.mkForce (
+            lib.optional (dom0TestAccess != null) {
+              Destination = "0.0.0.0/0";
+              Gateway = "10.0.0.253";
+              Metric = 2000;
+            }
+          );
           networkConfig.DNS = lib.mkIf (dom0TestAccess != null) [
             "9.9.9.9"
             "149.112.112.112"

@@ -182,6 +182,8 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
   - **Builder** ohne Übergangs-Gateway, Internet über den Uplink.
   - **Getestet:** Eval (Uplink-Zuordnung), Runner-Build sys-net + builder (xl.cfg: HVM, `pci`, `driver_domain`, Uplink-vif mit `backend=`, Warteschleife), sys-net-Toplevel gebaut (nftables `checkRuleset` ok), Lint, Dry-Run hp (rtw88 geblacklistet, keine vfio-Parameter, Isolation, Route). **Offen (Laufzeit):** alles; siehe Antwort an den User für die Reihenfolge.
   - **Bekannte Grenzen:** Neustart von sys-net trennt die Uplink-vifs laufender VMs (Neustart der VMs nötig, wie bei Qubes ohne Reconnect); vmcopy und Druck-Tunnel aus (c); dom0 vertraut in der Testphase weiter den Caches (dom0-only-Builder-Key kommt mit „dom0 offline“).
+  - **Erster Laufzeittest 2026-10-06: gescheitert.** Ursache: auf dem hp fehlte `~/.ssh/sys-net-vm` (Registry enthält den XMG-Key) → niemand kam in sys-net, um das WLAN einzurichten → kein Internet für alles. Entscheidung: VM-Keys vom XMG auf den hp kopieren (Registry bleibt gleich). Außerdem: Route über `10.0.0.253` hatte Metrik 0 und blieb nach `sys-net-rescue` aktiv → jetzt Metrik 2000 (NM-WLAN 600 gewinnt nach dem Rescue); `sys-net-rescue` zerstört eine liegengebliebene sys-net-Domain (`--ps--` nach dem Stopp beobachtet).
+  - **Fixes nach dem dom0-update-Abbruch (v2.3/v2.4):** Balancer schrumpft erst nach `shrinkDelay` (30 s) durchgehend niedrigerem Ziel und dann nur auf das höchste Ziel dieses Zeitraums (offline mit Fake-`xl`/`date` getestet); Builder: `/` ist tmpfs → nix-daemon `TMPDIR` auf `/var/lib/builder/tmp` (Volume jetzt 40 GB), neues Volume `log.img` unter `/var/log` für ein persistentes Journal. Ursache des Abbruchs (`writev … Broken pipe` beim Build-Setup) nicht belegt, Verdacht OOM.
 
 #### v2.6 sys-usb und Webcam
 
@@ -205,6 +207,7 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
   - **Fallback:** dom0-Service nach `microvm@sys-usb`: kommt sys-usb nicht binnen Timeout hoch (SSH auf dem Admin-Netz), Controller per `xl pci-assignable-remove -r` an dom0 zurück. Auf dem hp unkritisch (Tastatur i8042), für den XMG Pflicht. Plus `sys-usb-rescue` wie `sys-net-rescue`.
   - **Input-Proxy** (für den XMG): Kandidaten aus nixpkgs: `netevent` (liest evdev, schreibt per `uinput`, Transport über stdin/stdout → SSH von dom0 aus), `evsieve` (Event-Filter/-Mapping in dom0 vor dem Einspeisen). Auf dem hp nur mit externer USB-Maus/-Tastatur testbar.
   - **Entscheidungen vor der Umsetzung:** (a) chat in v2.6 auf Xen umziehen (sonst kein Webcam-Test)?; (b) USB/IP-Link als gemeinsame isolierte Bridge `vm-usbip` (Empfehlung) oder `/30` je Ziel-VM wie bisher im Plan?; (c) Input-Proxy jetzt (Test mit externer Maus) oder erst vor dem XMG-Umzug?; (d) Fallback-Timeout (Vorschlag 120 s)?; (e) dom0-Firewall-/Netzänderungen: sys-usb hängt nur am Admin-Netz + USB/IP-Link, kein Uplink, ok?
+  - **Entscheidungen (User, 2026-10-06):** (a) chat in v2.6 auf Xen: **ja**; (b) USB/IP-Link: **gemeinsame isolierte Bridge `vm-usbip`**; (c) **Input-Proxy jetzt** (Test mit externer USB-Maus/-Tastatur); (d) Fallback-Timeout **120 s**; (e) sys-usb nur Admin-Netz + USB/IP-Link, kein Uplink: **ja**.
 
 #### v2.7 Tests / Definition of Done
 
