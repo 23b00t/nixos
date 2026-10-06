@@ -1,8 +1,15 @@
 # Xen dom0 test setup for hp: replaces the KVM stack (libvirt) from
 # common-configuration.nix. Based on the former `xen` branch.
 # MicroVMs run as Xen PVH domUs via the microvm.nix fork (hypervisor = "xen").
-{ lib, ... }:
 {
+  lib,
+  pkgs,
+  config,
+  ...
+}:
+{
+  imports = [ ../../modules/xen-memory.nix ];
+
   virtualisation.xen = {
     enable = true;
     # Test phase: guest consoles are logged to /var/log/xen/console/
@@ -17,6 +24,17 @@
       maxVCPUs = 4;
     };
   };
+
+  # dom0 keeps its memory: xl must not take it to start guests. The RAM
+  # balancer only moves memory between ballooning MicroVMs.
+  environment.etc."xen/xl.conf".source = lib.mkForce (
+    pkgs.runCommand "xl.conf" { } ''
+      cat ${config.virtualisation.xen.package}/etc/xen/xl.conf > $out
+      echo 'autoballoon="off"' >> $out
+    ''
+  );
+
+  services.xen-memory-balancer.enable = true;
 
   # PVH dom0 is the target. On hp the I2C touchpad only works with a PV dom0
   # (see README "Known hardware issues"); a PV specialisation doubled the

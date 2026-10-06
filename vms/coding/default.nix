@@ -30,7 +30,10 @@
         size = 20000;
       }
     ];
+    # Boots with 4096 MB, the RAM balancer grows it up to 8192 MB
     mem = 8192;
+    balloon = true;
+    initialBalloonMem = 4096;
     vcpu = 4;
   };
 

@@ -35,7 +35,10 @@
         mountPoint = "/nix/.ro-store";
       }
     ];
+    # Boots with 2048 MB, the RAM balancer grows it up to 4096 MB
     mem = 4096;
+    balloon = true;
+    initialBalloonMem = 2048;
     vcpu = 1;
   };
 

@@ -13,6 +13,7 @@ let
   #   extraSSH    : extra SSH matchOptions for home.ssh (may be [])
   #   features    : arbitrary list of features/tags used for dynamic grouping in helper tools
   #   storeGroup  : shared read-only store image (vms/store-groups.nix): "sys" | "dev" | "desktop" | "prop"; absent = own image
+  #   memPriority : RAM balancer priority when host RAM is short (modules/xen-memory.nix); higher grows first, default 0
   vms = [
     {
       name = "nvim";

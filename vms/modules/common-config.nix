@@ -44,6 +44,8 @@ let
       );
 in
 {
+  imports = [ ./xen-meminfo.nix ];
+
   options.services.common-config = {
     enable = mkEnableOption "Enable the common-config module";
     user = mkOption {
