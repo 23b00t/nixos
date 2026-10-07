@@ -140,6 +140,14 @@ in
   # nix.package (Lix, like dom0) comes from common-config
   nix.settings.max-jobs = "auto";
 
+  # The balancer can only grow the VM as far as free Xen RAM allows; zram
+  # absorbs eval peaks beyond that instead of the OOM killer. The size is
+  # taken from the boot RAM (4096 MB), so 200 % = ~8 GB uncompressed.
+  zramSwap = {
+    enable = true;
+    memoryPercent = 200;
+  };
+
   environment.systemPackages = [
     builderBuild
     pkgs.git
