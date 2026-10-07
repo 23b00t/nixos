@@ -94,7 +94,8 @@ in
           family = "bridge";
           content = ''
             chain forward {
-              type filter hook forward priority 0; policy accept;
+              # priority 0 would be skipped: br_netfilter re-injects after its own hook (prio 0)
+              type filter hook forward priority filter; policy accept;
               iifname "vif*" oifname "vif*" drop
             }
           '';
