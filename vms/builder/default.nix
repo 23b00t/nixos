@@ -132,7 +132,10 @@ in
 
   # nix.package (Lix, like dom0) comes from common-config
   nix.settings = {
-    max-jobs = "auto";
+    # RAM, not CPU, is the limit: the evaluator keeps its heap for the whole
+    # build, and parallel mkfs.erofs runs (store images) ran out of memory
+    # with "auto" (8). Each job still uses all cores.
+    max-jobs = 2;
     # Build directories on the volume instead of the RAM-backed root
     # (default /nix/var/nix/b is on the 2 GB tmpfs). Lix uses build-dir, not
     # the daemon's TMPDIR (the daemon is socket-activated per connection).
