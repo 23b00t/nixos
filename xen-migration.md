@@ -230,6 +230,10 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
 - coding: devenv-Installation übersteht einen Neustart (Overlay + DB).
 - dom0-Update nur über den Builder; dom0 hat keine Default-Route und keine NIC.
 - **Builder-Pfad (User, 2026-10-07):** die nächste Repo-Änderung wird über `dom0-update` (Builder-VM) gebaut und eingespielt, nicht per lokalem `nixos-rebuild`.
+  - **Lauf 1 (2026-10-07): OOM** bei der Evaluierung (`nix` 7 GB), Balancer stoppte bei 7980 MiB (freier Xen-RAM bis auf 2048 MiB Reserve verbraucht), kein Swap im Builder → zram im Builder (`memoryPercent = 200`). Für den Lauf coding + chat gestoppt.
+  - **Lauf 2: `No space left on device`** in den Build-Verzeichnissen. `builder.img` hat 10 GB statt der konfigurierten 40 GB: microvm legt Volumes nur an, vergrößert bestehende nicht. Fix: Image in dom0 per `truncate` + `resize2fs` vergrößern. Außerdem baut der Builder yazi aus dem Quellcode (Flake-Input `github:sxyazi/yazi`, nicht in cache.nixos.org; dom0 hat ihn längst), erster vollständiger hp-Build lädt ~25 GB aus dem Cache.
+  - **Lauf 3:** lädt erneut viele Pfade. Ursache: `persistent-store-overlay` sichert beim Herunterfahren nur die DB-Einträge der Closure von GC-Roots; Pfade eines abgebrochenen Builds hängen an keinem Root → nach dem Neustart ungültig (Dateien liegen noch im Overlay, werden neu geladen und überschrieben). Für den Builder später: Zwischenstände rooten oder die DB dort komplett sichern (Builder ist standalone, Variante B aus v2.4 neu bewerten).
+  - **Lauf 3 gescheitert: wieder `No space left`.** Das 40-GB-Volume blieb leer: Lix baut in `build-dir` (Default `/nix/var/nix/b`, liegt auf dem 2-GB-tmpfs-Root), nicht im `TMPDIR`; außerdem ist der Daemon socket-aktiviert (`Accept=yes`, Instanzen `nix-daemon@…`), das `TMPDIR` an `nix-daemon.service` wirkte also nie. Fix: `nix.settings.build-dir = /var/lib/builder/build` (nix.conf validiert). Für Lauf 4 im laufenden Builder per Bind-Mount überbrückt (`/var/lib/builder/build` → `/nix/var/nix/b`, ohne Neustart, damit die DB die geladenen Pfade behält).
 - sys-net: WLAN geht, VMs mit `nat = true` haben Internet, vault nicht, VMs erreichen sich nicht über das Admin-Netz, wprs/`vm-run` laufen weiter.
 - sys-usb: Webcam in chat (Videocall-Test), Bluetooth in sys-usb gekoppelt.
 - Alte Testplan-Punkte (Lifecycle, Shutdown) bleiben grün, jetzt auch für HVM-Gäste.
@@ -278,6 +282,7 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
 - Admin Tooling, Scripts, TUI etc. entwickeln
 - Alle Scripts (manage-vms, vm-run, vm, dom0-update, …) bekommen Shell-Autocompletion (zsh)
 - Feintuning (Niri etc.)
+- Build-Anzeige mit Farben und Struktur: `dom0-update` startet den Build per `ssh -t` mit `nom build` (nix-output-monitor) im Builder; dafür darf `dom0-update` den Ergebnispfad nicht mehr aus der letzten Ausgabezeile lesen (z. B. Out-Link danach abfragen).
 - Neue VMs und Services: z.B. SSH und GPG in eigener VM, Socket teilen
 
 ## Sonstiges für die ferne Zukunft
@@ -285,3 +290,4 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
 - sys-firewall evtl auf MirrageOS
 - Prüfen, ob Dom0 von nixos weg kann, auf irgendeinen rust basierten micro kernel
 - Kann der Grafikstack von dom0 in eine appvm?
+- **Vertrauen in den Builder (User, 2026-10-07):** Heute ist der Builder für dom0 voll vertrauenswürdig: er signiert die ganze Closure, dom0 prüft nur seinen Schlüssel. Ein kompromittierter Builder (oder ein schadhaftes Binary, das dort läuft, z. B. ein Build-Schritt) kann dom0 also vergiften. Zu prüfen: getrennte Builder pro Vertrauensstufe (dom0/sys-VMs vs. App-VMs, die im Builder auch Fremdcode bauen), für Pfade aus cache.nixos.org deren Signatur behalten statt neu signieren (dom0 vertraut dann Hydra + Builder nur für lokal gebaute Pfade), Reproduzierbarkeit prüfen (zwei unabhängige Builder, Hashes vergleichen, `nix build --rebuild`).

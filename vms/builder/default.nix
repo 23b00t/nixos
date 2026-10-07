@@ -98,7 +98,7 @@ in
     tmpfiles.rules = [
       "d ${stateDir} 0755 user users -"
       "d ${stateDir}/systems 0755 user users -"
-      "d ${stateDir}/tmp 1777 root root -"
+      "d ${stateDir}/build 0755 root root -"
       # Out-links survive reboots, /nix/var does not: re-register them as GC
       # roots so the persistent store overlay keeps the last builds in its DB
       "L+ /nix/var/nix/gcroots/builder-hp - - - - ${stateDir}/systems/hp"
@@ -127,18 +127,18 @@ in
           fi
         '';
       };
-
-      # Build directories on the volume instead of the RAM-backed root, so
-      # unpacked sources don't count as guest memory
-      nix-daemon = {
-        environment.TMPDIR = "${stateDir}/tmp";
-        unitConfig.RequiresMountsFor = [ stateDir ];
-      };
     };
   };
 
   # nix.package (Lix, like dom0) comes from common-config
-  nix.settings.max-jobs = "auto";
+  nix.settings = {
+    max-jobs = "auto";
+    # Build directories on the volume instead of the RAM-backed root
+    # (default /nix/var/nix/b is on the 2 GB tmpfs). Lix uses build-dir, not
+    # the daemon's TMPDIR (the daemon is socket-activated per connection).
+    build-dir = "${stateDir}/build";
+  };
+  systemd.sockets.nix-daemon.unitConfig.RequiresMountsFor = [ stateDir ];
 
   # The balancer can only grow the VM as far as free Xen RAM allows; zram
   # absorbs eval peaks beyond that instead of the OOM killer. The size is
