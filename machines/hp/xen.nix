@@ -34,6 +34,7 @@ in
     ../../modules/xen-memory.nix
     ../../modules/dom0-update.nix
     ../../modules/xen-usb.nix
+    ../../modules/xen-links.nix
   ];
 
   virtualisation.xen = {
@@ -69,6 +70,10 @@ in
     # v2.6: both USB controllers belong to sys-usb; input devices come back via
     # the input proxy, the webcam goes to chat via USB/IP. `sys-usb-rescue`.
     xen-usb.enable = true;
+
+    # v2.8.1: re-attaches uplink and USB/IP vifs after a driver domain or VM
+    # restart, releases USB/IP devices of VMs that went away
+    xen-links.enable = true;
   };
 
   # v2.5: the WLAN card belongs to sys-net (registry `hardware.pci`, driver

@@ -18,6 +18,23 @@ let
   };
   usbip = config.boot.kernelPackages.usbip;
 
+  # `usbip-release <vendor:product>...` (run by dom0's xen-links when a
+  # consumer VM went away): re-export devices still marked as used by a
+  # vanished client (usbip_status 2), by restarting their usbip-bind unit
+  usbipRelease = pkgs.writeShellScriptBin "usbip-release" ''
+    for vp in "$@"; do
+      [[ "$vp" =~ ^[0-9a-f]{4}:[0-9a-f]{4}$ ]] || { echo "invalid id: $vp" >&2; continue; }
+      for dev in /sys/bus/usb/devices/*; do
+        [ -f "$dev/idVendor" ] && [ -f "$dev/usbip_status" ] || continue
+        [ "$(<"$dev/idVendor"):$(<"$dev/idProduct")" = "$vp" ] || continue
+        if [ "$(<"$dev/usbip_status")" = 2 ]; then
+          echo "releasing $vp (busid ''${dev##*/})"
+          ${pkgs.systemd}/bin/systemctl restart "usbip-bind@''${dev##*/}.service"
+        fi
+      done
+    done
+  '';
+
   # Exported devices: bind to usbip-host as soon as they appear (busid = %k)
   usbipBindRules = lib.concatMapStrings (d: ''
     ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="${d.vendorId}", ATTR{idProduct}=="${d.productId}", TAG+="systemd", ENV{SYSTEMD_WANTS}+="usbip-bind@%k.service"
@@ -186,6 +203,7 @@ in
     usbutils
     util-linux
     usbip
+    usbipRelease
     netevent
   ];
 

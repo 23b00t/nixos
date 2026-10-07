@@ -1,8 +1,7 @@
 # dom0 side of sys-usb (v2.6):
 # - input proxy: input devices owned by `host` (registry) come back from
 #   sys-usb over SSH (netevent cat | netevent create via uinput)
-# - USB/IP links: hot-plugs each consumer VM's link vif (backend sys-usb) once
-#   both domains run, and re-attaches it after sys-usb restarted
+# - USB/IP links: kept connected by modules/xen-links.nix
 # - fallback: if sys-usb is not reachable 120 s after its start, the USB
 #   controllers go back to dom0 (needed on the XMG for keyboard/mouse)
 # - sys-usb-rescue: the same by hand
@@ -46,47 +45,6 @@ let
     done
   '';
 
-  usbLinks = pkgs.writeShellScript "xen-usb-links" ''
-    PATH=${
-      lib.makeBinPath [
-        xen
-        pkgs.coreutils
-        pkgs.gawk
-        pkgs.bash
-      ]
-    }
-    while true; do
-      # sys-usb must be up (its bridge exists only once its network is
-      # configured), otherwise the hotplug script there fails
-      if usb="$(xl domid ${links.domain} 2>/dev/null)" \
-        && timeout 1 bash -c '</dev/tcp/${links.adminAddress}/22' 2>/dev/null; then
-        ${lib.concatMapStrings (vm: ''
-          if domid="$(xl domid ${vm}-vm 2>/dev/null)"; then
-            # Idx BE Mac handle state ...; state 4 = connected
-            idx="" be="" state="" hotplug=""
-            read -r idx be state < <(xl network-list ${vm}-vm 2>/dev/null \
-              | awk '$3 == "${links.macOf vm}" { print $1, $2, $5 }')
-            # The backend's hotplug script (vif-bridge in sys-usb) reports here
-            if [ -n "''${idx:-}" ]; then
-              hotplug="$(xenstore-read "/local/domain/$be/backend/vif/$domid/$idx/hotplug-status" 2>/dev/null)"
-            fi
-            if [ -n "''${idx:-}" ] \
-              && { [ "$be" != "$usb" ] || [ "$state" != 4 ] || [ "$hotplug" = error ]; }; then
-              echo "${vm}: detaching stale USB/IP link (backend $be, state $state, hotplug $hotplug)"
-              timeout 30 xl network-detach ${vm}-vm "$idx" || true
-              idx=""
-            fi
-            if [ -z "''${idx:-}" ]; then
-              echo "${vm}: attaching USB/IP link"
-              timeout 30 xl network-attach ${vm}-vm mac=${links.macOf vm} bridge=${links.bridge} backend=${links.domain} || true
-            fi
-          fi
-        '') links.consumers}
-      fi
-      sleep 5
-    done
-  '';
-
   # Give the USB controllers back to dom0
   releaseControllers = ''
     if xl domid ${links.domain} >/dev/null 2>&1; then
@@ -110,7 +68,7 @@ let
 in
 {
   options.services.xen-usb = {
-    enable = lib.mkEnableOption "dom0 side of sys-usb (input proxy, USB/IP links, fallback)";
+    enable = lib.mkEnableOption "dom0 side of sys-usb (input proxy, fallback)";
 
     user = lib.mkOption {
       type = lib.types.str;
@@ -138,16 +96,6 @@ in
           ExecStart = inputProxy;
           User = cfg.user;
           SupplementaryGroups = [ "uinput" ];
-          Restart = "always";
-          RestartSec = 5;
-        };
-      };
-
-      xen-usb-links = {
-        description = "Attach USB/IP links between sys-usb and its consumer VMs";
-        wantedBy = [ "multi-user.target" ];
-        serviceConfig = {
-          ExecStart = usbLinks;
           Restart = "always";
           RestartSec = 5;
         };

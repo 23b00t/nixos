@@ -234,6 +234,15 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
   - **Lauf 2: `No space left on device`** in den Build-Verzeichnissen. `builder.img` hat 10 GB statt der konfigurierten 40 GB: microvm legt Volumes nur an, vergrößert bestehende nicht. Fix: Image in dom0 per `truncate` + `resize2fs` vergrößern. Außerdem baut der Builder yazi aus dem Quellcode (Flake-Input `github:sxyazi/yazi`, nicht in cache.nixos.org; dom0 hat ihn längst), erster vollständiger hp-Build lädt ~25 GB aus dem Cache.
   - **Lauf 3:** lädt erneut viele Pfade. Ursache: `persistent-store-overlay` sichert beim Herunterfahren nur die DB-Einträge der Closure von GC-Roots; Pfade eines abgebrochenen Builds hängen an keinem Root → nach dem Neustart ungültig (Dateien liegen noch im Overlay, werden neu geladen und überschrieben). Für den Builder später: Zwischenstände rooten oder die DB dort komplett sichern (Builder ist standalone, Variante B aus v2.4 neu bewerten).
   - **Lauf 3 gescheitert: wieder `No space left`.** Das 40-GB-Volume blieb leer: Lix baut in `build-dir` (Default `/nix/var/nix/b`, liegt auf dem 2-GB-tmpfs-Root), nicht im `TMPDIR`; außerdem ist der Daemon socket-aktiviert (`Accept=yes`, Instanzen `nix-daemon@…`), das `TMPDIR` an `nix-daemon.service` wirkte also nie. Fix: `nix.settings.build-dir = /var/lib/builder/build` (nix.conf validiert). Für Lauf 4 im laufenden Builder per Bind-Mount überbrückt (`/var/lib/builder/build` → `/nix/var/nix/b`, ohne Neustart, damit die DB die geladenen Pfade behält).
+  - **Lauf 4 (Commit `889f834`): erfolgreich**, dom0 auf Generation 684 per `dom0-update --switch`. Builder danach mit zram (7,2 GB zstd) und `build-dir` auf dem Volume.
+- **Lauf 2026-10-07 nach dem Fix (Claude):** sys-net + sys-usb neu gestartet, Bridge-Chains auf `priority filter`. Uplink: jede VM erreicht nur sich selbst und `10.1.0.254`, nvim/coding/chat/builder haben Internet, vault nicht; Admin-Netz weiter isoliert; dom0-Egress geht. **Erledigt.**
+  - **Bestätigt (Offen-Punkt Uplink-Reconnect):** coding und chat hatte `switch-to-configuration` (autostart) schon vor dem sys-net-Neustart gestartet → ohne Uplink-vif, erst ein Neustart der VMs half.
+  - **Neuer Fehler USB/IP:** nach dem Neustart von chat blieb die Webcam in sys-usb „belegt“ (`usbip_status = 2`, TCP-Verbindung des alten chat noch `ESTAB`), `usbip list -r` zeigte 0 exportierbare Geräte. Der Kernel-Stub merkt einen verschwundenen Client nicht (kein sauberes Schließen der Verbindung). Behoben von Hand mit `usbip unbind`/`bind` in sys-usb, danach sofort angehängt. Dauerhaft: `xen-usb-links` in dom0 erkennt die neue Domid des Ziels ohnehin → dann die Geräte dieses Owners in sys-usb neu binden (Alternative: TCP-Keepalive). Gehört zu v2.8 Punkt 2/3.
+  - **Ballooning unter Last (nvim, 2048–4096):** 2,5 GB schrittweise belegt → Balancer wuchs in 13 Schritten 2048 → 4094 MiB (`maxmem`), Gast stabil; 30 s nach Lastende zurück auf 2048. dom0 blieb bei 8191 MB. **Erledigt.**
+  - **coding-Overlay:** `nix build nixpkgs#hello` mit Out-Link, Neustart → Pfad gültig und lauffähig. **Erledigt**, mit Einschränkung: `gcroots/auto` ist nach dem Neustart weg (siehe „Offen“).
+  - **Lifecycle HVM:** sys-net, sys-usb mehrfach neu gestartet, Passthrough-Geräte jedes Mal zurück, Domains sauber ersetzt. **Erledigt.**
+  - **dom0:** WLAN-Karte an `pciback`, keine NIC in dom0; Default-Route über sys-net (Metrik 2000) ist die gewollte Testphasen-Ausnahme (Entscheidung g). Reste: `virbr0`/`virbr1` existieren noch (DOWN), obwohl libvirt auf dem hp aus ist.
+  - **Offen in v2.7:** zwei VMs derselben Gruppe (erst mit php/ruby in `dev`, v3).
 - sys-net: WLAN geht, VMs mit `nat = true` haben Internet, vault nicht, VMs erreichen sich nicht über das Admin-Netz, wprs/`vm-run` laufen weiter.
 - sys-usb: Webcam in chat (Videocall-Test), Bluetooth in sys-usb gekoppelt.
 - Alte Testplan-Punkte (Lifecycle, Shutdown) bleiben grün, jetzt auch für HVM-Gäste.
@@ -252,21 +261,75 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
 ### Offen
 
 - Uplink-vifs laufender VMs nach einem Neustart von sys-net neu verbinden (gleiches Muster wie `xen-usb-links`).
+- coding/persistent-store-overlay: `/nix/var/nix/gcroots/auto` ist nach einem Neustart weg (`/nix/var` flüchtig) → Out-Links/devenv-Roots schützen ihre Pfade danach nicht mehr vor GC (Pfade selbst bleiben gültig).
+- USB/IP: nach Neustart/Absturz einer Ziel-VM bleibt ihr Gerät in sys-usb belegt → beim Domid-Wechsel neu binden (v2.7-Lauf 2026-10-07).
 - Input-Proxy: Event-Typ-Filter (`evsieve`) und Bestätigung neuer Eingabegeräte in dom0.
 - `blueman-manager` in sys-usb nur per `dbus-run-session` (geht, 2026-10-07); fester Starter (wie waybar auf dem XMG) nachrangig.
 - BT-Audio mit sys-usb.
 - MSI-X bei PCI-Passthrough mit PVH-dom0 (ENODATA in qemu `msi_msix_setup`): Ursache klären, damit Driver-Domains ohne `pci=nomsi` laufen. Ansätze: `xl dmesg` mit `iommu=debug`, qemu-xen-Version, Xen-Patches von Jiqian Chen (AMD) zu PVH-dom0-Passthrough.
 
+## v2.8 (Entwurf, Claude 2026-10-07): „Nach v2“ und „Offen“ angehen
+
+Laut User der nächste Schritt nach v2.7. Reihenfolge nach Abhängigkeiten und danach, was v3 braucht:
+
+1. **v2.7 abschließen:** Rest der Definition of Done (Ballooning unter Last, coding-Overlay nach Neustart, Lifecycle/Shutdown der HVM-Gäste, Builder-Pfad komplett). „Zwei VMs einer Gruppe“ wird testbar, sobald php/ruby zur Gruppe `dev` kommen (v3), daher dort.
+2. **Kleine offene Punkte:** Uplink-Reconnect nach sys-net-Neustart (Muster `xen-usb-links`), Builder-Fehler aus v2.7 (Pfade abgebrochener Builds bleiben gültig), Input-Proxy-Filter (`evsieve`).
+3. **Geräte dynamisch (Zieldesign oben):** sys-usb gibt Geräte und BT-Dienste auf Anforderung an Whitelist-VMs ab; dom0 nimmt nur Whitelist-Eingabegeräte (mit Bestätigung neuer Geräte); steam übernimmt den BT-Controller beim Start. Ersetzt die feste Owner-Zuordnung und USBGuard. Bedienung zuerst per CLI (`vm`-Tool), TUI später.
+4. **vchan-Relay** (Rust) für wprs, DBus-Forward, GitHub-Agent → Admin-vif fällt weg. Danach **qrexec-artige RPCs** für Copy/Clipboard: holt `cp-vm`/vmcopy und den Druck-Tunnel zurück (seit v2.5 aus). Ohne das gibt es in v3 keine Parität mit dem XMG.
+5. **Ressourcen messen und optimieren**, bevor in v3 deutlich mehr VMs auf dem hp laufen (32 GB RAM, Platte, Build-Zeit).
+6. **Nebenher/Recherche:** MSI-X (ENODATA), BT-Audio, blueman-Starter.
+
+### v2.8 Arbeitspakete (Entwurf Claude, 2026-10-07, nach dem v2.7-Lauf)
+
+**v2.8.1 Robustheit nach Neustarts** (klein, gleiches Muster wie `xen-usb-links`)
+- **Uplink-Reconnect:** dom0-Dienst prüft für alle VMs mit Uplink, ob ihr Uplink-vif an der aktuellen sys-net-Domid hängt und verbunden ist (`xl network-list`, `hotplug-status`); sonst `network-detach` + `network-attach … backend=sys-net-vm` mit derselben MAC. Am besten `xen-usb-links` zu einem allgemeinen „Links“-Dienst verallgemeinern (Tabelle: VM, MAC, Bridge, Backend-Domain) statt zweier Kopien.
+- **USB/IP nach Neustart der Ziel-VM:** derselbe Dienst merkt sich die Domid jeder Ziel-VM; ändert sie sich, werden deren Geräte in sys-usb per `usbip unbind`/`bind` freigegeben (heute bleiben sie „belegt“).
+- **Store-Overlay** (`persistent-store-overlay.nix`): `gcroots/auto` mit sichern (coding: devenv-/Out-Link-Roots überleben den Neustart); Builder: DB-Dump aller gültigen Pfade im Overlay statt nur der Root-Closure (abgebrochene Builds laden nicht neu).
+
+- **Umgesetzt 2026-10-07 (Claude):**
+  - **`modules/xen-links.nix`** (neu, `services.xen-links`, auf hp an) ersetzt `xen-usb-links`: eine Tabelle aus Uplinks (aus `net-config.uplink` jeder Xen-VM) und USB/IP-Links (`vms/usb-links.nix`), Spalten Domain, MAC, Bridge, Backend, Backend-Adresse, freizugebende Geräte. Pro Runde (5 s): vif fehlt → anhängen; hängt an alter Backend-Domid oder `hotplug-status = error` → sofort ab- und neu anhängen; nicht verbunden → erst nach `graceRounds` (12 = 60 s, Gast-Boot). USB/IP: ändert sich die Domid einer Ziel-VM (Neustart oder weg), ruft dom0 als `nx` per SSH in sys-usb `sudo usbip-release <vendor:product>…` auf; bei Fehlschlag Wiederholung in der nächsten Runde.
+  - **sys-usb:** `usbip-release` startet `usbip-bind@<busid>` neu für Geräte mit `usbip_status = 2` (unbind + bind).
+  - **`persistent-store-overlay.nix`:** Dump nimmt alle gültigen Pfade im Upper-Dir (Whiteouts, `.links`, Lock-Dateien ausgenommen) statt nur der Root-Closure, ersetzt den alten Dump nur durch einen vollständigen neuen, nutzt `config.nix.package` (Lix) statt `pkgs.nix`. `gcroots/auto` wird nach `/persist/auto-roots` gesichert und beim Boot wiederhergestellt.
+  - **Befund coding:** 768 Pfade im Overlay, davon 767 laut DB ungültig (Altlasten früherer Neustarts, belegen nur Platz). Aufräumen später (v2.8.5 Ressourcen).
+
+**v2.8.2 Input-Proxy härten**
+- `evsieve` in dom0 zwischen `netevent create` und dem Compositor: Original-Gerät exklusiv greifen, nur Key/Rel/Abs/Syn durchlassen, als neues virtuelles Gerät ausgeben.
+- Neue Eingabegeräte (nicht in der dom0-Whitelist) bleiben in sys-usb; dom0 zeigt eine Meldung und nimmt sie erst nach Bestätigung (`vm-usb allow-input <id>`, nur bis zum Abziehen).
+
+**v2.8.3 Geräte dynamisch (Qubes-Modell)**
+- **CLI in dom0** `vm-usb` (TUI später): `list` (Geräte in sys-usb: Busid, Vendor:Product, Name, Zuweisung), `attach <gerät> <vm>`, `detach <gerät>`.
+- **Ablauf attach:** Whitelist prüfen → USB/IP-Link-vif der Ziel-VM bei Bedarf anhängen → in sys-usb `usbip bind` + Port 3240 **nur für die IP der Ziel-VM** öffnen (nft-Set, löst „jeder Client sieht alle gebundenen Geräte“) → in der Ziel-VM `usbip attach`. detach umgekehrt. Zuweisungen als Laufzeit-Zustand in dom0 (`/run`), Quelle der Wahrheit für den Links-Dienst aus v2.8.1.
+- **Registry:** `allowedOwners` = wohin ein Gerät darf; `defaultOwner` = optionale Auto-Zuweisung beim Einstecken (z. B. Webcam → chat, nur wenn chat läuft). Feste Zuweisung über `defaultOwner = "host"` nur noch für die dom0-Eingabegeräte-Whitelist. Der statische `usbip-attach`-Dienst in den VMs entfällt (attach kommt von dom0).
+- **Bluetooth:** abgegeben wird der **ganze Adapter** (USB/IP), samt Kopplungsdaten des Geräts (aus `/var/lib/bluetooth` in sys-usb in die Ziel-VM kopieren). Einzelne BT-Geräte getrennt an verschiedene VMs geht technisch nicht (ein Adapter, ein bluez). Szenario „Smartphone in sys-usb koppeln, an chat geben“ = Adapter + Kopplung an chat, solange chat ihn braucht.
+- **steam:** `microvm@steam` holt sich beim Start den BT-Adapter per `vm-usb attach`, gibt ihn beim Stopp an sys-usb zurück.
+- **USBGuard** entfällt mit dem Ende von USB in dom0 (XMG: v4).
+
+**v2.8.4 vchan** – eigener Grill vor dem Start (Rust-Crate/libxenvchan-Bindung, Protokoll, welche Sockets zuerst: wprs, DBus, Agent; danach Copy/Clipboard-RPCs, die vmcopy und den Druck-Tunnel zurückbringen).
+
+**v2.8.5 Ressourcen messen:** RAM aller laufenden VMs unter typischer Last, Plattenbelegung (Gruppen-Images, Overlays, Volumes), Build-Zeit eines kleinen Commits über den Builder. Grundlage für die Zahl der VMs in v3.
+
+**Entscheidungen vor v2.8.3 (User):**
+- (a) Unbekannte Geräte (z. B. ein beliebiger USB-Stick): an **jede App-VM** per ausdrücklichem `attach` (Qubes-Verhalten; Empfehlung), oder nur an Geräte-Whitelists aus der Registry? Nie an dom0 oder Driver-Domains.
+- (b) `defaultOwner` als Auto-Zuweisung beim Einstecken behalten (Empfehlung: ja, z. B. Webcam → chat), oder alles nur auf Befehl?
+- (c) BT = ganzer Adapter samt Kopplung wandert (Empfehlung, s. o.), ok?
+- (d) Name/Ort der CLI: eigenes `vm-usb` (Empfehlung, wie `vm-run`) oder Unterbefehl von `vm`?
+- **Entscheidungen (User, 2026-10-07):** (a) unbekannte Geräte per `attach` an jede App-VM: **ja**; (b) `defaultOwner` als Auto-Zuweisung beim Einstecken: **ja**; (c) BT = ganzer Adapter samt Kopplung: **ja**; (d) CLI: **`vm-usb`**.
+
+**Nach v3 verschoben (User, 2026-10-07):** Stubdomains und sys-firewall. Beides ist Härtung ohne sichtbaren Nutzen für die Parität und am stabilen Stand leichter zu testen.
+
 ## v3
 
-- Ausführliche Review des bisherigen Codes
-- Alles VMs lauffähig auf Test
-- Build VM und dom0 RAM reduzieren
-- Builder: `git verify-commit` vor jedem Build (Signing-Pubkey als `allowedSignersFile` im Builder), aus v2.4 zurückgestellt
-- Lösung für Tails als HVM testen.
-- Lösung für Steam VM als HVM (ist das auch ohne dGPU testbar?)
-- BT-Adapter per USB/IP an steam (Anforderung aus v2.6, Test auf dem hp mit `bluetooth-hp`)
-- Whonix Stack und Kali als PVH integrieren
+**Ziel (User, 2026-10-07): was heute auf dem XMG aus Nutzersicht gut funktioniert (cloud-hypervisor/qemu/libvirt), läuft auf Xen**, zuerst komplett auf dem hp, dann auf dem XMG (v4).
+
+- **VMs auf dem hp:** nvim, coding, php, ruby (stellvertretend für die Coding-VMs, die sich stark ähneln), office, chat, net, vault, irc. Dazu **Tails** (HVM) und **Whonix** (Gateway + Workstation, heute libvirt). **irc nutzt das Whonix-Gateway als einzigen Internetzugang**, das muss so bleiben.
+- **music geht in coding auf (User, 2026-10-07):** music stellt nur termusic bereit. coding hat den Audio-Weg schon (`PULSE_SERVER = tcp:localhost:4713`, kitty-Startup öffnet coding mit `-R 4713:localhost:4713`); net wäre auch gegangen (Wrapper), coding ist weniger Arbeit. Umzug: das gepatchte `termusic-mpv` (wird selbst gebaut, landet im Standalone-Image von coding), `mpv.conf` (`ao=pulse`, `pulse-buffer=2000`), Alias `tm` in `home/zsh.nix` auf coding umstellen, Musikbibliothek aus `home.img` von music übernehmen, danach music aus Registry/Definitions entfernen.
+- **steam:** Ausnahme, erst auf dem XMG (dGPU, v4). Beim Start übernimmt steam den BT-Controller von sys-usb (Anforderung aus v2.6). Auf dem hp vorab nur BT per USB/IP testbar (`bluetooth-hp`).
+- **Nicht in v3:** kali und wine waren Experimente, dafür später eigene Lösungen.
+- **USB:** außer der dom0-Whitelist für Eingabegeräte nichts mehr fest zugewiesen, alles kommt dynamisch aus sys-usb. **USBGuard wird überflüssig.**
+- **Review:** vorhandenen Code geradeziehen, außer Code, der absehbar ersetzt wird. Dabei schon trennen, was hardware-spezifisch ist und was nicht (Vorbereitung für den Repo-Split in v4).
+- **Weniger selbst bauen (User, 2026-10-07):** Pakete aus eigenen Flake-Inputs (yazi, zen, …) landen nicht in cache.nixos.org und werden im Builder aus dem Quellcode gebaut. Je Paket prüfen: Version aus nixpkgs reicht, oder das Projekt hat einen eigenen Binary-Cache (dann Substituter + Key nur im Builder; dom0 vertraut weiter nur dem Builder), oder `follows` so setzen, dass der Cache trifft.
+- Builder-VM und dom0-RAM reduzieren.
+- Builder: `git verify-commit` vor jedem Build (Signing-Pubkey als `allowedSignersFile` im Builder), aus v2.4 zurückgestellt.
 
 ## v4
 
@@ -275,6 +338,8 @@ Erkenntnis aus Branch `remote-builder`: dort evaluiert der Host und baut remote 
 
 - Auf XMG testen
 - dGPU passthrough implementieren
+- **dom0 schlanker (User, 2026-10-07):** kein zellij, kein yazi, vermutlich auch kein zsh, am Ende nur kitty (plus das Nötigste für Verwaltung). Passt zu den README-TODOs „Remove not strictly needed host software“ und „dropping zellij and zsh on the host“.
+- **Später prüfen:** wie viel Sicherheit es bringt, statt kitty in dom0 + SSH in die VMs ein kitty **aus der VM per wprs** zu nutzen. Dann liefe in dom0 kein Terminal mehr, das VM-Ausgaben interpretiert (Escape-Sequenzen, OSC 52/Clipboard, Hyperlinks), und das Admin-SSH aus dom0 würde für den Alltag unnötig (passt zu vchan, v2.8).
 
 ## v5
 

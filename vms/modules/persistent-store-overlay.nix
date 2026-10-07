@@ -8,83 +8,63 @@
 let
   cfg = config.services.persistentStoreOverlay;
 
+  nix = config.nix.package;
+
+  # Dumps the DB entries of all valid paths in the writable overlay. Not only
+  # the closure of GC roots: paths of an aborted build are unrooted, would
+  # turn invalid after a reboot and get downloaded/built again although their
+  # files stay in the overlay.
   nixDumpOverlayDb = pkgs.writeShellScript "nix-db-dump.sh" ''
     set +e
+    PATH=${
+      lib.makeBinPath [
+        nix
+        pkgs.coreutils
+        pkgs.findutils
+        pkgs.gnugrep
+        pkgs.gnused
+      ]
+    }
 
     db="/persist/overlay.db"
-    tmp_roots="$(mktemp)"
-    tmp_valid_roots="$(mktemp)"
-    tmp_closure="$(mktemp)"
-    tmp_filtered="$(mktemp)"
+    tmp_paths="$(mktemp)"
+    tmp_invalid="$(mktemp)"
+    tmp_db="$(mktemp -p /persist)"
+    trap 'rm -f "$tmp_paths" "$tmp_invalid" "$tmp_db"' EXIT
 
-    cleanup() {
-      rm -f "$tmp_roots" "$tmp_valid_roots" "$tmp_closure" "$tmp_filtered"
-    }
-    trap cleanup EXIT # Call cleanup() on exit
+    # `nix build` out-links register their GC roots in the volatile /nix/var:
+    # remember them (name, target), nix-db-restore recreates them
+    find /nix/var/nix/gcroots/auto -mindepth 1 -maxdepth 1 -type l -printf '%f\t%l\n' \
+      > /persist/auto-roots 2>/dev/null
 
-    : > "$db"
+    # Store paths in the upper dir (whiteouts are character devices; skip
+    # .links, lock files and anything that is no store path name)
+    find /nix/.rw-store/store -mindepth 1 -maxdepth 1 ! -type c -printf '%f\n' \
+      | grep -E '^[0-9a-z]{32}-' | grep -v '\.lock$' \
+      | sed 's|^|/nix/store/|' > "$tmp_paths"
 
-    add_root() {
-      local p="$1"
-      # $p exists?
-      [ -e "$p" ] || return 0
-      readlink -f "$p" >> "$tmp_roots"
-    }
+    xargs -r nix-store --check-validity --print-invalid < "$tmp_paths" > "$tmp_invalid"
+    grep -vxFf "$tmp_invalid" "$tmp_paths" | xargs -r nix-store --dump-db > "$tmp_db"
 
-    # Profiles
-    for p in \
-      /nix/var/nix/profiles/system \
-      /nix/var/nix/profiles/default \
-      /nix/var/nix/profiles/per-user/*/profile \
-      /nix/var/nix/profiles/per-user/*/home-manager
-    do
-      add_root "$p"
-    done
-
-    # GC roots
-    while IFS= read -r root; do
-      add_root "$root"
-    done < <(find /nix/var/nix/gcroots /nix/var/nix/gcroots/per-user -type l 2>/dev/null)
-
-    # Derive unique roots
-    sort -u "$tmp_roots" -o "$tmp_roots"
-
-    # Only keep valid roots
-    while IFS= read -r root; do
-      ${pkgs.nix}/bin/nix-store --verify-path "$root" >/dev/null 2>&1
-      # Check for success of the last command, i.e. Exit-Code 0
-      if [ $? -eq 0 ]; then
-        printf '%s\n' "$root" >> "$tmp_valid_roots"
-      fi
-    done < "$tmp_roots"
-
-    # Collect closure per root
-    while IFS= read -r root; do
-      ${pkgs.nix}/bin/nix-store -qR "$root" >> "$tmp_closure" 2>/dev/null
-    done < "$tmp_valid_roots"
-
-    sort -u "$tmp_closure" -o "$tmp_closure"
-
-    # Keep only paths physically present in the writable overlay
-    while IFS= read -r path; do
-      base="$(basename "$path")"
-      if [ -e "/nix/.rw-store/store/$base" ]; then
-        printf '%s\n' "$path" >> "$tmp_filtered"
-      fi
-    done < "$tmp_closure"
-
-    sort -u "$tmp_filtered" -o "$tmp_filtered"
-
-    # Dump the filtered paths to the DB file
-    if [ -s "$tmp_filtered" ]; then
-      ${pkgs.findutils}/bin/xargs -r ${pkgs.nix}/bin/nix-store --dump-db < "$tmp_filtered" > "$db"
+    # Only replace the old dump with a complete new one
+    if [ -s "$tmp_db" ]; then
+      mv "$tmp_db" "$db"
     fi
   '';
 
   nixLoadOverlayDb = pkgs.writeShellScript "nix-db-restore.sh" ''
     set +e
     if [ -f /persist/overlay.db ] && [ -s /persist/overlay.db ]; then
-      ${pkgs.nix}/bin/nix-store --load-db < /persist/overlay.db
+      ${nix}/bin/nix-store --load-db < /persist/overlay.db
+    fi
+
+    mkdir -p /nix/var/nix/gcroots/auto
+    if [ -f /persist/auto-roots ]; then
+      while IFS=$'\t' read -r name target; do
+        # Root names are store-path hashes
+        [[ "$name" =~ ^[0-9a-z]+$ ]] || continue
+        ln -sfn "$target" "/nix/var/nix/gcroots/auto/$name"
+      done < /persist/auto-roots
     fi
   '';
 in
