@@ -22,7 +22,7 @@ let
   # Reads raw struct input_event from stdin (sys-usb: cat /dev/input/eventN)
   # and replays it on a uinput device whose capabilities are fixed here, not
   # taken from sys-usb: keyboard keys and mouse buttons/axes only, without
-  # power/sleep/wakeup/suspend/rfkill (logind, rfkill) and SysRq (kernel).
+  # power/sleep/wakeup/suspend (logind), radio keys (rfkill) and SysRq (kernel).
   # Everything else (other types, codes, key repeats) is dropped.
   inputRecv = pkgs.writeCBin "xen-input-recv" ''
     #include <fcntl.h>
@@ -43,7 +43,8 @@ let
         return 0;
       switch (code) {
       case KEY_SYSRQ: case KEY_POWER: case KEY_SLEEP: case KEY_WAKEUP:
-      case KEY_SUSPEND: case KEY_RFKILL:
+      case KEY_SUSPEND: case KEY_RFKILL: case KEY_BLUETOOTH: case KEY_WLAN:
+      case KEY_UWB: case KEY_WWAN:
         return 0;
       }
       return 1;

@@ -140,6 +140,10 @@ in
     # (default /nix/var/nix/b is on the 2 GB tmpfs). Lix uses build-dir, not
     # the daemon's TMPDIR (the daemon is socket-activated per connection).
     build-dir = "${stateDir}/build";
+    # The store overlay holds the last hp closure; after each build the
+    # previous one is garbage. GC during builds when space runs low.
+    min-free = 5 * 1024 * 1024 * 1024;
+    max-free = 15 * 1024 * 1024 * 1024;
   };
   systemd.sockets.nix-daemon.unitConfig.RequiresMountsFor = [ stateDir ];
 
