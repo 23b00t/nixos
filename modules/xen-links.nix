@@ -4,8 +4,9 @@
 # - a vif is (re)attached when it is missing, hangs on an old backend domid
 #   (driver domain restarted), reports hotplug errors, or is not connected
 #   for `graceRounds` rounds
-# - USB/IP: when a consumer VM goes away or restarts, its devices are released
-#   in sys-usb, because the usbip-host stub never notices a vanished client
+# - USB/IP: when a consumer VM goes away or restarts (and once when this
+#   service starts), its devices are released in sys-usb, because the
+#   usbip-host stub never notices a vanished client
 {
   lib,
   pkgs,
@@ -80,11 +81,15 @@ let
         key="$dom/$mac"
         domid="$(xl domid "$dom" 2>/dev/null)" || domid=""
 
-        if [ "$devices" != - ] && [ -n "''${lastdom[$key]:-}" ] \
-          && [ "''${lastdom[$key]}" != "$domid" ]; then
-          echo "$dom: domain gone or restarted, releasing its USB/IP devices"
-          # Keep the old domid on failure, so the next round retries
-          release "$devices" "$address" && lastdom[$key]="$domid"
+        # Also on the first round (no domid known yet): the VM may have
+        # restarted while this service was not running
+        if [ "$devices" != - ] && [ "''${lastdom[$key]-unknown}" != "$domid" ]; then
+          # Keep the old domid until sys-usb is reachable and the release
+          # worked, so a later round retries
+          if timeout 1 bash -c "</dev/tcp/$address/22" 2>/dev/null; then
+            echo "$dom: domain gone, restarted or not seen yet, releasing its USB/IP devices"
+            release "$devices" "$address" && lastdom[$key]="$domid"
+          fi
         else
           lastdom[$key]="$domid"
         fi

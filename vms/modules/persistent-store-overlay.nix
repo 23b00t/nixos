@@ -25,6 +25,8 @@ let
         pkgs.gnused
       ]
     }
+    # Runs at shutdown, when nix-daemon may already be gone: use the DB directly
+    export NIX_REMOTE=local
 
     db="/persist/overlay.db"
     tmp_paths="$(mktemp)"
@@ -54,8 +56,41 @@ let
 
   nixLoadOverlayDb = pkgs.writeShellScript "nix-db-restore.sh" ''
     set +e
+    # --load-db is refused through nix-daemon: use the DB directly
+    export NIX_REMOTE=local
     if [ -f /persist/overlay.db ] && [ -s /persist/overlay.db ]; then
-      ${nix}/bin/nix-store --load-db < /persist/overlay.db
+      # --load-db is all or nothing: drop entries whose files or references
+      # are gone (e.g. paths of an older store image), repeated until stable
+      ${pkgs.coreutils}/bin/ls /nix/store \
+        | ${pkgs.gawk}/bin/awk '
+          FNR == NR { onDisk["/nix/store/" $0] = 1; next }
+          { line[++nl] = $0 }
+          END {
+            i = 1
+            while (i <= nl) {
+              n++; start[n] = i; rec[line[i]] = n
+              nrefs[n] = line[i + 4]
+              for (j = 1; j <= nrefs[n]; j++) ref[n, j] = line[i + 4 + j]
+              i += 5 + nrefs[n]
+            }
+            for (k = 1; k <= n; k++) keep[k] = (line[start[k]] in onDisk)
+            do {
+              changed = 0
+              for (k = 1; k <= n; k++) {
+                if (!keep[k]) continue
+                for (j = 1; j <= nrefs[k]; j++) {
+                  r = ref[k, j]
+                  if ((r in rec) ? !keep[rec[r]] : !(r in onDisk)) {
+                    keep[k] = 0; changed = 1; break
+                  }
+                }
+              }
+            } while (changed)
+            for (k = 1; k <= n; k++)
+              if (keep[k])
+                for (i = start[k]; i < start[k] + 5 + nrefs[k]; i++) print line[i]
+          }' - /persist/overlay.db \
+        | ${nix}/bin/nix-store --load-db
     fi
 
     mkdir -p /nix/var/nix/gcroots/auto
