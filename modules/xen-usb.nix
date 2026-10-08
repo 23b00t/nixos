@@ -1,6 +1,6 @@
 # dom0 side of sys-usb (v2.6):
 # - input proxy: input devices owned by `host` (registry) come back from
-#   sys-usb over SSH (netevent cat | netevent create via uinput)
+#   sys-usb over SSH as raw events (cat) into a filtering uinput receiver
 # - USB/IP links: kept connected by modules/xen-links.nix
 # - fallback: if sys-usb is not reachable 120 s after its start, the USB
 #   controllers go back to dom0 (needed on the XMG for keyboard/mouse)
@@ -19,11 +19,114 @@ let
   xen = config.virtualisation.xen.package;
   sshOpts = "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=5 -o LogLevel=ERROR";
 
+  # Reads raw struct input_event from stdin (sys-usb: cat /dev/input/eventN)
+  # and replays it on a uinput device whose capabilities are fixed here, not
+  # taken from sys-usb: keyboard keys and mouse buttons/axes only, without
+  # power/sleep/wakeup/suspend/rfkill (logind, rfkill) and SysRq (kernel).
+  # Everything else (other types, codes, key repeats) is dropped.
+  inputRecv = pkgs.writeCBin "xen-input-recv" ''
+    #include <fcntl.h>
+    #include <linux/uinput.h>
+    #include <stdio.h>
+    #include <string.h>
+    #include <sys/ioctl.h>
+    #include <unistd.h>
+
+    static const int rels[] = { REL_X, REL_Y, REL_HWHEEL, REL_WHEEL,
+                                REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES };
+
+    static int key_allowed(int code)
+    {
+      if (code >= BTN_LEFT && code <= BTN_TASK)
+        return 1;
+      if (code < 1 || code > 255)
+        return 0;
+      switch (code) {
+      case KEY_SYSRQ: case KEY_POWER: case KEY_SLEEP: case KEY_WAKEUP:
+      case KEY_SUSPEND: case KEY_RFKILL:
+        return 0;
+      }
+      return 1;
+    }
+
+    static int rel_allowed(int code)
+    {
+      for (size_t i = 0; i < sizeof(rels) / sizeof(rels[0]); i++)
+        if (rels[i] == code)
+          return 1;
+      return 0;
+    }
+
+    static int emit(int fd, int type, int code, int value)
+    {
+      struct input_event ev;
+      memset(&ev, 0, sizeof(ev));
+      ev.type = type;
+      ev.code = code;
+      ev.value = value;
+      return write(fd, &ev, sizeof(ev)) == sizeof(ev) ? 0 : -1;
+    }
+
+    int main(int argc, char **argv)
+    {
+      struct uinput_setup setup;
+      struct input_event ev;
+      int fd, pending = 0;
+
+      if (argc != 2) {
+        fprintf(stderr, "usage: xen-input-recv <name>\n");
+        return 2;
+      }
+      fd = open("/dev/uinput", O_WRONLY | O_CLOEXEC);
+      if (fd < 0) {
+        perror("open /dev/uinput");
+        return 1;
+      }
+      ioctl(fd, UI_SET_EVBIT, EV_SYN);
+      ioctl(fd, UI_SET_EVBIT, EV_KEY);
+      ioctl(fd, UI_SET_EVBIT, EV_REL);
+      for (int code = 0; code <= BTN_TASK; code++)
+        if (key_allowed(code))
+          ioctl(fd, UI_SET_KEYBIT, code);
+      for (size_t i = 0; i < sizeof(rels) / sizeof(rels[0]); i++)
+        ioctl(fd, UI_SET_RELBIT, rels[i]);
+
+      memset(&setup, 0, sizeof(setup));
+      setup.id.bustype = BUS_VIRTUAL;
+      snprintf(setup.name, UINPUT_MAX_NAME_SIZE, "xen-input-proxy %s", argv[1]);
+      if (ioctl(fd, UI_DEV_SETUP, &setup) < 0 || ioctl(fd, UI_DEV_CREATE) < 0) {
+        perror("uinput setup");
+        return 1;
+      }
+
+      while (fread(&ev, sizeof(ev), 1, stdin) == 1) {
+        int ok = 0;
+        if (ev.type == EV_KEY)
+          ok = key_allowed(ev.code) && (ev.value == 0 || ev.value == 1);
+        else if (ev.type == EV_REL)
+          ok = rel_allowed(ev.code);
+        else if (ev.type == EV_SYN && ev.code == SYN_REPORT && pending) {
+          if (emit(fd, EV_SYN, SYN_REPORT, 0) < 0)
+            break;
+          pending = 0;
+        }
+        if (ok) {
+          if (emit(fd, ev.type, ev.code, ev.value) < 0)
+            break;
+          pending = 1;
+        }
+      }
+
+      ioctl(fd, UI_DEV_DESTROY);
+      close(fd);
+      return 0;
+    }
+  '';
+
   inputProxy = pkgs.writeShellScript "xen-input-proxy" ''
     PATH=${
       lib.makeBinPath [
         pkgs.openssh
-        pkgs.netevent
         pkgs.coreutils
       ]
     }
@@ -35,8 +138,8 @@ let
           [[ "$d" =~ ^[0-9a-f]{4}-[0-9a-f]{4}-event[0-9]+$ ]] || continue
           if [ -z "''${pids[$d]:-}" ] || ! kill -0 "''${pids[$d]}" 2>/dev/null; then
             echo "forwarding $d"
-            ssh ${sshOpts} ${links.adminAddress} "netevent cat /dev/input-proxy/$d" \
-              | netevent create --duplicates=replace &
+            ssh ${sshOpts} ${links.adminAddress} "cat /dev/input-proxy/$d" \
+              | ${inputRecv}/bin/xen-input-recv "$d" &
             pids[$d]=$!
           fi
         done

@@ -204,7 +204,6 @@ in
     util-linux
     usbip
     usbipRelease
-    netevent
   ];
 
   security.polkit = {
