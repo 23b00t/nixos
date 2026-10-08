@@ -40,9 +40,10 @@ let
       > /persist/auto-roots 2>/dev/null
 
     # Store paths in the upper dir (whiteouts are character devices; skip
-    # .links, lock files and anything that is no store path name)
+    # .links and anything that is no store path name; lock files are not
+    # valid and drop out below)
     find /nix/.rw-store/store -mindepth 1 -maxdepth 1 ! -type c -printf '%f\n' \
-      | grep -E '^[0-9a-z]{32}-' | grep -v '\.lock$' \
+      | grep -E '^[0-9a-z]{32}-' \
       | sed 's|^|/nix/store/|' > "$tmp_paths"
 
     xargs -r nix-store --check-validity --print-invalid < "$tmp_paths" > "$tmp_invalid"
@@ -60,36 +61,38 @@ let
     export NIX_REMOTE=local
     if [ -f /persist/overlay.db ] && [ -s /persist/overlay.db ]; then
       # --load-db is all or nothing: drop entries whose files or references
-      # are gone (e.g. paths of an older store image), repeated until stable
-      ${pkgs.coreutils}/bin/ls /nix/store \
-        | ${pkgs.gawk}/bin/awk '
-          FNR == NR { onDisk["/nix/store/" $0] = 1; next }
-          { line[++nl] = $0 }
-          END {
-            i = 1
-            while (i <= nl) {
-              n++; start[n] = i; rec[line[i]] = n
-              nrefs[n] = line[i + 4]
-              for (j = 1; j <= nrefs[n]; j++) ref[n, j] = line[i + 4 + j]
-              i += 5 + nrefs[n]
-            }
-            for (k = 1; k <= n; k++) keep[k] = (line[start[k]] in onDisk)
-            do {
-              changed = 0
-              for (k = 1; k <= n; k++) {
-                if (!keep[k]) continue
-                for (j = 1; j <= nrefs[k]; j++) {
-                  r = ref[k, j]
-                  if ((r in rec) ? !keep[rec[r]] : !(r in onDisk)) {
-                    keep[k] = 0; changed = 1; break
-                  }
+      # are gone (e.g. paths of an older store image), repeated until stable.
+      # A reference that is no entry of the dump must already be valid.
+      ${pkgs.gawk}/bin/awk '
+        FILENAME == ARGV[1] { valid[$0] = 1; next }
+        FILENAME == ARGV[2] { onDisk["/nix/store/" $0] = 1; next }
+        { line[++nl] = $0 }
+        END {
+          i = 1
+          while (i <= nl) {
+            n++; start[n] = i; rec[line[i]] = n
+            nrefs[n] = line[i + 4]
+            for (j = 1; j <= nrefs[n]; j++) ref[n, j] = line[i + 4 + j]
+            i += 5 + nrefs[n]
+          }
+          for (k = 1; k <= n; k++) keep[k] = (line[start[k]] in onDisk)
+          do {
+            changed = 0
+            for (k = 1; k <= n; k++) {
+              if (!keep[k]) continue
+              for (j = 1; j <= nrefs[k]; j++) {
+                r = ref[k, j]
+                if ((r in rec) ? !keep[rec[r]] : !(r in valid)) {
+                  keep[k] = 0; changed = 1; break
                 }
               }
-            } while (changed)
-            for (k = 1; k <= n; k++)
-              if (keep[k])
-                for (i = start[k]; i < start[k] + 5 + nrefs[k]; i++) print line[i]
-          }' - /persist/overlay.db \
+            }
+          } while (changed)
+          for (k = 1; k <= n; k++)
+            if (keep[k])
+              for (i = start[k]; i < start[k] + 5 + nrefs[k]; i++) print line[i]
+        }' <(${nix}/bin/nix --extra-experimental-features nix-command path-info --all) \
+        <(${pkgs.coreutils}/bin/ls /nix/store) /persist/overlay.db \
         | ${nix}/bin/nix-store --load-db
     fi
 
