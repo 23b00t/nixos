@@ -1,8 +1,8 @@
 # vm-gui (v2.8.4): GUI apps from Xen VMs over vchan. dom0's wprsc talks to
 # the VM's wprsd through nox-relay (/run/nox-relay/<vm>-wprs.sock) instead
 # of an SSH tunnel; one wprsc per VM. The app itself is still started over
-# SSH (admin network) until qrexec-like RPCs exist. Test companion to vm-run,
-# whose wprs path it replaces once it works.
+# SSH (admin network) until qrexec-like RPCs exist. vm-run uses it for Xen
+# guests that have the relay socket.
 { lib, pkgs, ... }:
 let
   vmRegistry = import ../../vms/registry.nix;

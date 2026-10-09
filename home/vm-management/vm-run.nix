@@ -148,6 +148,9 @@ ${vmCases}
 
     if [ "$CLI_MODE" -eq 1 ]; then
       exec ssh -i "$KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "''${EXTRA_SSH_ARGS[@]}" "$VM_USER@$IP" -t -- "$BINARY" "$@"
+    elif [ -S "/run/nox-relay/$FULL_NAME-wprs.sock" ]; then
+      # Xen guest with wprs over vchan (nox-relay): no SSH tunnel for wprs
+      exec vm-gui "$FULL_NAME" "$BINARY" "$@"
     else
       wprs "$IP" run -- "$BINARY" "$@" &
       WPRS_PID=$!
