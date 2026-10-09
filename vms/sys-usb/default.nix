@@ -86,7 +86,7 @@ let
         ;;
       bt-export)
         # Pairings, copied along with a Bluetooth adapter (one-way)
-        tar -C /var/lib/bluetooth -cf - .
+        tar -C /var/lib/bluetooth --exclude=./lost+found -cf - .
         ;;
       *)
         echo "usage: usb-helper list | bind|unbind <busid> | allow|deny <addr> | allowed | inputs | bt-export" >&2
@@ -235,6 +235,12 @@ in
         mountPoint = "/home/user";
         image = "home.img";
         size = 10000;
+      }
+      {
+        # Bluetooth pairings (vm-usb attach copies them to the target VM)
+        mountPoint = "/var/lib/bluetooth";
+        image = "bluetooth.img";
+        size = 64;
       }
     ];
     devices = map mkPciDevice usbPciPaths;

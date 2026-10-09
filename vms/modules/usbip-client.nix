@@ -17,6 +17,16 @@ let
   bluetooth = builtins.elem vmName links.bluetoothVms;
   usbip = config.boot.kernelPackages.usbip;
 
+  # Firmware of common USB Bluetooth adapters only (Realtek, Qualcomm, Intel,
+  # MediaTek, Broadcom) instead of all of linux-firmware
+  bluetoothFirmware = pkgs.runCommand "bluetooth-firmware" { } ''
+    cd ${pkgs.linux-firmware}/lib/firmware
+    mkdir -p $out/lib/firmware
+    for f in rtl_bt qca intel/ibt-* mediatek/*BT* mediatek/*bt* brcm/*.hcd; do
+      if [ -e "$f" ]; then cp -dR --no-preserve=mode --parents "$f" $out/lib/firmware/; fi
+    done
+  '';
+
   # `usbip port` lists imported devices as "... -> usbip://<server>:<port>/<busid>"
   # below their "Port NN:" line
   usbipClient = pkgs.writeShellScriptBin "usbip-client" ''
@@ -87,6 +97,7 @@ in
       }
       (lib.mkIf bluetooth {
         hardware.bluetooth.enable = true;
+        hardware.firmware = [ bluetoothFirmware ];
       })
     ]
   );
