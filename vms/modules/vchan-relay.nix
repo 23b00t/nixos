@@ -5,13 +5,14 @@
 # - filtered session bus, notifications + tray (`enableHostDbusForward`)
 # - SSH (VMs with sshd): dom0's ssh reaches sshd -i (socket-activated per
 #   connection) instead of the admin network (stage B, ProxyCommand in
-#   home/ssh.nix)
+#   home/ssh.nix); stage B2 drops the admin interface (except sys-net)
 # - wprs (VMs with wprsd, vms/modules/wprs.nix): dom0's wprsc reaches wprsd,
 #   apps get dom0's pulse socket at /tmp/wprs-pulse (`vm-gui` in dom0)
 # dom0 side: machines/hp/xen.nix
 {
   lib,
   config,
+  options,
   inputs,
   ...
 }:
@@ -30,54 +31,70 @@ in
 {
   imports = [ inputs.nox.nixosModules.relay ];
 
-  config = lib.mkIf (config.microvm.hypervisor == "xen" && (githubAgent || dbus || wprs || ssh)) {
-    services.nox-relay.guest = {
-      enable = true;
-      listen =
-        lib.optionalAttrs githubAgent {
-          github-agent = {
-            path = "/tmp/ssh-github-agent.sock";
-            inherit owner;
-          };
-        }
-        // lib.optionalAttrs dbus {
-          dbus = {
-            path = "/tmp/ssh_dbus.sock";
-            inherit owner;
-          };
-        }
-        // lib.optionalAttrs wprs {
-          pulse = {
-            path = "/tmp/wprs-pulse";
-            inherit owner;
+  config = lib.mkIf (config.microvm.hypervisor == "xen" && (githubAgent || dbus || wprs || ssh)) (
+    lib.mkMerge [
+      {
+        services.nox-relay.guest = {
+          enable = true;
+          listen =
+            lib.optionalAttrs githubAgent {
+              github-agent = {
+                path = "/tmp/ssh-github-agent.sock";
+                inherit owner;
+              };
+            }
+            // lib.optionalAttrs dbus {
+              dbus = {
+                path = "/tmp/ssh_dbus.sock";
+                inherit owner;
+              };
+            }
+            // lib.optionalAttrs wprs {
+              pulse = {
+                path = "/tmp/wprs-pulse";
+                inherit owner;
+              };
+            };
+          serve =
+            lib.optionalAttrs wprs { wprs = "/run/user/1000/wprs.sock"; }
+            // lib.optionalAttrs ssh { ssh = sshSocket; };
+        };
+
+        # wprsd has to run without an SSH login (GUI over vchan)
+        users.users.user.linger = lib.mkIf wprs true;
+      }
+
+      (lib.mkIf ssh {
+        # One sshd -i per connection on the relay's socket (same config and
+        # host keys as the network sshd)
+        systemd.sockets.sshd-vchan = {
+          description = "SSH over vchan (nox-relay)";
+          wantedBy = [ "sockets.target" ];
+          socketConfig = {
+            ListenStream = sshSocket;
+            Accept = true;
+            SocketMode = "0600";
           };
         };
-      serve =
-        lib.optionalAttrs wprs { wprs = "/run/user/1000/wprs.sock"; }
-        // lib.optionalAttrs ssh { ssh = sshSocket; };
-    };
+        systemd.services."sshd-vchan@" = {
+          description = "SSH over vchan (one connection)";
+          serviceConfig = {
+            ExecStart = "-${config.services.openssh.package}/bin/sshd -i -f /etc/ssh/sshd_config";
+            StandardInput = "socket";
+            StandardError = "journal";
+          };
+        };
 
-    # wprsd has to run without an SSH login (GUI over vchan)
-    users.users.user.linger = lib.mkIf wprs true;
+        # Stage B2: dom0 reaches the guest over vchan only, no sshd on the
+        # network. sys-net keeps its admin link: dom0's internet in the test
+        # phase goes through it (xen-migration.md, SSH target picture)
+        services.openssh.openFirewall = lib.mkIf (vmName != "sys-net") (lib.mkDefault false);
+      })
 
-    # One sshd -i per connection on the relay's socket (same config and
-    # host keys as the network sshd)
-    systemd.sockets.sshd-vchan = lib.mkIf ssh {
-      description = "SSH over vchan (nox-relay)";
-      wantedBy = [ "sockets.target" ];
-      socketConfig = {
-        ListenStream = sshSocket;
-        Accept = true;
-        SocketMode = "0600";
-      };
-    };
-    systemd.services."sshd-vchan@" = lib.mkIf ssh {
-      description = "SSH over vchan (one connection)";
-      serviceConfig = {
-        ExecStart = "-${config.services.openssh.package}/bin/sshd -i -f /etc/ssh/sshd_config";
-        StandardInput = "socket";
-        StandardError = "journal";
-      };
-    };
-  };
+      # ... and no admin interface (only for VMs that use net-config)
+      (lib.optionalAttrs (options.services ? net-config) {
+        services.net-config.adminInterface = lib.mkIf ssh (lib.mkDefault (vmName == "sys-net"));
+      })
+    ]
+  );
 }

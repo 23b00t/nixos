@@ -44,7 +44,9 @@ let
         mac = usbLinks.macOf vm;
         inherit (usbLinks) bridge;
         backend = usbLinks.domain;
-        backendAddress = usbLinks.adminAddress;
+        # Without an admin link (stage B2) sys-usb is checked through the relay
+        backendAddress =
+          config.services.nox-relay.host.guests.sys-usb.listen.ssh.path or usbLinks.adminAddress;
       })
       (
         builtins.filter (
@@ -66,9 +68,19 @@ let
         pkgs.coreutils
         pkgs.gawk
         pkgs.bash
+        pkgs.socat
       ]
     }
     declare -A notconnected
+
+    # Is the backend's sshd reachable? An IP over the admin network, or a
+    # nox-relay socket (stage B2): then the SSH banner comes back over vchan
+    reachable() {
+      case "$1" in
+        /*) [ "$(timeout 3 socat -t 2 - "UNIX-CONNECT:$1" </dev/null 2>/dev/null | head -c 4)" = SSH- ] ;;
+        *) timeout 1 bash -c "</dev/tcp/$1/22" 2>/dev/null ;;
+      esac
+    }
 
     while true; do
       while read -r dom mac bridge backend address <&3; do
@@ -79,7 +91,7 @@ let
         # The backend must be up (its bridge exists only once its network is
         # configured), otherwise the hotplug script there fails
         bedomid="$(xl domid "$backend" 2>/dev/null)" || continue
-        timeout 1 bash -c "</dev/tcp/$address/22" 2>/dev/null || continue
+        reachable "$address" || continue
 
         # Idx BE Mac handle state ...; state 4 = connected
         idx="" be="" state="" hotplug=""

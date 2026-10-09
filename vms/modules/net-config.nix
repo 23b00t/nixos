@@ -82,6 +82,12 @@ in
       description = "DNS servers for the guest.";
     };
 
+    adminInterface = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Give the VM the admin interface (tap on dom0's vm-internal bridge). Xen guests that dom0 reaches over vchan do without it (stage B2, vms/modules/vchan-relay.nix).";
+    };
+
     # Xen (v2.5): second interface served by sys-net (driver domain), the VM's
     # default route. The admin interface above stays for dom0 only.
     uplink = {
@@ -148,7 +154,7 @@ in
 
     microvm = {
       interfaces =
-        optional (effectiveTapId != null) {
+        optional (effectiveTapId != null && cfg.adminInterface) {
           id = effectiveTapId;
           type = "tap";
           inherit (cfg) mac;
@@ -178,7 +184,7 @@ in
       '';
     };
 
-    systemd.network.links = mkIf (cfg.interfaceName != null) {
+    systemd.network.links = mkIf (cfg.interfaceName != null && cfg.adminInterface) {
       "10-net-config-link" = {
         matchConfig.MACAddress = cfg.mac;
         linkConfig.Name = cfg.interfaceName;
@@ -186,7 +192,7 @@ in
     };
 
     systemd.network.networks = {
-      "20-net-config" = {
+      "20-net-config" = mkIf cfg.adminInterface {
         matchConfig.MACAddress = cfg.mac;
         address = [ effectiveAddress4 ];
         routes =

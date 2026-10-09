@@ -24,6 +24,8 @@ let
   xen = config.virtualisation.xen.package;
   sshOpts = "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=5 -o LogLevel=ERROR";
   stateDir = "/run/vm-usb";
+  # How dom0 checks that sys-usb is up: its relay SSH socket (stage B2) or IP
+  sysUsbCheck = config.services.nox-relay.host.guests.sys-usb.listen.ssh.path or links.adminAddress;
 
   # Target VMs on this host: "name short adminAddress linkAddress"
   targetVms = builtins.filter (
@@ -477,14 +479,23 @@ in
           pkgs.coreutils
           pkgs.bash
           pkgs.systemd
+          pkgs.socat
         ];
         serviceConfig = {
           Type = "oneshot";
           TimeoutStartSec = cfg.fallbackTimeout + 60;
         };
         script = ''
+          # sshd answers: over the admin network, or (stage B2, no admin link)
+          # its banner comes back through nox-relay
+          reachable() {
+            case "$1" in
+              /*) [ "$(timeout 3 socat -t 2 - "UNIX-CONNECT:$1" </dev/null 2>/dev/null | head -c 4)" = SSH- ] ;;
+              *) timeout 1 bash -c "</dev/tcp/$1/22" 2>/dev/null ;;
+            esac
+          }
           for _ in $(seq ${toString cfg.fallbackTimeout}); do
-            if timeout 1 bash -c '</dev/tcp/${links.adminAddress}/22' 2>/dev/null; then
+            if reachable ${lib.escapeShellArg sysUsbCheck}; then
               exit 0
             fi
             sleep 1
