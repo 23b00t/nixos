@@ -37,6 +37,7 @@ in
     ../../modules/xen-usb.nix
     ../../modules/xen-links.nix
     inputs.nox.nixosModules.relay
+    inputs.nox.nixosModules.rpc
   ];
 
   virtualisation.xen = {
@@ -120,6 +121,28 @@ in
         ) (lib.filterAttrs (_: vm: vm.config.config.microvm.hypervisor == "xen") config.microvm.vms)
       );
     };
+  };
+
+  # Stage C: RPC between app VMs (NoX nox-rpc), mediated by dom0. Copying
+  # (`vm-copy <vm> <files>` in a VM) always asks (notification with buttons).
+  # Guest side: vms/modules/vchan-relay.nix
+  services.nox-rpc.host = {
+    enable = true;
+    guests = builtins.filter (
+      vm:
+      !builtins.elem vm [
+        "sys-net"
+        "sys-usb"
+        "builder"
+      ]
+      && config.microvm.vms.${vm}.config.config.microvm.hypervisor == "xen"
+    ) (builtins.attrNames config.microvm.vms);
+    policy = [
+      {
+        service = "copy";
+        action = "ask";
+      }
+    ];
   };
 
   # v2.5: the WLAN card belongs to sys-net (registry `hardware.pci`, driver

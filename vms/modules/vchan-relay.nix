@@ -8,6 +8,7 @@
 #   home/ssh.nix); stage B2 drops the admin interface (except sys-net)
 # - wprs (VMs with wprsd, vms/modules/wprs.nix): dom0's wprsc reaches wprsd,
 #   apps get dom0's pulse socket at /tmp/wprs-pulse (`vm-gui` in dom0)
+# - RPC (stage C, app VMs): `vm-copy`, incoming files in ~/Incoming/<source>
 # dom0 side: machines/hp/xen.nix
 {
   lib,
@@ -29,7 +30,10 @@ let
   owner = "1000:100";
 in
 {
-  imports = [ inputs.nox.nixosModules.relay ];
+  imports = [
+    inputs.nox.nixosModules.relay
+    inputs.nox.nixosModules.rpc
+  ];
 
   config = lib.mkIf (config.microvm.hypervisor == "xen" && (githubAgent || dbus || wprs || ssh)) (
     lib.mkMerge [
@@ -90,6 +94,16 @@ in
         # phase goes through it (xen-migration.md, SSH target picture)
         services.openssh.openFirewall = lib.mkIf (vmName != "sys-net") (lib.mkDefault false);
       })
+
+      # RPC (stage C): app VMs call (`vm-copy <vm> <files>`) and receive
+      # (~/Incoming/<source>); driver domains and the builder take no part
+      (lib.mkIf (
+        !builtins.elem vmName [
+          "sys-net"
+          "sys-usb"
+          "builder"
+        ]
+      ) { services.nox-rpc.guest.enable = true; })
 
       # ... and no admin interface (only for VMs that use net-config)
       (lib.optionalAttrs (options.services ? net-config) {
