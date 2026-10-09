@@ -69,4 +69,17 @@
     "L+ /home/user/.config/yazi/init.lua - - - - /etc/yazi/init.lua"
     "L+ /home/user/.config/yazi/plugins - - - - /etc/yazi/plugins"
   ];
+
+  # The mount plugin uses udisksctl (USB storage from sys-usb via vm-usb)
+  services.udisks2.enable = true;
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+      if (
+        subject.isInGroup("wheel") &&
+        action.id.indexOf("org.freedesktop.udisks2.") == 0
+      ) {
+        return polkit.Result.YES;
+      }
+    });
+  '';
 }

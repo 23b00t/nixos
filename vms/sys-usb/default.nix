@@ -49,7 +49,7 @@ let
           for c in "$dev/bDeviceClass" "$dev/$b":*/bInterfaceClass; do
             [ "$(cat "$c" 2>/dev/null)" = e0 ] && bt=1
           done
-          name="$(tr -c 'A-Za-z0-9._\n-' _ <"$dev/product" 2>/dev/null)"
+          name="$(tr -c 'A-Za-z0-9._\n-' _ 2>/dev/null <"$dev/product")"
           echo "$b $(<"$dev/idVendor"):$(<"$dev/idProduct") $status $bt ''${name:-?}"
         done
         ;;
@@ -130,7 +130,6 @@ in
     udev.extraRules = inputProxyRules;
 
     dbus.enable = true;
-    udisks2.enable = true;
     blueman.enable = true;
     pulseaudio = {
       enable = true;
@@ -265,19 +264,7 @@ in
     usbHelper
   ];
 
-  security.polkit = {
-    enable = true;
-    extraConfig = ''
-      polkit.addRule(function(action, subject) {
-        if (
-          subject.isInGroup("wheel") &&
-          action.id.indexOf("org.freedesktop.udisks2.") == 0
-        ) {
-          return polkit.Result.YES;
-        }
-      });
-    '';
-  };
+  security.polkit.enable = true;
   programs.dconf.enable = true;
 
   hardware.enableRedistributableFirmware = true;

@@ -312,20 +312,6 @@ let
       allowedOwners = [ "host" ];
       microvmUsbPath = "vendorid=0x093a,productid=0x2533";
     }
-    {
-      name = "verbatim usb-stick";
-      vendorId = "18a5";
-      productId = "0243";
-      policy = "vm-reserved";
-      defaultOwner = "sys-usb";
-      allowedOwners = [ "sys-usb" ];
-      microvmUsbPath = "vendorid=0x18a5,productid=0x0243";
-      udev = {
-        group = "kvm";
-        mode = "0660";
-        udisksIgnore = true;
-      };
-    }
   ];
 
   usbByName = builtins.listToAttrs (
