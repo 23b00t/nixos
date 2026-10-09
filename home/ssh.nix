@@ -26,6 +26,8 @@ let
   };
 
   settings = builtins.foldl' (acc: h: acc // mkSettingsBlock h) {
+    # Goes to dom0's own agent (SSH_AUTH_SOCK), never to the GitHub agent
+    # that VMs get (home.nix)
     "*" = {
       AddKeysToAgent = "yes";
     };

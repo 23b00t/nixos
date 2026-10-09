@@ -30,6 +30,11 @@ in
       pull.rebase = false;
       init.defaultBranch = "main";
       gpg.format = "ssh";
+      # The signing key lives in the GitHub agent, not in dom0's default
+      # agent (SSH_AUTH_SOCK, see home/home.nix)
+      gpg.ssh.program = "${pkgs.writeShellScript "ssh-keygen-github-agent" ''
+        SSH_AUTH_SOCK="$HOME/.ssh/agent/github.sock" exec ${pkgs.openssh}/bin/ssh-keygen "$@"
+      ''}";
       commit.gpgsign = true;
     };
   };

@@ -91,9 +91,10 @@ in
   # oh-my-posh theme
   home.file.".cache/oh-my-posh/themes/slimfat.omp.json".source = ./resources/slimfat.omp.json;
 
-  home.sessionVariables = {
-    SSH_AUTH_SOCK = "$HOME/.ssh/agent/github.sock";
-  };
+  # SSH_AUTH_SOCK stays dom0's own agent (programs.ssh.startAgent). The
+  # GitHub agent (~/.ssh/agent/github.sock) is handed to VMs and must only
+  # ever hold the GitHub key: github.com uses it via IdentityAgent (ssh.nix),
+  # git commit signing via gpg.ssh.program (machines/hp/dev-access.nix).
 
   home.stateVersion = "26.05";
 }
