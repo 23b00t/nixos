@@ -123,7 +123,9 @@ ${vmCases}
 
     if [ "$DBUS_FORWARD_REQUIRED" -eq 1 ]; then
       DBUS_FORWARD_SERVICE="vm-dbus-forward@$FULL_NAME.service"
-      if ! systemctl --user is-active --quiet "$DBUS_FORWARD_SERVICE"; then
+      # Xen guests get the bus over vchan (nox-relay): no forward unit
+      if systemctl --user cat "$DBUS_FORWARD_SERVICE" >/dev/null 2>&1 \
+        && ! systemctl --user is-active --quiet "$DBUS_FORWARD_SERVICE"; then
         systemctl --user start "$DBUS_FORWARD_SERVICE" || true
       fi
 

@@ -125,6 +125,8 @@ in
       genericName = "Element Matrix Client";
       vm = "chat";
       binary = "element-desktop";
+      # Tray show/hide needs XWayland under wprs (see niri.nix)
+      args = "--ozone-platform=x11";
       icon = "element-desktop";
       categories = [
         "Network"
