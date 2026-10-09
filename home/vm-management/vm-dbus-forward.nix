@@ -1,7 +1,11 @@
-{ pkgs, ... }:
+{ pkgs, osConfig ? { }, ... }:
 let
   vmRegistry = import ../../vms/registry.nix;
-  dbusForwardHosts = vmRegistry.dbusForwardParticipants or [ ];
+  # Guests that get the bus over vchan (nox-relay) need no SSH forward
+  relayed = osConfig.services.nox-relay.host.guests or { };
+  dbusForwardHosts = builtins.filter (
+    vm: !((relayed.${vm.name}.serve or { }) ? dbus)
+  ) (vmRegistry.dbusForwardParticipants or [ ]);
   vmUser = "user";
   hostDbusSocket = "/run/user/1000/vm-session-bus.sock";
   remoteDbusSocket = "/tmp/ssh_dbus.sock";

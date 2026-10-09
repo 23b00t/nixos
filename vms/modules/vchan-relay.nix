@@ -1,6 +1,11 @@
 # Guest side of nox-relay (v2.8.4, NoX flake input): sockets from dom0 over a
-# vchan instead of SSH forwards. Xen VMs only. First service: the GitHub agent
-# (registry `allowGitHubAgent`), at the path the SSH forward used.
+# vchan instead of SSH forwards. Xen VMs only, at the paths the SSH forwards
+# used:
+# - GitHub agent (registry `allowGitHubAgent`)
+# - filtered session bus, notifications + tray (`enableHostDbusForward`)
+# - wprs (VMs with wprsd, vms/modules/wprs.nix): dom0's wprsc reaches wprsd,
+#   apps get dom0's pulse socket at /tmp/wprs-pulse (`vm-gui` in dom0)
+# dom0 side: machines/hp/xen.nix
 {
   lib,
   config,
@@ -10,19 +15,42 @@
 let
   vmRegistry = import ../registry.nix;
   vmName = lib.removeSuffix "-vm" (config.networking.hostName or "");
-  githubAgent = (vmRegistry.byName.${vmName} or { }).allowGitHubAgent or false;
+  vm = vmRegistry.byName.${vmName} or { };
+  githubAgent = vm.allowGitHubAgent or false;
+  dbus = vm != { } && (vm.enableHostDbusForward or true);
+  wprs = config.systemd.user.services ? wprsd;
+  # uid/gid of `user` in the VMs
+  owner = "1000:100";
 in
 {
   imports = [ inputs.nox.nixosModules.relay ];
 
-  config = lib.mkIf (config.microvm.hypervisor == "xen" && githubAgent) {
+  config = lib.mkIf (config.microvm.hypervisor == "xen" && (githubAgent || dbus || wprs)) {
     services.nox-relay.guest = {
       enable = true;
-      # uid/gid of `user` in the VMs
-      listen.github-agent = {
-        path = "/tmp/ssh-github-agent.sock";
-        owner = "1000:100";
-      };
+      listen =
+        lib.optionalAttrs githubAgent {
+          github-agent = {
+            path = "/tmp/ssh-github-agent.sock";
+            inherit owner;
+          };
+        }
+        // lib.optionalAttrs dbus {
+          dbus = {
+            path = "/tmp/ssh_dbus.sock";
+            inherit owner;
+          };
+        }
+        // lib.optionalAttrs wprs {
+          pulse = {
+            path = "/tmp/wprs-pulse";
+            inherit owner;
+          };
+        };
+      serve = lib.optionalAttrs wprs { wprs = "/run/user/1000/wprs.sock"; };
     };
+
+    # wprsd has to run without an SSH login (GUI over vchan)
+    users.users.user.linger = lib.mkIf wprs true;
   };
 }

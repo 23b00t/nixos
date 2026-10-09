@@ -21,6 +21,7 @@ in
     (import ./hypr/xdg-gtk-qt.nix { inherit config pkgs; })
     ./ssh.nix
     ./vm-management/vm-run.nix
+    ./vm-management/vm-gui.nix
     ./vm-management/desktop-entries.nix
     ./vm-management/vm-connect.nix
     ./vm-management/vm-dbus-forward.nix

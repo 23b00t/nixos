@@ -78,31 +78,47 @@ in
     xen-links.enable = true;
 
     # v2.8.4: sockets for Xen guests over vchan (NoX nox-relay) instead of SSH
-    # forwards. First service: the GitHub agent (registry `allowGitHubAgent`)
+    # forwards: GitHub agent (registry `allowGitHubAgent`), filtered session
+    # bus (`enableHostDbusForward`), wprs for VMs with wprsd (`vm-gui`, the
+    # wprsc socket is /run/nox-relay/<vm>-wprs.sock; apps get dom0's pulse).
+    # Guest side: vms/modules/vchan-relay.nix
     nox-relay.host = {
       enable = true;
-      guests =
-        lib.mapAttrs'
-          (
-            name: _:
-            lib.nameValuePair name {
-              domain = "${name}-vm";
-              serve.github-agent = "/home/nx/.ssh/agent/github.sock";
-            }
-          )
-          (
-            lib.filterAttrs (
-              name: vm:
-              (vmRegistry.byName.${name}.allowGitHubAgent or false)
-              && vm.config.config.microvm.hypervisor == "xen"
-            ) config.microvm.vms
-          );
+      guests = lib.filterAttrs (_: g: g.serve != { } || g.listen != { }) (
+        lib.mapAttrs (
+          name: guest:
+          let
+            vm = vmRegistry.byName.${name} or { };
+            wprs = guest.config.config.systemd.user.services ? wprsd;
+          in
+          {
+            domain = "${name}-vm";
+            serve =
+              lib.optionalAttrs (vm.allowGitHubAgent or false) {
+                github-agent = "/home/nx/.ssh/agent/github.sock";
+              }
+              // lib.optionalAttrs (vm.enableHostDbusForward or true) {
+                dbus = "/run/user/1000/vm-session-bus.sock";
+              }
+              // lib.optionalAttrs wprs { pulse = "/run/user/1000/pulse/native"; };
+            listen = lib.optionalAttrs wprs {
+              wprs = {
+                path = "/run/nox-relay/${name}-wprs.sock";
+                owner = "1000:100";
+              };
+            };
+          }
+        ) (lib.filterAttrs (_: vm: vm.config.config.microvm.hypervisor == "xen") config.microvm.vms)
+      );
     };
   };
 
   # v2.5: the WLAN card belongs to sys-net (registry `hardware.pci`, driver
   # blacklisted in dom0). `sys-net-rescue` hands it back in an emergency.
   environment.systemPackages = [ sysNetRescue ];
+
+  # nox-relay (root) creates the wprs sockets for dom0's wprsc here
+  systemd.tmpfiles.rules = [ "d /run/nox-relay 0755 root root -" ];
 
   # PVH dom0 is the target. On hp the I2C touchpad only works with a PV dom0
   # (see README "Known hardware issues"); a PV specialisation doubled the

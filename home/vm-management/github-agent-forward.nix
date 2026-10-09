@@ -4,7 +4,7 @@ let
   # Guests that get the agent over vchan (nox-relay) need no SSH forward
   relayed = osConfig.services.nox-relay.host.guests or { };
   githubAgentHosts = builtins.filter (
-    h: (h.allowGitHubAgent or false) && !(relayed ? ${h.name})
+    h: (h.allowGitHubAgent or false) && !((relayed.${h.name}.serve or { }) ? github-agent)
   ) vmRegistry.vms;
   githubAgentBin = import ./github-agent.nix { inherit pkgs; };
   vmUser = "user";
