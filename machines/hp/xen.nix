@@ -80,7 +80,8 @@ in
     # v2.8.4: sockets for Xen guests over vchan (NoX nox-relay) instead of SSH
     # forwards: GitHub agent (registry `allowGitHubAgent`), filtered session
     # bus (`enableHostDbusForward`), wprs for VMs with wprsd (`vm-gui`, the
-    # wprsc socket is /run/nox-relay/<vm>-wprs.sock; apps get dom0's pulse).
+    # wprsc socket is /run/nox-relay/<vm>-wprs.sock; apps get dom0's pulse),
+    # SSH to the guests (stage B: /run/nox-relay/<vm>-ssh.sock).
     # Guest side: vms/modules/vchan-relay.nix
     nox-relay.host = {
       enable = true;
@@ -101,12 +102,20 @@ in
                 dbus = "/run/user/1000/vm-session-bus.sock";
               }
               // lib.optionalAttrs wprs { pulse = "/run/user/1000/pulse/native"; };
-            listen = lib.optionalAttrs wprs {
-              wprs = {
-                path = "/run/nox-relay/${name}-wprs.sock";
-                owner = "1000:100";
+            listen =
+              lib.optionalAttrs wprs {
+                wprs = {
+                  path = "/run/nox-relay/${name}-wprs.sock";
+                  owner = "1000:100";
+                };
+              }
+              // lib.optionalAttrs guest.config.config.services.openssh.enable {
+                # dom0's ssh to the guest (ProxyCommand in home/ssh.nix)
+                ssh = {
+                  path = "/run/nox-relay/${name}-ssh.sock";
+                  owner = "1000:100";
+                };
               };
-            };
           }
         ) (lib.filterAttrs (_: vm: vm.config.config.microvm.hypervisor == "xen") config.microvm.vms)
       );
