@@ -1,7 +1,7 @@
-# sys-usb (v2.6): Xen HVM driver domain owning all USB controllers. Keeps
-# Bluetooth and storage, exports USB devices of other VMs via USB/IP on the
-# link bridge `vm-usbip`, and offers the allowed input devices to dom0's
-# input proxy (vms/usb-links.nix, modules/xen-usb.nix).
+# sys-usb (v2.6, v2.8.3): Xen HVM driver domain owning all USB controllers.
+# Every device lands here; dom0's `vm-usb` exports single devices to VMs via
+# USB/IP on the link bridge `vm-usbip` (usb-helper below), and the input
+# proxy reads input devices from here (vms/usb-links.nix, modules/xen-usb.nix).
 {
   lib,
   pkgs,
@@ -18,33 +18,88 @@ let
   };
   usbip = config.boot.kernelPackages.usbip;
 
-  # `usbip-release <vendor:product>...` (run by dom0's xen-links when a
-  # consumer VM went away): re-export devices still marked as used by a
-  # vanished client (usbip_status 2), by restarting their usbip-bind unit
-  usbipRelease = pkgs.writeShellScriptBin "usbip-release" ''
-    for vp in "$@"; do
-      [[ "$vp" =~ ^[0-9a-f]{4}:[0-9a-f]{4}$ ]] || { echo "invalid id: $vp" >&2; continue; }
-      for dev in /sys/bus/usb/devices/*; do
-        [ -f "$dev/idVendor" ] && [ -f "$dev/usbip_status" ] || continue
-        [ "$(<"$dev/idVendor"):$(<"$dev/idProduct")" = "$vp" ] || continue
-        if [ "$(<"$dev/usbip_status")" = 2 ]; then
-          echo "releasing $vp (busid ''${dev##*/})"
-          ${pkgs.systemd}/bin/systemctl restart "usbip-bind@''${dev##*/}.service"
+  # `usb-helper <command>`, called by dom0's vm-usb and input proxy over SSH
+  # (as `user`, with sudo where root is needed). Arguments are checked
+  # strictly; dom0 is the only caller.
+  usbHelper = pkgs.writeShellScriptBin "usb-helper" ''
+    set -u
+    PATH=${
+      lib.makeBinPath [
+        usbip
+        pkgs.coreutils
+        pkgs.nftables
+        pkgs.gnutar
+        pkgs.gnugrep
+      ]
+    }
+    busid_ok() { [[ "$1" =~ ^[0-9]+-[0-9]+(\.[0-9]+)*$ ]] && [ -f "/sys/bus/usb/devices/$1/idVendor" ]; }
+    addr_ok() { [[ "$1" =~ ^10\.2\.0\.[0-9]{1,3}$ ]]; }
+
+    case "''${1:-}" in
+      list)
+        # busid vendor:product status bluetooth name; status = usbip_status
+        # (1 exported, 2 in use) or - (in sys-usb)
+        for dev in /sys/bus/usb/devices/*; do
+          b="''${dev##*/}"
+          busid_ok "$b" || continue
+          [ "$(<"$dev/bDeviceClass")" = 09 ] && continue # hubs
+          status=-
+          [ -f "$dev/usbip_status" ] && status="$(<"$dev/usbip_status")"
+          bt=0
+          for c in "$dev/bDeviceClass" "$dev/$b":*/bInterfaceClass; do
+            [ "$(cat "$c" 2>/dev/null)" = e0 ] && bt=1
+          done
+          name="$(tr -c 'A-Za-z0-9._\n-' _ <"$dev/product" 2>/dev/null)"
+          echo "$b $(<"$dev/idVendor"):$(<"$dev/idProduct") $status $bt ''${name:-?}"
+        done
+        ;;
+      bind)
+        busid_ok "''${2:-}" || exit 2
+        [ -f "/sys/bus/usb/devices/$2/usbip_status" ] || usbip bind -b "$2"
+        ;;
+      unbind)
+        # Also frees a device still "in use" by a vanished client
+        busid_ok "''${2:-}" || exit 2
+        if [ -f "/sys/bus/usb/devices/$2/usbip_status" ]; then
+          usbip unbind -b "$2"
         fi
-      done
-    done
+        ;;
+      allow)
+        addr_ok "''${2:-}" || exit 2
+        nft add element inet usbip clients "{ $2 }"
+        ;;
+      deny)
+        addr_ok "''${2:-}" || exit 2
+        nft delete element inet usbip clients "{ $2 }" 2>/dev/null || true
+        ;;
+      allowed)
+        nft list set inet usbip clients | grep -oE '10\.2\.0\.[0-9]+' || true
+        ;;
+      inputs)
+        # eventN vendor:product busid of USB input devices (dom0's input proxy)
+        for ev in /sys/class/input/event*; do
+          p="$(readlink -f "$ev/device")"
+          while [ -n "$p" ] && [ ! -f "$p/idVendor" ]; do p="''${p%/*}"; done
+          [ -n "$p" ] || continue
+          echo "''${ev##*/} $(<"$p/idVendor"):$(<"$p/idProduct") ''${p##*/}"
+        done
+        ;;
+      bt-export)
+        # Pairings, copied along with a Bluetooth adapter (one-way)
+        tar -C /var/lib/bluetooth -cf - .
+        ;;
+      *)
+        echo "usage: usb-helper list | bind|unbind <busid> | allow|deny <addr> | allowed | inputs | bt-export" >&2
+        exit 2
+        ;;
+    esac
   '';
 
-  # Exported devices: bind to usbip-host as soon as they appear (busid = %k)
-  usbipBindRules = lib.concatMapStrings (d: ''
-    ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="${d.vendorId}", ATTR{idProduct}=="${d.productId}", TAG+="systemd", ENV{SYSTEMD_WANTS}+="usbip-bind@%k.service"
-  '') links.exported;
-
-  # Input devices for dom0: stable names under /dev/input-proxy, readable by
-  # the input-proxy group only (dom0 connects as `user`)
-  inputProxyRules = lib.concatMapStrings (d: ''
-    SUBSYSTEM=="input", KERNEL=="event*", ATTRS{idVendor}=="${d.vendorId}", ATTRS{idProduct}=="${d.productId}", SYMLINK+="input-proxy/${d.vendorId}-${d.productId}-%k", GROUP="input-proxy", MODE="0640"
-  '') links.inputDevices;
+  # All USB input devices are readable by `user`; dom0's input proxy decides
+  # what it forwards (registry whitelist or `vm-usb allow-input`)
+  inputProxyRules = ''
+    SUBSYSTEM=="input", KERNEL=="event*", SUBSYSTEMS=="usb", GROUP="input-proxy", MODE="0640"
+  '';
 in
 {
   imports = [
@@ -72,7 +127,7 @@ in
     # SSH only from the admin network (dom0)
     openssh.openFirewall = false;
 
-    udev.extraRules = usbipBindRules + inputProxyRules;
+    udev.extraRules = inputProxyRules;
 
     dbus.enable = true;
     udisks2.enable = true;
@@ -119,27 +174,13 @@ in
     };
   };
 
-  systemd.services = {
-    usbipd = {
-      description = "USB/IP server (devices exported to other VMs)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
-      serviceConfig = {
-        ExecStart = "${usbip}/bin/usbipd -4";
-        Restart = "always";
-      };
-    };
-
-    "usbip-bind@" = {
-      description = "Export USB device %i via USB/IP";
-      after = [ "usbipd.service" ];
-      requires = [ "usbipd.service" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = "${usbip}/bin/usbip bind -b %i";
-        ExecStop = "-${usbip}/bin/usbip unbind -b %i";
-      };
+  systemd.services.usbipd = {
+    description = "USB/IP server (devices exported to other VMs)";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+    serviceConfig = {
+      ExecStart = "${usbip}/bin/usbipd -4";
+      Restart = "always";
     };
   };
 
@@ -157,15 +198,27 @@ in
           }
         '';
       };
+      # usbipd: new connections only from VMs that currently have a device
+      # (set filled by dom0's vm-usb via usb-helper allow/deny)
+      tables.usbip = {
+        family = "inet";
+        content = ''
+          set clients {
+            type ipv4_addr
+          }
+          chain input {
+            type filter hook input priority filter - 10; policy accept;
+            iifname "${links.bridge}" tcp dport ${toString links.port} ct state new ip saddr != @clients drop
+          }
+        '';
+      };
     };
     firewall = {
       enable = true;
       interfaces.vm-lan.allowedTCPPorts = [ 22 ];
-      # usbipd only for the VMs that own exported devices
-      extraInputRules = lib.optionalString (links.consumers != [ ]) ''
-        iifname "${links.bridge}" ip saddr { ${
-          lib.concatMapStringsSep ", " links.addressOf links.consumers
-        } } tcp dport ${toString links.port} accept
+      # Narrowed further by table usbip
+      extraInputRules = ''
+        iifname "${links.bridge}" ip saddr ${links.network}/${toString links.prefixLength} tcp dport ${toString links.port} accept
       '';
     };
   };
@@ -203,7 +256,7 @@ in
     usbutils
     util-linux
     usbip
-    usbipRelease
+    usbHelper
   ];
 
   security.polkit = {

@@ -1,7 +1,8 @@
-# USB/IP client (v2.6): attaches the USB devices this VM owns in the registry
-# from sys-usb. The link interface is hot-plugged by dom0 (modules/xen-usb.nix)
-# once both domains run, so this VM starts without sys-usb. Active for Xen
-# VMs that own exported devices (vms/usb-links.nix).
+# USB/IP client (v2.6, v2.8.3): every Xen target VM (vms/usb-links.nix) has
+# the link to sys-usb (interface hot-plugged by dom0's xen-links) and
+# `usbip-client`, which dom0's `vm-usb` calls over SSH to attach/detach the
+# devices it assigns. VMs allowed to own a registry Bluetooth adapter get
+# bluez and take over sys-usb's pairings on attach.
 {
   lib,
   pkgs,
@@ -12,56 +13,81 @@ let
   vmRegistry = import ../registry.nix;
   links = import ../usb-links.nix { inherit lib vmRegistry; };
   vmName = lib.removeSuffix "-vm" (config.networking.hostName or "");
-  devices = if vmRegistry.byName ? ${vmName} then links.devicesFor vmName else [ ];
-  enable = devices != [ ] && config.microvm.hypervisor == "xen";
+  enable = links.isTarget vmName && config.microvm.hypervisor == "xen";
+  bluetooth = builtins.elem vmName links.bluetoothVms;
   usbip = config.boot.kernelPackages.usbip;
 
-  # `usbip list`/`usbip port` show devices as "(vvvv:pppp)"
-  attach = pkgs.writeShellScript "usbip-attach" ''
+  # `usbip port` lists imported devices as "... -> usbip://<server>:<port>/<busid>"
+  # below their "Port NN:" line
+  usbipClient = pkgs.writeShellScriptBin "usbip-client" ''
+    set -u
     PATH=${
       lib.makeBinPath [
         usbip
-        pkgs.gawk
-        pkgs.gnugrep
         pkgs.coreutils
+        pkgs.gawk
+        pkgs.gnutar
+        pkgs.systemd
       ]
     }
-    while true; do
-      for vp in ${lib.concatMapStringsSep " " (d: "${d.vendorId}:${d.productId}") devices}; do
-        if ! usbip port 2>/dev/null | grep -qF "($vp)"; then
-          busid="$(usbip list -r ${links.serverAddress} 2>/dev/null \
-            | awk -v vp="($vp)" 'index($0, vp) && $1 ~ /:$/ { sub(":$", "", $1); print $1; exit }')"
-          if [ -n "$busid" ] && usbip attach -r ${links.serverAddress} -b "$busid"; then
-            echo "attached $vp (busid $busid)"
-          fi
-        fi
-      done
-      sleep 5
-    done
+    busid_ok() { [[ "$1" =~ ^[0-9]+-[0-9]+(\.[0-9]+)*$ ]]; }
+    port_of() {
+      usbip port 2>/dev/null | awk -v b="$1" '
+        /^Port [0-9]+:/ { p = $2; sub(":", "", p) }
+        /-> usbip:\/\// { n = split($NF, a, "/"); if (a[n] == b) print p }'
+    }
+
+    case "''${1:-}" in
+      attach)
+        # dom0 only asks when sys-usb has the device unused: an old port for
+        # it is stale (sys-usb restarted)
+        busid_ok "''${2:-}" || exit 2
+        for p in $(port_of "$2"); do usbip detach -p "$p"; done
+        usbip attach -r ${links.serverAddress} -b "$2"
+        ;;
+      detach)
+        busid_ok "''${2:-}" || exit 2
+        for p in $(port_of "$2"); do usbip detach -p "$p"; done
+        ;;
+      list)
+        usbip port 2>/dev/null | awk '/-> usbip:\/\// { n = split($NF, a, "/"); print a[n] }'
+        ;;
+      ${lib.optionalString bluetooth ''
+        bt-import)
+          # sys-usb's pairings (tar on stdin), before the adapter arrives
+          install -d -m 0700 /var/lib/bluetooth
+          tar -C /var/lib/bluetooth --no-same-owner -xf -
+          systemctl restart bluetooth
+          ;;
+      ''}
+      *)
+        echo "usage: usbip-client attach|detach <busid> | list${lib.optionalString bluetooth " | bt-import"}" >&2
+        exit 2
+        ;;
+    esac
   '';
 in
 {
-  config = lib.mkIf enable {
-    boot.kernelModules = [ "vhci-hcd" ];
+  config = lib.mkIf enable (
+    lib.mkMerge [
+      {
+        boot.kernelModules = [ "vhci-hcd" ];
 
-    systemd.network.networks."22-usbip-link" = {
-      matchConfig.MACAddress = links.macOf vmName;
-      address = [ "${links.addressOf vmName}/${toString links.prefixLength}" ];
-      networkConfig.ConfigureWithoutCarrier = true;
-      linkConfig.RequiredForOnline = "no";
-    };
+        systemd.network.networks."22-usbip-link" = {
+          matchConfig.MACAddress = links.macOf vmName;
+          address = [ "${links.addressOf vmName}/${toString links.prefixLength}" ];
+          networkConfig.ConfigureWithoutCarrier = true;
+          linkConfig.RequiredForOnline = "no";
+        };
 
-    systemd.services.usbip-attach = {
-      description = "Attach this VM's USB devices from sys-usb (USB/IP)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
-      serviceConfig = {
-        ExecStart = attach;
-        Restart = "always";
-        RestartSec = 5;
-      };
-    };
-
-    environment.systemPackages = [ usbip ];
-  };
+        environment.systemPackages = [
+          usbip
+          usbipClient
+        ];
+      }
+      (lib.mkIf bluetooth {
+        hardware.bluetooth.enable = true;
+      })
+    ]
+  );
 }

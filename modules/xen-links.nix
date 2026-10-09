@@ -4,9 +4,8 @@
 # - a vif is (re)attached when it is missing, hangs on an old backend domid
 #   (driver domain restarted), reports hotplug errors, or is not connected
 #   for `graceRounds` rounds
-# - USB/IP: when a consumer VM goes away or restarts (and once when this
-#   service starts), its devices are released in sys-usb, because the
-#   usbip-host stub never notices a vanished client
+# - USB/IP links go to every Xen target VM (vms/usb-links.nix); which devices
+#   a VM gets is up to vm-usb (modules/xen-usb.nix)
 {
   lib,
   pkgs,
@@ -18,7 +17,6 @@ let
   cfg = config.services.xen-links;
   usbLinks = import ../vms/usb-links.nix { inherit lib vmRegistry; };
   xen = config.virtualisation.xen.package;
-  sshOpts = "-n -o BatchMode=yes -o ConnectTimeout=5 -o LogLevel=ERROR";
 
   uplinks = lib.concatLists (
     lib.mapAttrsToList (
@@ -35,26 +33,30 @@ let
           backend
           backendAddress
           ;
-        release = "-";
       }
     ) config.microvm.vms
   );
 
-  usbipLinks = map (vm: {
-    domain = "${vm}-vm";
-    mac = usbLinks.macOf vm;
-    inherit (usbLinks) bridge;
-    backend = usbLinks.domain;
-    backendAddress = usbLinks.adminAddress;
-    # vendor:product of the VM's devices, released in sys-usb on a restart
-    release = lib.concatMapStringsSep "," (d: "${d.vendorId}:${d.productId}") (usbLinks.devicesFor vm);
-  }) (builtins.filter (vm: config.microvm.vms ? ${vm}) usbLinks.consumers);
+  usbipLinks =
+    map
+      (vm: {
+        domain = "${vm}-vm";
+        mac = usbLinks.macOf vm;
+        inherit (usbLinks) bridge;
+        backend = usbLinks.domain;
+        backendAddress = usbLinks.adminAddress;
+      })
+      (
+        builtins.filter (
+          vm: usbLinks.isTarget vm && config.microvm.vms.${vm}.config.config.microvm.hypervisor == "xen"
+        ) (builtins.attrNames config.microvm.vms)
+      );
 
-  # "domain mac bridge backend backendAddress release" per line
+  # "domain mac bridge backend backendAddress" per line
   linkTable = pkgs.writeText "xen-links" (
-    lib.concatMapStrings (
-      l: "${l.domain} ${l.mac} ${l.bridge} ${l.backend} ${l.backendAddress} ${l.release}\n"
-    ) (uplinks ++ usbipLinks)
+    lib.concatMapStrings (l: "${l.domain} ${l.mac} ${l.bridge} ${l.backend} ${l.backendAddress}\n") (
+      uplinks ++ usbipLinks
+    )
   );
 
   xenLinks = pkgs.writeShellScript "xen-links" ''
@@ -64,35 +66,14 @@ let
         pkgs.coreutils
         pkgs.gawk
         pkgs.bash
-        pkgs.openssh
-        pkgs.util-linux
       ]
     }
-    declare -A lastdom notconnected
-
-    # Release a consumer's USB/IP devices in sys-usb (as the dom0 user, whose
-    # SSH setup reaches sys-usb)
-    release() {
-      runuser -u ${cfg.user} -- ssh ${sshOpts} "$2" sudo usbip-release "''${1//,/ }"
-    }
+    declare -A notconnected
 
     while true; do
-      while read -r dom mac bridge backend address devices <&3; do
+      while read -r dom mac bridge backend address <&3; do
         key="$dom/$mac"
         domid="$(xl domid "$dom" 2>/dev/null)" || domid=""
-
-        # Also on the first round (no domid known yet): the VM may have
-        # restarted while this service was not running
-        if [ "$devices" != - ] && [ "''${lastdom[$key]-unknown}" != "$domid" ]; then
-          # Keep the old domid until sys-usb is reachable and the release
-          # worked, so a later round retries
-          if timeout 1 bash -c "</dev/tcp/$address/22" 2>/dev/null; then
-            echo "$dom: domain gone, restarted or not seen yet, releasing its USB/IP devices"
-            release "$devices" "$address" && lastdom[$key]="$domid"
-          fi
-        else
-          lastdom[$key]="$domid"
-        fi
 
         [ -n "$domid" ] || continue
         # The backend must be up (its bridge exists only once its network is
@@ -132,12 +113,6 @@ in
 {
   options.services.xen-links = {
     enable = lib.mkEnableOption "keeping uplink and USB/IP vifs connected to their driver domains";
-
-    user = lib.mkOption {
-      type = lib.types.str;
-      default = "nx";
-      description = "dom0 user whose SSH setup reaches sys-usb (to release USB/IP devices).";
-    };
 
     graceRounds = lib.mkOption {
       type = lib.types.ints.positive;

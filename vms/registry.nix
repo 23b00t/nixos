@@ -285,7 +285,12 @@ let
       productId = "b00e";
       policy = "vm-reserved";
       defaultOwner = "sys-usb";
-      allowedOwners = [ "sys-usb" ];
+      # vm-usb attach copies sys-usb's pairings along (vms/usb-links.nix)
+      bluetooth = true;
+      allowedOwners = [
+        "sys-usb"
+        "chat"
+      ];
       microvmUsbPath = "vendorid=0x0bda,productid=0xb00e";
     }
     {

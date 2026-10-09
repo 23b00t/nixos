@@ -1,6 +1,11 @@
-# dom0 side of sys-usb (v2.6):
-# - input proxy: input devices owned by `host` (registry) come back from
-#   sys-usb over SSH as raw events (cat) into a filtering uinput receiver
+# dom0 side of sys-usb (v2.6, v2.8.3):
+# - vm-usb: list the devices in sys-usb, attach/detach them to target VMs
+#   over USB/IP (Qubes model), allow an input device for dom0 until it is
+#   unplugged; vm-usb-auto keeps the assignments (defaultOwner, VM restarts,
+#   unplugging). State in /run/vm-usb.
+# - input proxy: input devices from the registry whitelist (owner `host`) or
+#   allowed with `vm-usb allow-input` come back from sys-usb over SSH as raw
+#   events (cat) into a filtering uinput receiver; others raise a notification
 # - USB/IP links: kept connected by modules/xen-links.nix
 # - fallback: if sys-usb is not reachable 120 s after its start, the USB
 #   controllers go back to dom0 (needed on the XMG for keyboard/mouse)
@@ -18,6 +23,22 @@ let
   usbPciPaths = vmRegistry.hardware.pci.devicePaths.usb or [ ];
   xen = config.virtualisation.xen.package;
   sshOpts = "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=5 -o LogLevel=ERROR";
+  stateDir = "/run/vm-usb";
+
+  # Target VMs on this host: "name short adminAddress linkAddress"
+  targetVms = builtins.filter (
+    vm: links.isTarget vm && config.microvm.vms.${vm}.config.config.microvm.hypervisor == "xen"
+  ) (builtins.attrNames config.microvm.vms);
+  targetsFile = pkgs.writeText "vm-usb-targets" (
+    lib.concatMapStrings (
+      vm:
+      let
+        r = vmRegistry.byName.${vm};
+      in
+      "${vm} ${if r.short or null == null then "-" else r.short} ${r.ip} ${links.addressOf vm}\n"
+    ) targetVms
+  );
+  policyFile = pkgs.writeText "vm-usb-policy" links.policy;
 
   # Reads raw struct input_event from stdin (sys-usb: cat /dev/input/eventN)
   # and replays it on a uinput device whose capabilities are fixed here, not
@@ -129,26 +150,251 @@ let
       lib.makeBinPath [
         pkgs.openssh
         pkgs.coreutils
+        pkgs.gnugrep
+        pkgs.libnotify
       ]
     }
-    declare -A pids
+    whitelist=" ${lib.concatMapStringsSep " " (d: "${d.vendorId}:${d.productId}") links.inputDevices} "
+    declare -A pids notified
     while true; do
-      if devs="$(ssh ${sshOpts} ${links.adminAddress} 'ls /dev/input-proxy 2>/dev/null')"; then
-        for d in $devs; do
-          # Names come from sys-usb: only <vendor>-<product>-event<N>
-          [[ "$d" =~ ^[0-9a-f]{4}-[0-9a-f]{4}-event[0-9]+$ ]] || continue
+      if inputs="$(ssh ${sshOpts} ${links.adminAddress} usb-helper inputs)"; then
+        allowed="$(cat ${stateDir}/input-allowed 2>/dev/null)"
+        while read -r ev vp busid; do
+          # Fields come from sys-usb: check them strictly
+          [[ "$ev" =~ ^event[0-9]+$ && "$vp" =~ ^[0-9a-f]{4}:[0-9a-f]{4}$ \
+            && "$busid" =~ ^[0-9]+-[0-9]+(\.[0-9]+)*$ ]] || continue
+          if [[ "$whitelist" != *" $vp "* ]] && ! grep -qxF "$busid $vp" <<<"$allowed"; then
+            if [ -z "''${notified[$busid/$vp]:-}" ]; then
+              echo "input device $vp at $busid is not allowed for dom0"
+              DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus" notify-send -u critical \
+                "Neues Eingabegerät in sys-usb" \
+                "$vp an $busid bleibt in sys-usb. Freigeben bis zum Abziehen: vm-usb allow-input $busid" || true
+              notified[$busid/$vp]=1
+            fi
+            continue
+          fi
+          d="''${vp/:/-}-$ev"
           if [ -z "''${pids[$d]:-}" ] || ! kill -0 "''${pids[$d]}" 2>/dev/null; then
-            echo "forwarding $d"
-            ssh ${sshOpts} ${links.adminAddress} "cat /dev/input-proxy/$d" \
+            echo "forwarding $d (busid $busid)"
+            ssh -n ${sshOpts} ${links.adminAddress} "cat /dev/input/$ev" \
               | ${inputRecv}/bin/xen-input-recv "$d" &
             pids[$d]=$!
           fi
-        done
+        done <<<"$inputs"
       fi
       sleep 3
     done
   '';
 
+  vmUsb = pkgs.writeShellScriptBin "vm-usb" ''
+    set -uo pipefail
+    PATH=${
+      lib.makeBinPath [
+        pkgs.openssh
+        pkgs.coreutils
+        pkgs.gnugrep
+        pkgs.gawk
+        pkgs.util-linux
+        pkgs.systemd
+      ]
+    }
+    state="''${VM_USB_STATE:-${stateDir}}"
+    assign="$state/assign"        # busid vendor:product vm invocation (vm "-": detached by hand)
+    inputs="$state/input-allowed" # busid vendor:product, forwarded to dom0
+    policy=${policyFile}          # vendor:product name defaultOwner allowedOwner,...
+    targets=${targetsFile}        # vm short adminAddress linkAddress
+    ssh_opts=(-o BatchMode=yes -o ConnectTimeout=5 -o LogLevel=ERROR)
+
+    die() { echo "vm-usb: $*" >&2; exit 1; }
+    helper() { ssh -n "''${ssh_opts[@]}" ${links.adminAddress} sudo usb-helper "$@"; }
+    field() { awk -v v="$1" -v f="$2" '$1 == v { print $f }' "$targets"; }
+    client() { local vm="$1"; shift; ssh -n "''${ssh_opts[@]}" "$(field "$vm" 3)" sudo usbip-client "$@"; }
+    resolve_vm() { awk -v v="$1" '$1 == v || $2 == v || $1 "-vm" == v { print $1; exit }' "$targets"; }
+    # systemd invocation of the VM's microvm@ unit: changes on every start
+    running() { systemctl is-active -q "microvm@$1" && systemctl show -p InvocationID --value "microvm@$1"; }
+    assigned_vm() { awk -v b="$1" '$1 == b { print $3 }' "$assign"; }
+    has_line() { awk -v b="$1" '$1 == b { f = 1 } END { exit !f }' "$2"; }
+    drop_line() { awk -v b="$1" '$1 != b' "$2" > "$2.tmp"; mv "$2.tmp" "$2"; }
+    set_line() { drop_line "$1" "$assign"; [ -z "''${2:-}" ] || echo "$2" >> "$assign"; }
+
+    # Device by busid, vendor:product or registry name: "busid vp status bt name"
+    resolve_dev() {
+      local d="$1" vp
+      vp="$(awk -v n="$d" '$2 == n { print $1; exit }' "$policy")"
+      [ -z "$vp" ] || d="$vp"
+      awk -v d="$d" '$1 == d || $2 == d { print; n++ } END { exit n == 1 ? 0 : 1 }' <<<"$devs"
+    }
+
+    # Registry devices only to their allowedOwners, unknown ones to any target
+    may_attach() {
+      local allowed
+      allowed="$(awk -v vp="$1" '$1 == vp { print $4; exit }' "$policy")"
+      [ -z "$allowed" ] || [[ ",$allowed," == *",$2,"* ]]
+    }
+
+    # usbipd accepts new connections only from VMs with an assignment
+    sync_allowed() {
+      local want have ip
+      want="$(awk '$3 != "-" { print $3 }' "$assign" | sort -u | while read -r vm; do field "$vm" 4; done)"
+      have="$(helper allowed)" || return 0
+      for ip in $want; do grep -qxF "$ip" <<<"$have" || helper allow "$ip"; done
+      for ip in $have; do grep -qxF "$ip" <<<"$want" || helper deny "$ip"; done
+    }
+
+    do_attach() { # busid bt vm
+      if [ "$2" = 1 ]; then
+        # Bluetooth adapter: sys-usb's pairings go along (one-way)
+        ssh -n "''${ssh_opts[@]}" ${links.adminAddress} sudo usb-helper bt-export \
+          | ssh "''${ssh_opts[@]}" "$(field "$3" 3)" sudo usbip-client bt-import \
+          || echo "vm-usb: pairings not copied to $3 (no bluez there?)" >&2
+      fi
+      helper bind "$1" && client "$3" attach "$1"
+    }
+
+    do_release() { # busid vm
+      [ -z "$(running "$2")" ] || client "$2" detach "$1" || true
+      helper unbind "$1" || true
+    }
+
+    # One pass of vm-usb-auto (under the lock)
+    round() {
+      local b vp vm inv st bt name def new=""
+      devs="$(helper list)" || return 0
+      # Assignments: device unplugged, VM stopped or restarted, link lost
+      while read -r b vp vm inv; do
+        [ -n "$b" ] || continue
+        st="$(awk -v b="$b" -v vp="$vp" '$1 == b && $2 == vp { print $3 }' <<<"$devs")"
+        if [ -z "$st" ]; then
+          echo "$b ($vp) unplugged"
+          [ "$vm" = - ] || [ -z "$(running "$vm")" ] || client "$vm" detach "$b" || true
+          continue
+        fi
+        if [ "$vm" != - ] && [ "$(running "$vm")" != "$inv" ]; then
+          echo "$vm stopped or restarted: $b ($vp) back to sys-usb"
+          helper unbind "$b" || true
+          continue
+        fi
+        new+="$b $vp $vm $inv"$'\n'
+      done < "$assign"
+      printf '%s' "$new" > "$assign"
+      sync_allowed
+      while read -r b vp vm inv; do
+        [ -n "$b" ] && [ "$vm" != - ] || continue
+        st="$(awk -v b="$b" '$1 == b { print $3 }' <<<"$devs")"
+        # 2 = in use; anything else after sys-usb or the link came back
+        if [ "$st" != 2 ]; then
+          bt="$(awk -v b="$b" '$1 == b { print $4 }' <<<"$devs")"
+          do_attach "$b" "$bt" "$vm" && echo "re-attached $b ($vp) to $vm"
+        fi
+      done < "$assign"
+      # Input devices allowed for dom0: until unplugged
+      awk 'NR == FNR { have[$1 " " $2] = 1; next } ($1 " " $2) in have' <(printf '%s\n' "$devs") "$inputs" > "$inputs.tmp"
+      mv "$inputs.tmp" "$inputs"
+      # defaultOwner of devices without an assignment
+      while read -r b vp st bt name; do
+        [ -n "$b" ] && ! has_line "$b" "$assign" || continue
+        def="$(awk -v vp="$vp" '$1 == vp { print $3; exit }' "$policy")"
+        [ -n "$def" ] && [ -n "$(field "$def" 1)" ] || continue
+        inv="$(running "$def")" || continue
+        echo "attaching $b ($vp) to $def (defaultOwner)"
+        echo "$b $vp $def $inv" >> "$assign"
+        sync_allowed
+        do_attach "$b" "$bt" "$def" || echo "attach of $b to $def failed, next round retries"
+      done <<<"$devs"
+    }
+
+    usage() {
+      cat >&2 <<USAGE
+    usage: vm-usb list
+           vm-usb attach <device> <vm>   device: busid, vendor:product or registry name
+           vm-usb detach <device>
+           vm-usb allow-input <busid>    input device for dom0, until unplugged
+           vm-usb auto                   (service vm-usb-auto)
+    USAGE
+      exit 2
+    }
+
+    [ -d "$state" ] || die "$state missing"
+    touch "$assign" "$inputs"
+    exec 9>"$state/lock"
+    devs=""
+
+    case "''${1:-}" in
+      list)
+        devs="$(helper list)" || die "sys-usb not reachable"
+        printf '%-8s %-10s %-28s %s\n' BUSID ID NAME OWNER
+        while read -r b vp st bt name; do
+          [ -n "$b" ] || continue
+          rname="$(awk -v vp="$vp" '$1 == vp { print $2; exit }' "$policy")"
+          owner="$(awk -v b="$b" -v vp="$vp" '$1 == b && $2 == vp && $3 != "-" { print $3 }' "$assign")"
+          if [ -z "$owner" ] && grep -qxF "$b $vp" "$inputs"; then owner="dom0 (allow-input)"; fi
+          if [ -z "$owner" ] && [ "$(awk -v vp="$vp" '$1 == vp { print $3; exit }' "$policy")" = host ]; then
+            owner="dom0 (input whitelist)"
+          fi
+          [ "$bt" = 1 ] && name="$name [bt]"
+          printf '%-8s %-10s %-28s %s\n' "$b" "$vp" "''${rname:-$name}" "''${owner:-sys-usb}"
+        done <<<"$devs"
+        ;;
+      attach)
+        [ $# -eq 3 ] || usage
+        flock 9
+        devs="$(helper list)" || die "sys-usb not reachable"
+        line="$(resolve_dev "$2")" || die "unknown or ambiguous device: $2 (see vm-usb list)"
+        read -r busid vp st bt name <<<"$line"
+        vm="$(resolve_vm "$3")"
+        [ -n "$vm" ] || die "not a VM that takes USB devices: $3"
+        may_attach "$vp" "$vm" || die "$vp may not go to $vm (registry allowedOwners)"
+        cur="$(assigned_vm "$busid")"
+        if [ -n "$cur" ] && [ "$cur" != - ]; then
+          [ "$cur" = "$vm" ] && [ "$st" = 2 ] && { echo "$busid is already attached to $vm"; exit 0; }
+          [ "$cur" = "$vm" ] || die "$busid is attached to $cur, detach it first"
+        fi
+        inv="$(running "$vm")" || die "$vm is not running"
+        set_line "$busid" "$busid $vp $vm $inv"
+        drop_line "$busid" "$inputs"
+        sync_allowed
+        if do_attach "$busid" "$bt" "$vm"; then
+          echo "attached $busid ($vp) to $vm"
+        else
+          do_release "$busid" "$vm"
+          set_line "$busid"
+          sync_allowed
+          die "attach of $busid to $vm failed"
+        fi
+        ;;
+      detach)
+        [ $# -eq 2 ] || usage
+        flock 9
+        devs="$(helper list)" || die "sys-usb not reachable"
+        line="$(resolve_dev "$2")" || die "unknown or ambiguous device: $2 (see vm-usb list)"
+        read -r busid vp st bt name <<<"$line"
+        vm="$(assigned_vm "$busid")"
+        [ -n "$vm" ] && [ "$vm" != - ] || die "$busid is not attached to a VM"
+        do_release "$busid" "$vm"
+        # Stays in sys-usb until unplugged, also with a defaultOwner
+        set_line "$busid" "$busid $vp - -"
+        sync_allowed
+        echo "detached $busid ($vp) from $vm, back in sys-usb"
+        ;;
+      allow-input)
+        [ $# -eq 2 ] || usage
+        flock 9
+        vp="$(helper inputs | awk -v b="$2" '$3 == b { print $2; exit }')"
+        [ -n "$vp" ] || die "$2 is no input device in sys-usb"
+        grep -qxF "$2 $vp" "$inputs" || echo "$2 $vp" >> "$inputs"
+        echo "input device $2 ($vp) goes to dom0 until it is unplugged"
+        ;;
+      auto)
+        while true; do
+          flock 9
+          round
+          flock -u 9
+          sleep 5
+        done
+        ;;
+      *) usage ;;
+    esac
+  '';
   # Give the USB controllers back to dom0
   releaseControllers = ''
     if xl domid ${links.domain} >/dev/null 2>&1; then
@@ -177,7 +423,7 @@ in
     user = lib.mkOption {
       type = lib.types.str;
       default = "nx";
-      description = "dom0 user whose SSH setup reaches sys-usb; runs the input proxy.";
+      description = "dom0 user whose SSH setup reaches sys-usb; runs the input proxy and vm-usb.";
     };
 
     fallbackTimeout = lib.mkOption {
@@ -190,7 +436,13 @@ in
   config = lib.mkIf cfg.enable {
     hardware.uinput.enable = true;
 
-    environment.systemPackages = [ sysUsbRescue ];
+    environment.systemPackages = [
+      sysUsbRescue
+      vmUsb
+    ];
+
+    # vm-usb state (assignments), runtime only like the assignments themselves
+    systemd.tmpfiles.rules = [ "d ${stateDir} 0750 ${cfg.user} users -" ];
 
     systemd.services = {
       xen-input-proxy = {
@@ -200,6 +452,17 @@ in
           ExecStart = inputProxy;
           User = cfg.user;
           SupplementaryGroups = [ "uinput" ];
+          Restart = "always";
+          RestartSec = 5;
+        };
+      };
+
+      vm-usb-auto = {
+        description = "Keep USB device assignments (defaultOwner, VM restarts, unplugging)";
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          ExecStart = "${vmUsb}/bin/vm-usb auto";
+          User = cfg.user;
           Restart = "always";
           RestartSec = 5;
         };
