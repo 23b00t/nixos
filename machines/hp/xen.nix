@@ -5,6 +5,7 @@
   lib,
   pkgs,
   config,
+  inputs,
   vmRegistry,
   ...
 }:
@@ -35,6 +36,7 @@ in
     ../../modules/dom0-update.nix
     ../../modules/xen-usb.nix
     ../../modules/xen-links.nix
+    inputs.nox.nixosModules.relay
   ];
 
   virtualisation.xen = {
@@ -74,6 +76,28 @@ in
     # v2.8.1: re-attaches uplink and USB/IP vifs after a driver domain or VM
     # restart, releases USB/IP devices of VMs that went away
     xen-links.enable = true;
+
+    # v2.8.4: sockets for Xen guests over vchan (NoX nox-relay) instead of SSH
+    # forwards. First service: the GitHub agent (registry `allowGitHubAgent`)
+    nox-relay.host = {
+      enable = true;
+      guests =
+        lib.mapAttrs'
+          (
+            name: _:
+            lib.nameValuePair name {
+              domain = "${name}-vm";
+              serve.github-agent = "/home/nx/.ssh/agent/github.sock";
+            }
+          )
+          (
+            lib.filterAttrs (
+              name: vm:
+              (vmRegistry.byName.${name}.allowGitHubAgent or false)
+              && vm.config.config.microvm.hypervisor == "xen"
+            ) config.microvm.vms
+          );
+    };
   };
 
   # v2.5: the WLAN card belongs to sys-net (registry `hardware.pci`, driver

@@ -1,6 +1,10 @@
 { pkgs, ... }:
 {
-  environment.systemPackages = [ pkgs.yazi ];
+  environment.systemPackages = [
+    pkgs.yazi
+    # TUI for removable media incl. LUKS unlock (udisksctl, see below)
+    pkgs.bashmount
+  ];
 
   environment.etc."yazi/init.lua".text = ''
     require("full-border"):setup {

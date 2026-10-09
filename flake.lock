@@ -124,12 +124,33 @@
         "type": "github"
       }
     },
+    "nox": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791562774,
+        "narHash": "sha256-O7yecBl8tP2piedZ5Uyzyxf72SbngBOqXL95BpSpRC8=",
+        "owner": "23b00t",
+        "repo": "NoX",
+        "rev": "8d9be5df3375e0bd2e2136f358121105c4df9f75",
+        "type": "github"
+      },
+      "original": {
+        "owner": "23b00t",
+        "repo": "NoX",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "home-manager": "home-manager",
         "microvm": "microvm",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_2",
+        "nox": "nox",
         "yazi": "yazi",
         "zen-browser": "zen-browser"
       }

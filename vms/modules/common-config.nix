@@ -47,6 +47,7 @@ in
   imports = [
     ./xen-meminfo.nix
     ./usbip-client.nix
+    ./vchan-relay.nix
   ];
 
   options.services.common-config = {
