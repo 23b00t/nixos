@@ -167,7 +167,6 @@ in
   imports = [
     inputs.microvm.nixosModules.host
     inputs.home-manager.nixosModules.home-manager
-    ../modules/libvirt-bridge-networks.nix
 
     # Hardware Configuration - Uncomment lines that match your hardware
     # Run `lshw -short` or `lspci` to identify your hardware
@@ -209,16 +208,10 @@ in
     vim
     gnupg
     pinentry-curses
-    virt-manager
-    libvirt
-    qemu
-    cloud-hypervisor
-    virtiofsd
     zellij
     shadow
     wprs
     remmina
-    virt-viewer
 
     libnotify # Desktop notification library
     wl-clip-persist # Keep Wayland clipboard even after programs close (avoids crashes)
@@ -337,7 +330,6 @@ in
       isNormalUser = true;
       extraGroups = [
         "wheel"
-        "libvirtd"
         "kvm"
         "input"
       ];
@@ -394,10 +386,6 @@ in
     LC_IDENTIFICATION = "de_DE.UTF-8";
     # https://www.reddit.com/r/NixOS/comments/11be3cy/i_need_some_help_changing_the_system_language/
   };
-
-  virtualisation.libvirtd.enable = true;
-  # virtualisation.spiceUSBRedirection.enable = true;
-  programs.virt-manager.enable = true;
 
   # TODO: Check if this is done in home-manager already
   # zsh
@@ -462,20 +450,6 @@ in
           Kind = "bridge";
         };
       };
-
-      "21-virbr0" = {
-        netdevConfig = {
-          Name = "virbr0";
-          Kind = "bridge";
-        };
-      };
-
-      "22-virbr1" = {
-        netdevConfig = {
-          Name = "virbr1";
-          Kind = "bridge";
-        };
-      };
     };
 
     networks =
@@ -515,48 +489,6 @@ in
           linkConfig.RequiredForOnline = "no";
         };
 
-        "33-virbr0" = {
-          matchConfig.Name = "virbr0";
-          networkConfig = {
-            ConfigureWithoutCarrier = true;
-            IPv6AcceptRA = false;
-          };
-          linkConfig.RequiredForOnline = "no";
-        };
-
-        "34-virbr1" = {
-          matchConfig.Name = "virbr1";
-          networkConfig = {
-            ConfigureWithoutCarrier = true;
-            IPv6AcceptRA = false;
-          };
-          linkConfig.RequiredForOnline = "no";
-        };
-
-        "35-vm-libv-def" = {
-          matchConfig.Name = "vm-libv-def";
-          networkConfig = {
-            Bridge = "virbr0";
-            ConfigureWithoutCarrier = true;
-          };
-          linkConfig.RequiredForOnline = "no";
-        };
-
-        "36-vm-whx-ext" = {
-          matchConfig.Name = "vm-whx-ext";
-          networkConfig = {
-            Bridge = "virbr1";
-            ConfigureWithoutCarrier = true;
-          };
-          linkConfig.RequiredForOnline = "no";
-        };
-
-        # IMPORTANT: Ignore Tor interfaces for VMs
-        "37-vm11-tor-ignore" = {
-          matchConfig.Name = "vm11-tor";
-          linkConfig.Unmanaged = "yes";
-        };
-
         "38-vnet-libvirt-ignore" = {
           matchConfig.Name = "vnet*";
           linkConfig.Unmanaged = "yes";
@@ -593,19 +525,7 @@ in
     };
   };
 
-  systemd.services.retrigger-vm11-tor-udev = {
-    description = "Retrigger udev for vm11-tor after boot";
-    after = [ "multi-user.target" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.systemd}/bin/udevadm trigger --action=add /sys/class/net/vm11-tor";
-    };
-  };
-
   services.udev.extraRules = ''
-    # Autowire vm11-tor
-    SUBSYSTEM=="net", ACTION=="add", KERNEL=="vm11-tor", RUN+="${pkgs.iproute2}/bin/ip link set dev $name master virbr2", RUN+="${pkgs.iproute2}/bin/ip link set dev $name up"
     # Keyboard
     SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
     # Mouse
@@ -636,7 +556,6 @@ in
     enable = true;
     unmanaged = [
       "interface-name:vm*"
-      "interface-name:virbr*"
       "interface-name:vnet*"
     ];
   };

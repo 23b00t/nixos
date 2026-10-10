@@ -1,5 +1,5 @@
-# Xen dom0 test setup for hp: replaces the KVM stack (libvirt) from
-# common-configuration.nix. Based on the former `xen` branch.
+# Xen dom0 test setup for hp, on top of common-configuration.nix. Based on
+# the former `xen` branch.
 # MicroVMs run as Xen PVH domUs via the microvm.nix fork (hypervisor = "xen").
 {
   lib,
@@ -169,18 +169,12 @@ in
   # Xen creates vifs as vif<domid>.<n> before renaming them to vm<N>
   networking.networkmanager.unmanaged = [ "interface-name:vif*" ];
 
-  # No KVM under Xen: no libvirt
-  virtualisation.libvirtd.enable = lib.mkForce false;
-  programs.virt-manager.enable = lib.mkForce false;
-
   systemd = {
     services = {
       # The microvm@ services manage the domains. xendomains (no /etc/xen/auto)
       # falls back to `xl shutdown --all --wait` in parallel and hangs until
       # systemd's stop timeout (90 s) on every dom0 shutdown.
       xendomains.enable = false;
-      libvirt-bridge-networks.enable = false;
-      retrigger-vm11-tor-udev.enable = false;
     };
 
     network.networks =
