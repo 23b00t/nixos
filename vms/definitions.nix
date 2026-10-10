@@ -23,5 +23,6 @@ in
   sys-net = mkVm "sys-net";
   coding = mkVm "coding";
   builder = mkVm "builder";
+  sys-print = mkVm "sys-print";
   # create-vm: definitions
 }

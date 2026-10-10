@@ -11,6 +11,8 @@ let
   };
   dom0 = "10.0.0.254";
   dom0TestAccess = vmRegistry.hostProfile.dom0TestAccess or null;
+  # sys-print (C2) on the uplink: 10.1.0.<last octet of its registry IP>
+  sysPrint = "10.1.0.${lib.last (lib.splitString "." vmRegistry.byName.sys-print.ip)}";
 in
 {
   imports = [
@@ -37,24 +39,11 @@ in
       vmCopy.enable = false;
     };
 
-    printing.enable = true;
-    avahi = {
-      enable = true;
-      nssmdns4 = true;
-      openFirewall = true;
-    };
-
     # SSH only from the admin network (dom0), not from the uplink or the WLAN
     openssh.openFirewall = false;
   };
 
-  users.users.user = {
-    extraGroups = lib.mkAfter [ "networkmanager" ];
-    # office's print tunnel; the tunnel itself is off until vchan (v2.5 (c))
-    openssh.authorizedKeys.keys = lib.mkAfter [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm"
-    ];
-  };
+  users.users.user.extraGroups = lib.mkAfter [ "networkmanager" ];
 
   # Uplink bridge; the vif-bridge hotplug script (xl devd) adds the VMs' vifs
   systemd.network = {
@@ -119,6 +108,9 @@ in
       interfaces.vm-lan.allowedTCPPorts = [ 22 ];
       filterForward = true;
       extraForwardRules = ''
+        # sys-print (C2): printers in the local network (IPP), nothing else
+        iifname "vm-uplink" ip saddr ${sysPrint} oifname != { "vm-uplink", "vm-lan" } ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 631 accept
+        iifname "vm-uplink" ip saddr ${sysPrint} reject with icmpx type admin-prohibited
         # VMs -> outside only (not into the admin network)
         iifname "vm-uplink" oifname != { "vm-uplink", "vm-lan" } accept
       ''

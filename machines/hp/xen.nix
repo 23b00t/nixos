@@ -138,6 +138,22 @@ in
       && config.microvm.vms.${vm}.config.config.microvm.hypervisor == "xen"
     ) (builtins.attrNames config.microvm.vms);
     policy = [
+      # sys-print (C2) holds no user data: no files in or out, only print jobs
+      {
+        service = "copy";
+        source = "sys-print";
+        action = "deny";
+      }
+      {
+        service = "copy";
+        target = "sys-print";
+        action = "deny";
+      }
+      {
+        service = "print";
+        target = "sys-print";
+        action = "ask";
+      }
       {
         service = "copy";
         action = "ask";
@@ -175,6 +191,9 @@ in
       # falls back to `xl shutdown --all --wait` in parallel and hangs until
       # systemd's stop timeout (90 s) on every dom0 shutdown.
       xendomains.enable = false;
+      # oxenstored ignores SIGTERM: every shutdown waited 90 s for the
+      # SIGKILL. Its state only lives in RAM, nothing to save on the way down
+      xenstored.serviceConfig.TimeoutStopSec = "5s";
     };
 
     network.networks =

@@ -61,7 +61,12 @@ in
               "restart"
               "kill *"
             ]
-            ++ [ "/run/current-system/sw/bin/systemctl restart home-manager-nx" ]
+            ++ [
+              "/run/current-system/sw/bin/systemctl restart home-manager-nx"
+              # Switching to a builder result (dom0-update, by hand)
+              "/nix/store/*/bin/nix-env -p /nix/var/nix/profiles/system --set /nix/store/*"
+              "/nix/store/*/bin/switch-to-configuration *"
+            ]
           );
     }
   ];

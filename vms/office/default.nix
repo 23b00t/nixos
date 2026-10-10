@@ -42,43 +42,11 @@
     vcpu = 4;
   };
 
-  services.printing.enable = true;
-
-  systemd.services.print-gateway-tunnel =
-    let
-      printer = import ./printer.nix { inherit pkgs; };
-    in
-    {
-      description = "SSH Tunnel to sys-net CUPS";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = "${printer.printGatewayTunnelScript}/bin/print-gateway-tunnel";
-        Restart = "on-failure";
-        RestartSec = 5;
-      };
-    };
-
-  systemd.services.add-print-gateway-printers =
-    let
-      printer = import ./printer.nix { inherit pkgs; };
-    in
-    {
-      description = "Add all sys-net CUPS printers via SSH tunnel";
-      after = [ "print-gateway-tunnel.service" ];
-      requires = [ "print-gateway-tunnel.service" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-      };
-      script = "${printer.printGatewayPrintersAddScript}/bin/print-gateway-printers-add";
-    };
+  # Printing: `vm-print <printer-ip> <file>` sends the document to sys-print
+  # (C2, vms/sys-print); no CUPS and no network here
 
   environment.systemPackages = with pkgs; [
-    onlyoffice-desktopeditors
+    euro-office-desktopeditors
     libreoffice
     gimp
     inkscape

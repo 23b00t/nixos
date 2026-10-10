@@ -147,6 +147,20 @@ let
       allowVmCopy = false;
       memPriority = 10;
     }
+    {
+      # Print driver domain (C2): CUPS with driverless queues, PDFs come in
+      # over RPC (`vm-print`), network only to LAN printers (sys-net)
+      name = "sys-print";
+      short = "sp";
+      storeGroup = "sys";
+      ip = "10.0.0.26";
+      autostart = false;
+      nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBFHr1LwubMtQkVi+fFAkZUvJSL68pMSoQ6hE7Av57t sys-print-vm";
+      allowGitHubAgent = false;
+      enableHostDbusForward = false;
+      allowVmCopy = false;
+    }
     # create-vm: registry-vms
   ];
 

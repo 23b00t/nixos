@@ -12,6 +12,7 @@
 # dom0 side: machines/hp/xen.nix
 {
   lib,
+  pkgs,
   config,
   options,
   inputs,
@@ -28,6 +29,19 @@ let
   sshSocket = "/run/sshd-vchan.sock";
   # uid/gid of `user` in the VMs
   owner = "1000:100";
+
+  # `vm-print <printer-ip> <file>` (C2): the document goes to sys-print over
+  # RPC (dom0 asks), which prints it on the given IPP Everywhere printer
+  vmPrint = pkgs.writeShellScriptBin "vm-print" ''
+    set -euo pipefail
+    if [ $# -ne 2 ] || [ ! -f "$2" ]; then
+      echo "usage: vm-print <printer-ip> <file>   (PDF, PostScript, image, text)" >&2
+      exit 2
+    fi
+    answer="$( { printf '%s\n' "$1"; cat -- "$2"; } | ${config.services.nox-rpc.package}/bin/nox-rpc print sys-print)"
+    echo "$answer"
+    [[ "$answer" == ok* ]]
+  '';
 in
 {
   imports = [
@@ -95,8 +109,9 @@ in
         services.openssh.openFirewall = lib.mkIf (vmName != "sys-net") (lib.mkDefault false);
       })
 
-      # RPC (stage C): app VMs call (`vm-copy <vm> <files>`) and receive
-      # (~/Incoming/<source>); driver domains and the builder take no part.
+      # RPC (stage C): app VMs call (`vm-copy <vm> <files>`, `vm-print`) and
+      # receive (~/Incoming/<source>); sys-print only takes `print` (C2), the
+      # other driver domains and the builder take no part.
       # With wprs, dom0 starts GUI apps by RPC (`app`, C3, `vm-gui`) with the
       # environment the wprs launcher sets
       (lib.mkIf
@@ -108,6 +123,7 @@ in
           ]
         )
         {
+          environment.systemPackages = lib.mkIf (vmName != "sys-print") [ vmPrint ];
           services.nox-rpc.guest = {
             enable = true;
             apps = lib.mkIf wprs {
