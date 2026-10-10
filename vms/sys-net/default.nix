@@ -149,6 +149,15 @@ in
   # MSI-X mapping fails for passthrough with a PVH dom0 (v2.1); INTx works
   boot.kernelParams = [ "pci=nomsi" ];
 
+  # RTL8821CE (rtw88): the firmware got stuck in power save ("firmware failed
+  # to leave lps state", "failed to send h2c command"), downloads at ~10 KB/s
+  # (2026-10-10). No power save, no deep LPS, no ASPM.
+  networking.networkmanager.wifi.powersave = false;
+  boot.extraModprobeConfig = ''
+    options rtw88_core disable_lps_deep=y
+    options rtw88_pci disable_aspm=y
+  '';
+
   hardware.enableRedistributableFirmware = true;
 
   systemd.services.NetworkManager-wait-online.enable = false;

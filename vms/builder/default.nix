@@ -61,7 +61,7 @@ in
 
     persistentStoreOverlay = {
       enable = true;
-      overlaySize = 60000;
+      overlaySize = 100000;
     };
   };
 
