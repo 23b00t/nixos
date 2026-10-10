@@ -46,15 +46,6 @@ let
     #   hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA2091GSIL+SlR1BsWswg+6DZzrL+enxmXo74d/OSUwv test-vm";
     # }
     {
-      name = "music";
-      short = "m";
-      storeGroup = "desktop";
-      ip = "10.0.0.4";
-      autostart = true;
-      nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF/ca5rt+rbz5EanCgVCaGQEOco670v/gDm+Op/fM4Y7 music-vm";
-    }
-    {
       name = "net";
       short = "net";
       storeGroup = "desktop";

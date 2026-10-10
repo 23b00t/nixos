@@ -83,15 +83,14 @@ let
     }
 
     while true; do
+      # Backend checks of this round (each starts an sshd in the backend)
+      declare -A checked=()
       while read -r dom mac bridge backend address <&3; do
         key="$dom/$mac"
         domid="$(xl domid "$dom" 2>/dev/null)" || domid=""
 
         [ -n "$domid" ] || continue
-        # The backend must be up (its bridge exists only once its network is
-        # configured), otherwise the hotplug script there fails
         bedomid="$(xl domid "$backend" 2>/dev/null)" || continue
-        reachable "$address" || continue
 
         # Idx BE Mac handle state ...; state 4 = connected
         idx="" be="" state="" hotplug=""
@@ -100,6 +99,21 @@ let
         if [ -n "$idx" ]; then
           # The backend's hotplug script (vif-bridge there) reports here
           hotplug="$(xenstore-read "/local/domain/$be/backend/vif/$domid/$idx/hotplug-status" 2>/dev/null)"
+        fi
+        if [ -n "$idx" ] && [ "$state" = 4 ] && [ "$be" = "$bedomid" ] && [ "$hotplug" != error ]; then
+          notconnected[$key]=0
+          continue
+        fi
+
+        # Something to fix: the backend must be up (its bridge exists only
+        # once its network is configured), otherwise the hotplug script
+        # there fails
+        if [ -z "''${checked[$address]:-}" ]; then
+          if reachable "$address"; then checked[$address]=up; else checked[$address]=down; fi
+        fi
+        [ "''${checked[$address]}" = up ] || continue
+
+        if [ -n "$idx" ]; then
           if [ "$state" = 4 ]; then
             notconnected[$key]=0
           else

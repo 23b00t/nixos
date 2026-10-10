@@ -22,8 +22,12 @@ let
   links = import ../vms/usb-links.nix { inherit lib vmRegistry; };
   usbPciPaths = vmRegistry.hardware.pci.devicePaths.usb or [ ];
   xen = config.virtualisation.xen.package;
-  sshOpts = "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=5 -o LogLevel=ERROR";
   stateDir = "/run/vm-usb";
+  # One SSH connection per VM, shared by the input proxy, vm-usb-auto and
+  # vm-usb (all run as cfg.user): queries become channels instead of a full
+  # login (and an sshd -i in the VM) every few seconds
+  sshMux = "-o ControlMaster=auto -o ControlPath=${stateDir}/ssh-%C -o ControlPersist=60";
+  sshOpts = "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=5 -o LogLevel=ERROR ${sshMux}";
   # How dom0 checks that sys-usb is up: its relay SSH socket (stage B2) or IP
   sysUsbCheck = config.services.nox-relay.host.guests.sys-usb.listen.ssh.path or links.adminAddress;
 
@@ -205,10 +209,17 @@ let
     inputs="$state/input-allowed" # busid vendor:product, forwarded to dom0
     policy=${policyFile}          # vendor:product name defaultOwner allowedOwner,...
     targets=${targetsFile}        # vm short adminAddress linkAddress
-    ssh_opts=(-o BatchMode=yes -o ConnectTimeout=5 -o LogLevel=ERROR)
+    ssh_opts=(-o BatchMode=yes -o ConnectTimeout=5 -o LogLevel=ERROR ${sshMux})
 
     die() { echo "vm-usb: $*" >&2; exit 1; }
     helper() { ssh -n "''${ssh_opts[@]}" ${links.adminAddress} sudo usb-helper "$@"; }
+    # sys-usb's device list, checked strictly: busids end up in commands for
+    # the VMs (ssh runs them through the VM's shell)
+    list_devs() {
+      helper list | awk 'NF == 5 && $1 ~ /^[0-9]+-[0-9]+(\.[0-9]+)*$/ \
+        && $2 ~ /^[0-9a-f]{4}:[0-9a-f]{4}$/ && $3 ~ /^([0-9]+|-)$/ && $4 ~ /^[01]$/ \
+        && $5 ~ /^[A-Za-z0-9._?-]+$/'
+    }
     field() { awk -v v="$1" -v f="$2" '$1 == v { print $f }' "$targets"; }
     client() { local vm="$1"; shift; ssh -n "''${ssh_opts[@]}" "$(field "$vm" 3)" sudo usbip-client "$@"; }
     resolve_vm() { awk -v v="$1" '$1 == v || $2 == v || $1 "-vm" == v { print $1; exit }' "$targets"; }
@@ -261,7 +272,7 @@ let
     # One pass of vm-usb-auto (under the lock)
     round() {
       local b vp vm inv st bt name def new=""
-      devs="$(helper list)" || return 0
+      devs="$(list_devs)" || return 0
       # Assignments: device unplugged, VM stopped or restarted, link lost
       while read -r b vp vm inv; do
         [ -n "$b" ] || continue
@@ -323,7 +334,7 @@ let
 
     case "''${1:-}" in
       list)
-        devs="$(helper list)" || die "sys-usb not reachable"
+        devs="$(list_devs)" || die "sys-usb not reachable"
         printf '%-8s %-10s %-28s %s\n' BUSID ID NAME OWNER
         while read -r b vp st bt name; do
           [ -n "$b" ] || continue
@@ -340,7 +351,7 @@ let
       attach)
         [ $# -eq 3 ] || usage
         flock 9
-        devs="$(helper list)" || die "sys-usb not reachable"
+        devs="$(list_devs)" || die "sys-usb not reachable"
         line="$(resolve_dev "$2")" || die "unknown or ambiguous device: $2 (see vm-usb list)"
         read -r busid vp st bt name <<<"$line"
         vm="$(resolve_vm "$3")"
@@ -367,7 +378,7 @@ let
       detach)
         [ $# -eq 2 ] || usage
         flock 9
-        devs="$(helper list)" || die "sys-usb not reachable"
+        devs="$(list_devs)" || die "sys-usb not reachable"
         line="$(resolve_dev "$2")" || die "unknown or ambiguous device: $2 (see vm-usb list)"
         read -r busid vp st bt name <<<"$line"
         vm="$(assigned_vm "$busid")"

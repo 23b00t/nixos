@@ -64,9 +64,18 @@ let
         ;;
       ${lib.optionalString bluetooth ''
         bt-import)
-          # sys-usb's pairings (tar on stdin), before the adapter arrives
+          # sys-usb's pairings (tar on stdin), before the adapter arrives.
+          # The archive comes from the driver domain: only directories and
+          # regular files (no device nodes, links), no setuid bits
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"' EXIT
+          cat >"$tmp"
+          if tar -tvf "$tmp" | awk 'substr($1, 1, 1) !~ /^[-d]$/ { bad = 1 } END { exit !bad }'; then
+            echo "bt-import: archive holds other file types, refused" >&2
+            exit 1
+          fi
           install -d -m 0700 /var/lib/bluetooth
-          tar -C /var/lib/bluetooth --no-same-owner -xf -
+          tar -C /var/lib/bluetooth --no-same-owner --no-same-permissions -xf "$tmp" || exit 1
           systemctl restart bluetooth
           ;;
       ''}

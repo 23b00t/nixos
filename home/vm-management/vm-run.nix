@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, osConfig ? { }, ... }:
 let
   vmRegistry = import ../../vms/registry.nix;
   vmScriptLib = import ./vm-script-lib.nix { };
@@ -22,11 +22,22 @@ let
         shellName = "DBUS_FORWARD_REQUIRED";
         valueFrom = vm: if builtins.elem vm.name dbusForwardNames then 1 else 0;
       }
+      {
+        shellName = "RELAY_SSH";
+        valueFrom = vm: if relayListen vm ? ssh then 1 else 0;
+      }
+      {
+        shellName = "RELAY_GUI";
+        valueFrom = vm: if relayListen vm ? wprs then 1 else 0;
+      }
     ];
   };
 
   vmList = vmScriptLib.vmList vmRegistry.vms;
   dbusForwardNames = map (vm: vm.name) (vmRegistry.dbusForwardParticipants or [ ]);
+  # Xen guests reached over vchan (nox-relay): SSH without the admin network
+  # (stage B), GUI apps over vm-gui (wprs + app start by RPC)
+  relayListen = vm: (osConfig.services.nox-relay.host.guests or { }).${vm.name}.listen or { };
 
   vmRunner = pkgs.writeShellScriptBin "vm-run" ''
     #!/usr/bin/env bash
@@ -94,16 +105,27 @@ ${vmCases}
       systemctl start "$SERVICE"
     fi
 
+    if [ "$RELAY_GUI" -eq 1 ] && [ "$CLI_MODE" -eq 0 ]; then
+      # Xen guest: wprs over vchan, app started by RPC (stage C3), no SSH
+      exec vm-gui "$FULL_NAME" "$BINARY" "$@"
+    fi
+
     MAX_RETRIES=30
-    COUNT=0
-    while ! ping -c 1 -W 1 "$IP" >/dev/null 2>&1; do
-      sleep 1
-      COUNT=$((COUNT+1))
-      if [ $COUNT -ge $MAX_RETRIES ]; then
-        ${pkgs.libnotify}/bin/notify-send "Error" "VM $FULL_NAME failed to start network."
-        exit 1
-      fi
-    done
+    if [ "$RELAY_SSH" -eq 1 ]; then
+      # SSH over vchan, no admin network to ping: the SSH check below
+      # covers the boot
+      MAX_RETRIES=60
+    else
+      COUNT=0
+      while ! ping -c 1 -W 1 "$IP" >/dev/null 2>&1; do
+        sleep 1
+        COUNT=$((COUNT+1))
+        if [ $COUNT -ge $MAX_RETRIES ]; then
+          ${pkgs.libnotify}/bin/notify-send "Error" "VM $FULL_NAME failed to start network."
+          exit 1
+        fi
+      done
+    fi
 
     COUNT=0
     while ! ssh -i "$KEY" \
@@ -148,9 +170,6 @@ ${vmCases}
 
     if [ "$CLI_MODE" -eq 1 ]; then
       exec ssh -i "$KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "''${EXTRA_SSH_ARGS[@]}" "$VM_USER@$IP" -t -- "$BINARY" "$@"
-    elif [ -S "/run/nox-relay/$FULL_NAME-wprs.sock" ]; then
-      # Xen guest with wprs over vchan (nox-relay): no SSH tunnel for wprs
-      exec vm-gui "$FULL_NAME" "$BINARY" "$@"
     else
       wprs "$IP" run -- "$BINARY" "$@" &
       WPRS_PID=$!

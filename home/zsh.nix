@@ -19,7 +19,7 @@
       pcmd = "cmd=$(fzf < ~/nixos-config/home/resources/cmds); vared -p '> ' -c cmd; eval '$cmd'";
       kk = "kitty @ kitten";
       n = "nvim_vm";
-      tm = "vm-run -c -e '-R 4713:localhost:4713' music termusic";
+      tm = "vm-run -c coding termusic";
       kali = "vm-run -c kali distrobox enter kali";
     };
 

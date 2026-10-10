@@ -9,7 +9,6 @@ in
 {
   nvim = mkVm "nvim";
   chat = mkVm "chat";
-  music = mkVm "music";
   net = (mkVm "net") // {
     specialArgs = {
       inherit (inputs) zen-browser;

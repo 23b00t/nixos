@@ -96,14 +96,34 @@ in
       })
 
       # RPC (stage C): app VMs call (`vm-copy <vm> <files>`) and receive
-      # (~/Incoming/<source>); driver domains and the builder take no part
-      (lib.mkIf (
-        !builtins.elem vmName [
-          "sys-net"
-          "sys-usb"
-          "builder"
-        ]
-      ) { services.nox-rpc.guest.enable = true; })
+      # (~/Incoming/<source>); driver domains and the builder take no part.
+      # With wprs, dom0 starts GUI apps by RPC (`app`, C3, `vm-gui`) with the
+      # environment the wprs launcher sets
+      (lib.mkIf
+        (
+          !builtins.elem vmName [
+            "sys-net"
+            "sys-usb"
+            "builder"
+          ]
+        )
+        {
+          services.nox-rpc.guest = {
+            enable = true;
+            apps = lib.mkIf wprs {
+              enable = true;
+              after = [ "wprsd.service" ];
+              environment = {
+                WAYLAND_DISPLAY = "wprs-0";
+                DISPLAY = ":100";
+                XDG_SESSION_TYPE = "wayland";
+                PULSE_SERVER = "unix:/tmp/wprs-pulse";
+              }
+              // lib.optionalAttrs dbus { DBUS_SESSION_BUS_ADDRESS = "unix:path=/tmp/ssh_dbus.sock"; };
+            };
+          };
+        }
+      )
 
       # ... and no admin interface (only for VMs that use net-config)
       (lib.optionalAttrs (options.services ? net-config) {
