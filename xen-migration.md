@@ -468,6 +468,11 @@ Anlass: der an coding/nvim weitergereichte GitHub-Agent enthielt auch dom0s Admi
 
 ## v4
 
+- **XMG-Migration, Schritt 1 (2026-10-11):** `hp` und `xmg` im selben Branch (`de92725`, Registry je Host). **Referenzwert Bauzeit:** erster vollständiger Bau des Xen-Systems **lokal auf dem XMG** (noch KVM-dom0, i9 32 Threads, 62 GB RAM, `sudo nixos-rebuild boot --flake .#xmg`, inkl. aller VM-Runner und Gruppen-Store-Images): **ca. 10 Minuten**. Vergleichswert für den Builder auf dem XMG (`dom0-update`). Ergebnis: Generation 866, Boot-Eintrag „NixOS (with Xen Hypervisor)“ als Standard, Generation 865 (KVM) als Rückweg.
+- **XMG erster Xen-Boot (2026-10-11, 16:09): erfolgreich.** Laufen: sys-net (nur Ethernet), sys-usb (00:14.0), coding, chat, nvim, net; `systemctl --failed` leer. chat: Internet, Kamera und Mikrofon gehen; nvim/coding: hoch, Internet. irc absichtlich aus (kein Autostart, Whonix-Gateway fehlt noch). Harmlos im Journal: `libxl__device_pci_reset: The kernel doesn't support reset from sysfs for 0000:00:14.0` (Controller ohne FLR), QMP-Fehler beim Start von sys-usb, `chattr … bluetooth.img`.
+  - **Eingabe beim Login (User):** LUKS-Passphrase geht über die Atreus (dom0 hat den Controller im initrd noch), das Login-Passwort nur über die interne Tastatur. Für den User kein Problem; für andere Nutzer später (v5, Desktop-Profil) zumindest optional lösbar machen. Zu prüfen: `journalctl -b -u xen-input-proxy` (system service, `wantedBy multi-user.target`, sollte schon vor dem Login laufen).
+  - **Später (User):** Bootprozess aufräumen: Bootsplash (plymouth) geht unter Xen nicht mehr, wird nicht gebraucht → entfernen; Meldungen `i8042: PNP: PS/2 appears to have AUX port disabled, if this is incorrect please boot with i8042.nopnp` und `usbhid 1-8:1.0: couldn't find an input interrupt endpoint` (beide auch auf dem hp).
+  - **Offen:** WLAN (00:14.3) als eigener Testschritt (gleiches Gerät wie der xHCI, INTx mit `pci=nomsi`), Builder-Key `signing-key-xmg.pub`, Whonix-Images + Schlüssel, steam/godot (dGPU).
 - config refactorn
 - Auslagern der spezifischen Config in ein neues Repo das das Betriebssystem Repo wird und später Dinge wie die Verwaltungs TUI etc. enthält. Den dom0 code so verallgemeinern, dass er auf "jeder" (also erstmal dem xmg) Hardware läuft. Die VM configs als Templates/ Beispiele im Repo. Design entwickeln.
 
