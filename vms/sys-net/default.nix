@@ -197,9 +197,13 @@ in
   # to leave lps state", "failed to send h2c command"), downloads at ~10 KB/s
   # (2026-10-10). No power save, no deep LPS, no ASPM.
   networking.networkmanager.wifi.powersave = false;
+  # One queue per vif: with several (backend with >1 vCPU) part of the
+  # connections of multi-queue guests (Whonix-Gateway) stalled, Tor circuits
+  # timed out (xmg, 2026-10-11)
   boot.extraModprobeConfig = ''
     options rtw88_core disable_lps_deep=y
     options rtw88_pci disable_aspm=y
+    options xen_netback max_queues=1
   '';
 
   hardware.enableRedistributableFirmware = true;

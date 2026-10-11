@@ -373,6 +373,10 @@ let
         ''} $s/sshd-vchan@.service
         printf '%s\n' ${lib.escapeShellArgs modules} > $out/etc/modules-load.d/nox.conf
         ${lib.optionalString d.driverDomain ''
+          # One queue per vif: with several, part of the connections of
+          # multi-queue clients stalled (Workstation, xmg 2026-10-11)
+          mkdir -p $out/etc/modprobe.d
+          echo "options xen_netback max_queues=1" > $out/etc/modprobe.d/nox-netback.conf
           cp ${unit ''
             [Unit]
             Description=Mount /proc/xen files
