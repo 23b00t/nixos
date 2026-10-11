@@ -51,6 +51,16 @@ let
       exit 1
     ''}
 
+    # The builder doesn't autostart: start it and wait for SSH (over vchan)
+    if ! systemctl is-active --quiet microvm@builder; then
+      echo "dom0-update: starting the builder VM" >&2
+      sudo systemctl start microvm@builder
+    fi
+    for _ in $(seq 120); do
+      ssh -o ConnectTimeout=5 ${builderIp} true 2>/dev/null && break
+      sleep 2
+    done
+
     # Runs as the calling user (ssh config/key for ${builderIp}); the nix-daemon
     # verifies the builder signature when the paths are added
     out="$(ssh ${builderIp} builder-build "$machine" "$branch" | tail -n 1)"
