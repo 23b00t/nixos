@@ -165,13 +165,17 @@ let
       allowVmCopy = false;
     }
     {
-      # dGPU passthrough (v4, after the XMG migration); not on Xen yet
+      # Xen HVM with the dGPU (PCI passthrough); input and Bluetooth via
+      # USB/IP from sys-usb (`vm-usb attach <device> steam`)
       name = "steam";
       short = "s";
       ip = "10.0.0.12";
       autostart = false;
       nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL steam-vm";
       enableHostDbusForward = false;
+      allowVmCopy = false;
+      # Config ready (vms/steam), enable with hosts = [ "xmg" ]
       hosts = [ ];
     }
     {
@@ -507,10 +511,8 @@ let
         nic = [ "r8169" ];
         wifi = [ "iwlwifi" ];
       };
-      # Migration phase: dom0 keeps internet through sys-net as on hp
-      dom0TestAccess = {
-        lan = "192.168.178.0/24";
-      };
+      # dom0 offline: updates only via the builder (dom0-update)
+      dom0TestAccess = null;
     };
   };
 

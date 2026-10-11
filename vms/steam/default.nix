@@ -1,3 +1,7 @@
+# steam (v4): Xen HVM with the NVIDIA dGPU passed through (gamescope runs on
+# its HDMI output, as before under KVM). Keyboard, mouse and the Bluetooth
+# adapter come over USB/IP from sys-usb (`vm-usb attach <device> steam`),
+# SSH over vchan (vms/modules/vchan-relay.nix).
 {
   lib,
   pkgs,
@@ -6,22 +10,7 @@
   ...
 }:
 let
-  usb = vmRegistry.hardware.usb.byName;
-  allowedUsbDevices = vmRegistry.hardware.usb.allowedForOwner "steam";
-  bluetoothUsbDevice = usb."bluetooth-ax211";
-  steamUsbDevices = builtins.filter (
-    device:
-    builtins.elem device.name [
-      "mouse-main"
-      "keyboard-atreus"
-      bluetoothUsbDevice.name
-    ]
-  ) allowedUsbDevices;
   gpuPciPaths = vmRegistry.hardware.pci.devicePaths.gpu or [ ];
-  mkUsbDevice = device: {
-    bus = "usb";
-    path = device.microvmUsbPath;
-  };
   mkPciDevice = path: {
     bus = "pci";
     inherit path;
@@ -30,6 +19,8 @@ in
 {
   imports = [
     ../modules/net-config.nix
+    ../modules/vchan-relay.nix
+    ../modules/usbip-client.nix
   ];
 
   nixpkgs.overlays = [
@@ -54,13 +45,18 @@ in
   };
 
   microvm = {
-    hypervisor = "qemu";
-    optimize.enable = false;
-    qemu.extraArgs = [
-      "-smp"
-      "10,sockets=1,cores=10,threads=1"
-      "-mem-prealloc"
-    ];
+    hypervisor = "xen";
+    xen = {
+      # PCI passthrough with a PVH dom0 only works for HVM guests
+      type = "hvm";
+      # P-cores, as the CPUAffinity under KVM
+      cpus = "0-9";
+      # The NVIDIA driver writes config space registers pciback filters
+      # otherwise (common for GPU passthrough on Xen)
+      extraConfig = ''
+        pci_permissive = 1
+      '';
+    };
     volumes = [
       {
         mountPoint = "/home/user";
@@ -68,15 +64,8 @@ in
         size = 220000;
       }
     ];
-    shares = [
-      {
-        proto = "virtiofs";
-        tag = "ro-store";
-        source = "/nix/store";
-        mountPoint = "/nix/.ro-store";
-      }
-    ];
-    devices = (map mkPciDevice gpuPciPaths) ++ map mkUsbDevice steamUsbDevices;
+    devices = map mkPciDevice gpuPciPaths;
+    # PCI passthrough needs the full memory at boot (no ballooning)
     mem = 16384;
     vcpu = 10;
   };
