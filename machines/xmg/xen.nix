@@ -9,8 +9,8 @@
 
   # sys-usb owns the only USB controller (00:14.0): USB keyboard and mice only
   # reach dom0 over the input proxy once it runs (the internal keyboard and
-  # touchpad are not on USB). irc stays off until the Whonix-Gateway image
-  # (its only uplink) is set up on this machine.
+  # touchpad are not on USB). irc's only uplink is the Whonix-Gateway, which
+  # starts at boot as well.
   microvm.autostart = lib.mkForce [
     "sys-net"
     "sys-usb"
@@ -18,5 +18,7 @@
     "chat"
     "net"
     "coding"
+    "irc"
   ];
+  services.xen-image-domains.domains.whonix-gateway.autostart = true;
 }

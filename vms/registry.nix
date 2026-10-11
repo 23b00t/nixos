@@ -247,13 +247,13 @@ let
       name = "whonix-gateway";
       short = "wg";
       ip = "10.0.0.27";
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBe5ZZwbEfjSY57zWxpsfQy50IzEF651mYCHBKw0MfK whonix-gateway-vm";
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINnQth+MD3LJBK6GuG9cxgeZJNYG0yyfjpK0a04N/23G whonix-gateway-vm";
     }
     {
       name = "whonix-workstation";
       short = "ww";
       ip = "10.0.0.28";
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFmHyoO9EqyunijIaireMd0WtyGrasDwRrFx9R5NvF2B whonix-workstation-vm";
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXySg5FkNf1/uhANkgL7xyBtKvABMWQ3Y1BbQGkPZKU whonix-workstation-vm";
     }
   ];
 
