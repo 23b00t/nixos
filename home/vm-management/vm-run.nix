@@ -1,6 +1,8 @@
 { pkgs, osConfig ? { }, vmRegistry, ... }:
 let
   vmScriptLib = import ./vm-script-lib.nix { };
+  # Image domains (Whonix) run as xen-image@<name>, not microvm@<name>
+  imageDomainNames = builtins.concatStringsSep " " (map (d: d.name) vmRegistry.imageDomains);
 
   vmCases = vmScriptLib.vmCaseBlock {
     vms = vmRegistry.vms ++ vmRegistry.imageDomains;
@@ -98,6 +100,9 @@ ${vmCases}
 
     KEY="$HOME/.ssh/$FULL_NAME-vm"
     SERVICE="microvm@$FULL_NAME.service"
+    case " ${imageDomainNames} " in
+      *" $FULL_NAME "*) SERVICE="xen-image@$FULL_NAME.service" ;;
+    esac
 
     if ! systemctl is-active --quiet "$SERVICE"; then
       ${pkgs.libnotify}/bin/notify-send "Starting VM: $FULL_NAME" "Please wait..."

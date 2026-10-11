@@ -364,5 +364,18 @@ in
         "application/x-xpinstall"
       ];
     })
+
+    # --- Whonix-Workstation (image domain, wprs over vchan) ---
+    (mkVmEntry {
+      name = "torbrowser whonix";
+      genericName = "Web Browser";
+      vm = "whonix-workstation";
+      binary = "torbrowser";
+      icon = "web-browser";
+      categories = [
+        "Network"
+        "WebBrowser"
+      ];
+    })
   ];
 }
