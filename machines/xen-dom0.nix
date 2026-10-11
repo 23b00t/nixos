@@ -54,7 +54,8 @@ in
     trace = true;
     boot = {
       builderVerbosity = "info"; # report which Xen boot entries were created
-      params = [ "dom0=pvh" ];
+      # PVH is the default; registry hostProfile.dom0Pv = true boots a PV dom0
+      params = [ (if vmRegistry.hostProfile.dom0Pv or false then "dom0=pv" else "dom0=pvh") ];
     };
     dom0Resources = {
       # 4096 is too small to evaluate this flake on dom0 (swap thrashing)

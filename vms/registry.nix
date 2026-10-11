@@ -504,6 +504,10 @@ let
     };
     xmg = {
       cpuVendor = "intel";
+      # PV dom0 (as Qubes): under PVH the passed-through RTL8125 (INTx only)
+      # uploaded at ~50 KB/s (hp over WLAN: 4.4 MB/s), stalling Tor and the
+      # builder, and a stopped sys-net could not be destroyed (2026-10-11)
+      dom0Pv = true;
       # Blacklists nouveau/nvidia in dom0, the dGPU stays unbound for steam
       dGpuVendor = "nvidia";
       blockedHostDrivers = {
