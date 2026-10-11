@@ -239,18 +239,20 @@ in
       # A stopped VM can stay behind as a shut-down domain (state "s", its
       # qemu already gone) that still holds its PCI devices: pci-setup then
       # fails with "failed to quarantine" and the VM only started again after
-      # a reboot (sys-net, 2026-10-10/11). Destroy such a leftover first.
+      # a reboot (sys-net, 2026-10-10/11). On `systemctl restart` pci-setup
+      # starts in the same second the old domain begins shutting down, so
+      # wait for it to go away and destroy it if it doesn't. The VM itself
+      # only starts after pci-setup, so no running domain is hit here.
       "microvm-pci-devices@".serviceConfig.ExecStartPre = [
-        "${pkgs.writeShellScript "destroy-shutdown-domain" ''
+        "${pkgs.writeShellScript "destroy-leftover-domain" ''
           xl=${config.virtualisation.xen.package}/bin/xl
           dom="$1-vm"
-          state="$($xl list "$dom" 2>/dev/null | ${pkgs.gawk}/bin/awk 'NR == 2 { print $5 }')"
-          case "$state" in
-            *s* | *d*)
-              echo "destroying leftover domain $dom (state $state)"
-              $xl destroy "$dom" || true
-              ;;
-          esac
+          for _ in $(seq 30); do
+            $xl domid "$dom" >/dev/null 2>&1 || exit 0
+            sleep 1
+          done
+          echo "destroying leftover domain $dom: $($xl list "$dom" 2>/dev/null | tail -n 1)"
+          $xl destroy "$dom" || true
         ''} %i"
       ];
     };
