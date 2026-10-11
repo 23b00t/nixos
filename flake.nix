@@ -20,8 +20,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    yazi.url = "github:sxyazi/yazi";
-
     nixos-hardware.url = "github:nixos/nixos-hardware/master";
 
     zen-browser = {
