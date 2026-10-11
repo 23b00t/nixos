@@ -40,14 +40,14 @@ let
     #   nat = true;
     #   hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA2091GSIL+SlR1BsWswg+6DZzrL+enxmXo74d/OSUwv test-vm";
     # }
-    {
-      name = "music";
-      short = "m";
-      ip = "10.0.0.4";
-      autostart = true;
-      nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF/ca5rt+rbz5EanCgVCaGQEOco670v/gDm+Op/fM4Y7 music-vm";
-    }
+    # {
+    #   name = "music";
+    #   short = "m";
+    #   ip = "10.0.0.4";
+    #   autostart = true;
+    #   nat = true;
+    #   hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF/ca5rt+rbz5EanCgVCaGQEOco670v/gDm+Op/fM4Y7 music-vm";
+    # }
     {
       name = "net";
       short = "net";
@@ -68,24 +68,24 @@ let
       enableHostDbusForward = true;
       features = [ "yazi" ];
     }
-    {
-      name = "wine";
-      short = "w";
-      ip = "10.0.0.7";
-      autostart = false;
-      nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRYiHWjGyucuX6XJq2U3ENx7MHACcX0t8YzB2JEgfyR wine-vm";
-    }
-    {
-      name = "kali";
-      short = "k";
-      ip = "10.0.0.8";
-      autostart = false;
-      nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
-      enableHostDbusForward = false;
-      features = [ "yazi" ];
-    }
+    # {
+    #   name = "wine";
+    #   short = "w";
+    #   ip = "10.0.0.7";
+    #   autostart = false;
+    #   nat = true;
+    #   hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRYiHWjGyucuX6XJq2U3ENx7MHACcX0t8YzB2JEgfyR wine-vm";
+    # }
+    # {
+    #   name = "kali";
+    #   short = "k";
+    #   ip = "10.0.0.8";
+    #   autostart = false;
+    #   nat = true;
+    #   hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
+    #   enableHostDbusForward = false;
+    #   features = [ "yazi" ];
+    # }
     {
       name = "office";
       short = "o";
@@ -130,16 +130,16 @@ let
       allowGitHubAgent = true;
       features = [ "yazi" ];
     }
-    {
-      name = "mirage";
-      short = "mi";
-      ip = "10.0.0.14";
-      autostart = false;
-      nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAXSVOR0aTAo/5lDeG+3r3QeOygbLKY7WrkB8wSK+rh9 mirage-vm";
-      allowGitHubAgent = true;
-      enableHostDbusForward = false;
-    }
+    # {
+    #   name = "mirage";
+    #   short = "mi";
+    #   ip = "10.0.0.14";
+    #   autostart = false;
+    #   nat = true;
+    #   hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAXSVOR0aTAo/5lDeG+3r3QeOygbLKY7WrkB8wSK+rh9 mirage-vm";
+    #   allowGitHubAgent = true;
+    #   enableHostDbusForward = false;
+    # }
     {
       name = "php";
       short = "p";
@@ -180,17 +180,17 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2rxZHd/9pzQeQz3VDwlpcEP9KGOASXYsajKbcZdJ4/ sys-net-vm";
       allowVmCopy = false;
     }
-    {
-      name = "nix";
-      short = "nix";
-      ip = "10.0.0.24";
-      autostart = false;
-      nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK1BBz8Jz9CHLkp7C7gfxG+HuEfj+PK+xXxiJGh2pE+H nix-vm";
-      allowGitHubAgent = true;
-      enableHostDbusForward = false;
-      features = [ "yazi" ];
-    }
+    # {
+    #   name = "nix";
+    #   short = "nix";
+    #   ip = "10.0.0.24";
+    #   autostart = false;
+    #   nat = true;
+    #   hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK1BBz8Jz9CHLkp7C7gfxG+HuEfj+PK+xXxiJGh2pE+H nix-vm";
+    #   allowGitHubAgent = true;
+    #   enableHostDbusForward = false;
+    #   features = [ "yazi" ];
+    # }
     # create-vm: registry-vms
   ];
 
