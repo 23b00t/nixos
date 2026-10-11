@@ -154,6 +154,10 @@ in
     # previous one is garbage. GC during builds when space runs low.
     min-free = 5 * 1024 * 1024 * 1024;
     max-free = 15 * 1024 * 1024 * 1024;
+    # Over HTTP/2 the many .narinfo queries share a few connections; on xmg
+    # (2026-10-11) one stalled connection hung all of them for 300 s each
+    # ("Operation too slow"). Separate HTTP/1.1 connections don't.
+    http2 = false;
   };
   systemd.sockets.nix-daemon.unitConfig.RequiresMountsFor = [ stateDir ];
 
