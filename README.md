@@ -1,383 +1,455 @@
-# NixOS, hyprland, microvm.nix
+# NixOS: Xen dom0 + MicroVMs (hp, xmg)
 
-## Create Symlink
+A Qubes-like setup on NixOS: Xen dom0 with niri, the apps in MicroVMs
+(microvm.nix fork, Xen PVH/HVM), driver domains for network and USB, Whonix
+as image domains. Nix implementation: Lix. The plan, decisions and the work
+log are in [xen-migration.md](xen-migration.md).
 
-- mv /etc/nixos/ /etc/nixos.bak
-- ln -s /home/nx/nixos-config /etc/nixos
+- Branch `hp` serves both machines, `main` is the old KVM setup of the xmg
+  (fallback).
+- microvm.nix fork: `github:23b00t/microvm.nix/xen` (flake input `microvm`),
+  relay/RPC: `github:23b00t/NoX` (input `nox`).
 
-## Build system
+## Machines
 
-- sudo nixos-rebuild switch --flake ".#hp"
+| | hp (test laptop) | xmg (main laptop) |
+|---|---|---|
+| CPU / RAM | AMD Ryzen 5 5500U 6C/12T, 32 GB | Intel i9 (Raptor Lake) 32 threads, 62 GB |
+| dom0 | PVH, 8192 MB, 4 vCPUs, iGPU (amdgpu) | PVH, 8192 MB, 4 vCPUs, iGPU (i915) |
+| sys-net | RTL8821CE WLAN `01:00.0` | RTL8125 Ethernet `05:00.0` (CNVi WLAN `00:14.3` not passed through yet) |
+| sys-usb | both xHCI `03:00.3`, `03:00.4` | the only xHCI `00:14.0` |
+| dGPU | – | NVIDIA RTX 5060 `02:00.0/.1` (for steam, not active yet) |
+| dom0 internet | test phase: HTTPS/DNS/NTP via sys-net | none, updates only via the builder |
+| extras | `machines/hp/dev-access.nix` (claude-code, LAN SSH, NOPASSWD for xl/microvm@/switching) | – |
 
-## Xen test phase (hp, v1)
+## Repository layout
 
-The migration plan (v2+) is in [xen-migration.md](xen-migration.md).
+- `flake.nix`: composition; `nixosConfigurations.{hp,xmg}`, one
+  `nixosConfigurations.<vm>` per VM definition.
+- `vms/registry.nix`: single source of truth for VMs, image domains and the
+  hardware of each machine. `forHost "<machine>"` is the view a machine
+  gets: only VMs whose `hosts` contain it (no `hosts` = all machines,
+  `hosts = [ ]` = definition kept, not built). Lookups by name
+  (`byName`/`byShort`) cover all VMs.
+- `vms/definitions.nix`, `vms/<name>/default.nix`: VM modules;
+  `vms/modules/`: shared guest modules; `vms/store-groups.nix`: shared
+  read-only store images per trust group (registry `storeGroup`).
+- `machines/common-configuration.nix`: everything both machines share;
+  `machines/xen-dom0.nix`: the Xen dom0; `machines/<machine>/`: hardware,
+  machine specifics (`xen.nix`).
+- `modules/`: dom0 modules (`xen-usb`, `xen-links`, `xen-memory`,
+  `dom0-update`, `xen-image-domains`, `xen-vnc`, `dbus-proxy`).
+- `home/`: home-manager for `nx`, VM tooling in `home/vm-management/`.
 
-The hp branch turns the HP laptop into a Xen dom0 (`machines/hp/xen.nix`) and runs MicroVMs as Xen PVH domUs via the microvm.nix fork (`github:23b00t/microvm.nix/xen`, input `microvm` in `flake.nix`).
+## Build and update
 
-Scope of v1: `microvm.hypervisor = "xen"` is the only change in a VM definition (`vault`, `nvim`, `coding`). `/nix/store` comes from an erofs store disk; other shares are dropped with a warning (nvim has no `/mnt/host`). No PCI/USB passthrough, ballooning or 9pfs yet (v2). There is no sys-net, so VMs only reach the host (`10.0.0.254`), not the internet.
+### Normal update (via the builder VM)
 
-Test-phase extras in `machines/hp/dev-access.nix`: `claude-code`, `google-chrome`, key-only SSH for `nx` from `192.168.178.0/24` (no root login), and passwordless sudo for `xl`, `nixos-rebuild switch` and `systemctl start|stop|restart|kill microvm@*` so Claude can run the test plan.
+The builder VM (`10.0.0.25`) clones the repo from GitHub, builds only
+commits signed by a key in `vms/builder/allowed-signers`, signs the closure
+with its own key, and dom0 pulls it. Each machine has its own builder and
+key (`vms/builder/signing-key-<machine>.pub`).
 
-### Build and boot
-
-```bash
-git pull
-nix flake update microvm                 # lock the fork's xen branch
-nix build .#nixosConfigurations.hp.config.system.build.toplevel --dry-run
-sudo nixos-rebuild boot --flake .#hp
+```sh
+# commit + push first (signed), then on the machine:
+dom0-update            # build + copy, switch-to-configuration boot
+dom0-update --switch   # same, switch now
 ```
 
-Reboot and pick the `xen-…` boot entry. The plain NixOS entries stay as fallback.
+After a switch, VMs keep running with the old runner until restarted:
+`manage-vms status` / `manage-vms restart --stale`.
 
-dom0 has 8192 MB. Evaluating the hp configuration peaks at ~6.6 GB; with 4096 MB it thrashes swap for many minutes. If dom0 is short on memory for a rebuild, balloon it up live: `sudo xl mem-set 0 12g`. Don't add specialisations to hp: each one evaluates the host and all MicroVMs again and no longer fits.
+### First install of a machine (no builder yet)
 
-Changes in `machines/hp/xen.nix` that remove a running service (e.g. `xendomains`) should be applied with `nixos-rebuild boot` + reboot: stopping `xendomains` runs `xl shutdown --all` and takes all VMs down.
+```sh
+cd ~/nixos-config && git fetch && git switch hp
+sudo nixos-rebuild boot --flake .#<machine>
+sudo bootctl list | grep -E 'title|version'   # "NixOS (with Xen Hypervisor)" is the default
+systemctl reboot
+```
 
-### Test system
+Then set up the builder key:
 
-| | |
+```sh
+sudo systemctl start microvm@builder
+ssh 10.0.0.25 cat /var/lib/builder/signing-key.pub   # -> vms/builder/signing-key-<machine>.pub
+# commit + push, then once more locally (dom0 needs internet for this):
+sudo nixos-rebuild switch --flake .#<machine>
+dom0-update --switch
+```
+
+Notes:
+- New files must be tracked by git before a flake build sees them.
+- microvm.nix creates volume images but never grows existing ones. If a VM
+  runs out of space (e.g. the builder's `nix-store-overlay.img`, 100 GB),
+  grow it with the VM stopped:
+  ```sh
+  sudo systemctl stop microvm@<vm>
+  cd /var/lib/microvms/<vm>
+  sudo truncate -s <size>M <image>.img && sudo e2fsck -f -y <image>.img && sudo resize2fs <image>.img
+  sudo systemctl start microvm@<vm>
+  ```
+- The builder garbage-collects itself when it gets below 5 GB free.
+- Never garbage-collect dom0 between copying a builder result and switching
+  to it (the copied path is not a GC root until it is a generation).
+
+### Rollback
+
+Pick an older generation in the systemd-boot menu. On the xmg,
+**generation 865** is the last KVM system (branch `main`). Don't pick the
+plain "NixOS (Generation …)" entry of a Xen generation: it boots the new
+config without the hypervisor, and no VM runs there.
+
+## Managing VMs
+
+### Our tools (dom0)
+
+| Command | What |
 |---|---|
-| Model | HP Laptop 15s-eq2xxx (board 887A, BIOS F.32 2023-10-03) |
-| CPU / GPU | AMD Ryzen 5 5500U (Zen 2, 6C/12T), Radeon "Lucienne" iGPU `1002:164c` (amdgpu) |
-| RAM | 32 GB (dom0 8192 MB, 4 vCPUs) |
-| WiFi | Realtek RTL8821CE `10ec:c821` (rtw88, NetworkManager in dom0) |
-| Touchpad | ELAN071A (`04f3:30fd`), I2C-HID on `AMDI0010:03` (`\_SB_.I2CD.TPD0`), interrupt via the AMD GPIO controller `AMDI0030` (`\_SB_.GPIO`) |
-| Software | Xen 4.22.0, Linux 7.2.9-zen1, NixOS 26.11 (Lix) |
+| `vm-run <vm> <app> [args]` | start a GUI app in a VM (wprs over vchan, app start over RPC) |
+| `vm-run -c <vm> '<cmd>'` | run a command over SSH |
+| `vm <vm>` | interactive SSH session |
+| `ssh <vm>-vm` | plain SSH (over the vchan relay socket), also for `whonix-gateway-vm`, `whonix-workstation-vm` |
+| `manage-vms status [--running] [--group <g>] [--stale]` | state of all VMs |
+| `manage-vms <start\|stop\|restart> [--running] [--group <g>] [--stale]` | bulk operations |
+| `vm-usb list` | USB devices in sys-usb and their owners |
+| `vm-usb attach <device> <vm>` / `vm-usb detach <device>` | hand a USB device to a VM (USB/IP), device = busid, `vendor:product` or registry name |
+| `vm-usb allow-input <busid>` | accept a new input device for dom0 until it is unplugged |
+| `dom0-update [--switch]` | system update via the builder |
+| `backup <dest> <vm>...` / `backup -a <dest>` / `backup -r <src>` | rsync of `/home/user` of VMs (not `/var`, not dom0) |
+| `xen-image-setup <name>` | install the units into a stopped image domain (once per image) |
+| `xen-vnc <domain>` | display of an HVM domain with a stubdomain (Tails) |
+| `sys-net-rescue` | sys-net doesn't come up: NICs back to dom0 |
+| `sys-usb-rescue` | sys-usb doesn't come up: USB controllers back to dom0 (also automatic after 120 s) |
+| `create-vm`, `vmcopy-keys <vm>` | new VM, keys for inter-VM copy |
+| `tm` | termusic in coding |
 
-### Known hardware issues
+In the VMs: `vm-copy <vm> <files>` (dom0 asks, files land in
+`~/Incoming/<source>`), `vm-print <printer-ip> <file>` (via sys-print).
 
-- **Touchpad dead under PVH dom0.** The AMD GPIO controller gets no interrupt: `amd_gpio AMDI0030:00: error -EINVAL: IRQ index 0 not found`, so `i2c_hid_acpi` cannot bind ELAN071A. With a **PV dom0** (`dom0=pv`) the same kernel probes `amd_gpio` (only a harmless "failed to enable wake-up interrupt") and the touchpad shows up as input device. Tested 2026-10-05. Likely cause (not verified): the PVH dom0 kernel runs with a NULL legacy PIC and cannot register the level/low legacy GSI of the GPIO controller; a PV dom0 registers GSIs through Xen instead. The old `xen` branch (Intel machine) showed the same pattern ("pvh without touchpad").
-- **Rule of thumb:** PVH dom0 stays the target (also for the XMG). If dom0 hardware misbehaves (missing interrupts, dead input devices), try a PV dom0 first: change `"dom0=pvh"` to `"dom0=pv"` in `virtualisation.xen.boot.params` and rebuild with `boot`. Requires `CONFIG_XEN_PV=y` and `CONFIG_XEN_DOM0=y` (set in the zen kernel).
-- Harmless log noise under Xen: `kvm_amd: SVM not supported` (hardware-configuration loads `kvm-amd`), ACPI `VRTC`/`hctosys: unable to read the hardware clock` (Xen owns the RTC, `timedatectl` cannot read it), `ccp … tee: ring init command failed`, `xen_mcelog: Failed to get CPU numbers`.
+### systemd units
 
-### Test plan
-
-1. dom0 is up: `sudo xl info` (Xen version, dom0 memory 8192 MB), `sudo xl list` shows `Domain-0`, niri desktop works, `systemctl status xenstored xenconsoled`.
-2. Autostart: `systemctl status microvm@vault microvm@nvim microvm@coding` are active; `sudo xl list` shows `vault-vm`, `nvim-vm`, `coding-vm` with the configured memory/vCPUs.
-3. Guest boot: `sudo xl console vault-vm` (leave with `Ctrl+]`) or the logs in `/var/log/xen/console/`; no emergency shell, `/nix/store` and `/home/user` mounted.
-4. Network: `ip link show master vm-internal` lists `vm10`, `vm1`, `vm6`; `ssh 10.0.0.10` / `ssh 10.0.0.1` / `ssh 10.0.0.6` (or `vm-run -c <vm> …`) work from the host (host keys `~/.ssh/<vm>-vm` must exist on the hp). The `<vm>-vm` names don't resolve (no DNS/hosts entry), only the IPs.
-5. Persistence: create a file in `/home/user` of a VM, `sudo systemctl restart microvm@vault`, the file is still there.
-6. Lifecycle: `sudo systemctl stop microvm@vault` shuts the domain down cleanly (gone from `xl list` within 60 s, journal shows no `xl destroy`); `start` brings it back; `vm-run -c`/`vm` helpers work for the three VMs.
-7. Guest reboot/crash: `sudo reboot` inside a VM → the service restarts it (new domain id in `xl list`).
-8. Stale domain: `sudo kill -9 <xl pid of microvm@vault>` → the service restarts and destroys the leftover domain first.
-9. Host shutdown: reboot dom0; the guests shut down cleanly (no fsck/journal recovery messages on next boot).
-10. SSH: from a LAN machine `ssh nx@<hp-ip>` works with the `hp` key; root login is refused; from a VM on `10.0.0.0/24` port 22 is not reachable.
-11. Desktop: niri runs in dom0; a GUI app from a VM shows up via wprs (`vm-run cc firefox`).
-
-Collect for failures: `journalctl -b -u microvm@<vm>`, `/var/log/xen/console/guest-<vm>-vm.log`, `/var/log/xen/xl-<vm>-vm.log`, `/var/log/xen/xen-hotplug.log`, `sudo xl dmesg | tail -50`.
-
-### Results (2026-10-05)
-
-All 11 tests passed, with these notes:
-
-- 6: needed the fork fix "wait for domain cleanup on shutdown"; before it, every stop left a shut-down domain behind that the next start destroyed.
-- 9: guests shut down in 1–5 s and boot without ext4 recovery. dom0 shutdown hung 90 s in `xendomains` (it runs `xl shutdown --all --wait` in parallel to the `microvm@` services); `xendomains` is now disabled in `machines/hp/xen.nix` (configured, verify on the next reboot).
-- 11: touchpad only with PV dom0, see "Known hardware issues".
-- Expected on hp: `ide-lazyvim-config` fails in coding (no internet without sys-net); niri's `spawn-at-startup` `vm-run` calls try to start VMs that don't exist on hp (polkit failures in the journal); `vm-dbus-forward@<vm>` units for those VMs restart in a loop.
-
-## VMs
-
-### Create VMs
-
-- Add entry to `vms/registry.nix`, e.g.:
-  ````nix
-  {
-    name = "nvim";
-    short = "n";
-    ip = "10.0.0.1";
-    autostart = true;
-    nat = true;
-    sshKeyName = "nvim-vm";
-    extraSSH = {
-      RemoteForward = "4713 localhost:4713";
-    };
-  }
-  ````
-- Add a local VM definition to `vms/definitions.nix`
-- Create the VM module at `vms/{name}/default.nix`
-  - Create a host ssh key for the VM: `ssh-keygen -C my-vm`
-- If the VM should participate in file sharing between VMs, use on the host: `vmcopy-keys <new-vm-name>` and rebuild again
-- Import modules as needed; examples now live in the VM `default.nix` files such as `vms/nvim/default.nix`
-
-### Additional setup for ide vms
-
-- cp-vm {name} privat.asc public.asc
-- in vm: gpg --import privat.asc and gpg --import public.asc
-```bash
-  chmod 700 ~/.gnupg
-  chmod 600 ~/.gnupg/*
-  gpg --list-keys
-  gpg --edit-key <KEY-ID>
-  # dann im GPG-Prompt:
-  # trust
-  # 5
-  # y
-  # quit
-```
-- gh auth login
-
-### Resize VM images 
-
-- To increase the size of a .img image file by 30GB:
-```bash
-sudo truncate -s +30G filename.img
-```
-
-- After enlarging the .img file resize it in the vm:
-```bash
-lsblk
-sudo resize2fs /dev/vdX
-```
-
-### Temporarily allow VM to Host SSH Connection (for copy to host)
-
-- sudo iptables -I INPUT 1 -p tcp --dport 22 -s 10.0.0.1 -j ACCEPT
-- And directly remove it again:
-  - sudo iptables -D INPUT -p tcp --dport 22 -s 10.0.0.1 -j ACCEPT
-
-### Notification and tray forwarding
-
-- https://nikhilism.com/post/2023/remote-dbus-notifications/
-- Implemented in common-config.nix and registry.nix (changed ssh.nix logic for it to make it possible to have the same key twice)
-- Configured dbus-proxy
-
-## Network architecture and documentation
-
-### Current model
-
-The system now follows a more Qubes-like split:
-
-- the host is mainly responsible for:
-  - hypervisor duties
-  - local L2 plumbing
-  - running MicroVMs and libvirt
-- `sys-net` is the main external network boundary
-- regular MicroVMs use the internal host bridge and route through `sys-net`
-- libvirt guest trust zones are bridged on the host, but L3/NAT/DHCP policy for migrated external zones lives in `sys-net`
-
-### Important bridges and roles
-
-- `vm-internal`
-  - host internal bridge for MicroVMs
-  - host address: `10.0.0.254/24`
-  - `sys-net` router address: `10.0.0.253/24`
-- `virbr0`
-  - bridge-backed libvirt network for `default`
-  - guest-facing gateway is provided by `sys-net` on `192.168.122.1`
-- `virbr1`
-  - bridge-backed libvirt network for `Whonix-External`
-  - guest-facing gateway is provided by `sys-net` on `10.0.2.2`
-- `virbr2`
-  - `Whonix-Internal`
-  - currently kept as a separate protected trust domain
-
-### Important implementation detail
-
-Host `systemd-networkd` must not manage libvirt `vnet*` interfaces.
-
-The fix is in `machines/common-configuration.nix`:
-
-```nix
-"38-vnet-libvirt-ignore" = {
-  matchConfig.Name = "vnet*";
-  linkConfig.Unmanaged = "yes";
-};
-```
-
-Without this, host `systemd-networkd` reconfigures libvirt tap devices and breaks their bridge forwarding state.
-
-### Host internet policy
-
-The host still uses `sys-net` as its default gateway via `vm-internal`, but host egress is now intended to stay minimal.
-
-Current design goal:
-
-- host may reach VMs for management
-- VMs should not reach the host by default
-- host internet should ideally be restricted to maintenance traffic such as:
-  - SSH
-  - HTTP/HTTPS
-  - DNS
-  - NTP
-  - ICMP for diagnostics
-
-This restriction is enforced in `vms/sys-net/default.nix` on traffic coming from host address `10.0.0.254` via `vm-lan`.
-
-### Printing migration
-
-Printing and mDNS/Avahi service ownership were moved off the host and into `sys-net`.
-
-- `sys-net` now runs CUPS and Avahi
-- the `office` VM tunnels to `sys-net` instead of to the host
-- in the `office` VM, `/root/.ssh/print-gateway` is the private key used to SSH to `sys-net`
-- the matching public key must be authorized on `sys-net`
-
-Note: this printer migration is configured, but end-to-end runtime testing is still pending.
-
-## libvirt
-
-- virsh list --all --name
-- virsh dumpxml mein-vm-name > /pfad/zu/deinem/backup/mein-vm-name.xml
-- RESTORE: sudo rsync -avh --progress --sparse /run/media/nx/Backup/nixos-host/tails-amd64-6.15.1.img /run/media/nx/Backup/nixos-host/Whonix-Gateway.qcow2 /var/lib/libvirt/images/
-- RESTORE: sudo virsh define /pfad/zu/deinem/backup/mein-vm-name.xml
-
-## screensharing
-
-<!-- TODO: Build sth. working - idealy with only sharing specific windows, would be fine if only chat-vm is the target (but should be addable by module) -->
-vm: mpv http://192.168.178.20:8082/stream
-host: wl-screenrec --output eDP-1 | ffmpeg -re -i - -f mpegts -codec:v mpeg1video -b:v 3000k -bf 0 http://0.0.0.0:8082/stream
-- Actually only sharing should be on per module basis per vm which participates in sharable. If that could be possible with wprs?
-
-## No WiFi
-
-- sudo modprobe iwlwifi
 ```sh
-nmcli radio all
+sudo systemctl start|stop|restart microvm@<vm>          # MicroVMs
+sudo systemctl start|stop|restart xen-image@<name>      # Whonix image domains
+journalctl -b -u microvm@<vm>                           # VM start/stop
+journalctl -b -u xen-input-proxy -u vm-usb-auto -u xen-links
+journalctl -b -u nox-relay-<vm>                         # vchan relay
+systemctl --user status wprsd                           # (in the VM) GUI server
 ```
+
+### Xen (`xl`)
+
 ```sh
-nmcli radio wifi on
+sudo xl info | grep -E 'total_memory|free_memory|nr_cpus|xen_version'   # whole machine
+sudo xl list                     # domains with RAM (MB) and vCPUs
+sudo xl top                      # live CPU/RAM per domain (xentop), q to quit
+sudo xl vcpu-list                # which vCPU runs on which physical CPU
+sudo xl uptime
+sudo xl mem-set <domain> <MB>    # change a domain's RAM (the balancer does this for ballooning VMs)
+sudo xl console <domain>         # serial console, leave with Ctrl+]
+sudo xl network-list <domain>    # vifs and their backend domains
+sudo xl pci-assignable-list      # devices held by pciback
+sudo xl dmesg | tail -50         # hypervisor log
+sudo xl destroy <domain>         # hard stop (only if the unit can't stop it)
 ```
+
+Logs: `/var/log/xen/console/guest-<domain>.log`, `/var/log/xen/xl-<domain>.log`,
+`/var/log/xen/xen-hotplug.log`.
+
+### RAM
+
+dom0 keeps its 8192 MB (`autoballoon="off"`). VMs with `balloon = true`
+boot with `initialBalloonMem` and the RAM balancer
+(`modules/xen-memory.nix`) grows them up to `mem` as free Xen memory
+allows (registry `memPriority`: higher grows first). VMs with PCI
+passthrough (sys-net, sys-usb, steam) have fixed memory.
+
+## Networking
+
+- `vm-internal`: admin bridge in dom0 (`10.0.0.254`), every VM port
+  isolated, VM `10.0.0.<index>`; SSH to the VMs goes over the vchan relay.
+- `vm-uplink` in sys-net (`10.1.0.254/24`): internet for VMs with
+  `nat = true` (`10.1.0.<index>`), NAT to the physical NIC, VMs can't reach
+  each other or dom0.
+- `vm-usbip` in sys-usb (`10.2.0.254/24`): USB/IP to the VMs that own USB
+  devices.
+- `vm-whx-ext` in sys-net (`10.0.2.2/24`): outside of the Whonix-Gateway
+  only. `eth1` inside the gateway (`10.152.152.10/18`): irc and the
+  Workstation, so sys-net only ever sees Tor traffic.
+- `vm-tails` in sys-net (`10.3.0.1/24`, DHCP): Tails only.
+- vifs are re-attached by `xen-links` when a driver domain restarts.
+- Never remove the dom0 networkd rule that leaves `vnet*` unmanaged.
+
+## USB
+
+sys-usb owns the USB controllers. Input devices with owner `host` in the
+registry (`hardware.usb`) come back to dom0 over the input proxy
+(`xen-input-proxy`), other owners get the device over USB/IP
+(`vm-usb-auto` applies the `defaultOwner`). The LUKS passphrase can be
+typed on a USB keyboard (dom0 still owns the controller in the initrd);
+the internal keyboard and touchpad are not on USB.
+
+## VMs per machine
+
+| VM | hp | xmg | notes |
+|---|---|---|---|
+| sys-net, sys-usb | ✓ | ✓ | HVM driver domains |
+| nvim, coding, chat, net, office, vault | ✓ | ✓ | |
+| irc | ✓ | ✓ | only uplink: Whonix-Gateway |
+| builder, sys-print | ✓ | ✓ | |
+| php, ruby | | ✓ | |
+| whonix-gateway, whonix-workstation | ✓ | ✓ | image domains |
+| steam, godot, wine, kali, mirage, nix | | | definitions kept (`hosts = [ ]`); steam prepared for the xmg |
+
+### New VM
+
+Use `create-vm` or the `new-vm` Claude skill; keep `vms/registry.nix`,
+`vms/definitions.nix` and `vms/<name>/default.nix` consistent (markers
+`# create-vm: registry-vms` and `# create-vm: definitions`). Host SSH key:
+`ssh-keygen -t ed25519 -N "" -C <vm>-vm -f ~/.ssh/<vm>-vm`, public key into
+the registry (`hostSSHKey`).
+
+### Additional setup for IDE VMs
+
+```sh
+scp privat.asc public.asc <vm>-vm:   # from dom0, then in the VM:
+gpg --import privat.asc && gpg --import public.asc
+chmod 700 ~/.gnupg && chmod 600 ~/.gnupg/*
+gpg --edit-key <KEY-ID>                # trust, 5, y, quit
+gh auth login
+```
+
+Export from the source: `gpg --list-secret-keys --keyid-format LONG`,
+`gpg --export-secret-keys <id> > privat.asc`, `gpg --export <id> > public.asc`.
+
+## Whonix (from scratch)
+
+Gateway (CLI image) and Workstation (LXQt image) run as PVH image domains
+from the upstream images (`modules/xen-image-domains.nix`, domains in
+`machines/xen-dom0.nix`): pvgrub2 boots the Debian kernel of the guest, a
+read-only store disk brings nox-relay, sshd (and wprsd for the
+Workstation). The images live in `~/vm-images/whonix/`.
+
+### 1. Download and verify
+
+Check the current version on whonix.org first.
+
+```sh
+V=18.2.1.9
+D=~/vm-images/whonix
+B=https://www.whonix.org/download/libvirt/$V
+FPR=916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA
+mkdir -p "$D" && cd "$D"
+export GNUPGHOME="$D/gnupg"; mkdir -p -m 700 "$GNUPGHOME"
+curl -fsSL -o derivative.asc https://www.whonix.org/keys/derivative.asc
+gpg --batch --import derivative.asc
+gpg --batch --with-colons --fingerprint | grep -q "^fpr:::::::::$FPR:" && echo "key ok"
+for f in Whonix-CLI-$V.Intel_AMD64.qcow2.libvirt.xz Whonix-LXQt-$V.Intel_AMD64.qcow2.libvirt.xz; do
+  curl -fSL -C - -o "$f" "$B/$f"
+  curl -fsSL -o "$f.asc" "$B/$f.asc"
+  gpg --batch --status-fd 1 --verify "$f.asc" "$f" | grep -qE "VALIDSIG .*$FPR" && echo "OK $f" || echo "BAD SIGNATURE $f"
+done
+```
+
+### 2. Unpack and convert to raw
+
+```sh
+cd ~/vm-images/whonix
+mkdir -p cli lxqt
+tar -C cli -xJf Whonix-CLI-$V.Intel_AMD64.qcow2.libvirt.xz
+tar -C lxqt -xJf Whonix-LXQt-$V.Intel_AMD64.qcow2.libvirt.xz --wildcards '*Workstation*'
+nix shell nixpkgs#qemu-utils -c qemu-img convert -p -O raw -S 4k cli/Whonix-Gateway-CLI-$V.Intel_AMD64.qcow2 whonix-gateway.raw
+nix shell nixpkgs#qemu-utils -c qemu-img convert -p -O raw -S 4k lxqt/Whonix-Workstation-LXQt-$V.Intel_AMD64.qcow2 whonix-workstation.raw
+nix shell nixpkgs#util-linux -c sfdisk -l whonix-gateway.raw   # root = partition 3 (rootPartition in the config)
+rm -rf cli lxqt
+```
+
+The raw images are 100 GB sparse (~4 and ~7 GB used). Copy them with
+`tar -S`, not `rsync --sparse` (rsync reads and sends the holes):
+`ssh <host> 'tar -cS -C vm-images/whonix whonix-gateway.raw whonix-workstation.raw | zstd -T0 -3' | zstd -d | tar -xS -C ~/vm-images/whonix`.
+
+### 3. SSH keys
+
+```sh
+ssh-keygen -t ed25519 -N "" -C whonix-gateway-vm -f ~/.ssh/whonix-gateway-vm
+ssh-keygen -t ed25519 -N "" -C whonix-workstation-vm -f ~/.ssh/whonix-workstation-vm
+```
+
+Public keys into `imageDomains` in `vms/registry.nix` (`hostSSHKey`),
+commit, `dom0-update --switch`. The keys are on the store disk, no new
+setup needed when they change.
+
+### 4. Install the units (once per image, domain stopped)
+
+```sh
+sudo systemctl stop xen-image@whonix-gateway xen-image@whonix-workstation
+xen-image-setup whonix-gateway
+xen-image-setup whonix-workstation
+```
+
+### 5. Enable Tor in the Gateway
+
+Whonix only enables Tor's network with `DisableNetwork 0` (normally set by
+its setup wizard). Keep this line in `50_user.conf` whenever you edit it.
+
+```sh
+sudo systemctl start xen-image@whonix-gateway
+ssh whonix-gateway-vm
+sudo nano /usr/local/etc/torrc.d/50_user.conf
+#   DisableNetwork 0
+#   MapAddress guybrush.hackint.org dtlbunzs5b7s5sl775quwezleyeplxzicdoh3cnhm7feolxmkfd42nqd.onion
+#   MapAddress palladium.libera.chat libera75jm6of4wxpxt4aynol3xjmbtxgfyjpu34ss4d7r7q2v5zrpyd.onion
+sudo systemctl restart tor@default
+sudo journalctl -u tor@default -f        # wait for "Bootstrapped 100% (done)"
+```
+
+The `MapAddress` lines send irc's IRC servers to their onion services.
+
+### 6. Use
+
+```sh
+sudo systemctl start microvm@irc
+vm-run -c i 'curl -sS https://check.torproject.org/api/ip'   # "IsTor":true
+sudo systemctl start xen-image@whonix-workstation
+vm-run ww torbrowser          # or the desktop entry "torbrowser whonix"
+```
+
+Tor Browser settings that wprs needs or that you want:
+
+- **Scrolling** doesn't work over wprs with smooth scrolling on: open
+  `about:config`, set `general.smoothScroll` to `false`.
+- **Dark:** Settings → Extensions & Themes → Themes → "Dark" (browser UI);
+  Settings → General → Website appearance → "Dark". Tor Browser may still
+  report a light preference to websites (fingerprinting protection).
+
+The Workstation's firewall stays closed until `sdwdate` has synced the time
+over Tor once (`/run/sdwdate/first_success`). Start it after the Gateway's
+Tor is up; if it has no network, restart it:
+`sudo systemctl restart xen-image@whonix-workstation`.
+
+On the xmg the Gateway and irc start at boot. Debian guests lack kitty's
+terminfo (Backspace etc. broken over SSH): `TERM=xterm-256color ssh …`
+or `kitten ssh …`.
+
+## Tails (HVM with a Linux stubdomain)
+
+Tested on the hp (2026-10-10), not set up permanently on any machine. Tails
+runs as HVM; qemu runs in a Linux stubdomain (package `xen-stubdom-linux`
+from the microvm.nix fork), the display comes over vchan as VNC
+(`modules/xen-vnc.nix`). Tails only boots and keeps its Persistent Storage
+on a removable drive, so qemu emulates a USB stick.
+
+Needed in the config (already there): bridge `vm-tails` with DHCP in
+sys-net, `services.xen-vnc.domains = [ "tails" ];` (set in
+`machines/hp/xen.nix`; add it to `machines/xmg/xen.nix` for the xmg).
+
+### 1. Download and verify
+
+Current version and links: https://tails.net/install/download/ (USB image
+`.img`, its `.sig`, signing key `tails-signing.key`).
+
+```sh
+T=7.14
+mkdir -p ~/vm-images/tails && cd ~/vm-images/tails
+curl -fSLO https://download.tails.net/tails/stable/tails-amd64-$T/tails-amd64-$T.img
+curl -fSLO https://tails.net/torrents/files/tails-amd64-$T.img.sig
+curl -fSLO https://tails.net/tails-signing.key
+export GNUPGHOME=$PWD/gnupg; mkdir -p -m 700 "$GNUPGHOME"
+gpg --import tails-signing.key
+gpg --verify tails-amd64-$T.img.sig tails-amd64-$T.img   # primary key A490 D0F4 D311 A415 3E2B B7CA DBB8 02B2 58AC D84F
+```
+
+### 2. Stick image and stubdomain
+
+```sh
+cd ~/vm-images/tails
+cp tails-amd64-$T.img tails.raw && truncate -s 8G tails.raw    # >= 8 GB: 4 GB system + 4 GB Persistent Storage
+nix build github:23b00t/microvm.nix/xen#xen-stubdom-linux --out-link stubdom-gcroot
+# (dom0 without internet: build it in the builder and `nix copy --from ssh-ng://10.0.0.25 <path>`)
+```
+
+### 3. `~/vm-images/tails/tails.cfg`
+
+```
+name = "tails"
+type = "hvm"
+memory = 3072
+vcpus = 2
+device_model_version = "qemu-xen"
+device_model_stubdomain_override = 1
+stubdomain_kernel = "/home/nx/vm-images/tails/stubdom-gcroot/qemu-stubdom-linux-kernel"
+stubdomain_ramdisk = "/home/nx/vm-images/tails/stubdom-gcroot/qemu-stubdom-linux-rootfs"
+stubdomain_memory = 256
+vnc = 0
+device_model_args_pv = [ "-serial", "null", "-serial", "null", "-serial", "null" ]
+boot = "c"
+on_poweroff = "destroy"
+on_reboot = "destroy"
+on_crash = "destroy"
+vif = [ "mac=00:00:00:00:03:01, bridge=vm-tails, backend=sys-net-vm" ]
+# The image as a removable USB stick served by qemu in the stubdomain.
+# xvde: beyond the 4 emulated IDE slots; xen_platform_pci = 0: no second
+# path over PV blkfront; usb-tablet: absolute pointer for VNC clicks
+xen_platform_pci = 0
+device_model_args_hvm = [ "-vnc", "unix:/tmp/vnc.sock", "-device", "qemu-xhci,id=xhci", "-drive", "if=none,id=tailsusb,format=raw,file=/dev/xvde", "-device", "usb-storage,bus=xhci.0,drive=tailsusb,removable=on,bootindex=0", "-device", "usb-tablet,bus=xhci.0" ]
+disk = [ "format=raw, vdev=xvde, access=rw, target=/home/nx/vm-images/tails/tails.raw" ]
+```
+
+Tails needs 3 GB RAM ("Insufficient memory" with 2 GB). The three
+`-serial null` are required, otherwise qemu fails with `No serial device #2`.
+
+### 4. Run
+
+```sh
+sudo xl create ~/vm-images/tails/tails.cfg
+xen-vnc tails                  # Greeter -> Start Tails -> Connect to Tor
+sudo xl shutdown -F tails      # ACPI (no PV drivers); or shut down inside Tails, xl destroy tails if it hangs
+```
+
+Network comes by DHCP from `vm-tails` (`10.3.0.1xx`). A fresh stick:
+repeat the `cp`/`truncate` step.
+
+## steam (prepared, not active)
+
+`vms/steam/default.nix` is ready for Xen on the xmg: HVM with the NVIDIA
+dGPU (`02:00.0`, `02:00.1`) passed through, `pci_permissive`, pinned to
+CPUs 0–9, 16 GB fixed RAM, gamescope on the dGPU's HDMI output as before.
+Keyboard, mouse and the Bluetooth adapter come over USB/IP
+(`vm-usb attach keyboard-atreus steam`, `mouse-main`, `bluetooth-ax211`).
+Enable with `hosts = [ "xmg" ]` in the registry. The existing
+`/var/lib/microvms/steam/home.img` is reused.
+
+## Known issues
+
+Known issues and their status are tracked in
+[xen-migration.md](xen-migration.md#known-issues). Machine specifics:
+
+- **hp: touchpad dead under PVH dom0** (AMD GPIO controller gets no
+  interrupt: `amd_gpio AMDI0030:00: error -EINVAL: IRQ index 0 not found`).
+  Works with a PV dom0 (`dom0=pv` instead of `dom0=pvh` in
+  `virtualisation.xen.boot.params`). PVH stays the target; if dom0 hardware
+  misbehaves, try PV first.
+- Harmless under Xen: `kvm_amd: SVM not supported` / kvm-intel load
+  failures, `hctosys: unable to read the hardware clock`, `xen_mcelog:
+  Failed to get CPU numbers`, `The kernel doesn't support reset from sysfs`
+  for the xmg's xHCI.
 
 ## TODOs <!-- TODO: -->
 
-- Test migrated printing path via `sys-net` end-to-end
 - Is there any virtue in exposing nvim to the host? Remove the host-share and implement proper write back or remove exposing host to nvim.
-
 - Remove not strictly needed host software
 - think over dropping zellij and zsh on the host
 - modularize config
 - restructure vms/ vm folders should not live on the same level as modules/ vmcopy-keys/ etc.
-
 - fix steam-vm bug: reboot is needed -> currently no way to do that. Maybe automate early reboot after first start and logging specific issue as trigger.
 - improve steam-vm: initial wlserver: backend/hedless... is taking quiet long till steam starts (about 30s)
 - let steam-vm participate in file sharing?
-
-- think about removing fluxbox workflow. what's with wine vm? a libvirt vm could be an alternative. -> kind of have done that, but wine-vm is still experimental and probably needs hyprland. 
-
 - Monitor occasionally occurring shared libs error in nvim-vm
-- Monitor element-desktop tray issue
-
-- Monitor bug that occasionally occurs at boot: Bootscreen isn't displayed and tty seems frozen till password is typed in blindly and boot finished successfully
-  ```bash
-  sudo dmesg -T | grep -iE "drm"
-  [Mi Mai  6 19:02:30 2026] ACPI: bus type drm_connector registered
-  [Mi Mai  6 19:02:30 2026] simple-framebuffer simple-framebuffer.0: [drm] Registered 1 planes with drm panic
-  [Mi Mai  6 19:02:30 2026] [drm] Initialized simpledrm 1.0.0 for simple-framebuffer.0 on minor 0
-  [Mi Mai  6 19:02:30 2026] simple-framebuffer simple-framebuffer.0: [drm] fb0: simpledrmdrmfb frame buffer device
-  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] Found alderlake_s/raptorlake_s (device ID a788) integrated display version 12.00 stepping D0
-  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] VT-d active for gfx access
-  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] Using Transparent Hugepages
-  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] Finished loading DMC firmware i915/adls_dmc_ver2_01.bin (v2.1)
-  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: GuC firmware i915/tgl_guc_70.bin version 70.49.4
-  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: HuC firmware i915/tgl_huc.bin version 7.9.3
-  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: HuC: authenticated for all workloads
-  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: GUC: submission enabled
-  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: GUC: SLPC enabled
-  [Mi Mai  6 19:02:31 2026] i915 0000:00:02.0: [drm] GT0: GUC: RC enabled
-  [Mi Mai  6 19:02:32 2026] i915 0000:00:02.0: [drm] Registered 4 planes with drm panic
-  [Mi Mai  6 19:02:32 2026] [drm] Initialized i915 1.6.0 for 0000:00:02.0 on minor 1
-  [Mi Mai  6 19:02:32 2026] fbcon: i915drmfb (fb0) is primary device
-  [Mi Mai  6 19:02:32 2026] i915 0000:00:02.0: [drm] fb0: i915drmfb frame buffer device
-  [Mi Mai  6 19:02:55 2026] systemd[1]: Load Kernel Module drm skipped, unmet condition check ConditionKernelModuleLoaded=!drm
-  ```
-  - Same on 14.05.2026
-
 - create sys-firewall
+- screensharing: ideally only specific windows, at least for chat (per VM module)
 
 ## Misc
-
-### steam vm 
-
-lspci -nn | grep -E "VGA|3D|Audio"
-nvidia-smi || true
-ls -lah /dev/dri
-sudo dmesg -T | grep -iE "nvidia|drm|nouveau" | tail -n 200
-sudo cat /var/log/steam-autostart.log || true
-
- ~#@❯ sudo cp -f --reflink=auto ./result-steam-qcow2/steam-os.qcow2 /var/lib/libvirt/images/steam-os.qcow2
- ~#@❯ sudo sync
- ~#@❯ sudo stat -c '%n inode=%i size=%s mtime=%y' /var/lib/libvirt/images/steam-os.qcow2
-/var/lib/libvirt/images/steam-os.qcow2 inode=32506532 size=9143189504 mtime=2026-01-07 15:40:27.739643137 +0100
-
-
-1. **Geräte vor VM-Start freigeben:**  
-   Sorge dafür, dass die USB- und PCI-Geräte vor dem VM-Start nicht vom Host verwendet werden.  
-   Prüfe mit:
-   ```
-   lsof /dev/bus/usb/*/*
-   fuser /dev/bus/usb/*/*
-   ```
-
-2. **Automatisches Unbinden der Geräte:**  
-   Füge ein Skript oder einen systemd-Service hinzu, der vor dem VM-Start die Geräte unbindet:
-   ```
-   echo '1-1' > /sys/bus/usb/drivers/usb/unbind
-   ```
-   (Passe die Busnummer an dein Gerät an.)
-
-3. **VFIO-Binding sicherstellen:**  
-   Stelle sicher, dass die PCI-Geräte vor dem VM-Start an VFIO gebunden sind:
-   ```
-   echo 0000:02:00.0 > /sys/bus/pci/devices/0000:02:00.0/driver/unbind
-   echo 8086 1234 > /sys/bus/pci/drivers/vfio-pci/new_id
-   echo 0000:02:00.0 > /sys/bus/pci/drivers/vfio-pci/bind
-   ```
-   (IDs und Pfade anpassen!)
-
-4. **systemd-Unit für sauberes Binding:**  
-   Erstelle eine systemd-Unit auf dem Host, die vor dem VM-Start die Geräte vorbereitet.
-
-### windowrule bug fix
-
- ~#@❯ rm windowrules.conf
- ~#@❯ ln -s /home/nx/nixos-config/home/windowrules.conf /home/nx/.local/share/hypr/windowrules.conf
- ~#@❯ rm windowrules.conf
- ~#@❯ ln -s /home/nx/nixos-config/home/windowrules.conf /home/nx/.config/hypr/windowrules.conf
-
-### Nixos
-
-- Check value of option: e.g. sudo nixos-option home-manager.users.nx.xdg.enable
-- nix build ".#nixosConfigurations.xmg.config.system.build.toplevel" --dry-run
-
-### nix develope
-
-nix develop --store /mnt/user-store --extra-experimental-features nix-command --extra-experimental-features flakes
-nix store gc --store /mnt/user-store --extra-experimental-features nix-command
-
-### devenv wrapper with custom nix store - didn't work as expected
-
-```nix
-"nix.conf".text = ''
-  store = /mnt/user-store
-  substituters = https://cache.nixos.org/
-  trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
-  sandbox = false 
-  require-sigs = true
-  auto-optimise-store = false 
-  extra-experimental-features = nix-command flakes
-'';
-systemd.tmpfiles.rules = [
-  # alternative user store
-  "d /home/user/.config/nix 0755 user users -"
-  "L+ /home/user/.config/nix/nix.conf - - - - /etc/nix.conf"
-];
-```
-
-```bash
-nix profile add 'nixpkgs#devenv'
-mkdir -p ~/.local/bin
-echo '#!/bin/sh
-exec $(find /mnt/user-store/nix/store -type f -name devenv | sort | tail -1) "$@"
-' > ~/.local/bin/devenv
-chmod +x ~/.local/bin/devenv
-```
-
-### Export GPG keys 
-
-- gpg --list-secret-keys --keyid-format LONG
-- gpg --export-secret-keys XXXXXXXXXX > privat.asc
-- gpg --export XXXXXXXXXX > public.asc
 
 ### Lazyvim
 
@@ -387,4 +459,11 @@ export MAKEFLAGS="-j1"
 export CFLAGS="-O0"
 export CXXFLAGS="-O0"
 nvim --headless "+TSUninstall gitcommit" "+TSInstall gitcommit" +qa
+```
+
+### nix develop with a custom store
+
+```sh
+nix develop --store /mnt/user-store --extra-experimental-features nix-command --extra-experimental-features flakes
+nix store gc --store /mnt/user-store --extra-experimental-features nix-command
 ```

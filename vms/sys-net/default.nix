@@ -189,8 +189,10 @@ in
 
   boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
-  # MSI-X mapping fails for passthrough with a PVH dom0 (v2.1); INTx works
-  boot.kernelParams = [ "pci=nomsi" ];
+  # MSI-X mapping fails for passthrough with a PVH dom0 on hp (v2.1); INTx
+  # works. On xmg INTx lost ~1.5 % of the RTL8125 packets (stalled Tor and
+  # HTTP/2 connections), so it tries MSI there (registry hostProfile.pciNoMsi)
+  boot.kernelParams = lib.optional (vmRegistry.hostProfile.pciNoMsi or true) "pci=nomsi";
 
   # RTL8821CE (rtw88): the firmware got stuck in power save ("firmware failed
   # to leave lps state", "failed to send h2c command"), downloads at ~10 KB/s

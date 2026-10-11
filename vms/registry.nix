@@ -506,6 +506,8 @@ let
       cpuVendor = "intel";
       # Blacklists nouveau/nvidia in dom0, the dGPU stays unbound for steam
       dGpuVendor = "nvidia";
+      # sys-net uses MSI here (vms/sys-net), INTx dropped packets
+      pciNoMsi = false;
       blockedHostDrivers = {
         # dom0 never drives the NICs; sys-net owns them
         nic = [ "r8169" ];

@@ -20,6 +20,12 @@ let
           colmena
           ;
       })
+      # wprs: held modifiers follow the compositor (stuck Super, xen-migration.md)
+      (final: prev: {
+        wprs = prev.wprs.overrideAttrs (old: {
+          patches = (old.patches or [ ]) ++ [ ../modules/wprs-modifier-sync.patch ];
+        });
+      })
     ];
   };
   maxVMs = 50;
