@@ -13,7 +13,7 @@ let
     "  ${vm.name}${
         lib.optionalString (vm.short != null && vm.short != vm.name) "|${vm.short}"
       }) VM=${vm.name}; IP=${vm.ip} ;;\n"
-  ) vmRegistry.vms;
+  ) (vmRegistry.vms ++ vmRegistry.imageDomains);
 
   vmGui = pkgs.writeShellScriptBin "vm-gui" ''
     set -eu

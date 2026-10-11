@@ -1,4 +1,4 @@
-{ pkgs, inputs, ... }:
+{ pkgs, ... }:
 let
   # nix shell "nixpkgs#nix-prefetch-git"
   # nix-prefetch-git --url https://github.com/yazi-rs/plugins --rev d1c8baa
@@ -9,9 +9,10 @@ let
     hash = "sha256-52Zn6OSSsuNNAeqqZidjOvfCSB7qPqUeizYq/gO+UbE=";
   };
 
-  yaziPkg = inputs.yazi.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
-    _7zz = pkgs._7zz-rar;
-  };
+  # nixpkgs' yazi is a wrapper around yazi-unwrapped: with 7zz-rar only the
+  # wrapper is built, the Rust build comes from cache.nixos.org (the yazi
+  # flake input was built from source on every update)
+  yaziPkg = pkgs.yazi.override { _7zz = pkgs._7zz-rar; };
 in
 {
   programs.yazi = {

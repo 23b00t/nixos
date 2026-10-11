@@ -3,6 +3,12 @@
 { pkgs, ... }:
 let
   lan = "192.168.178.0/24";
+  unitVerbs = [
+    "start"
+    "stop"
+    "restart"
+    "kill *"
+  ];
 in
 {
   environment.systemPackages = with pkgs; [
@@ -55,12 +61,9 @@ in
               "/run/current-system/sw/bin/xl *"
               "/run/current-system/sw/bin/nixos-rebuild switch *"
             ]
-            ++ map (verb: "/run/current-system/sw/bin/systemctl ${verb} microvm@*") [
-              "start"
-              "stop"
-              "restart"
-              "kill *"
-            ]
+            ++ map (verb: "/run/current-system/sw/bin/systemctl ${verb} microvm@*") unitVerbs
+            # Image domains (Whonix), modules/xen-image-domains.nix
+            ++ map (verb: "/run/current-system/sw/bin/systemctl ${verb} xen-image@*") unitVerbs
             ++ [
               "/run/current-system/sw/bin/systemctl restart home-manager-nx"
               # Switching to a builder result (dom0-update, by hand)

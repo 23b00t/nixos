@@ -1,0 +1,2 @@
+# Keys allowed to sign the commits the builder builds (builder-build, git verify-commit)
+daniel.kipp@gmail.com namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIiMX73JzJQ1gk9fUyiiOgQYeH40DTkcD0NKtzpySORN

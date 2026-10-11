@@ -4,7 +4,7 @@ let
   vmScriptLib = import ./vm-script-lib.nix { };
 
   vmCases = vmScriptLib.vmCaseBlock {
-    vms = vmRegistry.vms;
+    vms = vmRegistry.vms ++ vmRegistry.imageDomains;
     assignments = [
       {
         shellName = "IP";
@@ -33,7 +33,7 @@ let
     ];
   };
 
-  vmList = vmScriptLib.vmList vmRegistry.vms;
+  vmList = vmScriptLib.vmList (vmRegistry.vms ++ vmRegistry.imageDomains);
   dbusForwardNames = map (vm: vm.name) (vmRegistry.dbusForwardParticipants or [ ]);
   # Xen guests reached over vchan (nox-relay): SSH without the admin network
   # (stage B), GUI apps over vm-gui (wprs + app start by RPC)

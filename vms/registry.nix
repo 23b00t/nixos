@@ -164,6 +164,25 @@ let
     # create-vm: registry-vms
   ];
 
+  # Image domains: guests from upstream disk images (Whonix), not NixOS and
+  # not run by microvm.nix (modules/xen-image-domains.nix). Same fields as
+  # `vms` where they apply. They have no admin link: `ip` is only the SSH
+  # alias (SSH goes over vchan), `hostSSHKey` the key dom0 logs in with.
+  imageDomains = [
+    {
+      name = "whonix-gateway";
+      short = "wg";
+      ip = "10.0.0.27";
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBe5ZZwbEfjSY57zWxpsfQy50IzEF651mYCHBKw0MfK whonix-gateway-vm";
+    }
+    {
+      name = "whonix-workstation";
+      short = "ww";
+      ip = "10.0.0.28";
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFmHyoO9EqyunijIaireMd0WtyGrasDwRrFx9R5NvF2B whonix-workstation-vm";
+    }
+  ];
+
   byName = builtins.listToAttrs (
     map (vm: {
       name = vm.name;
@@ -385,6 +404,7 @@ in
 {
   inherit
     vms
+    imageDomains
     byName
     byShort
     natIPs

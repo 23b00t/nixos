@@ -4,34 +4,33 @@ let
 in
 {
   imports = [
-    ../modules/whonix-net-config.nix
+    ../modules/net-config.nix
     ../modules/common-config.nix
     ../modules/zellij.nix
   ];
 
-  microvm.interfaces = [
-    {
-      type = "tap";
-      id = "vm${toString index}";
-      mac = "02:00:00:00:00:0b";
-    }
-    {
-      type = "tap";
-      id = "vm${toString index}-tor";
-      mac = "02:00:00:00:00:0c";
-    }
-  ];
-
   networking.hostName = "irc-vm";
 
-  services.whonix-net-config = {
+  # v3: the only network is the uplink to the Whonix-Gateway (backend of the
+  # vif, bridge eth1 there), never sys-net. SSH/zellij from dom0 over vchan.
+  services.net-config = {
     enable = true;
-    id = index;
+    inherit index;
+    mac = "00:00:00:00:00:0b";
+    dns = [ "10.152.152.10" ];
+    uplink = {
+      enable = true;
+      address4 = "10.152.152.21/18";
+      gateway4 = "10.152.152.10";
+      backend = "whonix-gateway-vm";
+      backendAddress = "/run/nox-relay/whonix-gateway-ssh.sock";
+      bridge = "eth1";
+    };
   };
 
   microvm = {
     
-    hypervisor = "cloud-hypervisor";
+    hypervisor = "xen";
     volumes = [
       {
         mountPoint = "/home/user";

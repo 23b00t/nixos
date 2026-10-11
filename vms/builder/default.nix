@@ -24,6 +24,16 @@ let
     ${pkgs.git}/bin/git -C "$repo" checkout --quiet --detach FETCH_HEAD >&2
     echo "builder-build: $machine from $branch @ $(${pkgs.git}/bin/git -C "$repo" rev-parse --short HEAD)" >&2
 
+    # Only commits signed by an allowed key get built: a compromised GitHub
+    # account or repo alone cannot push a system into dom0
+    if ! ${pkgs.git}/bin/git -C "$repo" \
+      -c gpg.ssh.program=${pkgs.openssh}/bin/ssh-keygen \
+      -c gpg.ssh.allowedSignersFile=${./allowed-signers} \
+      verify-commit HEAD >&2; then
+      echo "builder-build: HEAD of $branch is not signed by a key in vms/builder/allowed-signers, not building" >&2
+      exit 1
+    fi
+
     # The out-link is the GC root of the last build per machine
     out="$(${config.nix.package}/bin/nix build --print-out-paths \
       --out-link "${stateDir}/systems/$machine" \

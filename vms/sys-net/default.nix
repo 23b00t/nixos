@@ -47,15 +47,49 @@ in
 
   # Uplink bridge; the vif-bridge hotplug script (xl devd) adds the VMs' vifs
   systemd.network = {
-    netdevs."20-vm-uplink".netdevConfig = {
-      Name = "vm-uplink";
-      Kind = "bridge";
+    netdevs = {
+      "20-vm-uplink".netdevConfig = {
+        Name = "vm-uplink";
+        Kind = "bridge";
+      };
+      # External side of the Whonix-Gateway (its eth0 is fixed to 10.0.2.15/24
+      # via 10.0.2.2 in the image); nothing else is on this bridge
+      "20-vm-whx-ext".netdevConfig = {
+        Name = "vm-whx-ext";
+        Kind = "bridge";
+      };
+      # Tails (HVM): DHCP from sys-net, nothing else on this bridge
+      "20-vm-tails".netdevConfig = {
+        Name = "vm-tails";
+        Kind = "bridge";
+      };
     };
     networks = {
       "30-vm-uplink" = {
         matchConfig.Name = "vm-uplink";
         address = [ "10.1.0.254/24" ];
         networkConfig.ConfigureWithoutCarrier = true;
+        linkConfig.RequiredForOnline = "no";
+      };
+      "30-vm-whx-ext" = {
+        matchConfig.Name = "vm-whx-ext";
+        address = [ "10.0.2.2/24" ];
+        networkConfig.ConfigureWithoutCarrier = true;
+        linkConfig.RequiredForOnline = "no";
+      };
+      "30-vm-tails" = {
+        matchConfig.Name = "vm-tails";
+        address = [ "10.3.0.1/24" ];
+        networkConfig = {
+          ConfigureWithoutCarrier = true;
+          DHCPServer = true;
+        };
+        dhcpServerConfig = {
+          PoolOffset = 100;
+          PoolSize = 50;
+          # Tails resolves through Tor, no DNS from here
+          EmitDNS = false;
+        };
         linkConfig.RequiredForOnline = "no";
       };
       # Bridge membership of the vifs is up to the hotplug script
@@ -72,6 +106,8 @@ in
       unmanaged = [
         "interface-name:vm-lan"
         "interface-name:vm-uplink"
+        "interface-name:vm-whx-ext"
+        "interface-name:vm-tails"
         "interface-name:vif*"
       ];
     };
@@ -106,18 +142,24 @@ in
     firewall = {
       enable = true;
       interfaces.vm-lan.allowedTCPPorts = [ 22 ];
+      # DHCP for Tails (it takes its address only by DHCP)
+      interfaces.vm-tails.allowedUDPPorts = [ 67 ];
       filterForward = true;
       extraForwardRules = ''
         # sys-print (C2): printers in the local network (IPP), nothing else
-        iifname "vm-uplink" ip saddr ${sysPrint} oifname != { "vm-uplink", "vm-lan" } ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 631 accept
+        iifname "vm-uplink" ip saddr ${sysPrint} oifname != { "vm-uplink", "vm-lan", "vm-whx-ext", "vm-tails" } ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 631 accept
         iifname "vm-uplink" ip saddr ${sysPrint} reject with icmpx type admin-prohibited
-        # VMs -> outside only (not into the admin network)
-        iifname "vm-uplink" oifname != { "vm-uplink", "vm-lan" } accept
+        # VMs -> outside only (not into the admin network, not to Whonix-Gateway or Tails)
+        iifname "vm-uplink" oifname != { "vm-uplink", "vm-lan", "vm-whx-ext", "vm-tails" } accept
+        # Whonix-Gateway -> outside only (Tor); nothing gets in, see ct state below
+        iifname "vm-whx-ext" oifname != { "vm-uplink", "vm-lan", "vm-whx-ext", "vm-tails" } accept
+        # Tails -> outside only (it only speaks Tor itself)
+        iifname "vm-tails" oifname != { "vm-uplink", "vm-lan", "vm-whx-ext", "vm-tails" } accept
       ''
       + lib.optionalString (dom0TestAccess != null) ''
         # Test phase: dom0 -> outside, HTTPS/DNS/NTP/ICMP only (as on the XMG),
         # never into the uplink network
-        iifname "vm-lan" ip saddr ${dom0} oifname "vm-uplink" reject with icmpx type admin-prohibited
+        iifname "vm-lan" ip saddr ${dom0} oifname { "vm-uplink", "vm-whx-ext", "vm-tails" } reject with icmpx type admin-prohibited
         iifname "vm-lan" ip saddr ${dom0} meta l4proto icmp accept
         iifname "vm-lan" ip saddr ${dom0} tcp dport { 22, 80, 443 } accept
         iifname "vm-lan" ip saddr ${dom0} udp dport { 53, 123 } accept
@@ -132,7 +174,12 @@ in
     };
     nat = {
       enable = true;
-      internalInterfaces = [ "vm-uplink" ] ++ lib.optional (dom0TestAccess != null) "vm-lan";
+      internalInterfaces = [
+        "vm-uplink"
+        "vm-whx-ext"
+        "vm-tails"
+      ]
+      ++ lib.optional (dom0TestAccess != null) "vm-lan";
     };
   };
 

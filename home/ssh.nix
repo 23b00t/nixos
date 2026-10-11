@@ -12,7 +12,8 @@ let
   relayed = osConfig.services.nox-relay.host.guests or { };
   relaySsh = name: (relayed.${name}.listen or { }).ssh.path or null;
 
-  hosts = vmRegistry.vms;
+  # Image domains (Whonix) have no admin link: SSH only through the relay
+  hosts = vmRegistry.vms ++ vmRegistry.imageDomains;
   githubAgentSocket = "%d/.ssh/agent/github.sock";
 
   hostStrings = builtins.concatStringsSep "\n" (

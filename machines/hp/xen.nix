@@ -36,6 +36,8 @@ in
     ../../modules/dom0-update.nix
     ../../modules/xen-usb.nix
     ../../modules/xen-links.nix
+    ../../modules/xen-image-domains.nix
+    ../../modules/xen-vnc.nix
     inputs.nox.nixosModules.relay
     inputs.nox.nixosModules.rpc
   ];
@@ -160,6 +162,58 @@ in
       }
     ];
   };
+
+  # v3: Whonix-Gateway from the upstream image (PVH, pvgrub2), not NixOS.
+  # Outside: eth0 on sys-net's `vm-whx-ext` (10.0.2.15 via 10.0.2.2, as in the
+  # image). Inside: it serves the vifs of irc/workstation itself on the bridge
+  # `eth1` (Whonix' internal interface), so sys-net only sees Tor traffic.
+  # Terminal only: `vm-run -c wg …` (SSH over vchan). Image setup once with
+  # `xen-image-setup whonix-gateway` (xen-migration.md).
+  services.xen-image-domains.domains.whonix-gateway = {
+    # Test phase: the converted download; later /var/lib/xen-images
+    image = "/home/nx/vm-images/whonix/whonix-gateway.raw";
+    rootPartition = 3;
+    memory = 1024;
+    vcpus = 2;
+    vifs = [
+      {
+        mac = "00:00:00:00:01:1b";
+        bridge = "vm-whx-ext";
+      }
+    ];
+    ifupdownHotplug = [ "eth0" ];
+    driverDomain = true;
+    internalBridge = "eth1";
+    authorizedKeys = map (d: d.hostSSHKey) (
+      builtins.filter (d: d.name == "whonix-gateway") vmRegistry.imageDomains
+    );
+  };
+
+  # v3: Whonix-Workstation (LXQt image), only network: the gateway's eth1.
+  # Apps over wprs (`vm-run ww torbrowser`), audio over dom0's pulse.
+  services.xen-image-domains.domains.whonix-workstation = {
+    image = "/home/nx/vm-images/whonix/whonix-workstation.raw";
+    rootPartition = 3;
+    memory = 2048;
+    vcpus = 2;
+    vifs = [
+      {
+        mac = "00:00:00:00:01:1c";
+        bridge = "eth1";
+        backend = "whonix-gateway-vm";
+        backendAddress = "/run/nox-relay/whonix-gateway-ssh.sock";
+      }
+    ];
+    ifupdownHotplug = [ "eth0" ];
+    wprs = true;
+    authorizedKeys = map (d: d.hostSSHKey) (
+      builtins.filter (d: d.name == "whonix-workstation") vmRegistry.imageDomains
+    );
+  };
+
+  # v3: Tails (HVM, qemu in a Linux stubdomain): `xen-vnc tails` shows its
+  # display. The domain itself is still a test config (xen-migration.md)
+  services.xen-vnc.domains = [ "tails" ];
 
   # v2.5: the WLAN card belongs to sys-net (registry `hardware.pci`, driver
   # blacklisted in dom0). `sys-net-rescue` hands it back in an emergency.

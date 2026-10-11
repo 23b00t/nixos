@@ -57,7 +57,7 @@ let
   # "domain mac bridge backend backendAddress" per line
   linkTable = pkgs.writeText "xen-links" (
     lib.concatMapStrings (l: "${l.domain} ${l.mac} ${l.bridge} ${l.backend} ${l.backendAddress}\n") (
-      uplinks ++ usbipLinks
+      uplinks ++ usbipLinks ++ cfg.extraLinks
     )
   );
 
@@ -144,6 +144,21 @@ in
       type = lib.types.ints.positive;
       default = 12;
       description = "Rounds (5 s each) a vif may stay unconnected before it is re-attached (guest boot).";
+    };
+
+    extraLinks = lib.mkOption {
+      type = lib.types.listOf (lib.types.attrsOf lib.types.str);
+      default = [ ];
+      example = [
+        {
+          domain = "whonix-gateway-vm";
+          mac = "00:00:00:00:02:1b";
+          bridge = "vm-whx-ext";
+          backend = "sys-net-vm";
+          backendAddress = "10.0.0.253";
+        }
+      ];
+      description = "Further vifs to keep connected (domains not run by microvm.nix, see xen-image-domains).";
     };
   };
 

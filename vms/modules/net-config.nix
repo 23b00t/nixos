@@ -127,7 +127,7 @@ in
       backendAddress = mkOption {
         type = types.str;
         default = "10.0.0.253";
-        description = "Admin address of the backend domain, used to wait for it before starting.";
+        description = "Admin address (port 22) or relay SSH socket (absolute path) of the backend domain, used to wait for it before starting.";
       };
 
       bridge = mkOption {
@@ -171,12 +171,17 @@ in
 
       # Runs in dom0 before the domain is created: the uplink backend (xl devd
       # in sys-net) must be up, otherwise creating the vif fails. sys-net's
-      # sshd comes up with its other services, so it is a usable readiness signal.
+      # sshd comes up with its other services, so it is a usable readiness signal
+      # (over the relay socket for backends without an admin link).
       preStart = mkIf cfg.uplink.enable ''
         for _ in $(${hostPkgs.coreutils}/bin/seq 180); do
           if ${config.microvm.xen.package}/bin/xl domid ${cfg.uplink.backend} >/dev/null 2>&1 \
-            && ${hostPkgs.coreutils}/bin/timeout 1 ${hostPkgs.bash}/bin/bash -c \
-              '</dev/tcp/${cfg.uplink.backendAddress}/22' 2>/dev/null; then
+            && ${
+              if hasPrefix "/" cfg.uplink.backendAddress then
+                ''[ "$(${hostPkgs.coreutils}/bin/timeout 3 ${hostPkgs.socat}/bin/socat -t 2 - UNIX-CONNECT:${cfg.uplink.backendAddress} </dev/null 2>/dev/null | ${hostPkgs.coreutils}/bin/head -c 4)" = SSH- ]''
+              else
+                "${hostPkgs.coreutils}/bin/timeout 1 ${hostPkgs.bash}/bin/bash -c '</dev/tcp/${cfg.uplink.backendAddress}/22' 2>/dev/null"
+            }; then
             break
           fi
           ${hostPkgs.coreutils}/bin/sleep 1
