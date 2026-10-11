@@ -209,8 +209,9 @@ in
   boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
   # MSI-X mapping fails for passthrough with a PVH dom0 (v2.1, hp; xmg: no
-  # network with MSI either, 2026-10-11); INTx works
-  boot.kernelParams = [ "pci=nomsi" ];
+  # network with MSI either, 2026-10-11); INTx works. Under a PV dom0 MSI is
+  # the usual path: registry hostProfile.sysNetMsi tries it (xmg)
+  boot.kernelParams = lib.optional (!(vmRegistry.hostProfile.sysNetMsi or false)) "pci=nomsi";
 
   # RTL8821CE (rtw88): the firmware got stuck in power save ("firmware failed
   # to leave lps state", "failed to send h2c command"), downloads at ~10 KB/s

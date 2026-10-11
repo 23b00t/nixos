@@ -508,6 +508,8 @@ let
       # uploaded at ~50 KB/s (hp over WLAN: 4.4 MB/s), stalling Tor and the
       # builder, and a stopped sys-net could not be destroyed (2026-10-11)
       dom0Pv = true;
+      # Test: sys-net with MSI under the PV dom0 (vms/sys-net)
+      sysNetMsi = true;
       # Blacklists nouveau/nvidia in dom0, the dGPU stays unbound for steam
       dGpuVendor = "nvidia";
       blockedHostDrivers = {

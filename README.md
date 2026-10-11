@@ -323,6 +323,8 @@ Tor Browser settings that wprs needs or that you want:
   Settings → General → Website appearance → "Dark". Tor Browser may still
   report a light preference to websites (fingerprinting protection).
 
+**Updates:** `dom0-update` only renews the store disk (nox-relay, sshd, wprsd), not the Debian system inside the images. Gateway: `ssh whonix-gateway-vm`, `sudo apt-get-update-plus dist-upgrade`. Workstation: `sudo` is blocked for `user` (Whonix user/sysmaint split); try `upgrade-nonroot` (not tested yet), otherwise boot the sysmaint entry from the GRUB menu (`sudo xl console whonix-workstation-vm` right after starting it). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
+
 The Workstation's firewall stays closed until `sdwdate` has synced the time
 over Tor once (`/run/sdwdate/first_success`). Start it after the Gateway's
 Tor is up; if it has no network, restart it:
