@@ -236,6 +236,23 @@ in
       # oxenstored ignores SIGTERM: every shutdown waited 90 s for the
       # SIGKILL. Its state only lives in RAM, nothing to save on the way down
       xenstored.serviceConfig.TimeoutStopSec = "5s";
+      # A stopped VM can stay behind as a shut-down domain (state "s", its
+      # qemu already gone) that still holds its PCI devices: pci-setup then
+      # fails with "failed to quarantine" and the VM only started again after
+      # a reboot (sys-net, 2026-10-10/11). Destroy such a leftover first.
+      "microvm-pci-devices@".serviceConfig.ExecStartPre = [
+        "${pkgs.writeShellScript "destroy-shutdown-domain" ''
+          xl=${config.virtualisation.xen.package}/bin/xl
+          dom="$1-vm"
+          state="$($xl list "$dom" 2>/dev/null | ${pkgs.gawk}/bin/awk 'NR == 2 { print $5 }')"
+          case "$state" in
+            *s* | *d*)
+              echo "destroying leftover domain $dom (state $state)"
+              $xl destroy "$dom" || true
+              ;;
+          esac
+        ''} %i"
+      ];
     };
 
     network.networks =
