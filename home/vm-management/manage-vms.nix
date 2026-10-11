@@ -1,6 +1,5 @@
-{ pkgs, ... }:
+{ pkgs, vmRegistry, ... }:
 let
-  vmRegistry = import ../../vms/registry.nix;
   vmNames = builtins.concatStringsSep " " (map (vm: vm.name) vmRegistry.vms);
   # name=group pairs for VMs with a shared store image (registry `storeGroup`)
   vmGroups = builtins.concatStringsSep " " (

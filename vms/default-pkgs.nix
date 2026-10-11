@@ -1,6 +1,7 @@
 {
   pkgs,
   lib ? pkgs.lib,
+  vmRegistry,
 }:
 with pkgs;
 [
@@ -18,7 +19,7 @@ with pkgs;
   poppler
   resvg
   imagemagick
-  (import ./copy-between-vms.nix { inherit pkgs lib; })
+  (import ./copy-between-vms.nix { inherit pkgs lib vmRegistry; })
 
   # NOTE: Important that WAYLAND_DISPLAY = "wayland-0" is set as a fake var too
   # Create fake wl-copy

@@ -1,6 +1,11 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  vmRegistry,
+  ...
+}:
 let
-  vmRegistry = import ../registry.nix;
   gpuPciPaths = vmRegistry.hardware.pci.devicePaths.gpu or [ ];
   mkPciDevice = path: {
     bus = "pci";

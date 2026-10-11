@@ -126,7 +126,7 @@ in
 
   microvm = {
 
-    hypervisor = "cloud-hypervisor";
+    hypervisor = "xen";
     volumes = [
       {
         mountPoint = "/home/user";
@@ -139,16 +139,11 @@ in
         size = 20000;
       }
     ];
-    shares = [
-      {
-        proto = "virtiofs";
-        tag = "ro-store";
-        source = "/nix/store";
-        mountPoint = "/nix/.ro-store";
-      }
-    ];
 
+    # Boots with 4096 MB, the RAM balancer grows it up to 16384 MB
     mem = 16384;
+    balloon = true;
+    initialBalloonMem = 4096;
     vcpu = 2;
   };
 

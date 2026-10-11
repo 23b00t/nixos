@@ -2,10 +2,10 @@
   lib,
   pkgs,
   config,
+  vmRegistry,
   ...
 }:
 let
-  vmRegistry = import ../registry.nix;
   usb = vmRegistry.hardware.usb.byName;
   allowedUsbDevices = vmRegistry.hardware.usb.allowedForOwner "steam";
   bluetoothUsbDevice = usb."bluetooth-ax211";

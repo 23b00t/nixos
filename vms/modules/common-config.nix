@@ -2,6 +2,7 @@
   lib,
   pkgs,
   config,
+  vmRegistry,
   ...
 }:
 
@@ -9,8 +10,7 @@ with lib;
 
 let
   cfg = config.services.common-config;
-  defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
-  vmRegistry = import ../registry.nix;
+  defaultPkgs = import ../default-pkgs.nix { inherit pkgs vmRegistry; };
   hostName = config.networking.hostName or "";
   vmName = if hasSuffix "-vm" hostName then removeSuffix "-vm" hostName else hostName;
   currentVm =

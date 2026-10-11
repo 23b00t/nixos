@@ -1,9 +1,13 @@
 # sys-net (v2.5): Xen HVM driver domain owning the WLAN card. Serves the
 # uplink bridge `vm-uplink` (10.1.0.254/24) as backend for the VMs' uplink vifs
 # and NATs it to the WLAN. dom0 is only on the admin network (vm-lan).
-{ lib, pkgs, ... }:
+{
+  lib,
+  pkgs,
+  vmRegistry,
+  ...
+}:
 let
-  vmRegistry = import ../registry.nix;
   nicPciPaths = vmRegistry.hardware.pci.devicePaths.nic or [ ];
   mkPciDevice = path: {
     bus = "pci";

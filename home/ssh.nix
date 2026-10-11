@@ -3,10 +3,10 @@
   pkgs,
   inputs,
   osConfig ? { },
+  vmRegistry,
   ...
 }:
 let
-  vmRegistry = import ../vms/registry.nix;
   # Xen guests dom0 reaches over vchan (nox-relay, stage B): ssh goes through
   # the relay socket instead of the admin network; also for connections by IP
   relayed = osConfig.services.nox-relay.host.guests or { };

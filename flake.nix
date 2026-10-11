@@ -33,7 +33,10 @@
     let
       system = "x86_64-linux";
 
-      vmRegistry = import ./vms/registry.nix;
+      registry = import ./vms/registry.nix;
+      # Standalone VM outputs (nixosConfigurations.<vm>, packages) see the
+      # registry like the xmg host; each host gets its own view in mkMachine
+      vmRegistry = registry.forHost "xmg";
       vmDefinitions = import ./vms/definitions.nix { inherit inputs; };
 
       baseModules = [
@@ -41,11 +44,12 @@
       ];
 
       mkMachine =
-        extraModules:
+        host: extraModules:
         inputs.nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = {
-            inherit inputs vmRegistry vmDefinitions;
+            inherit inputs vmDefinitions;
+            vmRegistry = registry.forHost host;
           };
           modules = baseModules ++ extraModules;
         };
@@ -94,8 +98,12 @@
           acc // extraPackages
         ) { } (builtins.attrNames vmDefinitions);
 
-      hpConfig = mkMachine [
+      hpConfig = mkMachine "hp" [
         ./machines/hp/configuration.nix
+      ];
+
+      xmgConfig = mkMachine "xmg" [
+        ./machines/xmg/configuration.nix
       ];
     in
     {
@@ -103,6 +111,7 @@
 
       nixosConfigurations = vmSystems // {
         hp = hpConfig;
+        xmg = xmgConfig;
         default = hpConfig;
       };
     };

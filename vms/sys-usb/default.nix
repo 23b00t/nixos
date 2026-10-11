@@ -6,10 +6,10 @@
   lib,
   pkgs,
   config,
+  vmRegistry,
   ...
 }:
 let
-  vmRegistry = import ../registry.nix;
   links = import ../usb-links.nix { inherit lib vmRegistry; };
   usbPciPaths = vmRegistry.hardware.pci.devicePaths.usb or [ ];
   mkPciDevice = path: {

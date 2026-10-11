@@ -1,7 +1,5 @@
-{ pkgs, ... }:
+{ pkgs, vmRegistry, ... }:
 let
-  vmRegistry = import ./registry.nix;
-
   # Host table: <hostname-or-short> <ip>
   # We include both long and short names for transfer-capable VMs only.
   hostTable = builtins.concatStringsSep "\n" (

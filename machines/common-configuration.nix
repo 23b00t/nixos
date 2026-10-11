@@ -51,8 +51,12 @@ let
     else
       [ ];
 
+  # Only with vfio ids (KVM). On Xen the dGPU goes to pciback when its VM
+  # starts and only needs the blacklist below
   vfioPreSoftdeps =
-    if dGpuVendor == "nvidia" then
+    if vfioPciIds == [ ] then
+      [ ]
+    else if dGpuVendor == "nvidia" then
       [
         "softdep nvidia pre: vfio-pci"
         "softdep drm pre: vfio-pci"
@@ -190,6 +194,7 @@ in
     extraSpecialArgs = {
       inherit inputs;
       hostname = config.networking.hostName;
+      inherit vmRegistry;
     };
     users."nx" =
       { ... }:
@@ -247,7 +252,7 @@ in
     git
     fzf
 
-    (import ../vms/copy-between-vms.nix { inherit pkgs lib; })
+    (import ../vms/copy-between-vms.nix { inherit pkgs lib vmRegistry; })
   ];
 
   environment.variables = {

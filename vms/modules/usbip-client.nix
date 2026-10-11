@@ -7,10 +7,10 @@
   lib,
   pkgs,
   config,
+  vmRegistry,
   ...
 }:
 let
-  vmRegistry = import ../registry.nix;
   links = import ../usb-links.nix { inherit lib vmRegistry; };
   vmName = lib.removeSuffix "-vm" (config.networking.hostName or "");
   enable = links.isTarget vmName && config.microvm.hypervisor == "xen";

@@ -53,11 +53,12 @@ in
 {
   inherit images;
 
-  # Module for VM `name`: boot from its group's image (no-op for standalone VMs)
+  # Module for VM `name`: boot from its group's image (no-op for standalone VMs
+  # and for VMs not on this machine, whose closure is not in the image)
   moduleFor =
     name:
     { config, ... }:
-    lib.optionalAttrs (groupOf name != null) {
+    lib.optionalAttrs (groupOf name != null && builtins.any (vm: vm.name == name) vmRegistry.vms) {
       microvm.storeDisk = lib.mkIf config.microvm.storeOnDisk images.${groupOf name};
     };
 }

@@ -1,6 +1,5 @@
-{ pkgs, ... }:
+{ pkgs, vmRegistry, ... }:
 let
-  vmRegistry = import ../../vms/registry.nix;
   yaziVms = map (vm: vm.name) (vmRegistry.vmHasFeature "yazi");
 in
 pkgs.writeShellScriptBin "explorer" ''

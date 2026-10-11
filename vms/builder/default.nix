@@ -117,7 +117,7 @@ in
 
     services = {
       # Signing key, generated in the VM on first boot; only the public part
-      # leaves it (vms/builder/signing-key.pub, trusted by dom0)
+      # leaves it (vms/builder/signing-key-<machine>.pub, trusted by that dom0)
       builder-signing-key = {
         description = "Generate the builder's Nix signing key";
         wantedBy = [ "multi-user.target" ];

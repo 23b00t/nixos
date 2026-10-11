@@ -4,9 +4,13 @@
 # `nox-rpc --dom0 app <vm>`, handler in vms/modules/vchan-relay.nix), VMs
 # without it (sys-net, sys-usb) still over SSH. vm-run uses vm-gui for Xen
 # guests with wprs over the relay.
-{ lib, pkgs, ... }:
+{
+  lib,
+  pkgs,
+  vmRegistry,
+  ...
+}:
 let
-  vmRegistry = import ../../vms/registry.nix;
 
   vmCases = lib.concatMapStrings (
     vm:

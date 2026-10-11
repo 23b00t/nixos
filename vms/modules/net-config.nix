@@ -1,6 +1,7 @@
 {
   lib,
   config,
+  vmRegistry,
   ...
 }:
 
@@ -8,7 +9,6 @@ with lib;
 
 let
   cfg = config.services.net-config;
-  vmRegistry = import ../registry.nix;
   hostName = config.networking.hostName or "";
   vmName = removeSuffix "-vm" hostName;
   currentVm = vmRegistry.byName.${vmName} or { };

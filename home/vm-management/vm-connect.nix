@@ -1,6 +1,5 @@
-{ pkgs, ... }:
+{ pkgs, vmRegistry, ... }:
 let
-  vmRegistry = import ../../vms/registry.nix;
   vmScriptLib = import ./vm-script-lib.nix { };
 
   vmCases = vmScriptLib.vmCaseBlock {

@@ -16,10 +16,10 @@
   config,
   options,
   inputs,
+  vmRegistry,
   ...
 }:
 let
-  vmRegistry = import ../registry.nix;
   vmName = lib.removeSuffix "-vm" (config.networking.hostName or "");
   vm = vmRegistry.byName.${vmName} or { };
   githubAgent = vm.allowGitHubAgent or false;

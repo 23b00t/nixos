@@ -51,7 +51,7 @@ in
       pinentry-curses
       git
       gh
-      github-copilot-cli
+      claude-code
       openssl
 
       python3

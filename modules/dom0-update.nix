@@ -1,7 +1,8 @@
 # dom0-update (v2.4): dom0 pulls its system from the builder VM instead of
 # evaluating and building itself. The builder signs the whole closure; dom0's
 # nix-daemon only accepts it with a valid signature from the builder key
-# (vms/builder/signing-key.pub). Pull only: the builder never gets access to dom0.
+# (vms/builder/signing-key-<machine>.pub: every machine has its own builder
+# VM and key). Pull only: the builder never gets access to dom0.
 {
   lib,
   pkgs,
@@ -12,7 +13,7 @@
 let
   cfg = config.services.dom0-update;
   builderIp = vmRegistry.byName.builder.ip;
-  keyFile = ../vms/builder/signing-key.pub;
+  keyFile = ../vms/builder + "/signing-key-${config.networking.hostName}.pub";
   keyText = if builtins.pathExists keyFile then lib.trim (builtins.readFile keyFile) else "";
   # An empty file (e.g. from a failed `ssh … > signing-key.pub`) counts as no key
   builderKey = if keyText != "" then keyText else null;
@@ -46,7 +47,7 @@ let
     done
 
     ${lib.optionalString (builderKey == null) ''
-      echo "dom0-update: vms/builder/signing-key.pub is missing, dom0 does not trust the builder yet" >&2
+      echo "dom0-update: vms/builder/signing-key-${config.networking.hostName}.pub is missing, dom0 does not trust the builder yet" >&2
       exit 1
     ''}
 

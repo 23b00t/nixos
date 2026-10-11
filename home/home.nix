@@ -3,6 +3,7 @@
   lib,
   inputs,
   hostname,
+  vmRegistry,
   config,
   ...
 }:
@@ -69,11 +70,18 @@ in
     # chromium
     bibata-cursors
     (import ./vm-management/remote-zellij.nix { inherit pkgs; })
-    (import ./vm-management/backup.nix { inherit pkgs lib inputs; })
-    (import ./vm-management/vmcopy-keys.nix { inherit pkgs; })
-    (import ./vm-management/manage-vms.nix { inherit pkgs; })
+    (import ./vm-management/backup.nix {
+      inherit
+        pkgs
+        lib
+        inputs
+        vmRegistry
+        ;
+    })
+    (import ./vm-management/vmcopy-keys.nix { inherit pkgs vmRegistry; })
+    (import ./vm-management/manage-vms.nix { inherit pkgs vmRegistry; })
     (import ./vm-management/create-vm.nix { inherit pkgs; })
-    (import ./vm-management/explorer.nix { inherit pkgs; })
+    (import ./vm-management/explorer.nix { inherit pkgs vmRegistry; })
     myGithubAgent
     # GitHub agent is now also started automatically as user service below.
   ];

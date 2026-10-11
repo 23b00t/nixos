@@ -1,6 +1,5 @@
-{ pkgs, osConfig ? { }, ... }:
+{ pkgs, osConfig ? { }, vmRegistry, ... }:
 let
-  vmRegistry = import ../../vms/registry.nix;
   # Guests that get the bus over vchan (nox-relay) need no SSH forward
   relayed = osConfig.services.nox-relay.host.guests or { };
   dbusForwardHosts = builtins.filter (

@@ -21,20 +21,12 @@
 
   microvm = {
     
-    hypervisor = "cloud-hypervisor";
+    hypervisor = "xen";
     volumes = [
       {
         mountPoint = "/home/user";
         image = "home.img";
         size = 20000;
-      }
-    ];
-    shares = [
-      {
-        proto = "virtiofs";
-        tag = "ro-store";
-        source = "/nix/store";
-        mountPoint = "/nix/.ro-store";
       }
     ];
     mem = 8192;
