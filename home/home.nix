@@ -2,9 +2,7 @@
   pkgs,
   lib,
   inputs,
-  hostname,
   vmRegistry,
-  config,
   ...
 }:
 let
@@ -13,18 +11,15 @@ let
 in
 {
   imports = [
-    ./zsh.nix
     ./vim.nix
-    ./yazi.nix
-    (import ./desktop/waybar.nix { inherit config lib pkgs; })
-    (import ./desktop/rofi.nix { inherit config lib pkgs; })
-    (import ./desktop/niri.nix { inherit config pkgs hostname; })
-    (import ./desktop/xdg-gtk-qt.nix { inherit config pkgs; })
+    ./desktop/waybar.nix
+    ./desktop/rofi.nix
+    ./desktop/niri.nix
+    ./desktop/xdg-gtk-qt.nix
     ./ssh.nix
     ./vm-management/vm-run.nix
     ./vm-management/vm-gui.nix
     ./vm-management/desktop-entries.nix
-    ./vm-management/vm-connect.nix
     ./vm-management/vm-dbus-forward.nix
     ./vm-management/github-agent-forward.nix
   ];
@@ -37,13 +32,6 @@ in
 
   # Packages that should be installed to the user profile.
   home.packages = with pkgs; [
-    (writeShellScriptBin "nvim" ''
-      #!${pkgs.bash}/bin/bash
-      # This script acts as a wrapper to redirect `nvim` calls to the nvim MicroVM.
-      # It passes all arguments it receives to the nvim_vm script.
-      exec zsh -c 'source /home/nx/nixos-config/home/resources/nvim.zsh; nvim_vm "$@"' _ "$@"
-    '')
-    oh-my-posh
     fastfetch
     # misc
     file
@@ -86,6 +74,38 @@ in
     # GitHub agent is now also started automatically as user service below.
   ];
 
+  # Slim login shell for dom0 (replaces zsh, 2026-10-14)
+  programs.bash = {
+    enable = true;
+    enableCompletion = true;
+    shellAliases = {
+      ll = "ls -l";
+      la = "ls -la";
+      edit = "sudo -e";
+      sc = "systemctl";
+      kk = "kitty @ kitten";
+      tm = "vm-run -c coding termusic";
+      kali = "vm-run -c kali distrobox enter kali";
+    };
+    historySize = 10000;
+    historyControl = [
+      "erasedups"
+      "ignoredups"
+      "ignorespace"
+    ];
+    historyIgnore = [
+      "rm *"
+      "cp *"
+    ];
+    initExtra = ''
+      PS1='\[\e[1;34m\]\u@\h\[\e[0m\] \[\e[1;32m\]\w\[\e[0m\] \$ '
+
+      ms() { systemctl start microvm@"$1".service; }
+      mst() { systemctl stop microvm@"$1".service; }
+      mr() { systemctl restart microvm@"$1".service; }
+    '';
+  };
+
   home.file.".config/kitty/kitty.conf" = {
     text = kittyConf;
     force = true;
@@ -95,9 +115,6 @@ in
 
   # zellij
   home.file.".config/zellij".source = ./zellij;
-
-  # oh-my-posh theme
-  home.file.".cache/oh-my-posh/themes/slimfat.omp.json".source = ./resources/slimfat.omp.json;
 
   # SSH_AUTH_SOCK stays dom0's own agent (programs.ssh.startAgent). The
   # GitHub agent (~/.ssh/agent/github.sock) is handed to VMs and must only

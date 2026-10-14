@@ -12,7 +12,7 @@ let
     inherit system;
     config.allowUnfree = true;
     overlays = [
-      (final: prev: {
+      (_final: prev: {
         inherit (prev.lixPackageSets.latest)
           nixpkgs-review
           nix-eval-jobs
@@ -21,7 +21,7 @@ let
           ;
       })
       # wprs: held modifiers follow the compositor (stuck Super, xen-migration.md)
-      (final: prev: {
+      (_final: prev: {
         wprs = prev.wprs.overrideAttrs (old: {
           patches = (old.patches or [ ]) ++ [ ../modules/wprs-modifier-sync.patch ];
         });
@@ -212,8 +212,6 @@ in
   };
 
   environment.systemPackages = with pkgs; [
-    # Flakes clones its dependencies through the git command,
-    # so git must be installed first
     kitty
     wl-clipboard
     vim
@@ -222,11 +220,9 @@ in
     zellij
     shadow
     wprs
-    remmina
 
     libnotify # Desktop notification library
     wl-clip-persist # Keep Wayland clipboard even after programs close (avoids crashes)
-    polkit_gnome # authentication agent for privilege escalation
     dbus # inter-process communication daemon
     upower # power management/battery status daemon
     mesa # OpenGL implementation and GPU drivers
@@ -236,7 +232,6 @@ in
     hicolor-icon-theme # Base fallback icon theme
     wayland # for wayland support
     egl-wayland # for wayland support
-    xwayland # for x11 support
     coreutils # coreutils implementation
 
     # sddm
@@ -255,7 +250,6 @@ in
     pavucontrol
     pamixer
     # playerctl
-    git
     fzf
 
     (import ../vms/copy-between-vms.nix { inherit pkgs lib vmRegistry; })
@@ -266,6 +260,8 @@ in
   };
 
   programs.niri.enable = true;
+  # programs.niri enables gnome-keyring (Secret portal); its gcr SSH agent
+  # would take over SSH_AUTH_SOCK from programs.ssh.startAgent (below)
   services.gnome.gcr-ssh-agent.enable = false;
 
   programs.nix-ld.enable = true;
@@ -299,9 +295,23 @@ in
   };
 
   # For proper XDG desktop integration
+  # programs.niri adds the gnome portal (screencasting) and gnome-keyring
+  # (Secret portal). niri's niri-portals.conf, plus the GTK file chooser:
+  # the gnome one needs nautilus, which dom0 does not have (niri docs,
+  # Important Software)
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    config.niri = {
+      default = [
+        "gnome"
+        "gtk"
+      ];
+      "org.freedesktop.impl.portal.Access" = [ "gtk" ];
+      "org.freedesktop.impl.portal.Notification" = [ "gtk" ];
+      "org.freedesktop.impl.portal.Secret" = [ "gnome-keyring" ];
+      "org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
+    };
   };
 
   environment.sessionVariables = {
@@ -398,14 +408,6 @@ in
     # https://www.reddit.com/r/NixOS/comments/11be3cy/i_need_some_help_changing_the_system_language/
   };
 
-  # TODO: Check if this is done in home-manager already
-  # zsh
-  programs.zsh.enable = true;
-  users.extraUsers.nx = {
-    shell = pkgs.zsh;
-  };
-  users.defaultUserShell = pkgs.zsh;
-
   # gpg
   programs.gnupg.agent = {
     enable = true;
@@ -431,7 +433,7 @@ in
     in
     builtins.listToAttrs (
       map (vm: {
-        name = vm.name;
+        inherit (vm) name;
         value = {
           pkgs = null;
           config = {
@@ -521,13 +523,11 @@ in
       substituters = [
         "https://cache.nixos.org"
         "https://microvm.cachix.org"
-        "https://hyprland.cachix.org"
         "https://nix-community.cachix.org"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "microvm.cachix.org-1:oXnBc6hRE3eX5rSYdRyMYXnfzcCxC7yKPTbZXALsqys="
-        "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       ];
       trusted-users = [

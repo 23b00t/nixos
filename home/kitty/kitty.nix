@@ -60,7 +60,7 @@ let
     	# dynamic_background_opacity no
     	# background_tint 0.5
 
-    	shell zsh
+    	shell bash
     	editor nvim
 
     	close_on_child_death no
