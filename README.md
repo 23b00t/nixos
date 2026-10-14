@@ -126,7 +126,7 @@ config without the hypervisor, and no VM runs there.
 |---|---|
 | `vm-run <vm> <app> [args]` | start a GUI app in a VM (wprs over vchan, app start over RPC) |
 | `vm-run -c <vm> '<cmd>'` | run a command over SSH |
-| `ssh <vm>` | SSH session (over the vchan relay socket); `<vm>`, `<vm>-vm`, the short alias or the IP, also for `whonix-gateway`, `whonix-workstation`. Host keys are remembered on first use (`accept-new`); after reinstalling a guest: `ssh-keygen -R <vm>-vm`. kitty terminfo: `kitten ssh <vm>` |
+| `ssh <vm>` | SSH session (over the vchan relay socket); `<vm>`, `<vm>-vm`, the short alias or the IP, also for `whonix-gateway`, `whonix-workstation`. No host key check (guests make new host keys at every boot; the relay socket ties the connection to the domain), no warnings (`LogLevel ERROR`). kitty terminfo: `kitten ssh <vm>` |
 | `manage-vms status [--running] [--group <g>] [--stale]` | state of all VMs |
 | `manage-vms <start\|stop\|restart> [--running] [--group <g>] [--stale]` | bulk operations |
 | `vm-usb list` | USB devices in sys-usb and their owners |

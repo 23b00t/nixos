@@ -44,11 +44,13 @@ let
       User = "user";
       IdentityFile = "~/.ssh/${h.name}-vm";
       IdentitiesOnly = true;
-      # Host keys differ per machine (generated in the guests): remember
-      # each on first use, then verify. One known_hosts entry per guest
-      # for all its aliases
-      HostKeyAlias = "${h.name}-vm";
-      StrictHostKeyChecking = "accept-new";
+      # The guests generate new host keys on every boot (no persistent
+      # /etc/ssh), so known_hosts cannot pin them; the vchan relay socket
+      # already ties the connection to that domain. LogLevel ERROR drops the
+      # "Permanently added" warning on every connection
+      StrictHostKeyChecking = "no";
+      UserKnownHostsFile = "/dev/null";
+      LogLevel = "ERROR";
     }
     // lib.optionalAttrs (relaySsh h.name != null) {
       ProxyCommand = "${pkgs.socat}/bin/socat - UNIX-CONNECT:${relaySsh h.name}";
