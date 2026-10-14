@@ -1,4 +1,20 @@
-{ pkgs, ... }:
+{ pkgs, hostname, ... }:
+let
+  # Internal panel per machine. xmg: 2560x1600 at 60 Hz; at its preferred
+  # 300 Hz the i915 cannot drive the two external monitors as well (the
+  # third output stays disabled, page flips fail with EBUSY, 2026-10-14)
+  edp =
+    if hostname == "xmg" then
+      {
+        mode = "2560x1600@60.000";
+        width = 2560;
+      }
+    else
+      {
+        mode = "1920x1200@60.00";
+        width = 1920;
+      };
+in
 {
   home.packages = with pkgs; [
     wl-screenrec
@@ -417,7 +433,7 @@
         {
           output = {
             _args = [ "eDP-1" ];
-            mode = "1920x1200@60.00";
+            inherit (edp) mode;
             scale = 1.0;
             position._props = {
               x = 0;
@@ -431,7 +447,7 @@
             mode = "1920x1080@60.00";
             scale = 1.0;
             position._props = {
-              x = 1920;
+              x = edp.width;
               y = 0;
             };
           };
@@ -442,7 +458,7 @@
             mode = "1920x1080@60.00";
             scale = 1.0;
             position._props = {
-              x = 3840;
+              x = edp.width + 1920;
               y = 0;
             };
           };
