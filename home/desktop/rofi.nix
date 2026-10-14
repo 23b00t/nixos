@@ -1,9 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ pkgs, ... }:
 {
   home.packages = with pkgs; [
     rofi # application launcher
@@ -60,7 +55,7 @@
             padding:                     0em;
             children:                    [ "entry" ];
             background-color:            transparent;
-            background-image:            url("~/nixos-config/wallpapers/cat_lofi_cafe.jpg", height);
+            background-image:            url("${./wallpapers/cat_lofi_cafe.jpg}", height);
             border-radius:               1em;
         }
         entry {

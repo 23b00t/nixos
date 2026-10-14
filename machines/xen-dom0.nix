@@ -354,6 +354,46 @@ in
           $xl destroy "$dom" || true
         ''} %i"
       ];
+
+      # CPU and memory of the whole machine (all domains) for waybar, which
+      # only sees dom0 and must not need root for xl
+      xen-stats = {
+        description = "CPU and memory of all Xen domains for waybar";
+        wantedBy = [ "multi-user.target" ];
+        path = [
+          config.virtualisation.xen.package
+          pkgs.gawk
+          pkgs.coreutils
+        ];
+        serviceConfig = {
+          RuntimeDirectory = "xen-stats";
+          RuntimeDirectoryMode = "0755";
+          Restart = "always";
+          RestartSec = 5;
+        };
+        script = ''
+          out=/run/xen-stats
+          write() { printf '%s\n' "$2" > "$out/$1.tmp" && mv "$out/$1.tmp" "$out/$1"; }
+          ncpu=$(xl info | awk '/^nr_cpus/ { print $3 }')
+          prev="" prev_t=""
+          while :; do
+            now=$(date +%s.%N)
+            # Sum of the CPU seconds of all domains (last column of xl list)
+            busy=$(xl list | awk 'NR > 1 { s += $NF } END { printf "%.1f", s }')
+            if [ -n "$prev" ]; then
+              cpu=$(awk -v a="$prev" -v b="$busy" -v t0="$prev_t" -v t1="$now" -v n="$ncpu" \
+                'BEGIN { p = (b - a) / ((t1 - t0) * n) * 100; if (p < 0) p = 0; printf "%d", p + 0.5 }')
+              write cpu "{\"text\":\"$cpu%\",\"tooltip\":\"CPU of all domains ($ncpu CPUs)\",\"percentage\":$cpu}"
+            fi
+            mem=$(xl info | awk '/^total_memory/ { t = $3 } /^free_memory/ { f = $3 }
+              END { printf "{\"text\":\"%.1fG\",\"tooltip\":\"Memory given to domains: %.1f of %.1f GB\",\"percentage\":%d}",
+                (t - f) / 1024, (t - f) / 1024, t / 1024, (t - f) * 100 / t }')
+            write mem "$mem"
+            prev=$busy prev_t=$now
+            sleep 3
+          done
+        '';
+      };
     };
 
     network.networks =

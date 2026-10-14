@@ -1,9 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ pkgs, ... }:
 {
   home.packages = with pkgs; [
     waybar # system bar
@@ -124,12 +119,22 @@
     ".config/waybar/scripts/cputemp.sh" = {
       text = ''
         #!/usr/bin/env bash
-        temp=$(sensors | grep -m 1 'Package id 0:' | awk '{print $4}' | sed 's/+//;s/[^0-9.]//g')
-        if [[ -z "$temp" ]]; then
+        # CPU sensor from sysfs: coretemp (Intel, temp1 = package) or k10temp
+        # (AMD); under a PV dom0 coretemp may be missing, then the ACPI zone
+        temp_int=""
+        for want in coretemp k10temp zenpower acpitz; do
+          for h in /sys/class/hwmon/hwmon*; do
+            if [[ "$(cat "$h/name" 2>/dev/null)" == "$want" && -r "$h/temp1_input" ]]; then
+              temp_int=$(( $(cat "$h/temp1_input") / 1000 ))
+              break 2
+            fi
+          done
+        done
+        if [[ -z "$temp_int" ]]; then
           echo "?"
           exit 0
         fi
-        temp_int=''${temp%.*}
+        temp="$temp_int"
         if [[ $temp_int -ge 85 ]]; then
           color="#f7768e"
         elif [[ $temp_int -ge 76 ]]; then
@@ -194,8 +199,8 @@
             "wlr/taskbar"
           ],
           "modules-center": [
-            "memory",
-            "cpu",
+            "custom/xen-mem",
+            "custom/xen-cpu",
             "custom/cputemp",
             "clock"
           ],
@@ -245,14 +250,19 @@
             }
           },
 
-          "memory": {
-            "format": " {used:0.1f}G",
-            "tooltip": true
+          // Whole machine (all Xen domains), from the xen-stats service in dom0
+          "custom/xen-mem": {
+            "format": " {}",
+            "return-type": "json",
+            "exec": "cat /run/xen-stats/mem",
+            "interval": 3
           },
 
-          "cpu": {
-            "format": " {usage:2}%",
-            "tooltip": true
+          "custom/xen-cpu": {
+            "format": " {}",
+            "return-type": "json",
+            "exec": "cat /run/xen-stats/cpu",
+            "interval": 3
           },
 
           "backlight": {

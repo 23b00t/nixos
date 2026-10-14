@@ -16,10 +16,10 @@ in
     ./zsh.nix
     ./vim.nix
     ./yazi.nix
-    (import ./hypr/waybar.nix { inherit config lib pkgs; })
-    (import ./hypr/rofi.nix { inherit config lib pkgs; })
-    (import ./hypr/niri.nix { inherit config pkgs hostname; })
-    (import ./hypr/xdg-gtk-qt.nix { inherit config pkgs; })
+    (import ./desktop/waybar.nix { inherit config lib pkgs; })
+    (import ./desktop/rofi.nix { inherit config lib pkgs; })
+    (import ./desktop/niri.nix { inherit config pkgs hostname; })
+    (import ./desktop/xdg-gtk-qt.nix { inherit config pkgs; })
     ./ssh.nix
     ./vm-management/vm-run.nix
     ./vm-management/vm-gui.nix

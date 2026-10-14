@@ -1,9 +1,4 @@
-{
-  pkgs,
-  config,
-  hostname,
-  ...
-}:
+{ pkgs, ... }:
 {
   home.packages = with pkgs; [
     wl-screenrec
@@ -142,11 +137,6 @@
         };
 
         "Mod+A" = {
-          _props."hotkey-overlay-title" = "Run an Application: rofi";
-          "spawn-sh" = "pkill rofi || rofi -modi drun,filebrowser,window,run -show drun -theme ~/.config/rofi/config.rasi";
-        };
-
-        "Mod+D" = {
           _props."hotkey-overlay-title" = "Run an Application: rofi";
           "spawn-sh" = "pkill rofi || rofi -modi drun,filebrowser,window,run -show drun -theme ~/.config/rofi/config.rasi";
         };
@@ -462,7 +452,6 @@
         }
         { "spawn-at-startup"._args = [ "waybar" ]; }
         { "spawn-at-startup"._args = [ "systemctl" "--user" "restart" "wpaperd.service" ]; }
-        { "spawn-at-startup"._args = [ "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1" ]; }
         # Chat apps and zen at startup again: started with the session, wprsd
         # kept Super as pressed (apps got every key as Super+key); the wprs
         # modifier patch (modules/wprs-modifier-sync.patch) should release it
@@ -557,15 +546,15 @@
   services.wpaperd.enable = true;
   services.wpaperd.settings = {
     "DP-1" = {
-      path = "${config.home.homeDirectory}/nixos-config/wallpapers/ntc.jpg";
+      path = "${./wallpapers/ntc.jpg}";
     };
 
     "DP-2" = {
-      path = "${config.home.homeDirectory}/nixos-config/wallpapers/edger_lucy_neon.jpg";
+      path = "${./wallpapers/edger_lucy_neon.jpg}";
     };
 
     "eDP-1" = {
-      path = "${config.home.homeDirectory}/nixos-config/wallpapers/cat_lofi_cafe.jpg";
+      path = "${./wallpapers/cat_lofi_cafe.jpg}";
     };
   };
 
