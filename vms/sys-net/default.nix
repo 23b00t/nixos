@@ -55,8 +55,11 @@ in
     # RTL8125 (r8169, xmg): hardware TX checksums broke forwarded (NATed)
     # packets from the VMs: uploads from VMs at ~20 KB/s, sys-net itself at
     # 4.8 MB/s; Tor circuits and the builder stalled. With TX checksum
-    # offload off (implies scatter-gather/TSO off) VMs upload at 4.9 MB/s
-    # (2026-10-11). Applied by udev, NetworkManager still manages the link.
+    # offload and TSO/GSO off VMs upload at 4.9 MB/s (2026-10-11).
+    # Scatter-gather must be off too: the kernel no longer drops it with TX
+    # checksums; SG on alone brought VM uploads back to ~20 KB/s and stalled
+    # Tor in the Whonix-Gateway (2026-10-14). Applied by udev,
+    # NetworkManager still manages the link.
     links."10-r8169-no-tx-offload" = {
       matchConfig.Driver = "r8169";
       linkConfig = {
@@ -68,6 +71,7 @@ in
         TCPSegmentationOffload = false;
         TCP6SegmentationOffload = false;
         GenericSegmentationOffload = false;
+        ScatterGather = false;
       };
     };
 
