@@ -385,9 +385,18 @@ in
                 'BEGIN { p = (b - a) / ((t1 - t0) * n) * 100; if (p < 0) p = 0; printf "%d", p + 0.5 }')
               write cpu "{\"text\":\"$cpu%\",\"tooltip\":\"CPU of all domains ($ncpu CPUs)\",\"percentage\":$cpu}"
             fi
-            mem=$(xl info | awk '/^total_memory/ { t = $3 } /^free_memory/ { f = $3 }
-              END { printf "{\"text\":\"%.1fG\",\"tooltip\":\"Memory given to domains: %.1f of %.1f GB\",\"percentage\":%d}",
-                (t - f) / 1024, (t - f) / 1024, t / 1024, (t - f) * 100 / t }')
+            # Per domain: memory it has now / its maximum (ballooning). Xen
+            # only sees what a guest was given, not what it uses inside
+            doms=""
+            while read -r name id cur _; do
+              [ "$name" = Name ] && continue
+              max=$(xenstore-read "/local/domain/$id/memory/static-max" 2>/dev/null || echo 0)
+              doms+=$(awk -v n="''${name%-vm}" -v c="$cur" -v m="$max" \
+                'BEGIN { if (n == "Domain-0") n = "dom0"; if (m > 0) printf "\\n%s %.1f/%.1f GB", n, c / 1024, m / 1048576; else printf "\\n%s %.1f GB", n, c / 1024 }')
+            done < <(xl list)
+            mem=$(xl info | DOMS="$doms" awk '/^total_memory/ { t = $3 } /^free_memory/ { f = $3 }
+              END { printf "{\"text\":\"%.1fG\",\"tooltip\":\"Given to domains: %.1f of %.1f GB (now/max)%s\",\"percentage\":%d}",
+                (t - f) / 1024, (t - f) / 1024, t / 1024, ENVIRON["DOMS"], (t - f) * 100 / t }')
             write mem "$mem"
             prev=$busy prev_t=$now
             sleep 3

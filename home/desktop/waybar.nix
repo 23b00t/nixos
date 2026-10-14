@@ -62,12 +62,11 @@
         #battery,
         #pulseaudio,
         #pulseaudio.microphone,
-        #memory,
-        #cpu,
+        #custom-xen-mem,
+        #custom-xen-cpu,
         #backlight,
         #tray,
         #custom-bluetooth,
-        #custom-sensorsinfo,
         #custom-swaync,
         #custom-cputemp {
           padding: 0 10px;
@@ -320,12 +319,6 @@
             "on-click": "vm-run su dbus-run-session -- blueman-manager"
           },
 
-          "custom/sensorsinfo": {
-            "format": "",
-            "tooltip": true,
-            "exec": "sensors",
-            "interval": 30
-          },
 
           "custom/swaync": {
             "format": "",
