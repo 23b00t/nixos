@@ -40,7 +40,7 @@ let
     }
     # Debian images (Whonix) lack kitty's terminfo
     // lib.optionalAttrs (lib.elem h.name imageDomainNames) {
-      SetEnv = "TERM=xterm-256color";
+      SetEnv.TERM = "xterm-256color";
     };
   };
 
