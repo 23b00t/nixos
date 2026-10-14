@@ -1,8 +1,12 @@
 {
   config,
   pkgs,
+  lib,
   ...
 }:
+let
+  theme = import ./theme.nix { inherit lib; };
+in
 {
   xdg = {
     enable = true;
@@ -59,8 +63,8 @@
     };
 
     iconTheme = {
-      name = "Tela-dark";
-      package = pkgs.tela-icon-theme;
+      inherit (theme.icons) name;
+      package = pkgs.tela-circle-icon-theme.override { colorVariants = [ theme.icons.variant ]; };
     };
 
     gtk3.extraConfig = {

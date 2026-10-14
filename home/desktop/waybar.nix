@@ -1,4 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
+let
+  theme = import ./theme.nix { inherit lib; };
+in
 {
   home.packages = with pkgs; [
     waybar # system bar
@@ -7,27 +10,32 @@
   home.file = {
     ".config/waybar/style.css" = {
       text = ''
-        /* Custom theme colors */
-        @define-color bar-bg rgba(0, 0, 0, 0.1);
-        @define-color main-bg rgba(36, 40, 59, 0.8);
-        @define-color main-fg #7aa2f7;
-        @define-color wb-act-bg #bb9af7;
-        @define-color wb-act-fg #b4f9f8;
-        @define-color wb-hvr-bg #7aa2f7;
-        @define-color wb-hvr-fg #cfc9c2;
+        /* Colors from home/desktop/theme.nix */
+        @define-color bar-bg alpha(${theme.color.shadow}, ${toString theme.opacity.bar});
+        @define-color main-bg alpha(${theme.color.bg}, ${toString theme.opacity.surface});
+        @define-color main-fg ${theme.color.fg};
+        @define-color wb-act-bg ${theme.color.accent};
+        @define-color wb-act-fg ${theme.color.fgActive};
+        @define-color wb-hvr-bg ${theme.color.accent2};
+        @define-color popup-bg ${theme.color.bgDark};
+        @define-color popup-br ${theme.color.border};
+        @define-color urgent ${theme.color.urgent};
+        @define-color warn ${theme.color.warn};
+        @define-color ok ${theme.color.ok};
+        @define-color muted ${theme.color.muted};
 
         * {
-          font-family: "FiraCode Nerd Font", "FiraCode Nerd Font", "Symbols Nerd Font";
-          font-size: 14px;
+          font-family: "${theme.font.family}", "Symbols Nerd Font";
+          font-size: ${toString theme.font.barSize}px;
           font-weight: 500;
-          border-radius: 8px;
+          border-radius: ${toString theme.radiusInner}px;
           min-height: 0;
         }
 
         window#waybar {
           background-color: @bar-bg;
           color: @main-fg;
-          border-radius: 12px;
+          border-radius: ${toString theme.radius}px;
         }
 
         window#waybar.hidden {
@@ -41,9 +49,9 @@
         #workspaces button {
           padding: 0 8px;
           margin: 0 2px;
-          background-color: rgba(122, 162, 247, 0.10); /* leichtes Blau als Hintergrund */
+          background-color: alpha(@main-fg, 0.10);
           color: @main-fg;
-          border-radius: 6px;
+          border-radius: ${toString theme.radiusInner}px;
           transition: background-color 0.2s ease, color 0.2s ease;
         }
 
@@ -54,7 +62,7 @@
         }
 
         #workspaces button.urgent {
-          background-color: #f7768e;
+          background-color: @urgent;
           color: @main-bg;
         }
 
@@ -73,38 +81,38 @@
           margin: 0 1px;
           background-color: @main-bg;
           color: @main-fg;
-          border-radius: 8px;
+          border-radius: ${toString theme.radiusInner}px;
         }
 
         #tray menu {
-          background-color: #2a2040;
-          color: #c0caf5;
-          border-radius: 8px;
-          border: 1px solid #2a2261;
+          background-color: @popup-bg;
+          color: @main-fg;
+          border-radius: ${toString theme.radiusInner}px;
+          border: 1px solid @popup-br;
         }
 
         #battery.charging,
         #battery.plugged {
-          color: #9ece6a;
+          color: @ok;
         }
 
         #battery.warning {
-          color: #e0af68;
+          color: @warn;
         }
 
         #battery.critical {
-          color: #f7768e;
+          color: @urgent;
         }
 
         #pulseaudio.muted {
-          color: #565f89;
+          color: @muted;
         }
 
         tooltip {
-          background: #1a1b26;
-          color: #c0caf5;
-          border-radius: 8px;
-          border: 1px solid #3b4261;
+          background: @popup-bg;
+          color: @main-fg;
+          border-radius: ${toString theme.radiusInner}px;
+          border: 1px solid @popup-br;
         }
 
         tooltip label {
@@ -135,11 +143,11 @@
         fi
         temp="$temp_int"
         if [[ $temp_int -ge 85 ]]; then
-          color="#f7768e"
+          color="${theme.color.urgent}"
         elif [[ $temp_int -ge 76 ]]; then
-          color="#e0af68"
+          color="${theme.color.warn}"
         else
-          color="#7aa2f7"
+          color="${theme.color.fg}"
         fi
         echo "<span color=\"$color\">$temp°C</span>"
       '';
@@ -233,11 +241,11 @@
               "on-scroll"     : 1,
               "on-click-right": "mode",
               "format": {
-                "months":     "<span color='#ffead3'><b>{}</b></span>",
-                "days":       "<span color='#ecc6d9'><b>{}</b></span>",
-                "weeks":      "<span color='#99ffdd'><b>W{}</b></span>",
-                "weekdays":   "<span color='#ffcc66'><b>{}</b></span>",
-                "today":      "<span color='#ff6699'><b><u>{}</u></b></span>"
+                "months":     "<span color='${theme.color.accent}'><b>{}</b></span>",
+                "days":       "<span color='${theme.color.fg}'><b>{}</b></span>",
+                "weeks":      "<span color='${theme.color.fgActive}'><b>W{}</b></span>",
+                "weekdays":   "<span color='${theme.color.warn}'><b>{}</b></span>",
+                "today":      "<span color='${theme.color.urgent}'><b><u>{}</u></b></span>"
               }
             },
             "actions": {

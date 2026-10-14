@@ -1,5 +1,7 @@
-{ pkgs, hostname, ... }:
+{ pkgs, lib, hostname, ... }:
 let
+  theme = import ./theme.nix { inherit lib; };
+
   # Internal panel per machine. xmg: 2560x1600 at 60 Hz; at its preferred
   # 300 Hz the i915 cannot drive the two external monitors as well (the
   # third output stays disabled, page flips fail with EBUSY, 2026-10-14)
@@ -69,9 +71,6 @@ in
     # Screenshots
     slurp
     satty
-    # Lock screen
-    swaylock
-
     adw-gtk3
 
     glib
@@ -85,6 +84,7 @@ in
     settings = {
       "prefer-no-csd" = { };
       "screenshot-path" = "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png";
+      "hotkey-overlay"."skip-at-startup" = { };
 
       input = {
         "mod-key" = "Super";
@@ -122,9 +122,9 @@ in
 
         "focus-ring" = {
           width = 2;
-          "active-color" = "#bb9af7";
-          "inactive-color" = "#d1bfffcc";
-          "urgent-color" = "#f7768e";
+          "active-color" = theme.color.accent;
+          "inactive-color" = theme.withAlpha "inactive" theme.opacity.inactiveRing;
+          "urgent-color" = theme.color.urgent;
         };
 
         border.off = { };
@@ -137,7 +137,7 @@ in
             x = 0;
             y = 5;
           };
-          color = "#00000070";
+          color = theme.withAlpha "shadow" theme.opacity.shadow;
         };
       };
 
@@ -529,7 +529,7 @@ in
         }
         {
           "window-rule"._children = [
-            { "geometry-corner-radius" = 10; }
+            { "geometry-corner-radius" = theme.radius; }
             { "clip-to-geometry" = true; }
             { "draw-border-with-background" = false; }
             { opacity = 0.85; }
@@ -596,17 +596,63 @@ in
       }
 
       .notification {
-        border-radius: 12px;
+        border-radius: ${toString theme.radius}px;
         margin: 6px 12px;
         box-shadow:
           0 0 0 1px rgba(0, 0, 0, 0.3),
           0 1px 3px 1px rgba(0, 0, 0, 0.7),
           0 2px 6px 2px rgba(0, 0, 0, 0.3);
         padding: 0;
-        background: rgba(36, 40, 59, 0.8);
-        color: #7aa2f7;
+        background: alpha(${theme.color.bg}, ${toString theme.opacity.surface});
+        color: ${theme.color.fg};
       }
     '';
+  };
+
+  # Lock screen; PAM comes from security.pam.services.swaylock (system side)
+  programs.swaylock = {
+    enable = true;
+    settings = with theme; {
+      image = "${wallpaper.lock}";
+      scaling = "fill";
+      color = raw.bg;
+      font = font.family;
+      font-size = font.lockSize;
+      indicator-radius = 100;
+      indicator-thickness = 8;
+      show-failed-attempts = true;
+      ignore-empty-password = true;
+
+      inside-color = rawWithAlpha "bg" opacity.surface;
+      inside-clear-color = rawWithAlpha "bg" opacity.surface;
+      inside-ver-color = rawWithAlpha "bg" opacity.surface;
+      inside-wrong-color = rawWithAlpha "bg" opacity.surface;
+      inside-caps-lock-color = rawWithAlpha "bg" opacity.surface;
+
+      ring-color = raw.accent;
+      ring-clear-color = raw.info;
+      ring-ver-color = raw.accent2;
+      ring-wrong-color = raw.urgent;
+      ring-caps-lock-color = raw.warn;
+
+      key-hl-color = raw.fgActive;
+      bs-hl-color = raw.urgent;
+      caps-lock-key-hl-color = raw.fgActive;
+      caps-lock-bs-hl-color = raw.urgent;
+
+      text-color = raw.fg;
+      text-clear-color = raw.info;
+      text-ver-color = raw.accent2;
+      text-wrong-color = raw.urgent;
+      text-caps-lock-color = raw.warn;
+
+      line-color = "00000000";
+      line-clear-color = "00000000";
+      line-ver-color = "00000000";
+      line-wrong-color = "00000000";
+      line-caps-lock-color = "00000000";
+      separator-color = "00000000";
+    };
   };
 
   # services.dunst = {

@@ -1,4 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
+let
+  theme = import ./theme.nix { inherit lib; };
+in
 {
   home.packages = with pkgs; [
     rofi # application launcher
@@ -11,14 +14,14 @@
         configuration {
             modi:                        "drun,filebrowser,window,run";
             show-icons:                  true;
-            display-drun:                " ";
-            display-run:                 " ";
-            display-filebrowser:         " ";
-            display-window:              " ";
+            display-drun:                " ";
+            display-run:                 " ";
+            display-filebrowser:         " ";
+            display-window:              " ";
             drun-display-format:         "{name}";
             window-format:               "{w}{t}";
-            font: "FiraCode Nerd Font 11";
-            icon-theme:                  "Tela-circle-dracula";
+            font:                        "${theme.font.family} ${toString theme.font.launcherSize}";
+            icon-theme:                  "${theme.icons.name}";
         }
 
         @theme "~/.config/rofi/theme.rasi"
@@ -26,14 +29,15 @@
 
         // Main //
         window {
-            height:                      30em;
-            width:                       57em;
+            width:                       35em;
             transparency:                "real";
             fullscreen:                  false;
             enabled:                     true;
             cursor:                      "default";
             spacing:                     0em;
             padding:                     0em;
+            border:                      0px;
+            border-radius:               ${toString theme.radius}px;
             border-color:                @main-br;
             background-color:            @main-bg;
         }
@@ -41,8 +45,8 @@
             enabled:                     true;
             spacing:                     1em;
             padding:                     1em;
-            orientation:                 horizontal;
-            children:                    [ "inputbar" , "listbox" ];
+            orientation:                 vertical;
+            children:                    [ "inputbar" , "listview" ];
             background-color:            transparent;
         }
 
@@ -50,46 +54,45 @@
         // Inputs //
         inputbar {
             enabled:                     true;
-            width:                       27em;
-            spacing:                     0em;
-            padding:                     0em;
-            children:                    [ "entry" ];
+            spacing:                     0.5em;
+            padding:                     0.6em 1em;
+            children:                    [ "prompt" , "entry" ];
+            border-radius:               ${toString theme.radiusInner}px;
+            background-color:            @input-bg;
+            text-color:                  @main-fg;
+        }
+        prompt {
+            enabled:                     true;
             background-color:            transparent;
-            background-image:            url("${./wallpapers/cat_lofi_cafe.jpg}", height);
-            border-radius:               1em;
+            text-color:                  @main-ex;
         }
         entry {
-            enabled:                     false;
+            enabled:                     true;
+            placeholder:                 "Search";
+            placeholder-color:           @muted-fg;
+            cursor:                      text;
+            background-color:            transparent;
+            text-color:                  inherit;
         }
 
 
         // Lists //
-        listbox {
-            spacing:                     0em;
-            padding:                     0em;
-            children:                    [ "dummy" , "listview" , "dummy" ];
-            background-color:            transparent;
-        }
         listview {
             enabled:                     true;
-            spacing:                     0em;
-            padding:                     1em;
+            spacing:                     0.25em;
+            padding:                     0em;
             columns:                     1;
-            lines:                       7;
+            lines:                       8;
             cycle:                       true;
             dynamic:                     true;
             scrollbar:                   false;
             layout:                      vertical;
             reverse:                     false;
-            expand:                      false;
             fixed-height:                true;
             fixed-columns:               true;
             cursor:                      "default";
             background-color:            transparent;
             text-color:                  @main-fg;
-        }
-        dummy {
-            background-color:            transparent;
         }
 
 
@@ -97,8 +100,9 @@
         element {
             enabled:                     true;
             spacing:                     1em;
-            padding:                     0.5em 0.5em 0.5em 1.5em;
+            padding:                     0.5em 1em;
             cursor:                      pointer;
+            border-radius:               ${toString theme.radiusInner}px;
             background-color:            transparent;
             text-color:                  @main-fg;
         }
@@ -107,7 +111,7 @@
             text-color:                  @select-fg;
         }
         element-icon {
-            size:                        2.7em;
+            size:                        2em;
             cursor:                      inherit;
             background-color:            transparent;
             text-color:                  inherit;
@@ -137,19 +141,22 @@
       '';
       force = true;
     };
-    # Tokio-Night-Rofi-Theme
+    # Colors from home/desktop/theme.nix
     ".config/rofi/theme.rasi" = {
       text = ''
         * {
-            main-bg:            #24283be6;
-            main-fg:            #c0caf5ff;
-            main-br:            #bb9af7ff;
-            main-ex:            #7dcfffcc;
-            select-bg:          #7aa2f7ff;
-            select-fg:          #24283bff;
+            main-bg:            ${theme.withAlpha "bg" theme.opacity.popup};
+            main-fg:            ${theme.color.fg};
+            main-br:            ${theme.color.accent};
+            main-ex:            ${theme.color.accent};
+            input-bg:           ${theme.withAlpha "bgDark" 0.6};
+            muted-fg:           ${theme.color.muted};
+            select-bg:          ${theme.color.accent2};
+            select-fg:          ${theme.color.bg};
             separatorcolor:     transparent;
             border-color:       transparent;
-        }      '';
+        }
+      '';
       force = true;
     };
   };
