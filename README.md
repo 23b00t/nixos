@@ -365,7 +365,7 @@ Tor Browser settings that wprs needs or that you want:
   Settings → General → Website appearance → "Dark". Tor Browser may still
   report a light preference to websites (fingerprinting protection).
 
-**Updates:** `dom0-update` only renews the store disk (nox-relay, sshd, wprsd), not the Debian system inside the images. Gateway: `update-all` (see 7.), or by hand `ssh whonix-gateway-vm`, `sudo apt-get-update-plus dist-upgrade`. Workstation: `sudo` is blocked for `user` (Whonix user/sysmaint split); try `upgrade-nonroot` (not tested yet), otherwise boot the sysmaint entry from the GRUB menu (`sudo xl console whonix-workstation-vm` right after starting it). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
+**Updates:** `dom0-update` only renews the store disk (nox-relay, sshd, wprsd), not the Debian system inside the images. Gateway: `update-all` (see 7.), or by hand `ssh -t whonix-gateway-vm upgrade-nonroot` (Whonix 18: `sudo apt-get --update full-upgrade`; `apt-get-update-plus` is gone). Workstation: `sudo` is blocked for `user` (Whonix user/sysmaint split); try `upgrade-nonroot` (not tested yet), otherwise boot the sysmaint entry from the GRUB menu (`sudo xl console whonix-workstation-vm` right after starting it). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
 
 The Workstation's firewall stays closed until `sdwdate` has synced the time
 over Tor once (`/run/sdwdate/first_success`). Start it after the Gateway's
@@ -415,8 +415,8 @@ needs DNS outside Tor: the wiki uncomments `nameserver 10.0.2.3` in
 which serves no DNS on `vm-whx-ext` yet, so snowflake does not work as is.
 
 **Update:** `update-all` (see "Full system update" under Build and update)
-updates both images: Gateway with `sudo apt-get-update-plus dist-upgrade`,
-Workstation with `upgrade-nonroot`.
+updates both images with `upgrade-nonroot` (Gateway and
+Workstation).
 
 ## Tails (HVM with a Linux stubdomain)
 

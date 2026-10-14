@@ -14,6 +14,7 @@ let
 
   # Image domains (Whonix) have no admin link: SSH only through the relay
   hosts = vmRegistry.vms ++ vmRegistry.imageDomains;
+  imageDomainNames = map (d: d.name) vmRegistry.imageDomains;
   githubAgentSocket = "%d/.ssh/agent/github.sock";
 
   hostStrings = builtins.concatStringsSep "\n" (
@@ -36,6 +37,10 @@ let
     }
     // lib.optionalAttrs (relaySsh h.name != null) {
       ProxyCommand = "${pkgs.socat}/bin/socat - UNIX-CONNECT:${relaySsh h.name}";
+    }
+    # Debian images (Whonix) lack kitty's terminfo
+    // lib.optionalAttrs (lib.elem h.name imageDomainNames) {
+      SetEnv = "TERM=xterm-256color";
     };
   };
 

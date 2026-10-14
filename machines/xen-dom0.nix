@@ -116,7 +116,7 @@ let
     ensure_running whonix-gateway
     wait_tor whonix-gateway
     echo "update-all: updating the Whonix-Gateway" >&2
-    ssh -t whonix-gateway-vm sudo apt-get-update-plus dist-upgrade
+    ssh -t whonix-gateway-vm upgrade-nonroot
 
     ensure_running whonix-workstation
     wait_tor whonix-workstation
