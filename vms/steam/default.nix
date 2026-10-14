@@ -15,6 +15,8 @@ let
     bus = "pci";
     inherit path;
   };
+  # One zero byte: SeaBIOS reads fw_cfg integers as raw little-endian bytes
+  optionRomExecOff = pkgs.runCommand "pci-optionrom-exec-0" { } "printf '\\000' > $out";
 in
 {
   imports = [
@@ -53,8 +55,15 @@ in
       cpus = "0-9";
       # The NVIDIA driver writes config space registers pciback filters
       # otherwise (common for GPU passthrough on Xen)
+      # SeaBIOS ran the NVIDIA VGA option ROM from the passed-through card and
+      # hung there (one vCPU at 100 %, the others never started, last line in
+      # `xl dmesg`: "Running option rom at c000:0003", 2026-10-14). The kernel
+      # boots directly and the driver sets the card up itself, so SeaBIOS
+      # runs no PCI option ROMs (fw_cfg etc/pci-optionrom-exec = 0, a binary
+      # integer)
       extraConfig = ''
         pci_permissive = 1
+        device_model_args_hvm = [ "-fw_cfg", "name=etc/pci-optionrom-exec,file=${optionRomExecOff}" ]
       '';
     };
     volumes = [
