@@ -530,7 +530,11 @@ Bericht des Users nach dem zweiten Boot mit MSI in sys-net (`95efe99`, XMG, PV-d
 
 ### Phase 2: Steam
 
-Recherche und Umsetzung auf dem XMG (dGPU-Passthrough unter PV-dom0, BT-Controller von sys-usb an steam). Erst wenn Phase 0 ruhig läuft.
+Recherche und Umsetzung auf dem XMG (dGPU-Passthrough unter PV-dom0, BT-Controller von sys-usb an steam). Erst wenn Phase 0 ruhig läuft. **Termin (User): 2026-10-15 abends.**
+
+**Nach Steam (User, 2026-10-14):** `linuxPackages_latest` als dom0-Kernel testen (erst hp, dann XMG). Hintergrund: der Wechsel zen 7.2.9 → Standard 6.18 (LTS) war ein Rückschritt in der Version; mit 6.18 schaffte der i915 das interne Panel mit 300 Hz plus zwei externe Monitore nicht mehr (DP-1 blieb aus), behoben über eDP 60 Hz in der niri-Config des XMG.
+
+**Atreus am Login-Bildschirm (XMG, 2026-10-14):** Im Initrd treibt dom0 den xHCI `00:14.0` noch selbst (LUKS-Passwort geht), um ~20 s nach Kernelstart übernimmt pciback den Controller, die Tastatur kommt erst über sys-usb + Input-Proxy zurück. Erscheint sddm vorher, geht am Login keine Atreus (Wettlauf, mal ja, mal nein). sddm soll **nicht** auf den Input-Proxy warten (User). Andere Lösung suchen (z. B. Input-Proxy/sys-usb früher bereit, Zeitbedarf messen: `systemd-analyze critical-chain`, Zeitstempel sys-usb-Start → erstes weitergereichtes Ereignis).
 
 ### Phase 2b: dom0 verschlanken, Desktop nach niri-Doku (User + Claude, 2026-10-14)
 
