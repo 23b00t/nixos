@@ -175,8 +175,8 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL steam-vm";
       enableHostDbusForward = false;
       allowVmCopy = false;
-      # Config ready (vms/steam), enable with hosts = [ "xmg" ]
-      hosts = [ ];
+      # First test on the xmg (2026-10-14)
+      hosts = [ "xmg" ];
     }
     {
       # dGPU passthrough like steam; not on Xen yet
