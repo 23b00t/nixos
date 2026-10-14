@@ -47,6 +47,11 @@ let
         default = "10.0.0.253";
         description = "Admin address (port 22) or relay SSH socket of the backend, to wait for it.";
       };
+      waitForUplink = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Also wait until the backend reports a ready uplink (`data/uplink` = 1 in its xenstore, written by sys-net).";
+      };
     };
   };
 
@@ -505,6 +510,17 @@ let
             sleep 1
           done
         '') (lib.unique d.vifs)}
+        ${lib.concatMapStrings (v: ''
+          # sys-net's sshd is up before its uplink (DHCP); Tor that starts
+          # without one marks its guards unreachable and does not recover
+          # (Whonix-Gateway, 2026-10-12). Start anyway after 90 s.
+          for i in $(seq 90); do
+            be="$(xl domid ${lib.escapeShellArg v.backend} 2>/dev/null)" &&
+              [ "$(xenstore-read "/local/domain/$be/data/uplink" 2>/dev/null)" = 1 ] && break
+            [ "$i" = 90 ] && echo "No uplink in ${v.backend} after 90 s, starting anyway" >&2
+            sleep 1
+          done
+        '') (lib.unique (builtins.filter (v: v.waitForUplink) d.vifs))}
       '';
 
       stop = pkgs.writeShellScript "xen-image-${name}-stop" ''

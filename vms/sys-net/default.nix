@@ -4,6 +4,7 @@
 {
   lib,
   pkgs,
+  config,
   vmRegistry,
   ...
 }:
@@ -208,10 +209,10 @@ in
 
   boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
-  # MSI-X mapping fails for passthrough with a PVH dom0 (v2.1, hp; xmg: no
-  # network with MSI either, 2026-10-11); INTx works. Under a PV dom0 MSI is
-  # the usual path: registry hostProfile.sysNetMsi tries it (xmg)
-  boot.kernelParams = lib.optional (!(vmRegistry.hostProfile.sysNetMsi or false)) "pci=nomsi";
+  # MSI under a PV dom0 (hp WLAN, xmg Ethernet: online, restarts work,
+  # 2026-10-12). With a PVH dom0 MSI-X mapping fails for passthrough (v2.1;
+  # xmg: no network), INTx (pci=nomsi) works there
+  boot.kernelParams = lib.optional (!(vmRegistry.hostProfile.dom0Pv or false)) "pci=nomsi";
 
   # RTL8821CE (rtw88): the firmware got stuck in power save ("firmware failed
   # to leave lps state", "failed to send h2c command"), downloads at ~10 KB/s
@@ -229,6 +230,38 @@ in
   hardware.enableRedistributableFirmware = true;
 
   systemd.services.NetworkManager-wait-online.enable = false;
+
+  # Tells dom0 whether the uplink is ready (default route) via xenstore
+  # (~/data/uplink, guest-writable); the Whonix-Gateway waits for it
+  # (modules/xen-image-domains.nix, waitForUplink)
+  systemd.services.xen-uplink-state = {
+    description = "Report uplink readiness to dom0 via xenstore";
+    wantedBy = [ "multi-user.target" ];
+    path = [
+      pkgs.iproute2
+      pkgs.gnugrep
+      config.microvm.xen.package
+    ];
+    script = ''
+      last=""
+      while true; do
+        if ip -4 route show default | grep -q .; then state=1; else state=0; fi
+        if [ "$state" != "$last" ]; then
+          xenstore-write data/uplink "$state" && last="$state"
+        fi
+        sleep 1
+      done
+    '';
+    serviceConfig = {
+      Restart = "always";
+      RestartSec = 5;
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      NoNewPrivileges = true;
+      DevicePolicy = "closed";
+      DeviceAllow = [ "/dev/xen/xenbus rw" ];
+    };
+  };
 
   microvm = {
     hypervisor = "xen";

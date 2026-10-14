@@ -59,6 +59,22 @@ dom0-update --switch   # same, switch now
 After a switch, VMs keep running with the old runner until restarted:
 `manage-vms status` / `manage-vms restart --stale`.
 
+### Full system update (new inputs + Whonix)
+
+```sh
+# in nvim, in the repo (clean tree):
+flake-bump               # nix flake update (temporary store, removed afterwards),
+                         # signed commit "update" + push after asking; flake-bump nixpkgs: one input
+# then in dom0:
+update-all               # dom0-update (boot), then Whonix-Gateway + -Workstation
+update-all --switch      # same, switch dom0 now
+```
+
+`update-all` starts the Gateway/Workstation if they are off (and stops them
+again afterwards), waits until sdwdate has synced over Tor, updates both
+and offers a restart when a running one got a new kernel. Only rebuilding
+dom0 without new inputs: `dom0-update`.
+
 ### First install of a machine (no builder yet)
 
 ```sh
@@ -180,6 +196,32 @@ passthrough (sys-net, sys-usb, steam) have fixed memory.
 - `vm-tails` in sys-net (`10.3.0.1/24`, DHCP): Tails only.
 - vifs are re-attached by `xen-links` when a driver domain restarts.
 - Never remove the dom0 networkd rule that leaves `vnet*` unmanaged.
+
+### sys-net on the xmg (RTL8125): what it took
+
+The first Xen boot of the xmg (2026-10-11) had working downloads but
+uploads from VMs at 20–66 KB/s, stalled Tor circuits (Whonix) and a
+builder that hung on cache.nixos.org. Several separate causes, found and
+fixed one at a time (details in `xen-migration.md`, Known Issues):
+
+| Step | Finding | Fix |
+|---|---|---|
+| Builder narinfo storm | HTTP/2 multiplexing in Nix stalled all cache requests over sys-net | `nix.settings.http2 = false` in `vms/builder` (`5c5c0e5`) |
+| MSI under PVH dom0 | no network with MSI; INTx (`pci=nomsi`) worked | back to `pci=nomsi` (`470345a`) |
+| sys-net restart | the old domain stayed (`---s--`) and held the card; `xl destroy` failed at `unmap_gsi` | `ExecStartPre` destroys a leftover domain (`470345a`); GSI 18 freed: dGPU to pciback at boot, SMBus without IRQ (`4b09b5d`). Fully fixed only with the PV dom0 |
+| Tor/Whonix hangs | multi-queue vifs between backends with >1 vCPU and Debian guests left connections stuck | `xen_netback max_queues=1` in driver domains (`7ca26e1`) |
+| Upload ~100× too slow | INTx passthrough under a PVH dom0 | PV dom0 (`hostProfile.dom0Pv`, `dom0=pv`, `f1b3a58`) |
+| Forwarded uploads ~20 KB/s | r8169 TX checksum offload broke NATed packets (sys-net itself was fine) | `.link` in sys-net: TX checksum/SG/TSO/GSO off (`a022e56`); VMs at ~4.9 MB/s |
+| MSI under PV dom0 | works (MSI-X; hp WLAN: MSI too), Xen has interrupt remapping (`xl dmesg`: `Interrupt remapping enabled`), so passthrough with MSI is safe | test flag (`95efe99`), then the default for driver domains (sys-net, sys-usb) with a PV dom0: `pci=nomsi` only under PVH |
+
+`ip -s link` in sys-net shows a few % RX `dropped` on `ens3`: these are
+broadcasts with protocols sys-net does not speak (`ethtool -S ens3`: no
+error counters, `missed` 0), not lost packets.
+
+Useful checks: `xl dmesg | grep -i remap`, in sys-net
+`grep ens3 /proc/interrupts` (`PCI-MSIX` vs `IO-APIC`), `ethtool -S ens3`,
+`ethtool -k ens3`, `xl network-list <vm>` (`ring-ref -1/-1` = multi-queue),
+upload test from a VM against speed.cloudflare.com.
 
 ## USB
 
@@ -323,7 +365,7 @@ Tor Browser settings that wprs needs or that you want:
   Settings → General → Website appearance → "Dark". Tor Browser may still
   report a light preference to websites (fingerprinting protection).
 
-**Updates:** `dom0-update` only renews the store disk (nox-relay, sshd, wprsd), not the Debian system inside the images. Gateway: `ssh whonix-gateway-vm`, `sudo apt-get-update-plus dist-upgrade`. Workstation: `sudo` is blocked for `user` (Whonix user/sysmaint split); try `upgrade-nonroot` (not tested yet), otherwise boot the sysmaint entry from the GRUB menu (`sudo xl console whonix-workstation-vm` right after starting it). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
+**Updates:** `dom0-update` only renews the store disk (nox-relay, sshd, wprsd), not the Debian system inside the images. Gateway: `update-all` (see 7.), or by hand `ssh whonix-gateway-vm`, `sudo apt-get-update-plus dist-upgrade`. Workstation: `sudo` is blocked for `user` (Whonix user/sysmaint split); try `upgrade-nonroot` (not tested yet), otherwise boot the sysmaint entry from the GRUB menu (`sudo xl console whonix-workstation-vm` right after starting it). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
 
 The Workstation's firewall stays closed until `sdwdate` has synced the time
 over Tor once (`/run/sdwdate/first_success`). Start it after the Gateway's
@@ -333,6 +375,48 @@ Tor is up; if it has no network, restart it:
 On the xmg the Gateway and irc start at boot. Debian guests lack kitty's
 terminfo (Backspace etc. broken over SSH): `TERM=xterm-256color ssh …`
 or `kitten ssh …`.
+
+`xen-image@whonix-gateway` waits (up to 90 s) until sys-net reports a
+default route (`data/uplink` in its xenstore). Tor started without an
+uplink marks its guards unreachable and stays stuck; if that still
+happens, restart the Gateway.
+
+### 7. Gateway commands
+
+From the Whonix wiki (Tor, Tor Controller, Bridges), run in
+`ssh whonix-gateway-vm`; not all tried here yet.
+
+```sh
+tor-ctrl signal NEWNYM                  # new circuits for new connections ("250 OK")
+nyx                                     # live monitor: bandwidth, circuits, log; n = new circuit, q q = quit
+sudo anon-log                           # Tor log, filtered
+sudo journalctl -f -b --output cat -u tor -u tor@default -u vanguards
+sudo systemctl status tor@default       # state of the daemon
+tor-prompt --no-color --run "getinfo status/bootstrap-phase"
+systemcheck --verbose --leak-tests      # Whonix self test
+sudo systemctl restart tor@default      # after editing torrc
+sudo -u debian-tor tor --verify-config  # check torrc before restarting
+```
+
+**Bridges** (if Tor is blocked): add to
+`/usr/local/etc/torrc.d/50_user.conf` (`sudoedit`, keep `DisableNetwork 0`),
+then restart Tor:
+
+```
+UseBridges 1
+ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy
+Bridge obfs4 <IP>:<PORT> <FINGERPRINT> cert=<CERT> iat-mode=0
+```
+
+Bridge lines from bridges.torproject.org. Snowflake
+(`ClientTransportPlugin snowflake exec /usr/bin/snowflake-client`) also
+needs DNS outside Tor: the wiki uncomments `nameserver 10.0.2.3` in
+`/etc/resolv.conf.whonix`; here the outside gateway is sys-net (`10.0.2.2`),
+which serves no DNS on `vm-whx-ext` yet, so snowflake does not work as is.
+
+**Update:** `update-all` (see "Full system update" under Build and update)
+updates both images: Gateway with `sudo apt-get-update-plus dist-upgrade`,
+Workstation with `upgrade-nonroot`.
 
 ## Tails (HVM with a Linux stubdomain)
 

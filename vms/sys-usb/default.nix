@@ -149,8 +149,9 @@ in
       "btintel"
       "usbip-host"
     ];
-    # MSI-X mapping fails for passthrough with a PVH dom0 (v2.1); INTx works
-    kernelParams = [ "pci=nomsi" ];
+    # MSI under a PV dom0 (as sys-net, 2026-10-12); with a PVH dom0 MSI-X
+    # mapping fails for passthrough (v2.1), INTx (pci=nomsi) works there
+    kernelParams = lib.optional (!(vmRegistry.hostProfile.dom0Pv or false)) "pci=nomsi";
   };
 
   # USB/IP link: VMs' vifs are added by the hotplug script (xl devd)

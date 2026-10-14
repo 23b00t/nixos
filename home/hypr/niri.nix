@@ -463,10 +463,24 @@
         { "spawn-at-startup"._args = [ "waybar" ]; }
         { "spawn-at-startup"._args = [ "systemctl" "--user" "restart" "wpaperd.service" ]; }
         { "spawn-at-startup"._args = [ "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1" ]; }
-        # No VM apps at startup (vm-run nm-applet, vesktop, element-desktop
-        # --hidden --ozone-platform=x11, Telegram, zen): started with the
-        # session, wprsd in the VM kept Super as pressed and apps got every key
-        # as Super+key (xen-migration.md, Known Issues). Start them by hand.
+        # Chat apps and zen at startup again: started with the session, wprsd
+        # kept Super as pressed (apps got every key as Super+key); the wprs
+        # modifier patch (modules/wprs-modifier-sync.patch) should release it
+        # (xen-migration.md, Known Issues).
+        { "spawn-at-startup"._args = [ "vm-run" "sn" "nm-applet" "--indicator" ]; }
+        { "spawn-at-startup"._args = [ "vm-run" "c" "vesktop" "-m" ]; }
+        # Electron on Wayland under wprs cannot re-show a window hidden to the
+        # tray (xen-migration.md, Known Issues): Element runs on XWayland
+        {
+          "spawn-at-startup"._args = [
+            "vm-run"
+            "c"
+            "element-desktop"
+            "--hidden"
+            "--ozone-platform=x11"
+          ];
+        }
+        { "spawn-at-startup"._args = [ "vm-run" "c" "Telegram" "-startintray" ]; }
         { "spawn-at-startup"._args = [ "kitty" "--class=kitty-main" ]; }
         {
           "spawn-at-startup"._args = [
@@ -477,6 +491,7 @@
             "i"
           ];
         }
+        { "spawn-at-startup"._args = [ "vm-run" "net" "zen" ]; }
         {
           "window-rule"._children = [
             {

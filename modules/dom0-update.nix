@@ -51,6 +51,16 @@ let
       exit 1
     ''}
 
+    # Ask for the sudo password now, not after the build, and keep the
+    # timestamp fresh meanwhile. Without a terminal (unattended runs) rely on
+    # NOPASSWD rules for the commands below.
+    if [ -t 0 ]; then
+      sudo -v
+      while sleep 60; do sudo -n -v 2>/dev/null || exit; done &
+      keepalive=$!
+      trap 'kill "$keepalive" 2>/dev/null' EXIT
+    fi
+
     # The builder doesn't autostart: start it and wait for SSH (over vchan)
     if ! systemctl is-active --quiet microvm@builder; then
       echo "dom0-update: starting the builder VM" >&2

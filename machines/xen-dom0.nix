@@ -35,6 +35,100 @@ let
     echo "WLAN is back in dom0, NetworkManager reconnects as before."
     echo "Start sys-net again later with: sudo systemctl start microvm@sys-net"
   '';
+
+  # Full system update, step 2 (step 1: `flake-bump` in nvim pushes new
+  # inputs): dom0 from the builder, then the Debian systems inside the
+  # Whonix images, which dom0-update does not touch (it only renews their
+  # store disk). Domains that were off are started and stopped again.
+  updateAll = pkgs.writeShellScriptBin "update-all" ''
+    set -euo pipefail
+
+    usage() {
+      cat <<EOF >&2
+    Usage: update-all [--switch] [--machine <name>] [--branch <branch>]
+
+    Full update: dom0 from the builder (dom0-update with the same arguments;
+    --switch activates right away), then the Whonix-Gateway and -Workstation
+    (apt over Tor). New flake inputs first with flake-bump in nvim. Only
+    rebuild dom0: dom0-update.
+    EOF
+      exit 1
+    }
+    case "''${1:-}" in
+      -h | --help) usage ;;
+    esac
+
+    # One password prompt for the whole run (dom0-update reuses it)
+    if [ -t 0 ]; then
+      sudo -v
+      while sleep 60; do sudo -n -v 2>/dev/null || exit; done &
+      keepalive=$!
+    fi
+
+    started=()
+    cleanup() {
+      local i
+      for ((i = ''${#started[@]} - 1; i >= 0; i--)); do
+        echo "update-all: stopping ''${started[i]} again" >&2
+        sudo systemctl stop "xen-image@''${started[i]}" || true
+      done
+      [ -z "''${keepalive:-}" ] || kill "$keepalive" 2>/dev/null || true
+    }
+    trap cleanup EXIT
+
+    dom0-update "$@"
+
+    # Starts the domain if it is off (the Gateway waits for sys-net's uplink)
+    ensure_running() {
+      if ! systemctl is-active --quiet "xen-image@$1"; then
+        echo "update-all: starting $1" >&2
+        sudo systemctl start "xen-image@$1"
+        started+=("$1")
+      fi
+    }
+
+    # sdwdate syncs only over working Tor; the Workstation's firewall stays
+    # closed until then
+    wait_tor() {
+      echo "update-all: waiting for Tor in $1 (sdwdate)" >&2
+      for _ in $(seq 60); do
+        ssh -o ConnectTimeout=5 "$1-vm" test -e /run/sdwdate/first_success 2>/dev/null && return 0
+        sleep 5
+      done
+      echo "update-all: no Tor in $1 after 5 min" >&2
+      return 1
+    }
+
+    # A running domain with a newer kernel on disk: offer a restart (pvgrub
+    # boots the newest one); domains we started are stopped anyway
+    offer_restart() {
+      local newest running answer
+      case " ''${started[*]} " in *" $1 "*) return 0 ;; esac
+      newest="$(ssh "$1-vm" 'ls /boot/vmlinuz-* | sort -V | tail -n 1')"
+      running="$(ssh "$1-vm" 'echo "/boot/vmlinuz-$(uname -r)"')"
+      [ "$newest" != "$running" ] || return 0
+      read -r -p "update-all: new kernel in $1, restart it now? [y/N] " answer
+      case "$answer" in
+        y | Y) sudo systemctl restart "xen-image@$1" ;;
+      esac
+    }
+
+    ensure_running whonix-gateway
+    wait_tor whonix-gateway
+    echo "update-all: updating the Whonix-Gateway" >&2
+    ssh -t whonix-gateway-vm sudo apt-get-update-plus dist-upgrade
+
+    ensure_running whonix-workstation
+    wait_tor whonix-workstation
+    # sudo is blocked for `user` in the Workstation (user/sysmaint split);
+    # upgrade-nonroot is Whonix' update path for the normal session
+    echo "update-all: updating the Whonix-Workstation" >&2
+    ssh -t whonix-workstation-vm upgrade-nonroot
+
+    offer_restart whonix-workstation
+    offer_restart whonix-gateway
+    echo "update-all: done" >&2
+  '';
 in
 {
   imports = [
@@ -186,6 +280,7 @@ in
       {
         mac = "00:00:00:00:01:1b";
         bridge = "vm-whx-ext";
+        waitForUplink = true;
       }
     ];
     ifupdownHotplug = [ "eth0" ];
@@ -220,7 +315,10 @@ in
 
   # v2.5: the WLAN card belongs to sys-net (registry `hardware.pci`, driver
   # blacklisted in dom0). `sys-net-rescue` hands it back in an emergency.
-  environment.systemPackages = [ sysNetRescue ];
+  environment.systemPackages = [
+    sysNetRescue
+    updateAll
+  ];
 
   # nox-relay (root) creates the wprs sockets for dom0's wprsc here
   systemd.tmpfiles.rules = [ "d /run/nox-relay 0755 root root -" ];
