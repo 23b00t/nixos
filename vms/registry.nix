@@ -470,11 +470,12 @@ let
       ];
     };
     xmg = {
-      # Ethernet only for now: CNVi WLAN (00:14.3, 8086:7a70) is a function of
-      # the same device as the xHCI that goes to sys-usb (shared INTx with
-      # pci=nomsi). Pass it through later as a separate test step.
+      # The CNVi WLAN is a function of the same device as the xHCI in sys-usb.
+      # With MSI (PV dom0) they no longer share an INTx, and 00:14.3 has its
+      # own FLR, so it goes to sys-net on its own (as in Qubes, 2026-10-14)
       nic = [
         "0000:05:00.0" # RTL8125 Ethernet (10ec:8125) -> sys-net
+        "0000:00:14.3" # CNVi WLAN (8086:7a70, iwlwifi) -> sys-net
       ];
       usb = [
         "0000:00:14.0" # xHCI (8086:7a60): all USB devices -> sys-usb
