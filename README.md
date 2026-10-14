@@ -95,6 +95,8 @@ dom0-update --switch
 ```
 
 Notes:
+- dom0 has no git (the builder fetches from GitHub). For a local flake build
+  in dom0 use `nix shell nixpkgs#git` first.
 - New files must be tracked by git before a flake build sees them.
 - microvm.nix creates volume images but never grows existing ones. If a VM
   runs out of space (e.g. the builder's `nix-store-overlay.img`, 100 GB),
@@ -124,8 +126,7 @@ config without the hypervisor, and no VM runs there.
 |---|---|
 | `vm-run <vm> <app> [args]` | start a GUI app in a VM (wprs over vchan, app start over RPC) |
 | `vm-run -c <vm> '<cmd>'` | run a command over SSH |
-| `vm <vm>` | interactive SSH session |
-| `ssh <vm>-vm` | plain SSH (over the vchan relay socket), also for `whonix-gateway-vm`, `whonix-workstation-vm` |
+| `ssh <vm>` | SSH session (over the vchan relay socket); `<vm>`, `<vm>-vm`, the short alias or the IP, also for `whonix-gateway`, `whonix-workstation`. Host keys are remembered on first use (`accept-new`); after reinstalling a guest: `ssh-keygen -R <vm>-vm`. kitty terminfo: `kitten ssh <vm>` |
 | `manage-vms status [--running] [--group <g>] [--stale]` | state of all VMs |
 | `manage-vms <start\|stop\|restart> [--running] [--group <g>] [--stale]` | bulk operations |
 | `vm-usb list` | USB devices in sys-usb and their owners |
@@ -365,7 +366,7 @@ Tor Browser settings that wprs needs or that you want:
   Settings → General → Website appearance → "Dark". Tor Browser may still
   report a light preference to websites (fingerprinting protection).
 
-**Updates:** `dom0-update` only renews the store disk (nox-relay, sshd, wprsd), not the Debian system inside the images. Gateway: `update-all` (see 7.), or by hand `ssh -t whonix-gateway-vm upgrade-nonroot` (Whonix 18: `sudo apt-get --update full-upgrade`; `apt-get-update-plus` is gone). Workstation: `sudo` is blocked for `user` (Whonix user/sysmaint split); try `upgrade-nonroot` (not tested yet), otherwise boot the sysmaint entry from the GRUB menu (`sudo xl console whonix-workstation-vm` right after starting it). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
+**Updates:** `dom0-update` only renews the store disk (nox-relay, sshd, wprsd), not the Debian system inside the images. Gateway: `update-all` (see 7.), or by hand `ssh -t whonix-gateway-vm upgrade-nonroot` (Whonix 18: `sudo apt-get --update full-upgrade`; `apt-get-update-plus` is gone). Workstation: `sudo` is blocked for `user` (Whonix user/sysmaint split), but `upgrade-nonroot` works from the normal session (tested 2026-10-14); otherwise boot the sysmaint entry from the GRUB menu (`sudo xl console whonix-workstation-vm` right after starting it). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
 
 The Workstation's firewall stays closed until `sdwdate` has synced the time
 over Tor once (`/run/sdwdate/first_success`). Start it after the Gateway's
