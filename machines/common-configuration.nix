@@ -118,7 +118,8 @@ in
       );
       services.lvm.enable = true;
     };
-    kernelPackages = pkgs.linuxPackages_zen;
+    # Default kernel: dom0 gains little from zen under Xen (2026-10-14)
+    kernelPackages = pkgs.linuxPackages;
 
     kernelParams =
       (lib.optionals (iommuKernelParam != null) [ iommuKernelParam ])
@@ -137,11 +138,6 @@ in
     blacklistedKernelModules = hostBlacklistedKernelModules;
 
     kernel.sysctl = {
-      # Disable bridge netfilter for Whonix Gateway compatibility
-      "net.bridge.bridge-nf-call-ip6tables" = 0;
-      "net.bridge.bridge-nf-call-iptables" = 0;
-      "net.bridge.bridge-nf-call-arptables" = 0;
-
       # see: https://github.com/wayland-transpositor/wprs?tab=readme-ov-file#system-tuning
       # and: https://wiki.archlinux.org/title/Sysctl#Increase_the_memory_dedicated_to_the_network_interfaces
       # Increase maximum and default socket buffer sizes for better network throughput
@@ -151,26 +147,16 @@ in
       "net.core.wmem_default" = 2097152; # Default send buffer: 2 MB
       "net.core.optmem_max" = 65536; # Max ancillary buffer: 64 KB
 
-      # TCP buffer settings: min, default, and max values for receive/send buffers
-      "net.ipv4.tcp_rmem" = "4096 1048576 2097152"; # TCP receive buffer sizes
-      "net.ipv4.tcp_wmem" = "4096 65536 16777216"; # TCP send buffer sizes
-
       # UDP minimum buffer sizes for receive and send
       "net.ipv4.udp_rmem_min" = 16384; # Min UDP receive buffer: 16 KB
       "net.ipv4.udp_wmem_min" = 16384; # Min UDP send buffer: 16 KB
-
-      # Connection tracking: increase max tracked connections for high-load environments
-      "net.netfilter.nf_conntrack_max" = 262144; # Max number of tracked connections
-
-      # TCP connection handling
-      "net.ipv4.tcp_fin_timeout" = 30; # Time to wait for FIN-WAIT-2 state (seconds)
-      "net.ipv4.tcp_keepalive_time" = 600; # Interval before sending keepalive probes (seconds)
     };
   };
-  # Switch govenor with: sudo cpupower frequency-set -g performance
-  # Get infos: cpupower frequency-info
-  services.power-profiles-daemon.enable = true;
-  powerManagement.cpuFreqGovernor = "powersave";
+  # dom0 has no cpufreq under Xen (the hypervisor sets the clock): no
+  # power-profiles-daemon/governor. Without ppd, nixos-hardware's
+  # common-pc-laptop turns on TLP, which would touch runtime PM/ASPM of
+  # devices, also passed-through ones (2026-10-14)
+  services.tlp.enable = false;
 
   nixpkgs.pkgs = pkgs;
 
@@ -214,41 +200,22 @@ in
   environment.systemPackages = with pkgs; [
     kitty
     wl-clipboard
-    vim
-    gnupg
-    pinentry-curses
     zellij
-    shadow
     wprs
 
     libnotify # Desktop notification library
     wl-clip-persist # Keep Wayland clipboard even after programs close (avoids crashes)
-    dbus # inter-process communication daemon
-    upower # power management/battery status daemon
-    mesa # OpenGL implementation and GPU drivers
-    dconf # configuration storage system
     xdg-utils # Collection of XDG desktop integration tools
     desktop-file-utils # for updating desktop database
-    hicolor-icon-theme # Base fallback icon theme
-    wayland # for wayland support
-    egl-wayland # for wayland support
-    coreutils # coreutils implementation
 
     # sddm
     sddm-astronaut
 
     # Hardware
     brightnessctl # screen brightness control
-    libinput # libinput library
-    lm_sensors # system sensors
-    pciutils # pci utils
-    udisks2
 
     # Audio
-    pipewire
-    wireplumber
     pavucontrol
-    pamixer
     # playerctl
     fzf
 
@@ -408,15 +375,6 @@ in
     # https://www.reddit.com/r/NixOS/comments/11be3cy/i_need_some_help_changing_the_system_language/
   };
 
-  # gpg
-  programs.gnupg.agent = {
-    enable = true;
-    settings = {
-      default-cache-ttl = 3600;
-      max-cache-ttl = 7200;
-    };
-  };
-
   # MicroVM Configuration
   microvm.host.enable = true;
 
@@ -571,7 +529,6 @@ in
     ];
   };
 
-  services.udisks2.enable = true;
   systemd.network.enable = true;
 
   system.stateVersion = "26.05";

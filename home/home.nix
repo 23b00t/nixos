@@ -37,12 +37,6 @@ in
     file
     tree
 
-    # nix related
-    #
-    # it provides the command `nom` works just like `nix`
-    # with more details log output
-    nix-output-monitor
-
     btop # replacement of htop/nmon
     iotop # io monitoring
 
@@ -51,7 +45,6 @@ in
     # ltrace # library call monitoring
     lsof # list open files
     # system tools
-    sysstat
     pciutils # lspci
     usbutils # lsusb
     nerd-fonts.fira-code
@@ -98,11 +91,21 @@ in
       "cp *"
     ];
     initExtra = ''
+      # ble.sh: suggestions from the history as shadow text (like
+      # zsh-autosuggestions), accept with Right/End
+      source ${pkgs.blesh}/share/blesh/ble.sh --noattach
+
       PS1='\[\e[1;34m\]\u@\h\[\e[0m\] \[\e[1;32m\]\w\[\e[0m\] \$ '
 
       ms() { systemctl start microvm@"$1".service; }
       mst() { systemctl stop microvm@"$1".service; }
       mr() { systemctl restart microvm@"$1".service; }
+
+      # Pick a command from the list (fzf) and run it; pcmd: edit it first
+      cmd() { local c; c=$(fzf < ${./resources/cmds}) && eval "$c"; }
+      pcmd() { local c; c=$(fzf < ${./resources/cmds}) && read -r -e -i "$c" -p '> ' c && eval "$c"; }
+
+      [[ ''${BLE_VERSION-} ]] && ble-attach
     '';
   };
 

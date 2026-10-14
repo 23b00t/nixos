@@ -82,10 +82,6 @@
   qt = {
     enable = true;
     platformTheme.name = "gtk3";
-    style = {
-      name = "kvantum";
-      package = pkgs.libsForQt5.qtstyleplugin-kvantum;
-    };
   };
 
   # Set environment variables
@@ -112,15 +108,7 @@
     PARALLEL_HOME = "${config.xdg.configHome}/parallel";
 
     QT_QPA_PLATFORMTHEME = "gtk3";
-    QT_STYLE_OVERRIDE = "kvantum";
     GTK_THEME = "Adwaita:dark";
   };
 
-  xdg.configFile."Kvantum/kvantum.kvconfig".text = ''
-    [General]
-    theme=KvAdaptaDark
-  '';
-
-  xdg.configFile."Kvantum/KvAdaptaDark/KvAdaptaDark.kvconfig".source =
-    "${pkgs.libsForQt5.qtstyleplugin-kvantum}/share/Kvantum/KvAdaptaDark/KvAdaptaDark.kvconfig";
 }

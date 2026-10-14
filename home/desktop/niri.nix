@@ -51,15 +51,12 @@
 
     rofimoji
     # Screenshots
-    grim
     slurp
     satty
     # Lock screen
-    hyprlock
+    swaylock
 
     adw-gtk3
-    adwaita-qt
-    libsForQt5.qtstyleplugin-kvantum
 
     glib
     dconf
@@ -147,8 +144,8 @@
         };
 
         "Mod+L" = {
-          _props."hotkey-overlay-title" = "Lock the Screen: hyprlock";
-          spawn = [ "hyprlock" ];
+          _props."hotkey-overlay-title" = "Lock the Screen: swaylock";
+          spawn = [ "swaylock" ];
         };
 
         "Mod+Shift+K" = {
@@ -171,12 +168,12 @@
 
         "Mod+P" = {
           _props."hotkey-overlay-title" = "Region Screenshot";
-          "spawn-sh" = "grim -g \"$(slurp)\" - | satty --filename -";
+          screenshot = { };
         };
 
         "Mod+Shift+P" = {
           _props."hotkey-overlay-title" = "Fullscreen Screenshot";
-          "spawn-sh" = "grim - | satty --filename -";
+          "screenshot-screen" = { };
         };
 
         "Mod+R" = {
