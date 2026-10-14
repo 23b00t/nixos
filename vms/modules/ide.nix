@@ -19,7 +19,9 @@ let
       ${pkgs.git}/bin/git clone "$REPO_URL" "$NVIM_DIR"
     else
       cd "$NVIM_DIR"
-      ${pkgs.git}/bin/git pull --ff-only || true
+      # Over HTTPS: the origin is SSH (git@github.com, for pushing), but at
+      # boot there is neither ssh in PATH nor the forwarded GitHub agent
+      ${pkgs.git}/bin/git pull --ff-only "$REPO_URL" "$(${pkgs.git}/bin/git rev-parse --abbrev-ref HEAD)"
     fi
   '';
 in
@@ -157,11 +159,16 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" ];
       requires = [ "network-online.target" ];
+      # The uplink (sys-net) can come up after network-online in the VM
+      startLimitBurst = 10;
+      startLimitIntervalSec = 600;
       serviceConfig = {
         Type = "oneshot";
         User = cfg.user;
         Group = "users";
         ExecStart = lazyvimSyncScript;
+        Restart = "on-failure";
+        RestartSec = 30;
       };
     };
   };
