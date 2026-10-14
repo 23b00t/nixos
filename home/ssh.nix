@@ -1,7 +1,6 @@
 {
   lib,
   pkgs,
-  inputs,
   osConfig ? { },
   vmRegistry,
   ...
@@ -17,23 +16,39 @@ let
   imageDomainNames = map (d: d.name) vmRegistry.imageDomains;
   githubAgentSocket = "%d/.ssh/agent/github.sock";
 
+  # Extra options from the registry (extraSSH, globalExtraSSH), if any
   hostStrings = builtins.concatStringsSep "\n" (
-    map (
+    lib.concatMap (
       h:
       let
         allExtra = (h.extraSSH or [ ]) ++ (vmRegistry.globalExtraSSH or [ ]);
-        extra = if allExtra != [ ] then builtins.concatStringsSep "\n  " allExtra else "";
       in
-      "Host ${h.name}-vm ${h.ip}\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null"
-      + (if extra != "" then "\n  " + extra else "")
+      lib.optional (allExtra != [ ]) ("Host ${h.name}-vm\n  " + builtins.concatStringsSep "\n  " allExtra)
     ) hosts
   );
 
+  # `ssh <name>-vm`, `ssh <name>`, `ssh <short>` and the registry IP all
+  # reach the same guest
   mkSettingsBlock = h: {
-    "${h.name}-vm ${h.ip}" = {
+    "${lib.concatStringsSep " " (
+      lib.unique (
+        [
+          "${h.name}-vm"
+          h.name
+        ]
+        ++ lib.optional ((h.short or null) != null) h.short
+        ++ [ h.ip ]
+      )
+    )}" =
+    {
       User = "user";
       IdentityFile = "~/.ssh/${h.name}-vm";
       IdentitiesOnly = true;
+      # Host keys differ per machine (generated in the guests): remember
+      # each on first use, then verify. One known_hosts entry per guest
+      # for all its aliases
+      HostKeyAlias = "${h.name}-vm";
+      StrictHostKeyChecking = "accept-new";
     }
     // lib.optionalAttrs (relaySsh h.name != null) {
       ProxyCommand = "${pkgs.socat}/bin/socat - UNIX-CONNECT:${relaySsh h.name}";
