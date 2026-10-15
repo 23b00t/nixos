@@ -259,14 +259,14 @@ in
 
           // Whole machine (all Xen domains), from the xen-stats service in dom0
           "custom/xen-mem": {
-            "format": " {}",
+            "format": " {}",
             "return-type": "json",
             "exec": "cat /run/xen-stats/mem",
             "interval": 3
           },
 
           "custom/xen-cpu": {
-            "format": " {}",
+            "format": " {}",
             "return-type": "json",
             "exec": "cat /run/xen-stats/cpu",
             "interval": 3
