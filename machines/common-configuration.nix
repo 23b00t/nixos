@@ -118,8 +118,10 @@ in
       );
       services.lvm.enable = true;
     };
-    # Default kernel: dom0 gains little from zen under Xen (2026-10-14)
-    kernelPackages = pkgs.linuxPackages;
+    # Mainline kernel, no zen: dom0 gains little from its patches under Xen
+    # (2026-10-14); 6.18 LTS could not drive the xmg panel plus two monitors,
+    # latest tested on the hp (2026-10-15)
+    kernelPackages = pkgs.linuxPackages_latest;
 
     kernelParams =
       (lib.optionals (iommuKernelParam != null) [ iommuKernelParam ])

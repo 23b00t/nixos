@@ -105,7 +105,7 @@ let
     wait_tor() {
       echo "update-all: waiting for Tor in $1 (sdwdate)" >&2
       for _ in $(seq 60); do
-        ssh -o ConnectTimeout=5 "$1-vm" test -e /run/sdwdate/first_success 2>/dev/null && return 0
+        ssh -o ConnectTimeout=5 -l "''${2:-user}" "$1-vm" test -e /run/sdwdate/first_success 2>/dev/null && return 0
         sleep 5
       done
       echo "update-all: no Tor in $1 after 5 min" >&2
@@ -131,14 +131,30 @@ let
     echo "update-all: updating the Whonix-Gateway" >&2
     ssh -t whonix-gateway-vm upgrade-nonroot
 
-    ensure_running whonix-workstation
-    wait_tor whonix-workstation
-    # sudo is blocked for `user` in the Workstation (user/sysmaint split);
-    # upgrade-nonroot is Whonix' update path for the normal session
+    # The Workstation updates only in its sysmaint session (user/sysmaint
+    # split, `user` has no sudo): boot that once, log in as sysmaint, then
+    # back to the normal session if it was running before (2026-10-15)
+    ws=whonix-workstation
+    ws_was_running=0
+    if systemctl is-active --quiet "xen-image@$ws"; then
+      ws_was_running=1
+      echo "update-all: restarting $ws in its sysmaint session" >&2
+      sudo systemctl stop "xen-image@$ws"
+    else
+      echo "update-all: starting $ws in its sysmaint session" >&2
+    fi
+    sudo install -d -m 0755 /run/xen-image
+    sudo touch "/run/xen-image/$ws.sysmaint"
+    sudo systemctl start "xen-image@$ws"
+    [ "$ws_was_running" = 1 ] || started+=("$ws")
+    wait_tor "$ws" sysmaint
     echo "update-all: updating the Whonix-Workstation" >&2
-    ssh -t whonix-workstation-vm upgrade-nonroot
+    ssh -t -l sysmaint "$ws-vm" upgrade-nonroot
+    if [ "$ws_was_running" = 1 ]; then
+      echo "update-all: back to the normal session of $ws" >&2
+      sudo systemctl restart "xen-image@$ws"
+    fi
 
-    offer_restart whonix-workstation
     offer_restart whonix-gateway
     echo "update-all: done" >&2
   '';
@@ -161,8 +177,14 @@ in
     trace = true;
     boot = {
       builderVerbosity = "info"; # report which Xen boot entries were created
-      # PVH is the default; registry hostProfile.dom0Pv = true boots a PV dom0
-      params = [ (if vmRegistry.hostProfile.dom0Pv or false then "dom0=pv" else "dom0=pvh") ];
+      # PVH is the default; registry hostProfile.dom0Pv = true boots a PV dom0.
+      # ucode=scan: Xen loads the CPU microcode from the initrd (boot.initrd.prepend);
+      # a PV dom0 cannot (verify_patch "WTF family: 0x0"), so without it the
+      # CPU ran the BIOS microcode (2026-10-15)
+      params = [
+        (if vmRegistry.hostProfile.dom0Pv or false then "dom0=pv" else "dom0=pvh")
+        "ucode=scan"
+      ];
     };
     dom0Resources = {
       # 4096 is too small to evaluate this flake on dom0 (swap thrashing)
@@ -321,6 +343,8 @@ in
     ];
     ifupdownHotplug = [ "eth0" ];
     wprs = true;
+    # Updates only in the sysmaint session (update-all boots it)
+    sysmaintEntry = "PERSISTENT Mode | SYSMAINT Session | system maintenance tasks";
     authorizedKeys = map (d: d.hostSSHKey) (
       builtins.filter (d: d.name == "whonix-workstation") vmRegistry.imageDomains
     );

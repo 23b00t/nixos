@@ -133,6 +133,18 @@ let
           host = relayRules;
           guest = relayRules;
         };
+        sysmaintEntry = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          example = "PERSISTENT Mode | SYSMAINT Session | system maintenance tasks";
+          description = ''
+            GRUB menu entry of the guest's sysmaint session (Kicksecure
+            user-sysmaint-split: updates only work there). When set, the next
+            start boots this entry if /run/xen-image/<name>.sysmaint exists
+            (removed on start), dom0 may also log in as `sysmaint`, and the
+            dom0 integration runs in sysmaint-boot.target too.
+          '';
+        };
         extraConfig = lib.mkOption {
           type = lib.types.lines;
           default = "";
@@ -149,7 +161,7 @@ let
       sshdConfig = pkgs.writeText "sshd_config" ''
         HostKey /var/lib/nox/ssh/ssh_host_ed25519_key
         AuthorizedKeysFile /nix/store/nox/etc/ssh/authorized_keys/%u
-        AllowUsers user
+        AllowUsers user${lib.optionalString (d.sysmaintEntry != null) " sysmaint"}
         PermitRootLogin no
         PasswordAuthentication no
         KbdInteractiveAuthentication no
@@ -262,6 +274,7 @@ let
         ln -s ${sshdConfig} $out/etc/ssh/sshd_config
         cp ${pkgs.writeText "authorized_keys" (lib.concatMapStrings (k: "${k}\n") d.authorizedKeys)} \
           $out/etc/ssh/authorized_keys/user
+        ${lib.optionalString (d.sysmaintEntry != null) "ln -s user $out/etc/ssh/authorized_keys/sysmaint"}
         ${lib.optionalString d.driverDomain ''
           ln -s ${xen}/bin/xl $out/bin/xl
           mkdir -p $out/etc/xen
@@ -329,6 +342,11 @@ let
           WantedBy=multi-user.target
         ''} $s/nox.target
         ln -s ../nox.target $s/multi-user.target.wants/nox.target
+        ${lib.optionalString (d.sysmaintEntry != null) ''
+          # sysmaint-boot.target does not pull in multi-user.target
+          mkdir -p $s/sysmaint-boot.target.wants
+          ln -s ../nox.target $s/sysmaint-boot.target.wants/nox.target
+        ''}
         cp ${unit ''
           [Unit]
           Description=nox-relay (guest side)
@@ -459,25 +477,63 @@ let
         ''}
       '';
 
-      xlConfig = pkgs.writeText "xl.cfg" ''
-        name = ${quote d.domain}
-        type = "pvh"
-        kernel = ${quote pvhgrub}
-        memory = ${toString d.memory}
-        vcpus = ${toString d.vcpus}
-        on_poweroff = "destroy"
-        on_reboot = "restart"
-        on_crash = "destroy"
-        disk = ${
-          xlList [
-            "format=raw, vdev=xvda, access=rw, target=${d.image}"
-            "format=raw, vdev=xvdb, access=ro, target=${storeDisk}"
-          ]
-        }
-        vif = ${xlList (map (v: "mac=${v.mac}, bridge=${v.bridge}, backend=${v.backend}") d.vifs)}
-        ${lib.optionalString d.driverDomain "driver_domain = 1"}
-        ${d.extraConfig}
+      xlConfig = mkXlConfig pvhgrub;
+      # pvgrub2 that boots the guest's sysmaint entry instead of its default
+      xlConfigSysmaint = mkXlConfig "${
+        pkgs.grub2_pvhgrub_image.overrideAttrs (old: {
+          name = "grub2_xen_pvh_image_sysmaint";
+          env = old.env // {
+            GRUB_CONFIGS = pkgs.runCommand "pvhgrub-sysmaint-configs" { } ''
+              mkdir $out
+              cp ${old.env.GRUB_CONFIGS}/grub-bootstrap.cfg $out/
+              cat > $out/grub.cfg <<'EOF'
+              # Like the stock pvhgrub config, but the guest's menu is sourced
+              # (its entries stay defined) and the sysmaint entry is booted
+              if search -s -f /boot/grub/grub.cfg ; then
+                source /boot/grub/grub.cfg
+                set default="${d.sysmaintEntry}"
+                set timeout=0
+              fi
+              EOF
+            '';
+          };
+        })
+      }/lib/grub-xen_pvh/grub-i386-xen_pvh.bin";
+
+      # Boots the sysmaint entry once if /run/xen-image/<name>.sysmaint exists
+      start = pkgs.writeShellScript "xen-image-${name}-start" ''
+        cfg=/etc/xen/image-domains/${name}/xl.cfg
+        ${lib.optionalString (d.sysmaintEntry != null) ''
+          if [ -e /run/xen-image/${name}.sysmaint ]; then
+            ${pkgs.coreutils}/bin/rm -f /run/xen-image/${name}.sysmaint
+            echo "Booting the sysmaint session" >&2
+            cfg=/etc/xen/image-domains/${name}/xl-sysmaint.cfg
+          fi
+        ''}
+        exec ${xen}/bin/xl create -F "$cfg"
       '';
+
+      mkXlConfig =
+        kernel:
+        pkgs.writeText "xl.cfg" ''
+          name = ${quote d.domain}
+          type = "pvh"
+          kernel = ${quote kernel}
+          memory = ${toString d.memory}
+          vcpus = ${toString d.vcpus}
+          on_poweroff = "destroy"
+          on_reboot = "restart"
+          on_crash = "destroy"
+          disk = ${
+            xlList [
+              "format=raw, vdev=xvda, access=rw, target=${d.image}"
+              "format=raw, vdev=xvdb, access=ro, target=${storeDisk}"
+            ]
+          }
+          vif = ${xlList (map (v: "mac=${v.mac}, bridge=${v.bridge}, backend=${v.backend}") d.vifs)}
+          ${lib.optionalString d.driverDomain "driver_domain = 1"}
+          ${d.extraConfig}
+        '';
 
       # The vif backends must be up, otherwise creating the vifs fails
       preStart = pkgs.writeShellScript "xen-image-${name}-pre-start" ''
@@ -545,9 +601,12 @@ let
         storeDisk
         rootTree
         xlConfig
+        xlConfigSysmaint
+        start
         preStart
         stop
         ;
+      sysmaint = d.sysmaintEntry != null;
     };
 
   guests = lib.mapAttrs mkGuest cfg.domains;
@@ -627,11 +686,18 @@ in
     environment.systemPackages = [ setup ];
 
     environment.etc = lib.mkMerge (
-      lib.mapAttrsToList (name: g: {
-        "xen/image-domains/${name}/xl.cfg".source = g.xlConfig;
-        "xen/image-domains/${name}/pre-start".source = g.preStart;
-        "xen/image-domains/${name}/stop".source = g.stop;
-      }) guests
+      lib.mapAttrsToList (
+        name: g:
+        {
+          "xen/image-domains/${name}/xl.cfg".source = g.xlConfig;
+          "xen/image-domains/${name}/pre-start".source = g.preStart;
+          "xen/image-domains/${name}/stop".source = g.stop;
+          "xen/image-domains/${name}/start".source = g.start;
+        }
+        // lib.optionalAttrs g.sysmaint {
+          "xen/image-domains/${name}/xl-sysmaint.cfg".source = g.xlConfigSysmaint;
+        }
+      ) guests
     );
 
     systemd.services = {
@@ -645,7 +711,7 @@ in
         serviceConfig = {
           Type = "simple";
           ExecStartPre = "/etc/xen/image-domains/%i/pre-start";
-          ExecStart = "${xen}/bin/xl create -F /etc/xen/image-domains/%i/xl.cfg";
+          ExecStart = "/etc/xen/image-domains/%i/start";
           ExecStop = "/etc/xen/image-domains/%i/stop";
           TimeoutStartSec = 300;
           TimeoutStopSec = 90;
