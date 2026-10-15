@@ -89,6 +89,12 @@ in
         description = "Extra authorized SSH public keys for the restricted inter-VM copy account.";
       };
     };
+    browser = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      example = "firefox.desktop";
+      description = "Desktop file of the VM's browser: PDFs and images open there (xdg-open, e.g. from yazi).";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -226,6 +232,27 @@ in
     fonts.packages = with pkgs; [
       nerd-fonts.fira-code
     ];
+
+    # No nano: vim is the editor everywhere ($EDITOR, also yazi), the IDE
+    # stack sets nvim (2026-10-14)
+    programs.nano.enable = false;
+    programs.vim = {
+      enable = true;
+      defaultEditor = !config.programs.neovim.defaultEditor;
+    };
+
+    xdg.mime.defaultApplications = mkIf (cfg.browser != null) (
+      genAttrs [
+        "application/pdf"
+        "image/png"
+        "image/jpeg"
+        "image/gif"
+        "image/webp"
+        "image/svg+xml"
+        "image/bmp"
+        "image/avif"
+      ] (_: cfg.browser)
+    );
 
     environment.shellInit = mkIf dbusForwardEnabled ''
       if [ -n "$SSH_CONNECTION" ] && [ -S /tmp/ssh_dbus.sock ] \

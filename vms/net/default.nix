@@ -18,6 +18,7 @@
 
   services.common-config = {
     enable = true;
+    browser = "zen.desktop";
   };
 
   microvm = {

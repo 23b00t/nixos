@@ -110,7 +110,6 @@ in
         sudo docker compose stop
       }
 
-      export EDITOR=hx
     '';
   };
 

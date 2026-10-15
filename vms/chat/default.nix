@@ -15,6 +15,7 @@
 
   services.common-config = {
     enable = true;
+    browser = "chromium-browser.desktop";
   };
 
   nixpkgs.config.allowUnfree = true;

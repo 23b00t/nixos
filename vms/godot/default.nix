@@ -76,6 +76,7 @@ in
   };
   services.common-config = {
     enable = true;
+    browser = "firefox.desktop";
   };
   services.ide = {
     enable = true;
