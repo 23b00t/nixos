@@ -408,6 +408,68 @@ let
       *) usage ;;
     esac
   '';
+  # Hand the input devices to a VM and back in one step (e.g. steam): the
+  # registry's host-allow devices the VM may own, with --bt also the
+  # vm-reserved devices it may take over from sys-usb (Bluetooth adapter)
+  usb = vmRegistry.hardware.usb;
+  allowedNames = vm: pred: map (d: d.name) (builtins.filter pred (usb.allowedForOwner vm));
+  inputVms = builtins.filter (vm: allowedNames vm (d: d.policy == "host-allow") != [ ]) targetVms;
+  btNames = map (d: d.name) (
+    builtins.filter (
+      d: (d.defaultOwner or null) == "sys-usb" && d.allowedOwners or [ ] != [ "sys-usb" ]
+    ) usb.vmReserved
+  );
+  inputTo = pkgs.writeShellScriptBin "input-to" ''
+    set -u
+    usage() {
+      echo "usage: input-to <vm> [--bt]   (${lib.concatStringsSep ", " inputVms})" >&2
+      exit 2
+    }
+    [ $# -ge 1 ] && [ $# -le 2 ] || usage
+    vm="$1"
+    case "''${2:-}" in "") bt=0 ;; --bt) bt=1 ;; *) usage ;; esac
+    devs="" btdevs=""
+    case "$vm" in
+    ${lib.concatMapStrings (vm: ''
+      ${vm})
+        devs="${lib.concatStringsSep " " (allowedNames vm (d: d.policy == "host-allow"))}"
+        btdevs="${
+          lib.concatStringsSep " " (
+            allowedNames vm (d: d.policy == "vm-reserved" && builtins.elem d.name btNames)
+          )
+        }"
+        ;;
+    '') inputVms}
+      *) echo "input-to: no input devices may go to $vm (registry allowedOwners)" >&2; exit 1 ;;
+    esac
+    [ "$bt" = 1 ] && devs="$devs $btdevs"
+    present="$(${vmUsb}/bin/vm-usb list | awk 'NR > 1 { print $3 }')" || exit 1
+    rc=0
+    for d in $devs; do
+      if ! grep -qxF "$d" <<<"$present"; then
+        echo "$d: not plugged in, skipped"
+        continue
+      fi
+      ${vmUsb}/bin/vm-usb attach "$d" "$vm" || rc=1
+    done
+    exit "$rc"
+  '';
+  # Back: every one of these devices that is attached to a VM (or only to <vm>)
+  inputBack = pkgs.writeShellScriptBin "input-back" ''
+    set -u
+    [ $# -le 1 ] || { echo "usage: input-back [vm]" >&2; exit 2; }
+    only="''${1:-}"
+    names=" ${lib.concatStringsSep " " (lib.unique (map (d: d.name) usb.hostAllow ++ btNames))} "
+    rc=0
+    while read -r _ _ name owner _; do
+      case "$names" in *" $name "*) ;; *) continue ;; esac
+      case "$owner" in "" | dom0 | sys-usb) continue ;; esac
+      [ -z "$only" ] || [ "$owner" = "$only" ] || continue
+      ${vmUsb}/bin/vm-usb detach "$name" || rc=1
+    done < <(${vmUsb}/bin/vm-usb list | tail -n +2)
+    exit "$rc"
+  '';
+
   # Give the USB controllers back to dom0
   releaseControllers = ''
     if xl domid ${links.domain} >/dev/null 2>&1; then
@@ -452,6 +514,8 @@ in
     environment.systemPackages = [
       sysUsbRescue
       vmUsb
+      inputTo
+      inputBack
     ];
 
     # vm-usb state (assignments), runtime only like the assignments themselves
