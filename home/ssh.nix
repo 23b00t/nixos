@@ -11,6 +11,35 @@ let
   relayed = osConfig.services.nox-relay.host.guests or { };
   relaySsh = name: (relayed.${name}.listen or { }).ssh.path or null;
 
+  # ProxyCommand: waits until the guest's sshd answers through the relay
+  # socket (a VM that was just started), then connects. Fails at once if the
+  # VM's unit is not running
+  sshWait = pkgs.writeShellScript "ssh-relay-wait" ''
+    unit="$1" sock="$2"
+    socat=${pkgs.socat}/bin/socat
+    # Running for more than 2 min: connect straight away (the probe below
+    # costs ~0.5 s)
+    since=$(systemctl show -p ActiveEnterTimestampMonotonic --value "$unit")
+    now=$(awk '{ printf "%d", $1 * 1000000 }' /proc/uptime)
+    if [ "''${since:-0}" -gt 0 ] && [ $((now - since)) -gt 120000000 ] && [ -S "$sock" ]; then
+      exec "$socat" - UNIX-CONNECT:"$sock"
+    fi
+    for i in $(seq 120); do
+      if ! systemctl is-active --quiet "$unit"; then
+        echo "$unit is not running" >&2
+        exit 1
+      fi
+      if [ -S "$sock" ] &&
+        [ "$(timeout 3 "$socat" -T 0.5 -u UNIX-CONNECT:"$sock" - 2>/dev/null | head -c 4)" = SSH- ]; then
+        exec "$socat" - UNIX-CONNECT:"$sock"
+      fi
+      [ "$i" = 3 ] && echo "waiting for $unit (sshd)..." >&2
+      sleep 1
+    done
+    echo "$unit: no sshd after 120 s" >&2
+    exit 1
+  '';
+
   # Image domains (Whonix) have no admin link: SSH only through the relay
   hosts = vmRegistry.vms ++ vmRegistry.imageDomains;
   imageDomainNames = map (d: d.name) vmRegistry.imageDomains;
@@ -53,7 +82,9 @@ let
       LogLevel = "ERROR";
     }
     // lib.optionalAttrs (relaySsh h.name != null) {
-      ProxyCommand = "${pkgs.socat}/bin/socat - UNIX-CONNECT:${relaySsh h.name}";
+      ProxyCommand = "${sshWait} ${
+        if lib.elem h.name imageDomainNames then "xen-image@${h.name}" else "microvm@${h.name}"
+      } ${relaySsh h.name}";
     }
     # Debian images (Whonix) lack kitty's terminfo
     // lib.optionalAttrs (lib.elem h.name imageDomainNames) {
