@@ -38,6 +38,10 @@ in
 
   nix.package = pkgs.lixPackageSets.latest.lix;
 
+  # Ctrl+Alt+Del on the keyboard from input-to must not reboot steam
+  # (vms/modules/common-config.nix, not imported here)
+  systemd.ctrlAltDelUnit = "/dev/null";
+
   nixpkgs.config.allowUnfree = true;
   networking.hostName = "steam-vm";
   services.net-config = {

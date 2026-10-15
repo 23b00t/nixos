@@ -241,6 +241,11 @@ in
       defaultEditor = !config.programs.neovim.defaultEditor;
     };
 
+    # Keyboards live in sys-usb (and in steam via input-to): Ctrl+Alt+Del
+    # meant for dom0 (niri quit) rebooted sys-usb, all input dropped
+    # (xmg 2026-10-15). Masked, the guest ignores it
+    systemd.ctrlAltDelUnit = "/dev/null";
+
     xdg.mime.defaultApplications = mkIf (cfg.browser != null) (
       genAttrs [
         "application/pdf"
@@ -276,6 +281,10 @@ in
       ) vmCopySourceDirectories
     );
 
-    environment.systemPackages = mkIf cfg.withDefaultPkgs (mkBefore defaultPkgs);
+    environment.systemPackages = mkMerge [
+      (mkIf cfg.withDefaultPkgs (mkBefore defaultPkgs))
+      # xdg-open itself (the default apps above are useless without it)
+      (mkIf (cfg.browser != null) [ pkgs.xdg-utils ])
+    ];
   };
 }
