@@ -1,5 +1,7 @@
 {
+  config,
   lib,
+  pkgs,
   inputs,
   ...
 }:
@@ -43,6 +45,32 @@
       };
     };
   };
+
+  # sddm greeter (weston) on the internal panel at 60 Hz. Weston takes the
+  # preferred 300 Hz, niri inherits that state at login and cannot light the
+  # third output (atomic test EINVAL, 2026-10-15). Same as the nixpkgs weston
+  # command plus an [output] section.
+  services.displayManager.sddm.wayland.compositorCommand =
+    let
+      xkb = config.services.xserver.xkb;
+      westonIni = (pkgs.formats.ini { }).generate "weston.ini" {
+        libinput = {
+          enable-tap = config.services.libinput.mouse.tapping;
+          left-handed = config.services.libinput.mouse.leftHanded;
+        };
+        keyboard = {
+          keymap_model = xkb.model;
+          keymap_layout = xkb.layout;
+          keymap_variant = xkb.variant;
+          keymap_options = xkb.options;
+        };
+        output = {
+          name = "eDP-1";
+          mode = "2560x1600@60";
+        };
+      };
+    in
+    "${lib.getExe pkgs.weston} --shell=kiosk -c ${westonIni}";
 
   networking.hostName = lib.mkForce "xmg";
 }
