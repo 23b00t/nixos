@@ -532,9 +532,55 @@ Bericht des Users nach dem zweiten Boot mit MSI in sys-net (`95efe99`, XMG, PV-d
 
 Recherche und Umsetzung auf dem XMG (dGPU-Passthrough unter PV-dom0, BT-Controller von sys-usb an steam). Erst wenn Phase 0 ruhig läuft. **Termin (User): 2026-10-15 abends.**
 
+**Erster Steam-Test auf dem XMG (2026-10-14 abends): läuft.** HVM mit RTX 5060 (`02:00.0` + Audio `02:00.1`), 10 vCPUs, 16 GB. Erster Start hing in SeaBIOS beim Ausführen des NVIDIA-VGA-Option-ROMs (`xl dmesg`: „Running option rom at c000:0003“, eine vCPU auf 100 %, die anderen nie gestartet) → fw_cfg `etc/pci-optionrom-exec` = 0 über `device_model_args_hvm` (`vms/steam`). Harmlos: `libxl__device_pci_reset: The kernel doesn't support reset from sysfs for PCI device 0000:02:00.1` (Audio-Funktion ohne eigenen Reset). Danach: Steam auf HDMI, Tastatur/Maus/BT per `vm-usb attach … steam` funktional, Internet und UI sehr gut. Gaming (User): Portal 2 im Mittel ~290 fps, Cyberpunk auf maximalen Einstellungen ~46 fps und sehr flüssig (selten kleine Spikes, nicht spürbar; mit „allow tearing“ in MangoHud perfekt), Ton über HDMI geht, MangoHud-Overlay hängt gelegentlich. Geräte kommen nach dem Herunterfahren aus Steam heraus sauber an dom0 zurück.
+
 **Nach Steam (User, 2026-10-14):** `linuxPackages_latest` als dom0-Kernel testen (erst hp, dann XMG). Hintergrund: der Wechsel zen 7.2.9 → Standard 6.18 (LTS) war ein Rückschritt in der Version; mit 6.18 schaffte der i915 das interne Panel mit 300 Hz plus zwei externe Monitore nicht mehr (DP-1 blieb aus), behoben über eDP 60 Hz in der niri-Config des XMG.
 
 **Atreus am Login-Bildschirm (XMG, 2026-10-14):** Im Initrd treibt dom0 den xHCI `00:14.0` noch selbst (LUKS-Passwort geht), um ~20 s nach Kernelstart übernimmt pciback den Controller, die Tastatur kommt erst über sys-usb + Input-Proxy zurück. Erscheint sddm vorher, geht am Login keine Atreus (Wettlauf, mal ja, mal nein). sddm soll **nicht** auf den Input-Proxy warten (User). Andere Lösung suchen (z. B. Input-Proxy/sys-usb früher bereit, Zeitbedarf messen: `systemd-analyze critical-chain`, Zeitstempel sys-usb-Start → erstes weitergereichtes Ereignis).
+
+### Nachtlauf 2026-10-14/15 (vereinbart, Start erst auf Ansage des Users)
+
+Claude arbeitet unbeaufsichtigt **nur auf dem hp**: ändern, bauen, per NOPASSWD umschalten (`nix-env --set` + `switch-to-configuration`), testen, VMs neu starten. Kein Reboot, kein Commit, XMG nicht anfassen. Zeitstempel im Scratchpad-Log; beim nächsten Kontakt Bericht (Ablauf, Dauer, erledigt/offen) und je Aufgabe uncommittete Änderungen mit fertigen `git add`/`git commit`-Blöcken.
+
+Reihenfolge:
+1. **Steam vorbereiten** (morgen Abend dran): Recherche dGPU-Passthrough RTX 5060 (Blackwell, `10de:2d19` + Audio `10de:22eb`) unter Xen PV-dom0 an einen HVM-Gast (Reset-Verhalten, open kernel module, nötige Xen/libxl-Optionen, MSI), BT-Controller-Übergabe von sys-usb, Anzeige (gamescope/wprs/eigener Monitor), Abgleich mit `memories/steam-gpu-passthrough.md` und dem steam-Stand im Repo. Ergebnis: Config-Entwurf (nur eval auf dem hp, keine NVIDIA dort) und Testablauf für morgen als Plan-Abschnitt.
+2. **Standardprogramme in den VMs** (siehe Phase 2b): nano raus, Editor nvim/vim, MIME `text/*`, PDFs/Bilder im Browser außer office, yazi-Opener; zentral in `vms/modules/`; auf dem hp testen.
+3. **yazi:** Mount-Plugin reparieren, Testfall Packen/Entpacken (zip, tar.gz/xz/zst, 7z, rar).
+4. **statix W20** in `machines/common-configuration.nix` (und `services` in `home/desktop/niri.nix`): rein strukturell, eigener Commit.
+5. **nox-CLI:** Entwurf des Befehlsbaums als Diskussionsgrundlage (kein Code).
+6. **Atreus am Login:** Recherche/Messung (ohne sddm warten zu lassen), soweit auf dem hp nachstellbar.
+6b. **dom0-RAM:** prüfen, ob 4 GB reichen (heute 8 GB; Messung Nutzung über einen Tag, Eval passiert auf dem Builder); Xen-seitig fest reservieren (`dom0_mem=4096M,max:4096M`, Speicher wird beim Boot exklusiv an dom0 gegeben, kein Ballooning), Doku/Optionen recherchieren und einen Vorschlag machen.
+6c. **steam Performance:** CPU-Pinning Status quo (`cpus = "0-9"` in `vms/steam`, Topologie i9: welche Threads sind P-/E-Kerne, wo laufen dom0 und die anderen VMs), ideale Strategie unter Xen (Hard-/Soft-Affinity, cpupools, dom0 auf E-Kerne), weitere Optimierungen recherchieren (Hugepages/superpages, `viridian`, Timer, MSI-X für die GPU, HVM-Optionen, Scheduler credit2 vs. null-Scheduler für einen eigenen cpupool).
+6d. **steam-GUI-Start:** nach dem Domain-Start lange nur tty1 auf HDMI, bis gamescope/Steam erscheinen (bekannt aus der KVM-Zeit). Ursache messen (`systemd-analyze critical-chain` in steam, Zeitstempel NVIDIA-Treiber/`nvidia-drm`, gamescope-Session, Netz/`network-online`, Steam-Bootstrap) und beheben.
+6d'. Beobachtung User: beim zweiten Start (nach Herunterfahren aus Steam heraus) kam die GUI sehr schnell, der lange tty1-Abschnitt war beim ersten Start.
+6f. **steam startet nach dem Herunterfahren aus der GUI von selbst neu:** alle `microvm@` haben `Restart=always` (microvm.nix-Fork, `nixos-modules/host`). Für steam `Restart=on-failure`, vorher auf dem hp prüfen, mit welchem Exit-Code `xl create -F` bei Poweroff bzw. Reboot des Gasts endet (Reboot muss weiterlaufen). Bis dahin steam per `sudo systemctl stop microvm@steam` beenden.
+   - **Test hp (22:07):** Poweroff und Reboot des Gasts enden beide mit Exit-Code 0 (`xl`: „reason code 0“ bzw. „1“, „Action … is destroy“, weil der Runner `on_reboot = "destroy"` setzt, `lib/runners/xen.nix` im Fork); den Neustart macht nur systemd (`Restart=always`). Unterscheiden geht also nicht über den Exit-Code. Vorschlag für steam: `on_reboot = "restart"` (xl startet die Domain selbst neu) + `Restart=on-failure`.
+6h. **steam bleibt nach `mst steam` als Domain liegen** (XMG, 22:2x): `xl list` zeigt `steam-vm … --ps--`, keine Last, aber die 16 GB werden nicht frei. Gleiches Muster wie früher bei sys-net (heruntergefahrene Domain wird nicht abgebaut, vermutlich am PCI-Abbau der GPU). Beim Stoppen von VMs mit PCI-Geräten eine liegengebliebene Domain zerstören (ExecStopPost, wie das ExecStartPre an `microvm-pci-devices@`), Ursache des hängenden Abbaus prüfen (`xl dmesg`).
+6g. **ssh wartet auf eine startende VM (User, 2026-10-14):** `ms <vm>` und gleich danach `ssh <vm>` scheitert sofort (Relay-Socket fehlt noch bzw. sshd im Gast noch nicht oben). ProxyCommand wartet auf den Socket (z. B. bis 60 s) und versucht es erneut, bis sshd antwortet. Gilt allgemein für jede VM.
+6e. **dom0-Hilfsfunktionen für steam-Eingabe:** zwei Befehle, die Tastatur + Maus (optional den BT-Adapter) an steam geben und zurück an dom0 (`vm-usb attach/detach`, Gerätenamen aus der Registry, nicht hart kodiert). Passend für das spätere nox-CLI benennen.
+7. **`linuxPackages_latest`:** auf dem hp bauen und als Boot-Eintrag setzen (`switch-to-configuration boot`), dann den hp herunterfahren (User: beim nächsten Boot testen). Ganz am Ende.
+
+#### Ergebnisse Nachtlauf (Claude, laufend aktualisiert)
+
+- **Atreus am Login (Messung hp, Boot 20:18):** sys-usb-Domain startet 20:18:14,2, sddm-Greeter steht 20:18:15,6, erstes weitergereichtes Eingabegerät 20:18:26,0 → ~10 s ohne USB-Tastatur am Greeter. Davon sys-usb bis sshd ~8,7 s (`systemd-analyze`: Kernel 0,5 s, Initrd 3,7 s, Userspace 4,4 s; `sshd` hängt hinter `network.target` ← `nftables` 1 s ← networkd 0,5 s), dann bis zu 3 s Abfrage-Intervall des Input-Proxys + SSH-Aufbau. Auf dem XMG kommen ~20 s Initrd/pciback-Übergabe dazu (Atreus erst in dom0, dann weg). Ansätze ohne sddm warten zu lassen, je einzeln messbar: (1) Input-Proxy fragt in den ersten Sekunden nach dem Start jede Sekunde statt alle 3 s; (2) sshd in sys-usb nicht hinter `network.target` (der Zugang läuft über den vchan-Relay, nicht übers Netz) bzw. per Socket-Aktivierung; (3) sys-usb-Initrd verkleinern (3,7 s). Grob 4–5 s Gewinn; eine Lücke von einigen Sekunden bleibt bauartbedingt (Qubes hat dasselbe). Die interne Tastatur des XMG (i8042) geht am Greeter immer. Keine Änderung ohne Absprache (Eingabeweg).
+- **dom0-RAM (6b):** Der Speicher ist schon heute fest reserviert: `dom0_mem=8192M` (Xen-Kommandozeile, aus `virtualisation.xen.dom0Resources.memory`) gibt dom0 den Speicher beim Boot exklusiv, keine andere Domain bekommt ihn, und `autoballoon="off"` in `xl.conf` (`machines/xen-dom0.nix`) verhindert, dass xl dom0 beim VM-Start Speicher abnimmt. Das NixOS-Modul hängt `,max:` nur an, wenn `maxMemory` ≠ `memory`; bei Gleichheit wächst dom0 trotzdem nie, weil nichts dom0 aufbläht. Vorschlag: auf dem **XMG** `memory = maxMemory = 4096` (dom0 wertet keine Flakes mehr aus, das macht der Builder; der Kommentar „4096 is too small to evaluate this flake on dom0“ stammt aus der Zeit vor dem Builder), auf dem **hp** 8192 lassen (dort laufen Claude und Builds in dom0). Vorher auf dem XMG messen: `free -m` in dom0 nach einem normalen Arbeitstag (niri, waybar, wprsc, kitty/zellij); Puffer ≥ 1 GB. Umsetzung als Registry-`hostProfile`-Wert (`dom0MemoryMB`), nicht als `if hostname`.
+- **Erledigt und auf dem hp getestet:**
+  - *ssh wartet auf startende VMs (6g):* ProxyCommand-Skript `ssh-relay-wait` (`home/ssh.nix`): läuft die Unit kürzer als 2 min, wartet es (bis 120 s), bis der sshd im Gast über den Relay-Socket seinen Banner schickt; sonst sofort verbinden. Nicht laufende VM → sofort „… is not running“. Test: `systemctl restart microvm@chat` und direkt `ssh chat` → „waiting for microvm@chat (sshd)…“, verbunden nach 14 s; laufende VM wie bisher ~1 s.
+  - *yazi (3):* Ursache für das tote Mount-Plugin: alle eigenen Tastenbelegungen standen in `yazi.toml`, yazi liest sie nur aus `keymap.toml` → verschoben (betraf auch chmod, jump-to-char, compress, smart-paste). p7zip (veraltet) → 7-Zip `7zz` in den Standardpaketen, mit RAR-Codec, wo unfree erlaubt ist. Testfall `tests/archive-roundtrip.sh` (`ssh <vm> bash -s < tests/archive-roundtrip.sh`): zip, 7z, tar, tar.gz, tar.xz, tar.zst, tar.bz2 hin und zurück ok in chat; RAR entpacken möglich, packen nicht (kein freies `rar`). Mount-Plugin selbst noch nicht mit einem echten USB-Stick getestet.
+  - *steam-Eingabe (6e):* `input-to <vm> [--bt]` / `input-back [vm]` (`modules/xen-usb.nix`, Wrapper um `vm-usb`, Geräte aus der Registry: host-allow-Geräte mit dem VM-Namen in `allowedOwners`, mit `--bt` die sys-usb-Geräte wie der BT-Adapter). Auf dem hp nur Fehlerpfade testbar (dort kein steam); XMG: `input-to steam --bt`, `input-back`.
+  - *steam-Neustart (6f):* `on_reboot = "restart"` in `vms/steam`, Host: `Restart=on-failure` für `microvm@steam` (`machines/xen-dom0.nix`). Erst auf dem XMG prüfbar (Herunterfahren aus Steam → bleibt aus; Reboot aus Steam → kommt wieder).
+  - *liegengebliebene Domain (6h):* `destroy-leftover-domain` jetzt auch als `ExecStopPost` an allen `microvm@` (wartet bis 30 s, sonst `xl destroy`). hp: Stopp/Start von vault sauber, Skript endet sofort.
+  - *gamescope ohne Debug-Logging* (`vms/steam`).
+- **Umgesetzt, Test im nächsten Build:** Standardprogramme in den VMs (2): nano aus, `$EDITOR` vim bzw. nvim in allen IDE-VMs (`hx`-Exports in coding/php entfernt), PDFs/Bilder → Browser der VM über neue Option `services.common-config.browser` (chat Chromium, net zen, coding/godot Firefox, office ohne), yazi-Opener `open` mit wprs-Umgebung (`WAYLAND_DISPLAY=wprs-0`, wie `vm-run`). statix W20 (4) in `common-configuration.nix` und `home/desktop/niri.nix` (Prüfung: drvPath vorher = nachher).
+- **steam-GUI-Start (6d):** zweiter Start schnell (User); der lange tty1-Abschnitt beim ersten Start passt zu Steam-Bootstrap/Erstinitialisierung nach dem ersten Domain-Start. Beim nächsten Test auf dem XMG messen: `ssh steam 'systemd-analyze critical-chain; tail -50 ~/gs.log'` direkt nach einem langsamen Start.
+- **Abbruch gegen Ende (00:30): Datenträger des hp voll** (435 GB, 410 GB belegt, 1,8 GB frei). Build mit Standardprogrammen + `linuxPackages_latest` scheiterte beim Schreiben der VM-Store-Images (erofs, „No space left on device“). Belegt: builder-Overlay 96 GB, nvim-Home 32 GB, builder-Image 14 GB, `/home/nx` 34 GB, Rest der Nix-Store mit 14 Systemgenerationen (jede hält ihre VM-Store-Images). `nix-store --gc` ohne Generationen zu löschen brachte nur 1,2 GB (jetzt 3,0 GB frei). Alte Generationen löschen braucht root → für den User. Dadurch nicht erledigt: Test der Standardprogramme in den VMs (Code fertig, nur eval-geprüft), Boot-Eintrag `linuxPackages_latest` (Code fertig in `machines/hp/xen.nix`, nicht gebaut). Lehre: in dom0 des hp nie zwei Auswertungen parallel (xmg-Eval > 6 GB), und nach mehreren Builds Generationen aufräumen.
+- **steam-Performance (6c), Analyse + Vorschläge, nichts umgesetzt:**
+  - Ist: `vms/steam`: 10 vCPUs, `cpus = "0-9"` (harte Affinität auf die ersten 10 Threads, gemeint als P-Kerne), alle anderen Domains und dom0 (4 vCPUs) ohne Pinning, also auch auf denselben Threads. Scheduler credit2 für alles (`xl info`). XMG: 32 Threads (`nr_cpus 32`, 16 Kerne × 2): i9 Raptor Lake HX = 8 P-Kerne mit HT (16 Threads) + 16 E-Kerne. Welche Xen-CPU-Nummern P bzw. E sind, zeigt `xl info -n` (Topologie: core/socket je CPU) — vorher prüfen, nicht annehmen.
+  - Ideal (Qubes-Erfahrung mit Alder/Raptor Lake): steam exklusiv auf die P-Kerne, alles andere auf die E-Kerne, solange steam läuft. Sauberster Weg unter Xen: **cpupool**. Beim Start von steam einen Pool `steam` aus den 16 P-Threads bilden (aus `Pool-0` herausnehmen), steam mit `pool = "steam"` darin starten (der Runner im Fork kann `microvm.xen.pool`), beim Stopp die CPUs zurück an `Pool-0`. Dann laufen dom0 und alle VMs automatisch nur noch auf den E-Kernen. Für den steam-Pool optional der `null`-Scheduler (je vCPU ein fester Thread, keine Scheduler-Latenz) bei 16 vCPUs = 16 Threads, sonst credit2. Alternative ohne Pools: dom0 und VMs per `xl vcpu-pin` auf E-Kerne beschränken (weniger sauber, muss jede neue VM erfassen).
+  - vCPUs: 16 (alle P-Threads) oder 8 (ein Thread je P-Kern, HT-Geschwister frei) — messen; Spiele profitieren meist mehr von freien HT-Geschwistern als von der Zahl.
+  - Schnelle, risikoarme Punkte: (1) **gamescope-Debug aus**: `vms/steam` startet gamescope mit `GAMESCOPE_DEBUG=1 GAMESCOPE_WSI_DEBUG=1 GAMESCOPE_WL_DEBUG=1` und schreibt alles nach `~/gs.log` — Kandidat für das gelegentlich hängende MangoHud-Overlay und kleine Spikes; (2) Speicher: 16 GB HVM ohne Ballooning nutzt Xen-Superpages (2 MB/1 GB), passt; (3) Linux-HVM nutzt PV-Treiber/pvclock (`xen_platform_pci` Standard), `viridian` nur für Windows, nichts zu tun.
+  - Cyberpunk mit 46 fps auf Maximum ist bei einer mobilen RTX 5060 vermutlich GPU-begrenzt; Pinning bringt dort eher gleichmäßigere Frametimes als mehr fps. Messen mit MangoHud (Frametime-Graph) vorher/nachher, je eine Änderung.
+  - Für den Test auf dem XMG: `sudo xl info -n | sed -n '/cpu_topology/,/numa/p'` und während eines Spiels `sudo xl vcpu-list` (wo laufen steam- und andere vCPUs).
 
 ### Phase 2b: dom0 verschlanken, Desktop nach niri-Doku (User + Claude, 2026-10-14)
 
@@ -572,6 +618,35 @@ Nach Whonix-Fix und `update-all`. Claude arbeitet auf dem hp (ändern, bauen, sw
 
 **Vor der TUI-Phase (User, 2026-10-14): CLI-Workflow geradeziehen.** Schlanker Rust-Wrapper `nox` über die vorhandenen Scripts (`vm-run`, `cp-vm`/`vm-copy`, `manage-vms`, `vm-usb`, `dom0-update`, `update-all`, `backup`, …), Schema `nox <befehl> [unterbefehl]`, `nox list` zeigt alles. Crate mit gutem Unterbefehls-Support (clap mit derive) und Shell-Completion (clap_complete). Befehlsbaum gemeinsam entwerfen.
 
+**nox-CLI, Entwurf zur Diskussion (Claude, Nachtlauf 2026-10-14):** dünner Wrapper, ruft die vorhandenen Scripts auf (keine Logik doppelt), Befehle wie heute benannt, wo es passt.
+
+```
+nox list [--running] [--group <g>]          manage-vms status (+ Image-Domains, Speicher je VM aus xen-stats)
+nox start|stop|restart <vm>… | --running | --group <g> | --stale
+                                            manage-vms / systemctl microvm@ bzw. xen-image@
+nox ssh <vm>                                ssh <vm> (wartet auf startende VM)
+nox run <vm> <app> [args]                   vm-run <vm> <app>
+nox exec <vm> <cmd…>                        vm-run -c <vm> <cmd>
+nox explore [vm]                            explorer (yazi in der VM)
+nox copy <von-vm> <nach-vm> <dateien…>      cp-vm / vm-copy
+nox usb list|attach <gerät> <vm>|detach <gerät>|allow-input <busid>
+                                            vm-usb
+nox input to <vm> [--bt] | back [vm]        input-to / input-back
+nox update [--switch] [--all]               dom0-update, mit --all update-all
+nox create <name>                           create-vm (später: new-vm-Workflow)
+nox keys vmcopy <vm>                        vmcopy-keys
+nox backup <ziel> <vm>… | -a <ziel> | -r <quelle>
+                                            backup
+nox rescue net|usb                          sys-net-rescue / sys-usb-rescue
+nox image setup <name>                      xen-image-setup
+nox vnc <domain>                            xen-vnc
+```
+
+- Crates: `clap` (derive, Unterbefehle) + `clap_complete` (bash; Completion für VM-, Gruppen- und Gerätenamen dynamisch über `clap_complete::CompleteEnv` oder statisch aus einer von Nix erzeugten Registry-Datei, z. B. `/etc/nox/registry.json` mit VMs, Kurznamen, Gruppen, USB-Geräten — die Registry bleibt die einzige Quelle).
+- `nox` ohne Argumente: kurze Übersicht (= `nox list --running`).
+- Fehler/Exit-Codes der Scripts unverändert durchreichen; `--dry-run` zeigt den aufgerufenen Befehl.
+- Offen zur Diskussion: deutsche oder englische Befehle (Vorschlag: englisch wie die Scripts), `nox exec` vs. `nox run -c`, ob `nox start` auf sshd warten soll (`--wait`), Platz im Repo (eigenes Crate-Verzeichnis, Paket über `flake.nix`).
+
 ### Phase 3: Wenn alles stabil ist
 
 - dom0-RAM auf 4 GB (genutzt ~1,9 GB).
@@ -586,6 +661,11 @@ Nach Whonix-Fix und `update-all`. Claude arbeitet auf dem hp (ändern, bauen, sw
 - ssh-vm (evtl. mit GPG), Vaultwarden-Server (vermutlich später).
 - vpn-vm (im Routing eingesetzt wie das Whonix-Gateway), kali-vm, wine-vm umbenennen und umbauen (Ziel: Windows-Apps mit Proton o. ä. per wprs).
 - Rust-Parser für Nix, um Teile der Config per TUI konfigurierbar zu machen; dazu Laufzeitänderungen per `xl` (z. B. RAM).
+
+### Zu besprechen (User, 2026-10-14, später)
+
+- **Rollback einzelner VMs und Programme:** Szenario steam: heute läuft sie sehr gut, dann drei Wochen nicht benutzt, dazwischen mehrere Updates, plötzlich geht etwas nicht. Ziel: nur diese VM schnell auf den letzten funktionierenden Stand zurück, ohne das ganze System eine Generation zurückzurollen. Ansatzpunkte zum Diskutieren: microvm.nix hält je VM `/var/lib/microvms/<vm>/current` (Runner-Symlink) — ältere Runner sind in alten Systemgenerationen noch im Store; „known good“ je VM markieren (GC-Root auf den Runner, z. B. `/var/lib/microvms/<vm>/known-good`), Umschalten = Symlink zurück + Neustart der VM; Daten-Volumes (home.img) sind davon unberührt. Für einzelne Programme in einer VM: Paket-Pin bzw. Overlay auf die alte Version aus einem früheren nixpkgs-Stand.
+- **Automatisiertes Testen, auch auf dem XMG:** minimal und sicherheitsarm, ohne Framework: ein Skript in dom0, das nach einem Update/Switch die VMs nacheinander prüft (startet, `ssh <vm> true`, ein paar Kernfunktionen je VM: Netz über sys-net, USB-Geräte, Tor im Gateway, steam-GPU sichtbar via `nvidia-smi`), Ergebnis als kurze Tabelle + Log. Läuft nur mit den Rechten, die dom0 ohnehin hat; keine neuen Zugänge. Passt zum Rollback (Test schlägt fehl → VM auf known-good) und zum nox-CLI (`nox test [vm]`).
 
 ### Zu besprechen (User, 2026-10-12)
 
