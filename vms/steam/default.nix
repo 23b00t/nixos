@@ -61,9 +61,13 @@ in
       # boots directly and the driver sets the card up itself, so SeaBIOS
       # runs no PCI option ROMs (fw_cfg etc/pci-optionrom-exec = 0, a binary
       # integer)
+      # on_reboot: xl restarts the domain itself on a guest reboot, so a
+      # poweroff from inside Steam ends the unit for good (the host sets
+      # Restart=on-failure for steam, machines/xen-dom0.nix)
       extraConfig = ''
         pci_permissive = 1
         device_model_args_hvm = [ "-fw_cfg", "name=etc/pci-optionrom-exec,file=${optionRomExecOff}" ]
+        on_reboot = "restart"
       '';
     };
     volumes = [
@@ -148,7 +152,7 @@ in
 
   environment.loginShellInit = ''
     if [[ "$(tty)" = "/dev/tty1" ]]; then
-      GAMESCOPE_DEBUG=1 GAMESCOPE_WSI_DEBUG=1 GAMESCOPE_WL_DEBUG=1 exec "$HOME/gs.sh" &> "$HOME/gs.log"
+      exec "$HOME/gs.sh" &> "$HOME/gs.log"
     fi
   '';
 

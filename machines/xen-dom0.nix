@@ -19,6 +19,19 @@ let
     ++ (vmRegistry.hostProfile.blockedHostDrivers.wifi or [ ]);
   dom0TestAccess = vmRegistry.hostProfile.dom0TestAccess or null;
 
+  # Destroys the domain of MicroVM $1 if it is still there after 30 s (shut
+  # down but not torn down, still holding its PCI devices and memory)
+  destroyLeftoverDomain = pkgs.writeShellScript "destroy-leftover-domain" ''
+    xl=${config.virtualisation.xen.package}/bin/xl
+    dom="$1-vm"
+    for _ in $(seq 30); do
+      $xl domid "$dom" >/dev/null 2>&1 || exit 0
+      sleep 1
+    done
+    echo "destroying leftover domain $dom: $($xl list "$dom" 2>/dev/null | tail -n 1)"
+    $xl destroy "$dom" || true
+  '';
+
   # Emergency exit if sys-net does not come up: give the WLAN card back to dom0
   sysNetRescue = pkgs.writeShellScriptBin "sys-net-rescue" ''
     set -u
@@ -342,18 +355,18 @@ in
       # starts in the same second the old domain begins shutting down, so
       # wait for it to go away and destroy it if it doesn't. The VM itself
       # only starts after pci-setup, so no running domain is hit here.
-      "microvm-pci-devices@".serviceConfig.ExecStartPre = [
-        "${pkgs.writeShellScript "destroy-leftover-domain" ''
-          xl=${config.virtualisation.xen.package}/bin/xl
-          dom="$1-vm"
-          for _ in $(seq 30); do
-            $xl domid "$dom" >/dev/null 2>&1 || exit 0
-            sleep 1
-          done
-          echo "destroying leftover domain $dom: $($xl list "$dom" 2>/dev/null | tail -n 1)"
-          $xl destroy "$dom" || true
-        ''} %i"
-      ];
+      "microvm-pci-devices@".serviceConfig.ExecStartPre = [ "${destroyLeftoverDomain} %i" ];
+      # The same after a stop: steam stayed behind as "--ps--" after
+      # `systemctl stop microvm@steam` and kept its 16 GB (xmg, 2026-10-14).
+      # Returns at once when the domain is gone.
+      "microvm@".serviceConfig.ExecStopPost = [ "${destroyLeftoverDomain} %i" ];
+
+      # steam: shutting it down from inside Steam must keep it off. Guest
+      # poweroff and reboot both end `xl create -F` with exit code 0; steam
+      # sets on_reboot = "restart" so xl handles reboots itself (vms/steam)
+      "microvm@steam" = lib.mkIf (config.microvm.vms ? steam) {
+        serviceConfig.Restart = "on-failure";
+      };
 
       # CPU and memory of the whole machine (all domains) for waybar, which
       # only sees dom0 and must not need root for xl
