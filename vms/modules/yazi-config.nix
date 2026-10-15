@@ -21,6 +21,13 @@
     linemode = "size"
     show_hidden = true
 
+    # yazi runs over SSH (explorer), GUI apps need the wprs display like
+    # vm-run starts them; text files open in $EDITOR (vim/nvim)
+    [opener]
+    open = [
+      { run = 'env WAYLAND_DISPLAY=wprs-0 DISPLAY=:100 XDG_SESSION_TYPE=wayland xdg-open "$1"', desc = "Open", orphan = true },
+    ]
+
     [[plugin.prepend_fetchers]]
     id    = "git"
     url   = "*"
@@ -32,9 +39,13 @@
     url   = "*/"
     run   = "git"
     group = "git"
+  '';
 
+  # Keybindings only work from keymap.toml (in yazi.toml they were ignored,
+  # so mount, chmod, compress etc. never triggered, 2026-10-14)
+  environment.etc."yazi/keymap.toml".text = ''
     [[mgr.prepend_keymap]]
-    desc = "Maximize or restore the preview pane"
+    desc = "Mount, unmount or eject removable media"
     on   = "M"
     run  = "plugin mount"
 
@@ -71,6 +82,7 @@
     "d /home/user/.config/yazi 0755 user users -"
     "L+ /home/user/.config/yazi/yazi.toml - - - - /etc/yazi/yazi.toml"
     "L+ /home/user/.config/yazi/init.lua - - - - /etc/yazi/init.lua"
+    "L+ /home/user/.config/yazi/keymap.toml - - - - /etc/yazi/keymap.toml"
     "L+ /home/user/.config/yazi/plugins - - - - /etc/yazi/plugins"
   ];
 

@@ -61,7 +61,6 @@ in
       zip
       xz
       unzip
-      p7zip
 
       gcc
       gnumake
