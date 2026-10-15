@@ -187,6 +187,13 @@ in
     ao=pulse
     pulse-buffer=2000
   '';
+  # termusic config from the music VM (backend mpv; the default `rusty` finds
+  # no ALSA device in the VM). Copied only if missing: termusic writes to it
+  systemd.tmpfiles.rules = [
+    "d /home/user/.config/termusic 0755 user users -"
+    "C /home/user/.config/termusic/server.toml 0644 user users - ${./termusic/server.toml}"
+    "C /home/user/.config/termusic/tui.toml 0644 user users - ${./termusic/tui.toml}"
+  ];
 
   system.stateVersion = "26.05";
 }
