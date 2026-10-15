@@ -22,6 +22,27 @@ log are in [xen-migration.md](xen-migration.md).
 | dom0 internet | test phase: HTTPS/DNS/NTP via sys-net | none, updates only via the builder |
 | extras | `machines/hp/dev-access.nix` (claude-code, LAN SSH, NOPASSWD for xl/microvm@/switching) | – |
 
+### Firmware (xmg)
+
+Check the installed version (no root, no `dmidecode` in dom0):
+
+```sh
+cat /sys/class/dmi/id/{bios_version,bios_date,product_name,board_name}
+# 2026-10-15: N.1.21A10, 09/25/2025, XMG PRO (E25/M25), X6PR5xxW_X6RP5xxW
+```
+
+Updates (BIOS, EC, Intel ME) come from the XMG download portal, package
+[XMG PRO 16 (E25) 13900HX / PRO 16 VE (M25) 14900HX](https://download.schenker-tech.de/package/xmg-pro-16-e25-xpr16e25-13900hx/)
+(match the Product ID on the bottom label). They are flashed from the
+EFI Shell on a FAT32 USB stick, no Windows needed; tools and PDF guide:
+[BIOS Update via EFI Shell](https://download.schenker-tech.de/package/bios-update-via-efi-shell/),
+background: [XMG help](https://help.xmg.gg/hc/en-gb/articles/17824611001117-How-can-I-update-the-EC-BIOS-firmware-of-my-laptop).
+Follow the order in the package's readme (newer ME firmware needs a
+minimum BIOS version). AC power connected, battery charged, don't touch
+the machine while it flashes. Afterwards check the BIOS settings Xen
+relies on (VT-d/VT-x, boot order) and the version again with the command
+above.
+
 ## Repository layout
 
 - `flake.nix`: composition; `nixosConfigurations.{hp,xmg}`, one

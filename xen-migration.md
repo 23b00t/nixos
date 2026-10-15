@@ -582,6 +582,14 @@ Reihenfolge:
   - Cyberpunk mit 46 fps auf Maximum ist bei einer mobilen RTX 5060 vermutlich GPU-begrenzt; Pinning bringt dort eher gleichmäßigere Frametimes als mehr fps. Messen mit MangoHud (Frametime-Graph) vorher/nachher, je eine Änderung.
   - Für den Test auf dem XMG: `sudo xl info -n | sed -n '/cpu_topology/,/numa/p'` und während eines Spiels `sudo xl vcpu-list` (wo laufen steam- und andere vCPUs).
 
+### Abend 2026-10-15 (User + Claude)
+
+- **XMG, mittlerer Monitor (DP-2) beim Login aus:** Der 60-Hz-Fix in niri (`9f3476b`) reichte nicht. niri meldete beim Start `Error testing state … Invalid argument` für den dritten Ausgang; zur Laufzeit ging Ein-/Ausschalten. Ursache (Hypothese): der sddm-Greeter (weston) stellt eDP auf den bevorzugten Modus 2560x1600@300, niri übernimmt den Zustand beim Login. Fix `7351175`: weston.ini mit `[output] name=eDP-1 mode=2560x1600@60` (`machines/xmg/configuration.nix`). Quick Fix: `niri msg output DP-2 off; niri msg output DP-2 on`. Test: Neuanmeldung über sddm.
+- **hp, chat-Apps beim Start fehlten:** App-Starts per nox-rpc kamen in chat an, bevor der User-Manager lief (`systemd-run --user` scheiterte, `vm-gui` wiederholt nur bei fehlender Antwort). Fix in NoX `843fc6c`: Handler wartet bis 30 s auf `/run/user/<uid>/bus` (nur beim Boot, sonst ohne Pause). net/irc starten auf dem hp per `vm-run` nicht (polkit), gewollt: sie gehören nicht zum hp-Alltag.
+- **hp, `linuxPackages_latest` (7.2.9):** Boot sauber, alle VMs, Internet. Neu im Kernel-Log nur ACPI-CMOS-Meldungen (`SystemCMOS has no handler`, `hctosys`), harmlos unter Xen.
+- **Liste:** (1) hp: Standardprogramme testen (User), yazi-Mount mit echtem Stick; (2) XMG: `update-all --switch` (erster echter Lauf inkl. Whonix-Upgrades), dann Monitor-Test, steam-Neustart/-Herunterfahren (6f), liegengebliebene Domain (6h), `input-to steam --bt`/`input-back` (6e), GUI-Start messen (6d), `ssh` direkt nach `ms` (6g); (3) XMG: `linuxPackages_latest` als eigener Build; (4) XMG messen: `free -m` (dom0 4 GB?), `xl info -n` (steam-cpupool); (5) besprechen: Atreus am Login, nox-CLI; (6) XMG-Firmware: BIOS N.1.21A10 vom 25.09.2025, neuere Pakete im XMG-Portal (README, „Firmware (xmg)“).
+- **Nachtlauf (Details noch zu klären):** Clipboard zwischen den VMs (über dom0, mit expliziter Aktion wie bei Qubes), bekannte Security-Fixes und offene Bugfixes aus Known Issues/README-TODOs.
+
 ### Phase 2b: dom0 verschlanken, Desktop nach niri-Doku (User + Claude, 2026-10-14)
 
 Nach Whonix-Fix und `update-all`. Claude arbeitet auf dem hp (ändern, bauen, switchen, testen; kein Reboot, kein Commit), Ergebnisse und Review werden danach gemeinsam besprochen, Commits je Aufgabe durch den User.
