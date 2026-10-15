@@ -152,12 +152,6 @@ in
       "net.ipv4.udp_wmem_min" = 16384; # Min UDP send buffer: 16 KB
     };
   };
-  # dom0 has no cpufreq under Xen (the hypervisor sets the clock): no
-  # power-profiles-daemon/governor. Without ppd, nixos-hardware's
-  # common-pc-laptop turns on TLP, which would touch runtime PM/ASPM of
-  # devices, also passed-through ones (2026-10-14)
-  services.tlp.enable = false;
-
   nixpkgs.pkgs = pkgs;
 
   imports = [
@@ -197,70 +191,6 @@ in
       };
   };
 
-  environment.systemPackages = with pkgs; [
-    kitty
-    wl-clipboard
-    zellij
-    wprs
-
-    libnotify # Desktop notification library
-    wl-clip-persist # Keep Wayland clipboard even after programs close (avoids crashes)
-    xdg-utils # Collection of XDG desktop integration tools
-    desktop-file-utils # for updating desktop database
-
-    # sddm
-    sddm-astronaut
-
-    # Hardware
-    brightnessctl # screen brightness control
-
-    # Audio
-    pavucontrol
-    # playerctl
-    fzf
-
-    (import ../vms/copy-between-vms.nix { inherit pkgs lib vmRegistry; })
-  ];
-
-  environment.variables = {
-    NIXOS_OZONE_WL = "1";
-  };
-
-  programs.niri.enable = true;
-  # programs.niri enables gnome-keyring (Secret portal); its gcr SSH agent
-  # would take over SSH_AUTH_SOCK from programs.ssh.startAgent (below)
-  services.gnome.gcr-ssh-agent.enable = false;
-
-  programs.nix-ld.enable = true;
-
-  services = {
-    dbus.enable = true;
-
-    upower.enable = true;
-    libinput.enable = true;
-  };
-
-  programs.dconf.enable = true;
-  programs.vim.enable = true;
-
-  # For polkit authentication
-  security.polkit.enable = true;
-  security.pam.services.swaylock = { };
-  security.rtkit.enable = true;
-  systemd.user.services.polkit-gnome-authentication-agent-1 = {
-    description = "polkit-gnome-authentication-agent-1";
-    wantedBy = [ "graphical-session.target" ];
-    wants = [ "graphical-session.target" ];
-    after = [ "graphical-session.target" ];
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
-      Restart = "on-failure";
-      RestartSec = 1;
-      TimeoutStopSec = 10;
-    };
-  };
-
   # For proper XDG desktop integration
   # programs.niri adds the gnome portal (screencasting) and gnome-keyring
   # (Secret portal). niri's niri-portals.conf, plus the GTK file chooser:
@@ -281,53 +211,174 @@ in
     };
   };
 
-  environment.sessionVariables = {
-    XCURSOR_THEME = "Bibata-Modern-Ice";
-    XCURSOR_SIZE = "24";
-  };
+  environment = {
+    systemPackages = with pkgs; [
+      kitty
+      wl-clipboard
+      zellij
+      wprs
 
-  services.displayManager.sddm = {
-    enable = true;
-    theme = "sddm-astronaut-theme";
-    wayland = {
-      enable = true;
-    };
-    extraPackages = with pkgs.kdePackages; [
-      qtsvg
-      qtmultimedia
-      qtvirtualkeyboard
+      libnotify # Desktop notification library
+      wl-clip-persist # Keep Wayland clipboard even after programs close (avoids crashes)
+      xdg-utils # Collection of XDG desktop integration tools
+      desktop-file-utils # for updating desktop database
+
+      # sddm
+      sddm-astronaut
+
+      # Hardware
+      brightnessctl # screen brightness control
+
+      # Audio
+      pavucontrol
+      # playerctl
+      fzf
+
+      (import ../vms/copy-between-vms.nix { inherit pkgs lib vmRegistry; })
     ];
-    settings = {
-      Theme = {
-        CursorTheme = "Bibata-Modern-Ice";
-        CursorSize = "24";
-      };
-      General = {
-        # Set default session globally
-        DefaultSession = "niri.desktop";
-      };
-      Wayland = {
-        EnableHiDPI = true;
-      };
+
+    variables = {
+      NIXOS_OZONE_WL = "1";
+    };
+
+    sessionVariables = {
+      XCURSOR_THEME = "Bibata-Modern-Ice";
+      XCURSOR_SIZE = "24";
     };
   };
 
-  # User
-  users.users = {
-    nx = {
-      isNormalUser = true;
-      extraGroups = [
-        "wheel"
-        "kvm"
-        "input"
-      ];
-    };
+  programs = {
+    niri.enable = true;
+    nix-ld.enable = true;
+    dconf.enable = true;
+    vim.enable = true;
+    ssh.startAgent = true;
   };
 
-  # Sound
-  services.pulseaudio.enable = false;
+  # For polkit authentication
+  security = {
+    polkit.enable = true;
+    pam.services.swaylock = { };
+    rtkit.enable = true;
+  };
+
+  systemd = {
+    user.services.polkit-gnome-authentication-agent-1 = {
+      description = "polkit-gnome-authentication-agent-1";
+      wantedBy = [ "graphical-session.target" ];
+      wants = [ "graphical-session.target" ];
+      after = [ "graphical-session.target" ];
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
+        Restart = "on-failure";
+        RestartSec = 1;
+        TimeoutStopSec = 10;
+      };
+    };
+
+    # Host provides the internal L2 fabric; sys-net provides routing/NAT.
+    network = {
+      enable = true;
+      netdevs = {
+        "20-vm-internal" = {
+          netdevConfig = {
+            Name = "vm-internal";
+            Kind = "bridge";
+          };
+        };
+      };
+
+      networks =
+        (builtins.listToAttrs (
+          map (index: {
+            name = "30-vm${toString index}";
+            value = {
+              matchConfig.Name = "vm${toString index}";
+              networkConfig = {
+                Bridge = "vm-internal";
+                ConfigureWithoutCarrier = true;
+              };
+              linkConfig.RequiredForOnline = "no";
+            };
+          }) (lib.genList (i: i + 1) maxVMs)
+        ))
+        // {
+          "31-vm-router" = {
+            matchConfig.Name = "vm-router";
+            networkConfig = {
+              Bridge = "vm-internal";
+              ConfigureWithoutCarrier = true;
+            };
+            linkConfig.RequiredForOnline = "no";
+          };
+
+          "32-vm-internal" = {
+            matchConfig.Name = "vm-internal";
+            address = [ "10.0.0.254/24" ];
+            routes = [
+              {
+                Destination = "0.0.0.0/0";
+                Gateway = "10.0.0.253";
+              }
+            ];
+            networkConfig.ConfigureWithoutCarrier = true;
+            linkConfig.RequiredForOnline = "no";
+          };
+
+          "38-vnet-libvirt-ignore" = {
+            matchConfig.Name = "vnet*";
+            linkConfig.Unmanaged = "yes";
+          };
+        };
+    };
+
+    services.systemd-networkd-wait-online.enable = lib.mkForce false;
+  };
 
   services = {
+    # dom0 has no cpufreq under Xen (the hypervisor sets the clock): no
+    # power-profiles-daemon/governor. Without ppd, nixos-hardware's
+    # common-pc-laptop turns on TLP, which would touch runtime PM/ASPM of
+    # devices, also passed-through ones (2026-10-14)
+    tlp.enable = false;
+
+    # programs.niri enables gnome-keyring (Secret portal); its gcr SSH agent
+    # would take over SSH_AUTH_SOCK from programs.ssh.startAgent (above)
+    gnome.gcr-ssh-agent.enable = false;
+
+    dbus.enable = true;
+    upower.enable = true;
+    libinput.enable = true;
+
+    displayManager.sddm = {
+      enable = true;
+      theme = "sddm-astronaut-theme";
+      wayland = {
+        enable = true;
+      };
+      extraPackages = with pkgs.kdePackages; [
+        qtsvg
+        qtmultimedia
+        qtvirtualkeyboard
+      ];
+      settings = {
+        Theme = {
+          CursorTheme = "Bibata-Modern-Ice";
+          CursorSize = "24";
+        };
+        General = {
+          # Set default session globally
+          DefaultSession = "niri.desktop";
+        };
+        Wayland = {
+          EnableHiDPI = true;
+        };
+      };
+    };
+
+    # Sound
+    pulseaudio.enable = false;
     pipewire = {
       enable = true;
       alsa = {
@@ -353,6 +404,43 @@ in
           };
         };
       };
+    };
+
+    udev = {
+      extraRules = ''
+        # Keyboard
+        SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
+        # Mouse
+        SUBSYSTEM=="usb", ATTR{idVendor}=="260d", ATTR{idProduct}=="1121", GROUP="kvm"
+      ''
+      + lib.optionalString (vmReservedUsbRules != "") ''
+
+        # VM-reserved USB devices are generated from vms/registry.nix
+        ${vmReservedUsbRules}
+      '';
+      packages = [
+        (pkgs.writeTextFile {
+          name = "kaleidoskope-udev-rules";
+          destination = "/etc/udev/rules.d/50-kaleidoskope.rules";
+          text = ''
+            # Kaleidoscope keyboards
+            SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2303", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+            SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2302", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+          '';
+        })
+      ];
+    };
+  };
+
+  # User
+  users.users = {
+    nx = {
+      isNormalUser = true;
+      extraGroups = [
+        "wheel"
+        "kvm"
+        "input"
+      ];
     };
   };
 
@@ -410,65 +498,6 @@ in
       }) selectedVms
     );
 
-  programs.ssh.startAgent = true;
-
-  # Host provides the internal L2 fabric; sys-net provides routing/NAT.
-  systemd.network = {
-    netdevs = {
-      "20-vm-internal" = {
-        netdevConfig = {
-          Name = "vm-internal";
-          Kind = "bridge";
-        };
-      };
-    };
-
-    networks =
-      (builtins.listToAttrs (
-        map (index: {
-          name = "30-vm${toString index}";
-          value = {
-            matchConfig.Name = "vm${toString index}";
-            networkConfig = {
-              Bridge = "vm-internal";
-              ConfigureWithoutCarrier = true;
-            };
-            linkConfig.RequiredForOnline = "no";
-          };
-        }) (lib.genList (i: i + 1) maxVMs)
-      ))
-      // {
-        "31-vm-router" = {
-          matchConfig.Name = "vm-router";
-          networkConfig = {
-            Bridge = "vm-internal";
-            ConfigureWithoutCarrier = true;
-          };
-          linkConfig.RequiredForOnline = "no";
-        };
-
-        "32-vm-internal" = {
-          matchConfig.Name = "vm-internal";
-          address = [ "10.0.0.254/24" ];
-          routes = [
-            {
-              Destination = "0.0.0.0/0";
-              Gateway = "10.0.0.253";
-            }
-          ];
-          networkConfig.ConfigureWithoutCarrier = true;
-          linkConfig.RequiredForOnline = "no";
-        };
-
-        "38-vnet-libvirt-ignore" = {
-          matchConfig.Name = "vnet*";
-          linkConfig.Unmanaged = "yes";
-        };
-      };
-  };
-
-  systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
-
   # use cache
   nix = {
     package = pkgs.lixPackageSets.latest.lix;
@@ -494,29 +523,6 @@ in
     };
   };
 
-  services.udev.extraRules = ''
-    # Keyboard
-    SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
-    # Mouse
-    SUBSYSTEM=="usb", ATTR{idVendor}=="260d", ATTR{idProduct}=="1121", GROUP="kvm"
-  ''
-  + lib.optionalString (vmReservedUsbRules != "") ''
-
-    # VM-reserved USB devices are generated from vms/registry.nix
-    ${vmReservedUsbRules}
-  '';
-  services.udev.packages = [
-    (pkgs.writeTextFile {
-      name = "kaleidoskope-udev-rules";
-      destination = "/etc/udev/rules.d/50-kaleidoskope.rules";
-      text = ''
-        # Kaleidoscope keyboards
-        SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2303", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
-        SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2302", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
-      '';
-    })
-  ];
-
   fonts.packages = with pkgs; [
     nerd-fonts.fira-code
   ];
@@ -528,8 +534,6 @@ in
       "interface-name:vnet*"
     ];
   };
-
-  systemd.network.enable = true;
 
   system.stateVersion = "26.05";
 }

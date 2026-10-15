@@ -556,57 +556,61 @@ in
     };
   };
 
-  services.wpaperd.enable = true;
-  services.wpaperd.settings = {
-    "DP-1" = {
-      path = "${./wallpapers/ntc.jpg}";
+  services = {
+    wpaperd = {
+      enable = true;
+      settings = {
+        "DP-1" = {
+          path = "${./wallpapers/ntc.jpg}";
+        };
+
+        "DP-2" = {
+          path = "${./wallpapers/edger_lucy_neon.jpg}";
+        };
+
+        "eDP-1" = {
+          path = "${./wallpapers/cat_lofi_cafe.jpg}";
+        };
+      };
     };
 
-    "DP-2" = {
-      path = "${./wallpapers/edger_lucy_neon.jpg}";
-    };
+    swaync = {
+      enable = true;
+      settings = {
+        positionX = "right";
+        positionY = "top";
+        layer = "overlay";
+        control-center-layer = "top";
+        layer-shell = true;
+        cssPriority = "application";
+        control-center-margin-top = 0;
+        control-center-margin-bottom = 0;
+        control-center-margin-right = 0;
+        control-center-margin-left = 0;
+        notification-2fa-action = true;
+        notification-inline-replies = false;
+        notification-icon-size = 64;
+        notification-body-image-height = 100;
+        notification-body-image-width = 200;
+      };
+      style = ''
+        .notification-row {
+          outline: none;
+        }
 
-    "eDP-1" = {
-      path = "${./wallpapers/cat_lofi_cafe.jpg}";
+        .notification {
+          border-radius: ${toString theme.radius}px;
+          margin: 6px 12px;
+          box-shadow:
+            0 0 0 1px rgba(0, 0, 0, 0.3),
+            0 1px 3px 1px rgba(0, 0, 0, 0.7),
+            0 2px 6px 2px rgba(0, 0, 0, 0.3);
+          padding: 0;
+          background: alpha(${theme.color.bg}, ${toString theme.opacity.surface});
+          color: ${theme.color.fg};
+        }
+      '';
     };
-  };
-
-  services.swaync = {
-    enable = true;
-    settings = {
-      positionX = "right";
-      positionY = "top";
-      layer = "overlay";
-      control-center-layer = "top";
-      layer-shell = true;
-      cssPriority = "application";
-      control-center-margin-top = 0;
-      control-center-margin-bottom = 0;
-      control-center-margin-right = 0;
-      control-center-margin-left = 0;
-      notification-2fa-action = true;
-      notification-inline-replies = false;
-      notification-icon-size = 64;
-      notification-body-image-height = 100;
-      notification-body-image-width = 200;
-    };
-    style = ''
-      .notification-row {
-        outline: none;
-      }
-
-      .notification {
-        border-radius: ${toString theme.radius}px;
-        margin: 6px 12px;
-        box-shadow:
-          0 0 0 1px rgba(0, 0, 0, 0.3),
-          0 1px 3px 1px rgba(0, 0, 0, 0.7),
-          0 2px 6px 2px rgba(0, 0, 0, 0.3);
-        padding: 0;
-        background: alpha(${theme.color.bg}, ${toString theme.opacity.surface});
-        color: ${theme.color.fg};
-      }
-    '';
   };
 
   # Lock screen; PAM comes from security.pam.services.swaylock (system side)
