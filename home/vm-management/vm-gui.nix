@@ -48,14 +48,20 @@ let
 
     run="''${XDG_RUNTIME_DIR:-/tmp}"
     pidfile="$run/wprsc-vchan-$VM.pid"
+    # Locked: apps started together (niri spawn-at-startup) each saw no
+    # pidfile and started their own wprsc (three for chat, 2026-10-15).
+    # wprsc must not inherit the lock fd, it would hold the lock forever
     start_wprsc() {
-      if ! { [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; }; then
-        setsid ${pkgs.wprs}/bin/wprsc --socket="$sock" \
-          --control-socket="$run/wprsc-vchan-$VM-ctrl.sock" \
-          >"$run/wprsc-vchan-$VM.log" 2>&1 &
-        echo $! >"$pidfile"
-        sleep 1
-      fi
+      (
+        ${pkgs.util-linux}/bin/flock 9
+        if ! { [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; }; then
+          setsid ${pkgs.wprs}/bin/wprsc --socket="$sock" \
+            --control-socket="$run/wprsc-vchan-$VM-ctrl.sock" \
+            >"$run/wprsc-vchan-$VM.log" 2>&1 9>&- &
+          echo $! >"$pidfile"
+          sleep 1
+        fi
+      ) 9>"$run/wprsc-vchan-$VM.lock"
     }
 
     # Same environment the wprs launcher sets for remote apps; over RPC the
