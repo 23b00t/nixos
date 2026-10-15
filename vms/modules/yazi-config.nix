@@ -25,7 +25,9 @@
     # vm-run starts them; text files open in $EDITOR (vim/nvim)
     [opener]
     open = [
-      { run = 'env WAYLAND_DISPLAY=wprs-0 DISPLAY=:100 XDG_SESSION_TYPE=wayland xdg-open "$1"', desc = "Open", orphan = true },
+      # setsid + no inherited fds: yazi runs over SSH (explorer), which would
+      # otherwise wait for the browser before it closes
+      { run = 'setsid -f env WAYLAND_DISPLAY=wprs-0 DISPLAY=:100 XDG_SESSION_TYPE=wayland xdg-open "$1" </dev/null >/dev/null 2>&1', desc = "Open", orphan = true },
     ]
 
     [[plugin.prepend_fetchers]]
@@ -75,7 +77,17 @@
   environment.etc."yazi/plugins/mount.yazi".source = pkgs.yaziPlugins.mount;
   environment.etc."yazi/plugins/full-border.yazi".source = pkgs.yaziPlugins.full-border;
   environment.etc."yazi/plugins/jump-to-char.yazi".source = pkgs.yaziPlugins.jump-to-char;
-  environment.etc."yazi/plugins/compress.yazi".source = pkgs.yaziPlugins.compress;
+  # compress 0.6 still calls fs.unique_name, yazi 26 has fs.unique(kind, url)
+  # ("attempt to call a nil value (field 'unique_name')", 2026-10-15)
+  environment.etc."yazi/plugins/compress.yazi".source =
+    pkgs.yaziPlugins.compress.overrideAttrs
+      (old: {
+        postPatch = (old.postPatch or "") + ''
+          substituteInPlace main.lua \
+            --replace-fail 'fs.unique_name(Url(temp_dir))' 'fs.unique("dir", Url(temp_dir))' \
+            --replace-fail 'fs.unique_name(Url(final_output_url))' 'fs.unique("file", Url(final_output_url))'
+        '';
+      });
   environment.etc."yazi/plugins/smart-paste.yazi".source = pkgs.yaziPlugins.smart-paste;
 
   systemd.tmpfiles.rules = [
