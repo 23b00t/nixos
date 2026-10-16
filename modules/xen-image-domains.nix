@@ -162,6 +162,8 @@ let
         HostKey /var/lib/nox/ssh/ssh_host_ed25519_key
         AuthorizedKeysFile /nix/store/nox/etc/ssh/authorized_keys/%u
         AllowUsers user${lib.optionalString (d.sysmaintEntry != null) " sysmaint"}
+        # DenyUsers for the account of the other session (nox-sshd-setup)
+        Include ${sshdSessionConfig}
         PermitRootLogin no
         PasswordAuthentication no
         KbdInteractiveAuthentication no
@@ -182,6 +184,11 @@ let
           SetEnv XDG_RUNTIME_DIR=/run/user/1000
         ''}
       '';
+
+      wprsClipboard = import ./wprs-clipboard.nix { inherit pkgs; };
+
+      # Written at boot by nox-sshd-setup
+      sshdSessionConfig = "/run/nox-sshd-session.conf";
 
       # Same paths as in the NixOS VMs (vms/modules/vchan-relay.nix); the
       # user's group is 1000 in Debian
@@ -229,6 +236,14 @@ let
         install -d -m 0700 /var/lib/nox/ssh
         [ -e /var/lib/nox/ssh/ssh_host_ed25519_key ] ||
           ssh-keygen -q -t ed25519 -N "" -f /var/lib/nox/ssh/ssh_host_ed25519_key
+        # Kicksecure user-sysmaint-split: only the account of the booted
+        # session may log in. sshd runs without PAM, which enforces this for
+        # local logins
+        if grep -qw boot-role=sysmaint /proc/cmdline; then
+          echo "DenyUsers user" >${sshdSessionConfig}
+        else
+          echo "DenyUsers sysmaint" >${sshdSessionConfig}
+        fi
       '';
 
       # sshd ForceCommand: what a Debian login sets up (/etc/profile.d) without
@@ -281,8 +296,14 @@ let
           ln -s ${xenScripts} $out/etc/xen/scripts
         ''}
         ${lib.optionalString d.wprs ''
-          ln -s ${pkgs.wprs}/bin/wprsd ${pkgs.wprs}/bin/xwayland-xdg-shell \
-            ${pkgs.xwayland}/bin/Xwayland $out/bin/
+          ln -s ${pkgs.wprs}/bin/xwayland-xdg-shell ${pkgs.xwayland}/bin/Xwayland \
+            ${wprsClipboard.helper}/bin/vm-clip-helper $out/bin/
+          # The wprsd unit lives in the image (rootTree), the environment here:
+          # no selection sync with dom0 (modules/wprs-clipboard.nix)
+          ln -s ${pkgs.writeShellScript "wprsd" ''
+            export WPRS_NO_SELECTION_SYNC=1
+            exec ${pkgs.wprs}/bin/wprsd "$@"
+          ''} $out/bin/wprsd
         ''}
       '';
 
