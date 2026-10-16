@@ -43,5 +43,10 @@
   #   SUBSYSTEM=="usb", ATTR{idVendor}=="0408", ATTR{idProduct}=="5365", GROUP="kvm"
   # '';
 
+  # Local builds only get otherwise idle CPU/IO: dom0 has 4 vCPUs and niri
+  # lagged while building (2026-10-16)
+  nix.daemonCPUSchedPolicy = "idle";
+  nix.daemonIOSchedClass = "idle";
+
   networking.hostName = lib.mkForce "hp";
 }
