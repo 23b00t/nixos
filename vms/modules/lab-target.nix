@@ -1,6 +1,6 @@
 # Lab target (registry `labTarget`): kali tests this VM's apps over sys-net's
 # lab bridge vm-lab. dom0 hangs the vif on only while needed (`vm-lab attach
-# <vm>`, MAC 00:00:00:00:02:<last octet as hex>); until then the interface
+# <vm>`, MAC 00:00:00:00:03:<last octet as hex>); until then the interface
 # simply does not exist. Address 10.5.0.<last octet>/24, no gateway. Apps
 # must listen on 0.0.0.0 or this address; ports open globally in the VM's
 # firewall are open here too.
@@ -15,7 +15,7 @@ let
   vmName = lib.removeSuffix "-vm" (config.networking.hostName or "");
   currentVm = vmRegistry.byName.${vmName} or { };
   octet = lib.toInt (lib.last (lib.splitString "." (currentVm.ip or "0.0.0.0")));
-  mac = "00:00:00:00:02:${lib.fixedWidthString 2 "0" (lib.toLower (lib.toHexString octet))}";
+  mac = "00:00:00:00:03:${lib.fixedWidthString 2 "0" (lib.toLower (lib.toHexString octet))}";
 in
 {
   options.services.lab-target = {

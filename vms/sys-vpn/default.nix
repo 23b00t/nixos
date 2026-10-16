@@ -40,6 +40,8 @@ let
         for ns in ''${IP4_NAMESERVERS:-} ''${VPN_IP4_NAMESERVERS:-}; do
           echo "server=$ns@$iface"
         done > "$tmp"
+        # mktemp makes it 0600; dnsmasq reads it as user dnsmasq
+        chmod 0644 "$tmp"
         mv "$tmp" ${dnsServers}
         ;;
       down | vpn-down)

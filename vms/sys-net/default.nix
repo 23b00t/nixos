@@ -19,10 +19,10 @@ let
   # sys-print (C2) on the uplink: 10.1.0.<last octet of its registry IP>
   sysPrint = "10.1.0.${lib.last (lib.splitString "." vmRegistry.byName.sys-print.ip)}";
   # Lab bridge vm-lab (kali tests the registry's labTarget VMs), only where
-  # kali runs. kali's lab vif: 00:00:00:00:02:<last octet of its IP as hex>
+  # kali runs. kali's lab vif: 00:00:00:00:03:<last octet of its IP as hex>
   kali = lib.findFirst (d: d.name == "kali") null vmRegistry.imageDomains;
   lab = kali != null;
-  kaliLabMac = "00:00:00:00:02:${
+  kaliLabMac = "00:00:00:00:03:${
     lib.fixedWidthString 2 "0" (
       lib.toLower (lib.toHexString (lib.toInt (lib.last (lib.splitString "." kali.ip))))
     )

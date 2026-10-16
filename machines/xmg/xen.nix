@@ -93,7 +93,7 @@ in
             bridge = "vm-uplink";
           }
           {
-            mac = "00:00:00:00:02:08";
+            mac = "00:00:00:00:03:08";
             bridge = "vm-lab";
           }
         ];
