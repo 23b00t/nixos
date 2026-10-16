@@ -139,6 +139,15 @@ in
 
     services.openssh = {
       enable = true;
+      # / is a tmpfs, so sshd-keygen runs on every boot; RSA 4096 delayed
+      # sshd (and zellij from dom0) by seconds while all VMs boot at once
+      # (xmg 2026-10-16). dom0 and the image domains use ed25519 only
+      hostKeys = [
+        {
+          type = "ed25519";
+          path = "/etc/ssh/ssh_host_ed25519_key";
+        }
+      ];
       settings = {
         PermitRootLogin = "no";
         PasswordAuthentication = false;
