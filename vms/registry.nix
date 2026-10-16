@@ -71,14 +71,17 @@ let
       features = [ "yazi" ];
     }
     {
-      name = "wine";
+      # Windows apps (Bottles, no gaming); internet, but no session bus and
+      # no GitHub agent
+      name = "win";
       short = "w";
       storeGroup = "prop";
       ip = "10.0.0.7";
       autostart = false;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRYiHWjGyucuX6XJq2U3ENx7MHACcX0t8YzB2JEgfyR wine-vm";
-      hosts = [ ];
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPTUop+lQO7/LZFvIJY+BO6n4jUS+Iy4xsRNtNfamVOH win-vm";
+      allowGitHubAgent = false;
+      enableHostDbusForward = false;
     }
     {
       name = "kali";

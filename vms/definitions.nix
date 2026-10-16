@@ -14,7 +14,7 @@ in
       inherit (inputs) zen-browser;
     };
   };
-  wine = mkVm "wine";
+  win = mkVm "win";
   kali = mkVm "kali";
   office = mkVm "office";
   vault = mkVm "vault";

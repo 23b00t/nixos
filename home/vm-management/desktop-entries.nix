@@ -343,6 +343,16 @@ in
       ];
     })
 
+    # --- win VM (Windows apps) ---
+    (mkVmEntry {
+      name = "bottles win";
+      genericName = "Windows Apps";
+      vm = "win";
+      binary = "bottles";
+      icon = "com.usebottles.bottles";
+      categories = [ "Utility" ];
+    })
+
     # ---- Kali VM ---
     # vm-run kali distrobox enter kali -- firefox-esr
     (mkVmEntry {
