@@ -572,6 +572,60 @@ vm-lab detach php
 If the domain does not come up: `sudo xl console kali-vm` (Kali's kernel
 needs `CONFIG_XEN_PVH`; fallback would be HVM with a stubdomain like Tails).
 
+## win (Windows apps)
+
+Windows apps run under Wine in Bottles, one bottle (prefix) per app, and
+show up in dom0 over wprs like any other VM app. No GPU: rendering is in
+software (fine for tools and Office, not for games; those go to steam).
+win has internet but no browser; `vm-run` starts the VM if it is off.
+
+### Install an app
+
+1. Get the installer into win, either from net (`vm-copy win setup.exe` in
+   net, dom0 asks, it lands in `~/Incoming/net/` in win) or directly:
+   `vm-run -c w 'mkdir -p ~/Installers && curl -fL -o ~/Installers/setup.exe <url>'`.
+2. `vm-run w bottles` (or the desktop entry "bottles win"). First start:
+   Bottles downloads its runners and components.
+3. Create a bottle: environment "Application" (64-bit, sensible defaults)
+   for most tools; "Custom" with architecture 32-bit for 32-bit apps such
+   as Office 2016/2019 32-bit. Runner: the default (soda/caffe, wine-staging
+   based); for a problem case try another one under Preferences → Runners
+   (e.g. a Proton-GE build) and switch it in the bottle's settings.
+4. In the bottle: Dependencies → install what the app needs (e.g.
+   `vcredist2019`, `dotnet48`, for Office `msxml6`, `riched20`, `gdiplus`).
+5. "Run Executable…" → pick the installer from `~/Incoming/net/` or
+   `~/Installers/`. Installed programs appear under the bottle's Programs;
+   for a portable `.exe` use "Add Shortcuts…".
+
+The bottle's C: drive is `~/.local/share/bottles/bottles/<bottle>/drive_c`
+in win, the home directory is reachable as Z:. Unknown apps: give each its
+own bottle and delete the bottle when the app is not kept.
+
+### Use an app over wprs
+
+```sh
+vm-run w bottles-cli programs -b <bottle>                # program names
+vm-run w bottles-cli run -b <bottle> -p '<program>'      # start by name
+vm-run w bottles-cli run -b <bottle> -e /home/user/Installers/tool.exe   # a .exe by path
+```
+
+For a permanent launcher in dom0 add an entry to
+`home/vm-management/desktop-entries.nix`:
+
+```nix
+(mkVmEntry {
+  name = "notepad++ win";
+  vm = "win";
+  binary = "bottles-cli";
+  args = "run -b notepadpp -p Notepad++";
+  icon = "wine";
+  categories = [ "Utility" ];
+})
+```
+
+winetricks outside Bottles works on a bottle's prefix as well:
+`vm-run -c w 'WINEPREFIX=~/.local/share/bottles/bottles/<bottle> winetricks <verb>'`.
+
 ## Tails (HVM with a Linux stubdomain)
 
 Tested on the hp (2026-10-10), not set up permanently on any machine. Tails
