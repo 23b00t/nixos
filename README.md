@@ -15,7 +15,7 @@ log are in [xen-migration.md](xen-migration.md).
 | | hp (test laptop) | xmg (main laptop) |
 |---|---|---|
 | CPU / RAM | AMD Ryzen 5 5500U 6C/12T, 32 GB | Intel i9 (Raptor Lake) 32 threads, 62 GB |
-| dom0 | PVH, 8192 MB, 4 vCPUs, iGPU (amdgpu) | PVH, 8192 MB, 4 vCPUs, iGPU (i915) |
+| dom0 | PVH, 8192 MB, 4 vCPUs, iGPU (amdgpu) | PVH, 6144 MB, 4 vCPUs, iGPU (i915) |
 | sys-net | RTL8821CE WLAN `01:00.0` | RTL8125 Ethernet `05:00.0` (CNVi WLAN `00:14.3` not passed through yet) |
 | sys-usb | both xHCI `03:00.3`, `03:00.4` | the only xHCI `00:14.0` |
 | dGPU | – | NVIDIA RTX 5060 `02:00.0/.1` (for steam, not active yet) |
@@ -161,6 +161,8 @@ config without the hypervisor, and no VM runs there.
 | `sys-usb-rescue` | sys-usb doesn't come up: USB controllers back to dom0 (also automatic after 120 s) |
 | `create-vm`, `vmcopy-keys <vm>` | new VM, keys for inter-VM copy |
 | `tm` | termusic in coding |
+| Alt+Shift+C / Alt+Shift+V (`vm-clip copy\|paste`) | clipboard between domains: copy the text clipboard of the focused window's VM (or dom0) into dom0's store, paste it into the focused window's VM (or dom0), then press Ctrl+V there; the store is emptied. VMs don't share their clipboard with dom0 otherwise. Copying out of vault asks, sys-* VMs are excluded (registry `clipboard`) |
+| `vm-run <vm> foot` | terminal from a VM over wprs (foot on trial, also in dom0) |
 
 In the VMs: `vm-copy <vm> <files>` (dom0 asks, files land in
 `~/Incoming/<source>`), `vm-print <printer-ip> <file>` (via sys-print).
@@ -197,7 +199,7 @@ Logs: `/var/log/xen/console/guest-<domain>.log`, `/var/log/xen/xl-<domain>.log`,
 
 ### RAM
 
-dom0 keeps its 8192 MB (`autoballoon="off"`). VMs with `balloon = true`
+dom0 keeps its memory (hp 8192 MB, xmg 6144 MB; `autoballoon="off"`). VMs with `balloon = true`
 boot with `initialBalloonMem` and the RAM balancer
 (`modules/xen-memory.nix`) grows them up to `mem` as free Xen memory
 allows (registry `memPriority`: higher grows first). VMs with PCI
@@ -387,7 +389,7 @@ Tor Browser settings that wprs needs or that you want:
   Settings → General → Website appearance → "Dark". Tor Browser may still
   report a light preference to websites (fingerprinting protection).
 
-**Updates:** `dom0-update` only renews the store disk (nox-relay, sshd, wprsd), not the Debian system inside the images. Gateway: `update-all` (see 7.), or by hand `ssh -t whonix-gateway-vm upgrade-nonroot` (Whonix 18: `sudo apt-get --update full-upgrade`; `apt-get-update-plus` is gone). Workstation: `sudo` is blocked for `user` (Whonix user/sysmaint split), but `upgrade-nonroot` works from the normal session (tested 2026-10-14); otherwise boot the sysmaint entry from the GRUB menu (`sudo xl console whonix-workstation-vm` right after starting it). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
+**Updates:** `dom0-update` only renews the store disk (nox-relay, sshd, wprsd), not the Debian system inside the images. Gateway: `update-all` (see 7.), or by hand `ssh -t whonix-gateway-vm upgrade-nonroot` (Whonix 18: `sudo apt-get --update full-upgrade`; `apt-get-update-plus` is gone). Workstation: `sudo` and `upgrade-nonroot` only work in the sysmaint session (Kicksecure user/sysmaint split); `update-all` boots it once (`/run/xen-image/whonix-workstation.sysmaint`) and logs in as `sysmaint`. Over SSH only the account of the running session may log in (`user` in the normal session, `sysmaint` in the sysmaint session). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
 
 The Workstation's firewall stays closed until `sdwdate` has synced the time
 over Tor once (`/run/sdwdate/first_success`). Start it after the Gateway's
@@ -521,8 +523,10 @@ repeat the `cp`/`truncate` step.
 ## steam (prepared, not active)
 
 `vms/steam/default.nix` is ready for Xen on the xmg: HVM with the NVIDIA
-dGPU (`02:00.0`, `02:00.1`) passed through, `pci_permissive`, pinned to
-CPUs 0–9, 16 GB fixed RAM, gamescope on the dGPU's HDMI output as before.
+dGPU (`02:00.0`, `02:00.1`) passed through, `pci_permissive`,
+in its own cpupool `steam` (dom0 moves the P-core threads 0–15 there while
+steam runs, everything else keeps the E-cores 16–31; `machines/xmg/xen.nix`),
+16 GB fixed RAM, gamescope on the dGPU's HDMI output as before.
 Keyboard, mouse and the Bluetooth adapter come over USB/IP
 (`vm-usb attach keyboard-atreus steam`, `mouse-main`, `bluetooth-ax211`).
 Enable with `hosts = [ "xmg" ]` in the registry. The existing
