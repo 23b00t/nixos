@@ -12,6 +12,11 @@
   # (see README "Known hardware issues"); a PV specialisation doubled the
   # eval memory, so it was removed again.
 
+  # hp evaluates and builds in dom0 (no builder): with 8 GB the eval
+  # (4-5 GB) pushed niri out of the page cache and typing lagged
+  # (2026-10-16). 32 GB host, few VMs
+  virtualisation.xen.dom0Resources.memory = lib.mkForce 12288;
+
   # Only the VMs switched to Xen can run; KVM-based ones would fail on start
   microvm.autostart = lib.mkForce [
     "sys-net"
