@@ -26,8 +26,9 @@
     [opener]
     open = [
       # setsid + no inherited fds: yazi runs over SSH (explorer), which would
-      # otherwise wait for the browser before it closes
-      { run = 'setsid -f env WAYLAND_DISPLAY=wprs-0 DISPLAY=:100 XDG_SESSION_TYPE=wayland xdg-open "$1" </dev/null >/dev/null 2>&1', desc = "Open", orphan = true },
+      # otherwise wait for the browser before it closes. No portal: over SSH
+      # the session bus is dom0's forwarded one, without a portal (chat)
+      { run = 'setsid -f env -u NIXOS_XDG_OPEN_USE_PORTAL WAYLAND_DISPLAY=wprs-0 DISPLAY=:100 XDG_SESSION_TYPE=wayland xdg-open "$1" </dev/null >/dev/null 2>&1', desc = "Open", orphan = true },
     ]
 
     [[plugin.prepend_fetchers]]
