@@ -264,6 +264,7 @@ the internal keyboard and touchpad are not on USB.
 | nvim, coding, chat, net, office, vault | ✓ | ✓ | |
 | irc | ✓ | ✓ | only uplink: Whonix-Gateway |
 | builder, sys-print | ✓ | ✓ | |
+| vanilla | ✓ | ✓ | only common-config, software imperatively in the store overlay |
 | php, ruby | | ✓ | |
 | whonix-gateway, whonix-workstation | ✓ | ✓ | image domains |
 | steam, godot, wine, kali, mirage, nix | | | definitions kept (`hosts = [ ]`); steam prepared for the xmg |

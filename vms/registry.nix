@@ -242,6 +242,17 @@ let
       features = [ "yazi" ];
       hosts = [ ];
     }
+    {
+      # Only common-config; software imperatively in the persistent store
+      # overlay (standalone store image, no storeGroup)
+      name = "vanilla";
+      short = "va";
+      ip = "10.0.0.29";
+      autostart = false;
+      nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILmmEUd+6XhVoZtv9MH6Z/eBSgNxwMgEjBchegx2JuiS vanilla-vm";
+      allowGitHubAgent = false;
+    }
     # create-vm: registry-vms
   ];
 

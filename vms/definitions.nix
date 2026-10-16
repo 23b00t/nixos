@@ -32,5 +32,6 @@ in
   coding = mkVm "coding";
   builder = mkVm "builder";
   sys-print = mkVm "sys-print";
+  vanilla = mkVm "vanilla";
   # create-vm: definitions
 }

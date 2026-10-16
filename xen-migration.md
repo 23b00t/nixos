@@ -713,8 +713,59 @@ nox vnc <domain>                            xen-vnc
 ### Phase 4: Später
 
 - ssh-vm (evtl. mit GPG), Vaultwarden-Server (vermutlich später).
-- vpn-vm (im Routing eingesetzt wie das Whonix-Gateway), kali-vm, wine-vm umbenennen und umbauen (Ziel: Windows-Apps mit Proton o. ä. per wprs).
+- vanilla, sys-vpn, win (statt wine), kali als Image-Domain: Pläne unten unter „Phase 4: Neue VMs“.
 - Rust-Parser für Nix, um Teile der Config per TUI konfigurierbar zu machen; dazu Laufzeitänderungen per `xl` (z. B. RAM).
+
+### Phase 4: Neue VMs (Plan, User + Claude, 2026-10-16)
+
+Reihenfolge: **vanilla → sys-vpn → win → kali** (einfach → aufwendig; sys-vpn vor kali/win, damit beide es später nutzen können). Alle vier werden zuerst komplett im Feature-Branch `new-vms` umgesetzt, ohne Build; gebaut und getestet wird gesammelt, wenn Ressourcen frei sind (User, 2026-10-16). Je Phase ein Commit. Neue Adressen: Admin/SSH-Alias `10.0.0.29` (vanilla), `10.0.0.30` (sys-vpn); kali behält `10.0.0.8`, win `10.0.0.7`.
+
+#### 1. vanilla (umgesetzt 2026-10-16, ungebaut, ungetestet)
+
+- **Ziel:** VM mit fast nichts: nur `common-config` (inkl. default-pkgs), keine eigenen Pakete im Repo. Software kommt imperativ dazu (`nix profile install nixpkgs#…`) und bleibt im persistenten Store-Overlay (`persistentStoreOverlay`) über Reboots. Nicht deklarativ erweiterbar, mit Absicht.
+- **Ausstattung:** wprs (GUI-Apps per `vm-run va <app>`), `nat = true` (Cache/Internet über sys-net), kein storeGroup (Overlay braucht eigenes Store-Image), `registerClosure = true` wie coding/builder, RAM 2048 → 4096 MB (Balancer), 4 vCPUs, `home.img` 20 GB.
+- **Dateien:** `vms/vanilla/default.nix`, Registry (`va`, `10.0.0.29`, Index 29, MAC `…:00:1d`, Uplink-MAC `…:01:1d`), `vms/definitions.nix`.
+- **Erledigt:** Schlüssel `~/.ssh/vanilla-vm` erzeugt, `hostSSHKey` in der Registry. **Beim Test:** `dom0-update`, optional `vmcopy-keys vanilla`.
+- **Abnahme:** `vm-run -c va true`; `nix profile install nixpkgs#hello` → `hello` läuft, nach Neustart der VM noch da; eine GUI-App (z. B. `nixpkgs#gnome-calculator`) per `vm-run va gnome-calculator`; `nix-collect-garbage` in der VM löscht das System nicht.
+
+#### 2. sys-vpn
+
+- **Ziel:** VPN-Gateway als eigene Domain, im Routing eingesetzt wie das Whonix-Gateway: Client-VMs hängen mit ihrem Uplink-vif an sys-vpn statt an sys-net. Provider werden in der VM konfiguriert (nicht im Repo), erster Kandidat Proton VPN.
+- **Basis:** NixOS-MicroVM als Driver-Domain wie sys-net (`microvm.xen.driverDomain = true`, `xl devd` + vif-bridge), aber ohne PCI → PVH versuchen (sys-net/sys-usb sind nur wegen PCI-Passthrough HVM; prüfen, ob der Fork Driver-Domains als PVH kann, sonst HVM). storeGroup `sys`, `allowVmCopy` an (nur damit Provider-Configs per `vm-copy` aus net hineinkommen; dom0 fragt), `allowGitHubAgent = false`, wprs für `nm-connection-editor`/nm-applet.
+- **Netz:**
+  - Außen: normaler Uplink-vif an sys-nets `vm-uplink` (`nat = true`), die Uplink-Isolation dort gilt weiter.
+  - Innen: Bridge `vm-vpn` (`10.4.0.254/24`), Clients `10.4.0.<index>`; nft-Bridge-Regel wie in sys-net (`vif*` → `vif*` drop): Clients sehen nur sys-vpn.
+  - **Killswitch:** Forward nur `iifname "vm-vpn" oifname <Tunnel-Interfaces (wg*/tun*/proton*)>`, Masquerade nur auf den Tunnel; kein Pfad `vm-vpn` → Uplink. Ohne Tunnel kein Netz für die Clients.
+  - **DNS:** Clients fragen `10.4.0.254`; Resolver in sys-vpn (dnsmasq) leitet nur an den DNS des Tunnels (Proton: `10.2.0.1`, nur im Tunnel erreichbar), gesetzt per NM-Dispatcher beim Tunnel-Up. Ohne Tunnel keine Auflösung, kein DNS-Leak über den Uplink.
+  - `xen-uplink-state` (wie sys-net): `data/uplink = 1` erst, wenn der Tunnel steht.
+- **Provider-Konfiguration:** NetworkManager (WireGuard nativ, `networkmanager-openvpn` für OpenVPN), Profile auf persistentem Volume (`/etc/NetworkManager/system-connections`, wie sys-net). Proton: WireGuard-Config im Proton-Konto erzeugen (in net), `vm-copy` nach sys-vpn, `nmcli connection import type wireguard file …`, autoconnect. Credentials/Keys nie im Repo.
+- **Pro VM wählbar:** neues Registry-Feld `uplink` (Standard `"sys-net"`, z. B. `uplink = "sys-vpn"`). `net-config.uplink` leitet daraus `backend`, `bridge`, `gateway4`, `address4`, `backendAddress` ab (Tabelle je Backend: sys-net → `vm-uplink`/`10.1.0.x`, sys-vpn → `vm-vpn`/`10.4.0.x`; irc mit Whonix-Gateway später ebenfalls darüber statt von Hand). Wechsel = Rebuild + VM-Neustart. Assertion: `uplink = "sys-vpn"` nur mit `nat = true`.
+- **Startreihenfolge:** sys-vpn wartet auf sys-net (preStart wie bei Whonix, `waitForUplink`); Clients warten über den vorhandenen preStart auf sys-vpns sshd.
+- **Schritte:** Registry-Eintrag + Feld `uplink`; `net-config.nix` erweitern; `vms/sys-vpn/default.nix` (Bridge, nft, NAT, dnsmasq, NM, Volume); erster Client: vanilla mit `uplink = "sys-vpn"`; README (VMs je Maschine, Netzplan).
+- **Abnahme:** in vanilla `curl https://ifconfig.me` zeigt eine Proton-IP; Tunnel in sys-vpn trennen → vanilla hat weder Verbindung noch DNS; DNS-Leak-Test zeigt nur Proton-Resolver; zwei Clients an sys-vpn erreichen sich nicht; sys-vpn-Neustart → Clients wieder online (xen-links hängt vifs neu an).
+- **Nicht im Plan:** Whonix-Gateway hinter VPN, Provider deklarativ im Repo.
+
+#### 3. win (ersetzt wine)
+
+- **Ziel:** möglichst viele Windows-Apps per wprs, **kein Gaming** (Spiele bleiben in steam). Kleine, unbekannte Win-Apps sollen laufen, theoretisch auch MS Office und Outlook nativ.
+- **Stack:** Bottles (ein Prefix je App; Runner wählbar: wine-staging/soda als Standard, Proton-GE bzw. umu als Zusatz-Runner für Problemfälle), dazu `winetricks`, `wineWowPackages.stagingFull` als System-Wine für winetricks, Schriften (`corefonts`, `vista-fonts`, für Office). Proton allein ist ein Gaming-Fork (DXVK, vkd3d) und bringt für Office kaum etwas; der übliche Office-Weg ist wine-staging + winetricks (msxml6, riched20, gdiplus, .NET). Realistisch: Office 2016/2019 32-Bit (Retail-Installer) gute Chancen, Microsoft 365 Click-to-Run und Outlook mit Exchange/OAuth wackelig.
+- **Grafik:** keine GPU (dGPU gehört steam): `hardware.graphics` mit llvmpipe/lavapipe (32 + 64 Bit), Apps laufen, 3D langsam.
+- **Isolation:** Internet ja (`nat = true`, Uplink-Isolation in sys-net trennt sie von den anderen VMs), `enableHostDbusForward = false`, `allowGitHubAgent = false`, kein yazi-Feature. vm-copy normal (`allowVmCopy` an, beide Richtungen, dom0 fragt; User, 2026-10-16). Später optional `uplink = "sys-vpn"`.
+- **Schritte:** `vms/wine` → `vms/win` (Hostname `win-vm`), Registry `name = "win"`, `short = "w"`, `10.0.0.7`, storeGroup `prop`, `hosts` wieder offen (beide Maschinen; bestätigen); neuer Schlüssel `~/.ssh/win-vm`, `vms/vmcopy-keys/wine.pub` entfernen (bzw. per `vmcopy-keys win` neu); Pakete wie oben, `protonup-rs` raus (Bottles lädt Runner selbst); RAM 2048 → 6144 MB (Balancer), `home.img` 40 GB (Prefixe sind groß); Desktop-Eintrag für Bottles; alte wine-Schlüssel in dom0 löschen (Known Issue „SSH-Schlüssel aufräumen“).
+- **Abnahme:** Bottles startet per `vm-run w bottles`; ein Prefix mit Notepad++ und einer kleinen unbekannten App (Installer per Download) läuft; Office-2016-Installer im eigenen Prefix (Ergebnis dokumentieren, auch Fehlschlag); `curl` geht, andere VMs (`10.1.0.x`) nicht erreichbar.
+
+#### 4. kali (Image-Domain statt NixOS + distrobox)
+
+- **Ziel:** volles Kali aus dem offiziellen Image wie die Whonix-Workstation: PVH, pvgrub2 bootet den Kali-Kernel, nox-Store-Disk (nox-relay, sshd, wprsd), Apps per `vm-run k burpsuite` / `vm-run k firefox-esr`. Updates per `apt full-upgrade` im Gast (Kali hat kein sysmaint-Split). Die NixOS-VM mit podman/distrobox entfällt. Nur auf dem xmg.
+- **Pflicht-Anforderung:** Web-Apps in anderen VMs (php, coding) aus kali testen, Burp fängt deren Verkehr ab.
+- **Image:** Kali-QEMU-Image (kali.org, „Virtual Machines“, Signatur/Hashes prüfen) → `qemu-img convert -O raw` nach `/home/nx/vm-images/kali/kali.raw`. Zu prüfen: Root-Partition (ext4, für `xen-image-setup`), `/boot/grub/grub.cfg` vorhanden, Kali-Kernel mit `CONFIG_XEN_PVH` + xen-netfront/-blkfront (Debian-Konfiguration, sollte passen). Fallback, falls PVH scheitert: HVM mit Stubdomain (wie Tails), nur dann.
+- **Domain:** `services.xen-image-domains.domains.kali` in `machines/xmg/xen.nix` (nur xmg), `wprs = true`, RAM fest 6144 MB (Image-Domains ohne Balancer), 4 vCPUs; Registry: Eintrag von `vms` nach `imageDomains` (`k`, `10.0.0.8`, `hosts = [ "xmg" ]`), neuer Schlüssel `~/.ssh/kali-vm`. Weg: `vms/kali/`, Eintrag in `vms/definitions.nix`, distrobox-Desktop-Eintrag (`home/vm-management/desktop-entries.nix`) → Einträge für burpsuite/firefox-esr per wprs.
+- **Netz kali:** vif 1 an sys-nets `vm-uplink` (Internet, `10.1.0.8`, statisch im Gast per `nmcli`, da `vm-uplink` kein DHCP hat); vif 2 an der Lab-Bridge (`10.5.0.8`).
+- **Lab-Bridge `vm-lab` in sys-net:** reine L2-Bridge ohne Adresse von sys-net, kein Routing nach außen. nft-Bridge-Regeln: kali ↔ Ziel erlaubt (beliebige Ports, nur Verbindungen von kali aus: ct state), Ziel ↔ Ziel drop.
+- **Ziel-VMs nur bei Bedarf und nur, wenn freigeschaltet:** neues Registry-Feld `labTarget = true` (zunächst nur php und coding). dom0-Script `vm-lab attach|detach|status <vm>` (später `nox lab …`): prüft `labTarget` und dass die VM läuft, dann `xl network-attach <vm>-vm mac=00:00:00:00:02:<index> bridge=vm-lab backend=sys-net-vm` bzw. `network-detach`. Nicht persistent (nach VM- oder sys-net-Neustart neu anhängen). In freigeschalteten VMs ein Modul (z. B. `vms/modules/lab-target.nix`, aus der Registry aktiviert): networkd-Match auf die Lab-MAC → `10.5.0.<index>/24` ohne Gateway, Firewall auf dieser Schnittstelle nur die App-Ports (php: Port des Dev-Servers, coding: 8080). Apps müssen auf `0.0.0.0` bzw. der Lab-Adresse lauschen; Docker in coding umgeht die NixOS-Firewall mit veröffentlichten Ports (beachten).
+- **Burp-Ablauf:** in kali Burp starten, Firefox-ESR mit Burp als Proxy (Burp-CA importieren), Ziel `http://10.5.0.15:<port>` (php) bzw. `10.5.0.6` (coding); für vhost-basierte Apps Einträge in kalis `/etc/hosts`. Java/Swing läuft über Xwayland (`xwayland-xdg-shell` in wprs); falls Fenster leer bleiben: `_JAVA_AWT_WM_NONREPARENTING=1`.
+- **Schritte:** Image holen/prüfen → Domain + Registry → `xen-image-setup kali` → erster Boot per `vm-run -c k …`, Netz im Gast einrichten → sys-net: `vm-lab` + nft → `labTarget`, `lab-target.nix`, `vm-lab`-Script → alte NixOS-kali entfernen → `update-all` um kali erweitern (`apt update && apt full-upgrade`) → README (Abschnitt „Kali (from scratch)“ wie Whonix).
+- **Abnahme:** `vm-run k burpsuite` öffnet Burp; `vm-lab attach php` → aus kali `curl http://10.5.0.15:<port>` und Abfangen im Burp-Proxy; `nmap 10.5.0.0/24` in kali sieht nur angehängte Ziele; php und coding gleichzeitig angehängt erreichen sich nicht; `vm-lab attach ruby` wird abgelehnt (nicht freigeschaltet); `vm-lab detach php` → unerreichbar; kali hat Internet über sys-net.
 
 ### Zu besprechen (User, 2026-10-14, später)
 
