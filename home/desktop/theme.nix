@@ -80,4 +80,35 @@ rec {
   wallpaper = {
     lock = ./wallpapers/cat_lofi_cafe.jpg;
   };
+
+  # foot (foot.ini sections), font and colors as kitty
+  # (home/kitty/kitty.nix, current-theme.conf); dom0 (home/home.nix) and
+  # the VMs over wprs (vms/modules/wprs.nix)
+  foot = {
+    main.font = "${font.family}:size=11.5";
+    scrollback.lines = 2000;
+    mouse.hide-when-typing = "yes";
+    colors-dark = {
+      background = "1e1f28";
+      foreground = "f8f8f2";
+      selection-background = "44475a";
+      selection-foreground = "1e1f28";
+      regular0 = "000000";
+      regular1 = "ff5555";
+      regular2 = "50fa7b";
+      regular3 = "f0fa8b";
+      regular4 = "bd92f8";
+      regular5 = "ff78c5";
+      regular6 = "8ae9fc";
+      regular7 = "bbbbbb";
+      bright0 = "545454";
+      bright1 = "ff5454";
+      bright2 = "50fa7b";
+      bright3 = "f0fa8b";
+      bright4 = "bd92f8";
+      bright5 = "ff78c5";
+      bright6 = "8ae9fc";
+      bright7 = "ffffff";
+    };
+  };
 }

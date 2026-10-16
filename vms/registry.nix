@@ -15,6 +15,8 @@ let
   #   storeGroup  : shared read-only store image (vms/store-groups.nix): "sys" | "dev" | "desktop" | "prop"; absent = own image
   #   memPriority : RAM balancer priority when host RAM is short (modules/xen-memory.nix); higher grows first, default 0
   #   hosts       : machines that run this VM (`forHost` below); absent = all machines, [ ] = none (definition kept)
+  #   clipboard   : explicit copy/paste through dom0 (vm-clip, Alt+Shift+C/V): "allow" | "ask" (copying out of
+  #                 the VM asks in dom0) | "deny"; absent = "deny" for sys-* VMs, else "allow"
   vms = [
     {
       name = "nvim";
@@ -107,6 +109,7 @@ let
       autostart = false;
       nat = false;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPbWqbgvB7bf39HteuS/bmSDqLuPiZn5AV63fjRXEVw vault-vm";
+      clipboard = "ask";
       features = [ "yazi" ];
     }
     {

@@ -117,11 +117,18 @@
     case "''${1:-}" in
       get) exec ${pkgs.wl-clipboard}/bin/wl-paste --no-newline --type text ;;
       set)
+        # wl-copy keeps serving the selection, so it must outlive the SSH
+        # connection: Whonix runs each one as its own unit (sshd-vchan@)
+        # and stops it on disconnect, so start it in the user manager. The
+        # unit opens and deletes the temp file, then reads from the fd
         tmp="$(mktemp)"
-        trap 'rm -f "$tmp"' EXIT
         cat >"$tmp"
-        ${pkgs.util-linux}/bin/setsid ${pkgs.wl-clipboard}/bin/wl-copy --type text/plain \
-          <"$tmp" >/dev/null 2>&1
+        systemd-run --user --quiet --collect --setenv=WAYLAND_DISPLAY=wprs-0 \
+          /bin/sh -c 'exec 3<"$0"; rm -f "$0"; exec "$1" --foreground --type text/plain <&3 3<&-' \
+          "$tmp" ${pkgs.wl-clipboard}/bin/wl-copy || {
+          rm -f "$tmp"
+          exit 1
+        }
         ;;
       *)
         echo "usage: vm-clip-helper get|set" >&2

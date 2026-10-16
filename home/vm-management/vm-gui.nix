@@ -88,7 +88,111 @@ let
         "$(printf '%q ' "$@")"
     fi
   '';
+
+  # Clipboard between domains (Qubes model): each VM keeps its own clipboard
+  # (wprsd without selection sync, vms/modules/wprs.nix). `copy` takes the
+  # text clipboard of the focused window's domain into a store in dom0,
+  # `paste` hands it to the focused window's domain and empties the store.
+  # Rules from the registry (`clipboard`); notifications never show content
+  clipPolicy = vm: vm.clipboard or (if lib.hasPrefix "sys-" vm.name then "deny" else "allow");
+  clipCases = lib.concatMapStrings (vm: "    ${vm.name}) echo ${clipPolicy vm} ;;\n") (
+    vmRegistry.vms ++ vmRegistry.imageDomains
+  );
+
+  vmClip = pkgs.writeShellScriptBin "vm-clip" ''
+    set -eu
+    ssh() {
+      ${pkgs.openssh}/bin/ssh -o BatchMode=yes -o ConnectTimeout=5 "$@"
+    }
+    notify() {
+      ${pkgs.libnotify}/bin/notify-send -a vm-clip "Zwischenablage" "$1" || true
+    }
+    # Image domains (Whonix) keep it in /nix/store/nox/bin, not on the
+    # session PATH
+    helper='PATH="$PATH:/nix/store/nox/bin" vm-clip-helper'
+    fail() {
+      notify "$1"
+      echo "vm-clip: $1" >&2
+      exit 1
+    }
+
+    # Domain of the focused window: VM windows belong to dom0's wprsc for
+    # that VM (vm-gui), everything else is dom0
+    focused_domain() {
+      local pid args dom
+      pid="$(niri msg --json focused-window | ${pkgs.jq}/bin/jq -r '.pid // empty')"
+      [ -n "$pid" ] || fail "Kein fokussiertes Fenster"
+      args="$(tr '\0' '\n' <"/proc/$pid/cmdline")" || fail "Fensterprozess $pid nicht gefunden"
+      case "$args" in
+        */wprsc*)
+          dom="$(sed -n 's|^--socket=/run/nox-relay/\(.*\)-wprs\.sock$|\1|p' <<<"$args")"
+          [ -n "$dom" ] || fail "VM des Fensters unbekannt (wprsc ohne nox-relay)"
+          ;;
+        *) dom=dom0 ;;
+      esac
+      echo "$dom"
+    }
+
+    policy() {
+      case "$1" in
+        dom0) echo allow ;;
+    ${clipCases}
+        *) echo deny ;;
+      esac
+    }
+
+    store="''${XDG_RUNTIME_DIR:?}/vm-clip"
+    umask 077
+    mkdir -p "$store"
+
+    case "''${1:-}" in
+      copy)
+        src="$(focused_domain)"
+        case "$(policy "$src")" in
+          deny) fail "$src ist für die Zwischenablage gesperrt" ;;
+          ask)
+            answer="$(printf 'Nein\nJa\n' | rofi -dmenu -i -no-custom \
+              -p "Zwischenablage aus $src kopieren?" \
+              -theme ~/.config/rofi/config.rasi)" || answer=""
+            [ "$answer" = Ja ] || fail "Kopieren aus $src abgebrochen"
+            ;;
+        esac
+        if [ "$src" = dom0 ]; then
+          ${pkgs.wl-clipboard}/bin/wl-paste --no-newline --type text >"$store/new" 2>/dev/null \
+            || { rm -f "$store/new"; fail "dom0: keine Text-Zwischenablage"; }
+        else
+          ssh "$src" "$helper get" </dev/null >"$store/new" 2>/dev/null \
+            || { rm -f "$store/new"; fail "$src: keine Text-Zwischenablage"; }
+        fi
+        mv "$store/new" "$store/data"
+        echo "$src" >"$store/source"
+        notify "Aus $src kopiert ($(wc -c <"$store/data") Bytes), einfügen mit Alt+Shift+V"
+        ;;
+      paste)
+        [ -f "$store/data" ] || fail "Ablage leer, erst mit Alt+Shift+C kopieren"
+        dst="$(focused_domain)"
+        [ "$(policy "$dst")" != deny ] || fail "$dst ist für die Zwischenablage gesperrt"
+        src="$(cat "$store/source")"
+        size="$(wc -c <"$store/data")"
+        if [ "$dst" = dom0 ]; then
+          # wl-copy forks and keeps serving the selection
+          ${pkgs.wl-clipboard}/bin/wl-copy --type text/plain <"$store/data" >/dev/null 2>&1
+        else
+          ssh "$dst" "$helper set" <"$store/data" || fail "Einfügen in $dst fehlgeschlagen"
+        fi
+        rm -f "$store/data" "$store/source"
+        notify "$src → $dst ($size Bytes), einfügen mit Strg+V"
+        ;;
+      *)
+        echo "usage: vm-clip copy|paste" >&2
+        exit 2
+        ;;
+    esac
+  '';
 in
 {
-  home.packages = [ vmGui ];
+  home.packages = [
+    vmGui
+    vmClip
+  ];
 }

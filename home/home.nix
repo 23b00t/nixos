@@ -7,6 +7,7 @@
 }:
 let
   kittyConf = import ./kitty/kitty.nix;
+  theme = import ./desktop/theme.nix { inherit lib; };
   myGithubAgent = import ./vm-management/github-agent.nix { inherit pkgs; };
 in
 {
@@ -115,6 +116,12 @@ in
   };
   home.file.".config/kitty/current-theme.conf".source = ./kitty/current-theme.conf;
   home.file.".config/kitty/startup".source = ./kitty/startup;
+
+  # foot on trial as kitty's successor (dom0 and VMs, xen-migration.md)
+  programs.foot = {
+    enable = true;
+    settings = theme.foot;
+  };
 
   # zellij
   home.file.".config/zellij".source = ./zellij;
