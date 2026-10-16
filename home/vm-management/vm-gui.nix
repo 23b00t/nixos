@@ -166,10 +166,10 @@ let
         fi
         mv "$store/new" "$store/data"
         echo "$src" >"$store/source"
-        notify "Aus $src kopiert ($(wc -c <"$store/data") Bytes), einfügen mit Alt+Shift+V"
+        notify "Aus $src kopiert ($(wc -c <"$store/data") Bytes), einfügen mit Mod+Alt+V"
         ;;
       paste)
-        [ -f "$store/data" ] || fail "Ablage leer, erst mit Alt+Shift+C kopieren"
+        [ -f "$store/data" ] || fail "Ablage leer, erst mit Mod+Alt+C kopieren"
         dst="$(focused_domain)"
         [ "$(policy "$dst")" != deny ] || fail "$dst ist für die Zwischenablage gesperrt"
         src="$(cat "$store/source")"

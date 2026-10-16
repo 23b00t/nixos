@@ -177,7 +177,7 @@ in
           "spawn-sh" = "rofimoji --max-recent 10 --action copy --selector-args='-theme ~/.config/rofi/config.rasi'";
         };
 
-        "Alt+Shift+C" = {
+        "Mod+Alt+C" = {
           _props."hotkey-overlay-title" = "Copy Clipboard to the dom0 Store";
           spawn = [
             "vm-clip"
@@ -185,7 +185,7 @@ in
           ];
         };
 
-        "Alt+Shift+V" = {
+        "Mod+Alt+V" = {
           _props."hotkey-overlay-title" = "Paste the dom0 Store into the Focused Window";
           spawn = [
             "vm-clip"

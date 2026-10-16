@@ -161,7 +161,7 @@ config without the hypervisor, and no VM runs there.
 | `sys-usb-rescue` | sys-usb doesn't come up: USB controllers back to dom0 (also automatic after 120 s) |
 | `create-vm`, `vmcopy-keys <vm>` | new VM, keys for inter-VM copy |
 | `tm` | termusic in coding |
-| Alt+Shift+C / Alt+Shift+V (`vm-clip copy\|paste`) | clipboard between domains: copy the text clipboard of the focused window's VM (or dom0) into dom0's store, paste it into the focused window's VM (or dom0), then press Ctrl+V there; the store is emptied. VMs don't share their clipboard with dom0 otherwise. Copying out of vault asks, sys-* VMs are excluded (registry `clipboard`) |
+| Mod+Alt+C / Mod+Alt+V (`vm-clip copy\|paste`) | clipboard between domains: copy the text clipboard of the focused window's VM (or dom0) into dom0's store, paste it into the focused window's VM (or dom0), then press Ctrl+V there; the store is emptied. VMs don't share their clipboard with dom0 otherwise. Copying out of vault asks, sys-* VMs are excluded (registry `clipboard`) |
 | `vm-run <vm> foot` | terminal from a VM over wprs (foot on trial, also in dom0) |
 
 In the VMs: `vm-copy <vm> <files>` (dom0 asks, files land in
