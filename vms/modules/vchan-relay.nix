@@ -134,8 +134,15 @@ in
                 DISPLAY = ":100";
                 XDG_SESSION_TYPE = "wayland";
                 PULSE_SERVER = "unix:/tmp/wprs-pulse";
-              }
-              // lib.optionalAttrs dbus { DBUS_SESSION_BUS_ADDRESS = "unix:path=/tmp/ssh_dbus.sock"; };
+                # GTK3 apps; GTK4/libadwaita follow dconf's color-scheme
+                # (common-config.nix)
+                GTK_THEME = "Adwaita:dark";
+                # dom0's filtered bus where forwarded, else the VM's own
+                # session bus: without one dconf can't save (Bottles closed
+                # every bottle it opened, win 2026-10-16)
+                DBUS_SESSION_BUS_ADDRESS =
+                  if dbus then "unix:path=/tmp/ssh_dbus.sock" else "unix:path=/run/user/1000/bus";
+              };
             };
           };
         }

@@ -228,6 +228,15 @@ in
       })
     ];
 
+    # dconf on the VM's own session bus (apps started over RPC use it,
+    # vchan-relay.nix); dark by default for GTK4/libadwaita apps
+    programs.dconf = {
+      enable = true;
+      profiles.user.databases = [
+        { settings."org/gnome/desktop/interface".color-scheme = "prefer-dark"; }
+      ];
+    };
+
     environment.sessionVariables = {
       TERM = "xterm-256color";
       GTK_THEME = "Adwaita:dark";
