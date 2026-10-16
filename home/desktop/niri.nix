@@ -16,6 +16,374 @@ let
         mode = "1920x1080@60.001";
         width = 1920;
       };
+
+  binds = {
+    # Replaces niri's built-in hotkey overlay (Mod+Shift+Slash)
+    "Mod+Slash" = {
+      _props."hotkey-overlay-title" = "Keybinding Viewer";
+      "spawn-sh" = "pkill rofi || niri-binds";
+    };
+
+    "Mod+T" = {
+      _props."hotkey-overlay-title" = "Open a Terminal: kitty";
+      spawn = [ "kitty" ];
+    };
+
+    "Mod+A" = {
+      _props."hotkey-overlay-title" = "Run an Application: rofi";
+      "spawn-sh" =
+        "pkill rofi || rofi -modi drun,filebrowser,window,run -show drun -theme ~/.config/rofi/config.rasi";
+    };
+
+    "Mod+B" = {
+      _props."hotkey-overlay-title" = "Open Browser VM";
+      "spawn-sh" = "vm-run net zen";
+    };
+
+    "Mod+L" = {
+      _props."hotkey-overlay-title" = "Lock the Screen: swaylock";
+      spawn = [ "swaylock" ];
+    };
+
+    "Mod+Shift+K" = {
+      _props."hotkey-overlay-title" = "Open Secondary Kitty";
+      spawn = [
+        "kitty"
+        "--session=none"
+      ];
+    };
+
+    "Mod+Comma" = {
+      _props."hotkey-overlay-title" = "Emoji Picker";
+      "spawn-sh" =
+        "rofimoji --max-recent 10 --action copy --selector-args='-theme ~/.config/rofi/config.rasi'";
+    };
+
+    "Mod+Alt+C" = {
+      _props."hotkey-overlay-title" = "Copy Clipboard to the dom0 Store";
+      spawn = [
+        "vm-clip"
+        "copy"
+      ];
+    };
+
+    "Mod+Alt+V" = {
+      _props."hotkey-overlay-title" = "Paste the dom0 Store into the Focused Window";
+      spawn = [
+        "vm-clip"
+        "paste"
+      ];
+    };
+
+    "Mod+E" = {
+      _props."hotkey-overlay-title" = "Open Explorer";
+      spawn = [ "explorer" ];
+    };
+
+    "Mod+P" = {
+      _props."hotkey-overlay-title" = "Region Screenshot";
+      screenshot = { };
+    };
+
+    "Mod+Shift+P" = {
+      _props."hotkey-overlay-title" = "Fullscreen Screenshot";
+      "screenshot-screen" = { };
+    };
+
+    "Mod+R" = {
+      _props."hotkey-overlay-title" = "Region Recording";
+      spawn = [ "screenrec-region" ];
+    };
+
+    "Mod+Shift+R" = {
+      _props."hotkey-overlay-title" = "Fullscreen Recording";
+      spawn = [ "screenrec-full" ];
+    };
+
+    "XF86AudioRaiseVolume" = {
+      _props = {
+        "hotkey-overlay-title" = "Volume Up";
+        "allow-when-locked" = true;
+      };
+      "spawn-sh" = "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+";
+    };
+
+    "XF86AudioLowerVolume" = {
+      _props = {
+        "hotkey-overlay-title" = "Volume Down";
+        "allow-when-locked" = true;
+      };
+      "spawn-sh" = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
+    };
+
+    "XF86AudioMute" = {
+      _props = {
+        "hotkey-overlay-title" = "Mute Audio";
+        "allow-when-locked" = true;
+      };
+      "spawn-sh" = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
+    };
+
+    "XF86AudioMicMute" = {
+      _props = {
+        "hotkey-overlay-title" = "Mute Microphone";
+        "allow-when-locked" = true;
+      };
+      "spawn-sh" = "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle";
+    };
+
+    "XF86MonBrightnessUp" = {
+      _props = {
+        "hotkey-overlay-title" = "Brightness Up";
+        "allow-when-locked" = true;
+      };
+      "spawn-sh" = "brightnessctl -d intel_backlight -e4 -n2 set 5%+";
+    };
+
+    "XF86MonBrightnessDown" = {
+      _props = {
+        "hotkey-overlay-title" = "Brightness Down";
+        "allow-when-locked" = true;
+      };
+      "spawn-sh" = "brightnessctl -d intel_backlight -e4 -n2 set 5%-";
+    };
+
+    "XF86AudioPlay" = {
+      _props = {
+        "hotkey-overlay-title" = "Play/Pause";
+        "allow-when-locked" = true;
+      };
+      "spawn-sh" = "playerctl play-pause";
+    };
+
+    "XF86AudioPause" = {
+      _props = {
+        "hotkey-overlay-title" = "Play/Pause";
+        "allow-when-locked" = true;
+      };
+      "spawn-sh" = "playerctl play-pause";
+    };
+
+    "XF86AudioPrev" = {
+      _props = {
+        "hotkey-overlay-title" = "Previous Track";
+        "allow-when-locked" = true;
+      };
+      "spawn-sh" = "playerctl previous";
+    };
+
+    "XF86AudioNext" = {
+      _props = {
+        "hotkey-overlay-title" = "Next Track";
+        "allow-when-locked" = true;
+      };
+      "spawn-sh" = "playerctl next";
+    };
+
+    "Mod+O" = {
+      _props.repeat = false;
+      "toggle-overview" = { };
+    };
+
+    "Mod+Q" = {
+      _props.repeat = false;
+      "close-window" = { };
+    };
+
+    "Mod+Left"."focus-column-left" = { };
+    "Mod+Down"."focus-window-down" = { };
+    "Mod+Up"."focus-window-up" = { };
+    "Mod+Right"."focus-column-right" = { };
+    "Mod+H"."focus-column-left" = { };
+    "Mod+J"."focus-window-down" = { };
+    "Mod+K"."focus-window-up" = { };
+
+    "Mod+Ctrl+Left"."move-column-left" = { };
+    "Mod+Ctrl+Down"."move-window-down" = { };
+    "Mod+Ctrl+Up"."move-window-up" = { };
+    "Mod+Ctrl+Right"."move-column-right" = { };
+    "Mod+Ctrl+H"."focus-monitor-left" = { };
+    "Mod+Ctrl+J"."focus-monitor-down" = { };
+    "Mod+Ctrl+K"."focus-monitor-up" = { };
+    "Mod+Ctrl+L"."focus-monitor-right" = { };
+
+    "Mod+Home"."focus-column-first" = { };
+    "Mod+End"."focus-column-last" = { };
+    "Mod+Ctrl+Home"."move-column-to-first" = { };
+    "Mod+Ctrl+End"."move-column-to-last" = { };
+
+    "Mod+Shift+Left"."focus-monitor-left" = { };
+    "Mod+Shift+Down"."focus-monitor-down" = { };
+    "Mod+Shift+Up"."focus-monitor-up" = { };
+    "Mod+Shift+Right"."focus-monitor-right" = { };
+    "Mod+Shift+H"."focus-monitor-left" = { };
+    "Mod+Shift+J"."focus-monitor-down" = { };
+
+    "Mod+Shift+Ctrl+Left"."move-column-to-monitor-left" = { };
+    "Mod+Shift+Ctrl+Down"."move-column-to-monitor-down" = { };
+    "Mod+Shift+Ctrl+Up"."move-column-to-monitor-up" = { };
+    "Mod+Shift+Ctrl+Right"."move-column-to-monitor-right" = { };
+    "Mod+Shift+Ctrl+H"."move-window-to-monitor-left" = { };
+    "Mod+Shift+Ctrl+J"."move-window-to-monitor-down" = { };
+    "Mod+Shift+Ctrl+K"."move-window-to-monitor-up" = { };
+    "Mod+Shift+Ctrl+L"."move-window-to-monitor-right" = { };
+
+    "Mod+Alt+H"."focus-column-left" = { };
+    "Mod+Alt+J"."focus-window-down" = { };
+    "Mod+Alt+K"."focus-window-up" = { };
+    "Mod+Alt+L"."focus-column-right" = { };
+    "Mod+Alt+Shift+H"."move-column-left" = { };
+    "Mod+Alt+Shift+J"."move-window-down" = { };
+    "Mod+Alt+Shift+K"."move-window-up" = { };
+    "Mod+Alt+Shift+L"."move-column-right" = { };
+
+    "Mod+Page_Down"."focus-workspace-down" = { };
+    "Mod+Page_Up"."focus-workspace-up" = { };
+    "Mod+U"."focus-workspace-down" = { };
+    "Mod+I"."focus-workspace-up" = { };
+    "Mod+Ctrl+Page_Down"."move-column-to-workspace-down" = { };
+    "Mod+Ctrl+Page_Up"."move-column-to-workspace-up" = { };
+    "Mod+Ctrl+U"."move-column-to-workspace-down" = { };
+    "Mod+Ctrl+I"."move-column-to-workspace-up" = { };
+    "Mod+Shift+Page_Down"."move-workspace-down" = { };
+    "Mod+Shift+Page_Up"."move-workspace-up" = { };
+    "Mod+Shift+U"."move-workspace-down" = { };
+    "Mod+Shift+I"."move-workspace-up" = { };
+
+    "Mod+WheelScrollDown" = {
+      _props."cooldown-ms" = 150;
+      "focus-workspace-down" = { };
+    };
+
+    "Mod+WheelScrollUp" = {
+      _props."cooldown-ms" = 150;
+      "focus-workspace-up" = { };
+    };
+
+    "Mod+Ctrl+WheelScrollDown" = {
+      _props."cooldown-ms" = 150;
+      "move-column-to-workspace-down" = { };
+    };
+
+    "Mod+Ctrl+WheelScrollUp" = {
+      _props."cooldown-ms" = 150;
+      "move-column-to-workspace-up" = { };
+    };
+
+    "Mod+WheelScrollRight"."focus-column-right" = { };
+    "Mod+WheelScrollLeft"."focus-column-left" = { };
+    "Mod+Ctrl+WheelScrollRight"."move-column-right" = { };
+    "Mod+Ctrl+WheelScrollLeft"."move-column-left" = { };
+    "Mod+Shift+WheelScrollDown"."focus-column-right" = { };
+    "Mod+Shift+WheelScrollUp"."focus-column-left" = { };
+    "Mod+Ctrl+Shift+WheelScrollDown"."move-column-right" = { };
+    "Mod+Ctrl+Shift+WheelScrollUp"."move-column-left" = { };
+
+    "Mod+1"."focus-workspace" = 1;
+    "Mod+2"."focus-workspace" = 2;
+    "Mod+3"."focus-workspace" = 3;
+    "Mod+4"."focus-workspace" = 4;
+    "Mod+5"."focus-workspace" = 5;
+    "Mod+6"."focus-workspace" = 6;
+    "Mod+7"."focus-workspace" = 7;
+    "Mod+8"."focus-workspace" = 8;
+    "Mod+9"."focus-workspace" = 9;
+    "Mod+0"."focus-workspace" = 10;
+
+    "Mod+Ctrl+1"."move-column-to-workspace" = 1;
+    "Mod+Ctrl+2"."move-column-to-workspace" = 2;
+    "Mod+Ctrl+3"."move-column-to-workspace" = 3;
+    "Mod+Ctrl+4"."move-column-to-workspace" = 4;
+    "Mod+Ctrl+5"."move-column-to-workspace" = 5;
+    "Mod+Ctrl+6"."move-column-to-workspace" = 6;
+    "Mod+Ctrl+7"."move-column-to-workspace" = 7;
+    "Mod+Ctrl+8"."move-column-to-workspace" = 8;
+    "Mod+Ctrl+9"."move-column-to-workspace" = 9;
+    "Mod+Ctrl+0"."move-column-to-workspace" = 10;
+
+    "Mod+BracketLeft"."consume-or-expel-window-left" = { };
+    "Mod+BracketRight"."consume-or-expel-window-right" = { };
+    "Mod+Period" = {
+      _props."hotkey-overlay-title" = "Glyph Picker (Nerd Font)";
+      "spawn-sh" =
+        "rofimoji --files nerd_font --max-recent 10 --action copy --selector-args='-theme ~/.config/rofi/config.rasi'";
+    };
+
+    "Mod+Shift+Minus"."set-window-height" = "-10%";
+    "Mod+Shift+Equal"."set-window-height" = "+10%";
+
+    "Mod+Minus"."set-column-width" = "-10%";
+    "Mod+Equal"."set-column-width" = "+10%";
+    "Mod+Alt+R"."switch-preset-column-width" = { };
+    "Mod+Alt+Shift+R"."switch-preset-column-width-back" = { };
+    "Mod+Ctrl+Shift+R"."switch-preset-window-height" = { };
+    "Mod+Ctrl+R"."reset-window-height" = { };
+
+    "Mod+V"."toggle-window-floating" = { };
+    "Mod+Shift+V"."switch-focus-between-floating-and-tiling" = { };
+    "Mod+W"."toggle-column-tabbed-display" = { };
+
+    "Mod+F"."fullscreen-window" = { };
+    "Mod+Shift+F"."maximize-column" = { };
+    "Mod+M"."maximize-column" = { };
+    "Mod+Ctrl+F"."expand-column-to-available-width" = { };
+    "Mod+C"."center-column" = { };
+    "Mod+Ctrl+C"."center-visible-columns" = { };
+
+    Print.screenshot = { };
+    "Ctrl+Print"."screenshot-screen" = { };
+    "Alt+Print"."screenshot-window" = { };
+
+    "Mod+Escape" = {
+      _props."allow-inhibiting" = false;
+      "toggle-keyboard-shortcuts-inhibit" = { };
+    };
+
+    "Mod+Shift+E".quit = { };
+    "Ctrl+Alt+Delete".quit = { };
+  };
+
+  # One viewer entry per action; keys sharing an action are merged
+  bindEntries =
+    let
+      describe =
+        name: arg:
+        let
+          words = lib.splitString "-" name;
+          human = lib.concatStringsSep " " (
+            [ (lib.toUpper (lib.substring 0 1 (lib.head words)) + lib.substring 1 (-1) (lib.head words)) ]
+            ++ lib.tail words
+          );
+        in
+        if arg == "" then human else "${human} ${arg}";
+      entry =
+        key: bind:
+        let
+          action = lib.head (lib.attrNames (removeAttrs bind [ "_props" ]));
+          value = bind.${action};
+          args =
+            if lib.isList value then
+              value
+            else if lib.isAttrs value then
+              [ ]
+            else
+              [ (toString value) ];
+          title = bind._props."hotkey-overlay-title" or (describe action (lib.concatStringsSep " " args));
+        in
+        {
+          inherit title;
+          key = lib.replaceStrings [ "Mod+" ] [ "Super+" ] key;
+          command =
+            "niri msg action ${action}" + lib.optionalString (args != [ ]) " -- ${lib.escapeShellArgs args}";
+        };
+      grouped = lib.groupBy (e: e.command) (lib.mapAttrsToList entry binds);
+    in
+    lib.sortOn (e: lib.toLower e.line) (
+      lib.mapAttrsToList (command: es: {
+        inherit command;
+        line = "${(lib.head es).title}   ${lib.concatMapStringsSep " / " (e: e.key) es}";
+      }) grouped
+    );
 in
 {
   home.packages = with pkgs; [
@@ -76,6 +444,19 @@ in
     glib
     dconf
     gsettings-desktop-schemas
+
+    # Keybinding viewer: every bind from `binds` above, searchable in rofi;
+    # Enter runs the bind's action through niri
+    (writeShellScriptBin "niri-binds" ''
+      cmds=(${lib.escapeShellArgs (map (e: e.command) bindEntries)})
+      i=$(rofi -dmenu -i -no-custom -p " " -format i \
+        -theme ~/.config/rofi/config.rasi \
+        -theme-str 'window { width: 60em; } listview { lines: 14; }' \
+        < ${
+          pkgs.writeText "niri-binds.txt" (lib.concatMapStrings (e: e.line + "\n") bindEntries)
+        }) || exit 0
+      eval "''${cmds[$i]}"
+    '')
   ];
 
   wayland.windowManager.niri = {
@@ -85,6 +466,9 @@ in
       "prefer-no-csd" = { };
       "screenshot-path" = "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png";
       "hotkey-overlay"."skip-at-startup" = { };
+
+      # No hot corner (top left of each monitor opened the overview)
+      gestures."hot-corners".off = { };
 
       input = {
         "mod-key" = "Super";
@@ -141,291 +525,7 @@ in
         };
       };
 
-      binds = {
-        "Mod+Shift+Slash"."show-hotkey-overlay" = { };
-
-        "Mod+T" = {
-          _props."hotkey-overlay-title" = "Open a Terminal: kitty";
-          spawn = [ "kitty" ];
-        };
-
-        "Mod+A" = {
-          _props."hotkey-overlay-title" = "Run an Application: rofi";
-          "spawn-sh" = "pkill rofi || rofi -modi drun,filebrowser,window,run -show drun -theme ~/.config/rofi/config.rasi";
-        };
-
-        "Mod+B" = {
-          _props."hotkey-overlay-title" = "Open Browser VM";
-          "spawn-sh" = "vm-run net zen";
-        };
-
-        "Mod+L" = {
-          _props."hotkey-overlay-title" = "Lock the Screen: swaylock";
-          spawn = [ "swaylock" ];
-        };
-
-        "Mod+Shift+K" = {
-          _props."hotkey-overlay-title" = "Open Secondary Kitty";
-          spawn = [
-            "kitty"
-            "--session=none"
-          ];
-        };
-
-        "Mod+Comma" = {
-          _props."hotkey-overlay-title" = "Emoji Picker";
-          "spawn-sh" = "rofimoji --max-recent 10 --action copy --selector-args='-theme ~/.config/rofi/config.rasi'";
-        };
-
-        "Mod+Alt+C" = {
-          _props."hotkey-overlay-title" = "Copy Clipboard to the dom0 Store";
-          spawn = [
-            "vm-clip"
-            "copy"
-          ];
-        };
-
-        "Mod+Alt+V" = {
-          _props."hotkey-overlay-title" = "Paste the dom0 Store into the Focused Window";
-          spawn = [
-            "vm-clip"
-            "paste"
-          ];
-        };
-
-        "Mod+E" = {
-          _props."hotkey-overlay-title" = "Open Explorer";
-          spawn = [ "explorer" ];
-        };
-
-        "Mod+P" = {
-          _props."hotkey-overlay-title" = "Region Screenshot";
-          screenshot = { };
-        };
-
-        "Mod+Shift+P" = {
-          _props."hotkey-overlay-title" = "Fullscreen Screenshot";
-          "screenshot-screen" = { };
-        };
-
-        "Mod+R" = {
-          _props."hotkey-overlay-title" = "Region Recording";
-          spawn = [ "screenrec-region" ];
-        };
-
-        "Mod+Shift+R" = {
-          _props."hotkey-overlay-title" = "Fullscreen Recording";
-          spawn = [ "screenrec-full" ];
-        };
-
-        "XF86AudioRaiseVolume" = {
-          _props."allow-when-locked" = true;
-          "spawn-sh" = "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+";
-        };
-
-        "XF86AudioLowerVolume" = {
-          _props."allow-when-locked" = true;
-          "spawn-sh" = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
-        };
-
-        "XF86AudioMute" = {
-          _props."allow-when-locked" = true;
-          "spawn-sh" = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
-        };
-
-        "XF86AudioMicMute" = {
-          _props."allow-when-locked" = true;
-          "spawn-sh" = "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle";
-        };
-
-        "XF86MonBrightnessUp" = {
-          _props."allow-when-locked" = true;
-          "spawn-sh" = "brightnessctl -d intel_backlight -e4 -n2 set 5%+";
-        };
-
-        "XF86MonBrightnessDown" = {
-          _props."allow-when-locked" = true;
-          "spawn-sh" = "brightnessctl -d intel_backlight -e4 -n2 set 5%-";
-        };
-
-        "XF86AudioPlay" = {
-          _props."allow-when-locked" = true;
-          "spawn-sh" = "playerctl play-pause";
-        };
-
-        "XF86AudioPause" = {
-          _props."allow-when-locked" = true;
-          "spawn-sh" = "playerctl play-pause";
-        };
-
-        "XF86AudioPrev" = {
-          _props."allow-when-locked" = true;
-          "spawn-sh" = "playerctl previous";
-        };
-
-        "XF86AudioNext" = {
-          _props."allow-when-locked" = true;
-          "spawn-sh" = "playerctl next";
-        };
-
-        "Mod+O" = {
-          _props.repeat = false;
-          "toggle-overview" = { };
-        };
-
-        "Mod+Q" = {
-          _props.repeat = false;
-          "close-window" = { };
-        };
-
-        "Mod+Left"."focus-column-left" = { };
-        "Mod+Down"."focus-window-down" = { };
-        "Mod+Up"."focus-window-up" = { };
-        "Mod+Right"."focus-column-right" = { };
-        "Mod+H"."focus-column-left" = { };
-        "Mod+J"."focus-window-down" = { };
-        "Mod+K"."focus-window-up" = { };
-
-        "Mod+Ctrl+Left"."move-column-left" = { };
-        "Mod+Ctrl+Down"."move-window-down" = { };
-        "Mod+Ctrl+Up"."move-window-up" = { };
-        "Mod+Ctrl+Right"."move-column-right" = { };
-        "Mod+Ctrl+H"."focus-monitor-left" = { };
-        "Mod+Ctrl+J"."focus-monitor-down" = { };
-        "Mod+Ctrl+K"."focus-monitor-up" = { };
-        "Mod+Ctrl+L"."focus-monitor-right" = { };
-
-        "Mod+Home"."focus-column-first" = { };
-        "Mod+End"."focus-column-last" = { };
-        "Mod+Ctrl+Home"."move-column-to-first" = { };
-        "Mod+Ctrl+End"."move-column-to-last" = { };
-
-        "Mod+Shift+Left"."focus-monitor-left" = { };
-        "Mod+Shift+Down"."focus-monitor-down" = { };
-        "Mod+Shift+Up"."focus-monitor-up" = { };
-        "Mod+Shift+Right"."focus-monitor-right" = { };
-        "Mod+Shift+H"."focus-monitor-left" = { };
-        "Mod+Shift+J"."focus-monitor-down" = { };
-
-        "Mod+Shift+Ctrl+Left"."move-column-to-monitor-left" = { };
-        "Mod+Shift+Ctrl+Down"."move-column-to-monitor-down" = { };
-        "Mod+Shift+Ctrl+Up"."move-column-to-monitor-up" = { };
-        "Mod+Shift+Ctrl+Right"."move-column-to-monitor-right" = { };
-        "Mod+Shift+Ctrl+H"."move-window-to-monitor-left" = { };
-        "Mod+Shift+Ctrl+J"."move-window-to-monitor-down" = { };
-        "Mod+Shift+Ctrl+K"."move-window-to-monitor-up" = { };
-        "Mod+Shift+Ctrl+L"."move-window-to-monitor-right" = { };
-
-        "Mod+Alt+H"."focus-column-left" = { };
-        "Mod+Alt+J"."focus-window-down" = { };
-        "Mod+Alt+K"."focus-window-up" = { };
-        "Mod+Alt+L"."focus-column-right" = { };
-        "Mod+Alt+Shift+H"."move-column-left" = { };
-        "Mod+Alt+Shift+J"."move-window-down" = { };
-        "Mod+Alt+Shift+K"."move-window-up" = { };
-        "Mod+Alt+Shift+L"."move-column-right" = { };
-
-        "Mod+Page_Down"."focus-workspace-down" = { };
-        "Mod+Page_Up"."focus-workspace-up" = { };
-        "Mod+U"."focus-workspace-down" = { };
-        "Mod+I"."focus-workspace-up" = { };
-        "Mod+Ctrl+Page_Down"."move-column-to-workspace-down" = { };
-        "Mod+Ctrl+Page_Up"."move-column-to-workspace-up" = { };
-        "Mod+Ctrl+U"."move-column-to-workspace-down" = { };
-        "Mod+Ctrl+I"."move-column-to-workspace-up" = { };
-        "Mod+Shift+Page_Down"."move-workspace-down" = { };
-        "Mod+Shift+Page_Up"."move-workspace-up" = { };
-        "Mod+Shift+U"."move-workspace-down" = { };
-        "Mod+Shift+I"."move-workspace-up" = { };
-
-        "Mod+WheelScrollDown" = {
-          _props."cooldown-ms" = 150;
-          "focus-workspace-down" = { };
-        };
-
-        "Mod+WheelScrollUp" = {
-          _props."cooldown-ms" = 150;
-          "focus-workspace-up" = { };
-        };
-
-        "Mod+Ctrl+WheelScrollDown" = {
-          _props."cooldown-ms" = 150;
-          "move-column-to-workspace-down" = { };
-        };
-
-        "Mod+Ctrl+WheelScrollUp" = {
-          _props."cooldown-ms" = 150;
-          "move-column-to-workspace-up" = { };
-        };
-
-        "Mod+WheelScrollRight"."focus-column-right" = { };
-        "Mod+WheelScrollLeft"."focus-column-left" = { };
-        "Mod+Ctrl+WheelScrollRight"."move-column-right" = { };
-        "Mod+Ctrl+WheelScrollLeft"."move-column-left" = { };
-        "Mod+Shift+WheelScrollDown"."focus-column-right" = { };
-        "Mod+Shift+WheelScrollUp"."focus-column-left" = { };
-        "Mod+Ctrl+Shift+WheelScrollDown"."move-column-right" = { };
-        "Mod+Ctrl+Shift+WheelScrollUp"."move-column-left" = { };
-
-        "Mod+1"."focus-workspace" = 1;
-        "Mod+2"."focus-workspace" = 2;
-        "Mod+3"."focus-workspace" = 3;
-        "Mod+4"."focus-workspace" = 4;
-        "Mod+5"."focus-workspace" = 5;
-        "Mod+6"."focus-workspace" = 6;
-        "Mod+7"."focus-workspace" = 7;
-        "Mod+8"."focus-workspace" = 8;
-        "Mod+9"."focus-workspace" = 9;
-        "Mod+0"."focus-workspace" = 10;
-
-        "Mod+Ctrl+1"."move-column-to-workspace" = 1;
-        "Mod+Ctrl+2"."move-column-to-workspace" = 2;
-        "Mod+Ctrl+3"."move-column-to-workspace" = 3;
-        "Mod+Ctrl+4"."move-column-to-workspace" = 4;
-        "Mod+Ctrl+5"."move-column-to-workspace" = 5;
-        "Mod+Ctrl+6"."move-column-to-workspace" = 6;
-        "Mod+Ctrl+7"."move-column-to-workspace" = 7;
-        "Mod+Ctrl+8"."move-column-to-workspace" = 8;
-        "Mod+Ctrl+9"."move-column-to-workspace" = 9;
-        "Mod+Ctrl+0"."move-column-to-workspace" = 10;
-
-        "Mod+BracketLeft"."consume-or-expel-window-left" = { };
-        "Mod+BracketRight"."consume-or-expel-window-right" = { };
-        "Mod+Period"."expel-window-from-column" = { };
-
-        "Mod+Shift+Minus"."set-window-height" = "-10%";
-        "Mod+Shift+Equal"."set-window-height" = "+10%";
-
-        "Mod+Minus"."set-column-width" = "-10%";
-        "Mod+Equal"."set-column-width" = "+10%";
-        "Mod+Alt+R"."switch-preset-column-width" = { };
-        "Mod+Alt+Shift+R"."switch-preset-column-width-back" = { };
-        "Mod+Ctrl+Shift+R"."switch-preset-window-height" = { };
-        "Mod+Ctrl+R"."reset-window-height" = { };
-
-        "Mod+V"."toggle-window-floating" = { };
-        "Mod+Shift+V"."switch-focus-between-floating-and-tiling" = { };
-        "Mod+W"."toggle-column-tabbed-display" = { };
-
-        "Mod+F"."fullscreen-window" = { };
-        "Mod+Shift+F"."maximize-column" = { };
-        "Mod+M"."maximize-column" = { };
-        "Mod+Ctrl+F"."expand-column-to-available-width" = { };
-        "Mod+C"."center-column" = { };
-        "Mod+Ctrl+C"."center-visible-columns" = { };
-
-        Print.screenshot = { };
-        "Ctrl+Print"."screenshot-screen" = { };
-        "Alt+Print"."screenshot-window" = { };
-
-        "Mod+Escape" = {
-          _props."allow-inhibiting" = false;
-          "toggle-keyboard-shortcuts-inhibit" = { };
-        };
-
-        "Mod+Shift+E".quit = { };
-        "Ctrl+Alt+Delete".quit = { };
-      };
+      inherit binds;
 
       _children = [
         {
