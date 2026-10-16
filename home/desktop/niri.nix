@@ -17,6 +17,40 @@ let
         width = 1920;
       };
 
+  # Tray apps per VM, started with the session (spawn-at-startup) and again
+  # by `vm-tray <vm>` after that VM is (re)started (ms/mr in home/home.nix)
+  trayApps = {
+    sys-net = [
+      [
+        "nm-applet"
+        "--indicator"
+      ]
+    ];
+    chat = [
+      [
+        "vesktop"
+        "-m"
+      ]
+      # Electron on Wayland under wprs cannot re-show a window hidden to the
+      # tray (xen-migration.md, Known Issues): Element runs on XWayland
+      [
+        "element-desktop"
+        "--hidden"
+        "--ozone-platform=x11"
+      ]
+      [
+        "Telegram"
+        "-startintray"
+      ]
+    ];
+  };
+  trayCommands = lib.concatLists (
+    lib.mapAttrsToList (vm: map (app: [
+      "vm-run"
+      vm
+    ] ++ app)) trayApps
+  );
+
   binds = {
     # Replaces niri's built-in hotkey overlay (Mod+Shift+Slash)
     "Mod+Slash" = {
@@ -445,6 +479,23 @@ in
     dconf
     gsettings-desktop-schemas
 
+    # Starts the tray apps of one VM again (after a restart the old ones are
+    # gone); detached, vm-run waits for the VM itself
+    (writeShellScriptBin "vm-tray" ''
+      case "''${1:-}" in
+      ${lib.concatStrings (
+        lib.mapAttrsToList (
+          vm: apps:
+          "  ${vm})\n"
+          + lib.concatMapStrings (
+            app: "    setsid -f ${lib.escapeShellArgs ([ "vm-run" vm ] ++ app)} >/dev/null 2>&1\n"
+          ) apps
+          + "    ;;\n"
+        ) trayApps
+      )}  *) exit 0 ;;
+      esac
+    '')
+
     # Keybinding viewer: every bind from `binds` above, searchable in rofi;
     # Enter runs the bind's action through niri
     (writeShellScriptBin "niri-binds" ''
@@ -502,7 +553,9 @@ in
           { proportion = 0.66667; }
         ];
 
-        "default-column-width".proportion = 0.5;
+        # New windows open full width (as after Mod+M); Mod+Alt+R cycles the
+        # presets above
+        "default-column-width".proportion = 1.0;
 
         "focus-ring" = {
           width = 2;
@@ -584,21 +637,8 @@ in
         # Chat apps and zen at startup again: started with the session, wprsd
         # kept Super as pressed (apps got every key as Super+key); the wprs
         # modifier patch (modules/wprs-modifier-sync.patch) should release it
-        # (xen-migration.md, Known Issues).
-        { "spawn-at-startup"._args = [ "vm-run" "sn" "nm-applet" "--indicator" ]; }
-        { "spawn-at-startup"._args = [ "vm-run" "c" "vesktop" "-m" ]; }
-        # Electron on Wayland under wprs cannot re-show a window hidden to the
-        # tray (xen-migration.md, Known Issues): Element runs on XWayland
-        {
-          "spawn-at-startup"._args = [
-            "vm-run"
-            "c"
-            "element-desktop"
-            "--hidden"
-            "--ozone-platform=x11"
-          ];
-        }
-        { "spawn-at-startup"._args = [ "vm-run" "c" "Telegram" "-startintray" ]; }
+        # (xen-migration.md, Known Issues). The tray apps (`trayApps` above)
+        # are appended after this list.
         { "spawn-at-startup"._args = [ "kitty" "--class=kitty-main" ]; }
         {
           "spawn-at-startup"._args = [
@@ -668,7 +708,8 @@ in
             { opacity = 0.9; }
           ];
         }
-      ];
+      ]
+      ++ map (args: { "spawn-at-startup"._args = args; }) trayCommands;
     };
   };
 

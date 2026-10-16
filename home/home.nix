@@ -98,9 +98,21 @@ in
 
       PS1='\[\e[1;34m\]\u@\h\[\e[0m\] \[\e[1;32m\]\w\[\e[0m\] \$ '
 
-      ms() { systemctl start microvm@"$1".service; }
-      mst() { systemctl stop microvm@"$1".service; }
-      mr() { systemctl restart microvm@"$1".service; }
+      # sudo: NOPASSWD for microvm@ units (plain systemctl asks polkit for
+      # the password); one VM by its full name. A (re)started VM gets its
+      # tray apps again (vm-tray, home/desktop/niri.nix)
+      vmunit() {
+        [ $# -eq 2 ] && [ "$2" != help ] || { echo "usage: ms|mst|mr <vm>" >&2; return 2; }
+        local was
+        was=$(systemctl is-active microvm@"$2".service)
+        sudo systemctl "$1" microvm@"$2".service || return
+        if [ "$1" = restart ] || { [ "$1" = start ] && [ "$was" != active ]; }; then
+          vm-tray "$2"
+        fi
+      }
+      ms() { vmunit start "$@"; }
+      mst() { vmunit stop "$@"; }
+      mr() { vmunit restart "$@"; }
 
       # Pick a command from the list (fzf) and run it; pcmd: edit it first
       cmd() { local c; c=$(fzf < ${./resources/cmds}) && eval "$c"; }

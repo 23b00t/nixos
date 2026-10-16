@@ -168,7 +168,7 @@ keybinds clear-defaults=true {
         bind "Alt Ctrl n" { NewPane; }
         // bind "Alt p" { TogglePaneInGroup; }
         // bind "Alt Shift p" { ToggleGroupMarking; }
-        // bind "Alt Shift f" { ToggleFocusFullscreen; }
+        bind "Alt Shift f" { ToggleFocusFullscreen; }
         bind "Alt /" { TogglePanePinned; }
     }
     shared_except "locked" "renametab" "renamepane" {
