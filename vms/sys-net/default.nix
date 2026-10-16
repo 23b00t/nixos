@@ -18,6 +18,15 @@ let
   dom0TestAccess = vmRegistry.hostProfile.dom0TestAccess or null;
   # sys-print (C2) on the uplink: 10.1.0.<last octet of its registry IP>
   sysPrint = "10.1.0.${lib.last (lib.splitString "." vmRegistry.byName.sys-print.ip)}";
+  # Lab bridge vm-lab (kali tests the registry's labTarget VMs), only where
+  # kali runs. kali's lab vif: 00:00:00:00:02:<last octet of its IP as hex>
+  kali = lib.findFirst (d: d.name == "kali") null vmRegistry.imageDomains;
+  lab = kali != null;
+  kaliLabMac = "00:00:00:00:02:${
+    lib.fixedWidthString 2 "0" (
+      lib.toLower (lib.toHexString (lib.toInt (lib.last (lib.splitString "." kali.ip))))
+    )
+  }";
 in
 {
   imports = [
@@ -91,6 +100,14 @@ in
         Name = "vm-tails";
         Kind = "bridge";
       };
+    }
+    // lib.optionalAttrs lab {
+      # Lab: kali and the attached labTarget VMs (10.5.0.0/24), pure L2,
+      # sys-net has no address here and routes nothing in or out
+      "20-vm-lab".netdevConfig = {
+        Name = "vm-lab";
+        Kind = "bridge";
+      };
     };
     networks = {
       "30-vm-uplink" = {
@@ -125,6 +142,16 @@ in
         matchConfig.Name = "vif*";
         linkConfig.Unmanaged = true;
       };
+    }
+    // lib.optionalAttrs lab {
+      "30-vm-lab" = {
+        matchConfig.Name = "vm-lab";
+        networkConfig = {
+          ConfigureWithoutCarrier = true;
+          LinkLocalAddressing = "no";
+        };
+        linkConfig.RequiredForOnline = "no";
+      };
     };
   };
 
@@ -137,7 +164,8 @@ in
         "interface-name:vm-whx-ext"
         "interface-name:vm-tails"
         "interface-name:vif*"
-      ];
+      ]
+      ++ lib.optional lab "interface-name:vm-lab";
     };
     nftables = {
       enable = true;
@@ -149,6 +177,16 @@ in
             chain forward {
               # priority 0 would be skipped: br_netfilter re-injects after its own hook (prio 0)
               type filter hook forward priority filter; policy accept;
+              ${lib.optionalString lab ''
+                # Lab: only frames from or to kali; the targets never reach
+                # each other (ARP passes, IP does not). By MAC: the targets
+                # are own VMs. No conntrack on the bridge, so a target could
+                # also open connections to kali (kali offers no services)
+                meta ibrname "vm-lab" ether type arp accept
+                meta ibrname "vm-lab" ether saddr ${kaliLabMac} accept
+                meta ibrname "vm-lab" ether daddr ${kaliLabMac} accept
+                meta ibrname "vm-lab" drop
+              ''}
               iifname "vif*" oifname "vif*" drop
             }
           '';
@@ -183,6 +221,12 @@ in
         iifname "vm-whx-ext" oifname != { "vm-uplink", "vm-lan", "vm-whx-ext", "vm-tails" } accept
         # Tails -> outside only (it only speaks Tor itself)
         iifname "vm-tails" oifname != { "vm-uplink", "vm-lan", "vm-whx-ext", "vm-tails" } accept
+      ''
+      + lib.optionalString lab ''
+        # Lab: bridged frames stay on vm-lab (policy in the bridge table
+        # above); only matters if br_netfilter hands them to this chain
+        iifname "vm-lab" oifname "vm-lab" accept
+        iifname "vm-lab" reject with icmpx type admin-prohibited
       ''
       + lib.optionalString (dom0TestAccess != null) ''
         # Test phase: dom0 -> outside, HTTPS/DNS/NTP/ICMP only (as on the XMG),

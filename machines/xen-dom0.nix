@@ -18,6 +18,8 @@ let
     (vmRegistry.hostProfile.blockedHostDrivers.nic or [ ])
     ++ (vmRegistry.hostProfile.blockedHostDrivers.wifi or [ ]);
   dom0TestAccess = vmRegistry.hostProfile.dom0TestAccess or null;
+  # Kali image domain (machines/xmg/xen.nix), updated by update-all
+  hasKali = config.services.xen-image-domains.domains ? kali;
 
   # Destroys the domain of MicroVM $1 if it is still there after 30 s (shut
   # down but not torn down, still holding its PCI devices and memory)
@@ -62,8 +64,8 @@ let
 
     Full update: dom0 from the builder (dom0-update with the same arguments;
     --switch activates right away), then the Whonix-Gateway and -Workstation
-    (apt over Tor). New flake inputs first with flake-bump in nvim. Only
-    rebuild dom0: dom0-update.
+    (apt over Tor)${lib.optionalString hasKali ", then Kali (apt)"}. New flake inputs first with
+    flake-bump in nvim. Only rebuild dom0: dom0-update.
     EOF
       exit 1
     }
@@ -155,6 +157,14 @@ let
       sudo systemctl restart "xen-image@$ws"
     fi
 
+    ${lib.optionalString hasKali ''
+      # Kali (image domain, rolling): apt over sys-net, sudo asks for the
+      # password of `user` in the guest
+      ensure_running kali
+      echo "update-all: updating Kali" >&2
+      ssh -t kali-vm 'sudo apt-get update && sudo apt-get full-upgrade'
+      offer_restart kali
+    ''}
     offer_restart whonix-gateway
     echo "update-all: done" >&2
   '';
@@ -167,6 +177,7 @@ in
     ../modules/xen-links.nix
     ../modules/xen-image-domains.nix
     ../modules/xen-vnc.nix
+    ../modules/xen-lab.nix
     inputs.nox.nixosModules.relay
     inputs.nox.nixosModules.rpc
   ];

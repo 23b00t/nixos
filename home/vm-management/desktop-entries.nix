@@ -353,25 +353,28 @@ in
       categories = [ "Utility" ];
     })
 
-    # ---- Kali VM ---
-    # vm-run kali distrobox enter kali -- firefox-esr
+    # --- Kali (image domain, wprs over vchan) ---
+    (mkVmEntry {
+      name = "burpsuite kali";
+      genericName = "Web Security Testing";
+      vm = "kali";
+      binary = "burpsuite";
+      icon = "kali-burpsuite";
+      categories = [
+        "Network"
+        "Security"
+      ];
+    })
+
     (mkVmEntry {
       name = "firefox kali";
       genericName = "Web Browser";
       vm = "kali";
-      binary = "distrobox";
-      args = "enter kali -- firefox-esr";
+      binary = "firefox-esr";
       icon = "firefox";
       categories = [
         "Network"
         "WebBrowser"
-      ];
-      mimeType = [
-        "text/html"
-        "application/xhtml+xml"
-        "application/xml"
-        "application/pdf"
-        "application/x-xpinstall"
       ];
     })
 

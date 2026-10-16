@@ -18,6 +18,7 @@ let
   #   clipboard   : explicit copy/paste through dom0 (vm-clip, Mod+Alt+C/V): "allow" | "ask" (copying out of
   #                 the VM asks in dom0) | "deny"; absent = "deny" for sys-* VMs, else "allow"
   #   uplink      : driver domain serving the VM's uplink (needs `nat`): "sys-net" (default) | "sys-vpn" (vms/modules/net-config.nix)
+  #   labTarget   : kali may test this VM's apps: `vm-lab attach <vm>` hangs a vif on sys-net's vm-lab (10.5.0.<last octet>, vms/modules/lab-target.nix)
   vms = [
     {
       name = "nvim";
@@ -69,6 +70,8 @@ let
       allowGitHubAgent = true;
       enableHostDbusForward = true;
       features = [ "yazi" ];
+      # kali tests its apps over the lab bridge (vm-lab attach)
+      labTarget = true;
     }
     {
       # Windows apps (Bottles, no gaming); internet, but no session bus and
@@ -82,18 +85,6 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPTUop+lQO7/LZFvIJY+BO6n4jUS+Iy4xsRNtNfamVOH win-vm";
       allowGitHubAgent = false;
       enableHostDbusForward = false;
-    }
-    {
-      name = "kali";
-      short = "k";
-      storeGroup = "dev";
-      ip = "10.0.0.8";
-      autostart = false;
-      nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
-      enableHostDbusForward = false;
-      features = [ "yazi" ];
-      hosts = [ ];
     }
     {
       name = "office";
@@ -220,6 +211,8 @@ let
       enableHostDbusForward = false;
       features = [ "yazi" ];
       hosts = [ "xmg" ];
+      # kali tests its apps over the lab bridge (vm-lab attach)
+      labTarget = true;
     }
     {
       name = "ruby";
@@ -274,7 +267,7 @@ let
     # create-vm: registry-vms
   ];
 
-  # Image domains: guests from upstream disk images (Whonix), not NixOS and
+  # Image domains: guests from upstream disk images (Whonix, Kali), not NixOS and
   # not run by microvm.nix (modules/xen-image-domains.nix). Same fields as
   # `vms` where they apply. They have no admin link: `ip` is only the SSH
   # alias (SSH goes over vchan), `hostSSHKey` the key dom0 logs in with.
@@ -290,6 +283,16 @@ let
       short = "ww";
       ip = "10.0.0.28";
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXySg5FkNf1/uhANkgL7xyBtKvABMWQ3Y1BbQGkPZKU whonix-workstation-vm";
+    }
+    {
+      # Kali from the upstream QEMU image (machines/xmg/xen.nix); uplink via
+      # sys-net, second vif on the lab bridge (vm-lab) for testing labTarget VMs
+      name = "kali";
+      short = "k";
+      ip = "10.0.0.8";
+      # Same key as the former NixOS kali-vm (~/.ssh/kali-vm in dom0)
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
+      hosts = [ "xmg" ];
     }
   ];
 

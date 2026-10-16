@@ -269,7 +269,8 @@ the internal keyboard and touchpad are not on USB.
 | php, ruby | | ✓ | |
 | whonix-gateway, whonix-workstation | ✓ | ✓ | image domains |
 | win | ✓ | ✓ | Windows apps via Bottles (replaces wine) |
-| steam, godot, kali, mirage, nix | | | definitions kept (`hosts = [ ]`); steam prepared for the xmg |
+| kali | | ✓ | image domain (Kali QEMU image), lab bridge for Burp against `labTarget` VMs |
+| steam, godot, mirage, nix | | | definitions kept (`hosts = [ ]`); steam prepared for the xmg |
 
 ### New VM
 
@@ -444,6 +445,132 @@ which serves no DNS on `vm-whx-ext` yet, so snowflake does not work as is.
 **Update:** `update-all` (see "Full system update" under Build and update)
 updates both images with `upgrade-nonroot` (Gateway and
 Workstation).
+
+## Kali (from scratch)
+
+Kali runs on the xmg as a PVH image domain from the official QEMU image
+(domain in `machines/xmg/xen.nix`), like the Whonix-Workstation: pvgrub2
+boots Kali's kernel, the store disk brings nox-relay, sshd and wprsd. Apps
+over wprs (`vm-run k burpsuite`), updates with apt (`update-all`). The
+image domain integration expects the user `user` (UID 1000): Kali's `kali`
+is renamed once, offline.
+
+Network: first vif on sys-net's `vm-uplink` (10.1.0.8, internet), second
+vif on the lab bridge `vm-lab` (10.5.0.8). VMs with registry `labTarget`
+(php, coding) join the lab only on demand: `vm-lab attach <vm>`
+(10.5.0.<last octet of the VM's IP>), `vm-lab detach <vm>`, `vm-lab status`.
+In the lab only kali talks to the targets, the targets never reach each
+other; nothing is routed in or out.
+
+### 1. Download, verify, convert (in a VM with internet and ~40 GB free, e.g. coding)
+
+dom0 is offline. Check the current version on kali.org first.
+
+```sh
+V=2026.2
+B=https://cdimage.kali.org/kali-$V
+FPR=827C8569F2518CC677FECA1AED65462EC8D5E4C5
+mkdir -p ~/kali && cd ~/kali
+export GNUPGHOME="$PWD/gnupg"; mkdir -p -m 700 "$GNUPGHOME"
+curl -fsSL https://archive.kali.org/archive-key.asc | gpg --batch --import
+gpg --batch --with-colons --fingerprint | grep -q "^fpr:::::::::$FPR:" && echo "key ok"
+f=kali-linux-$V-qemu-amd64.7z
+curl -fSL -C - -O "$B/$f"
+curl -fsSL -O "$B/SHA256SUMS" -O "$B/SHA256SUMS.gpg"
+gpg --batch --status-fd 1 --verify SHA256SUMS.gpg SHA256SUMS | grep -qE "VALIDSIG .*$FPR" && echo "sums ok"
+grep " $f\$" SHA256SUMS | sha256sum -c -
+nix shell nixpkgs#p7zip -c 7z e "$f" && rm "$f"
+nix shell nixpkgs#qemu-utils -c qemu-img convert -p -O raw -S 4k kali-linux-$V-qemu-amd64.qcow2 kali.raw
+rm kali-linux-$V-qemu-amd64.qcow2
+nix shell nixpkgs#util-linux -c sfdisk -l kali.raw   # root partition -> rootPartition in machines/xmg/xen.nix
+```
+
+Into dom0 (sparse, as for Whonix):
+
+```sh
+mkdir -p ~/vm-images/kali
+ssh coding-vm 'tar -cS -C kali kali.raw | zstd -T0 -3' | zstd -d | tar -xS -C ~/vm-images/kali
+ssh coding-vm 'rm -rf kali'
+```
+
+### 2. Prepare the image (dom0, once, domain stopped)
+
+Rename `kali` to `user`, set its password, boot to multi-user (no display
+manager) and add the NetworkManager profiles (matched by MAC).
+
+```sh
+cd ~/vm-images/kali
+P=1   # root partition from sfdisk -l
+start=$(sfdisk -d kali.raw | sed -n "s/^kali.raw$P : start= *\([0-9]*\),.*/\1/p")
+sudo mkdir -p /mnt/kali
+sudo mount -o loop,offset=$((start * 512)) kali.raw /mnt/kali
+sudo usermod -R /mnt/kali -l user -d /home/user -m kali
+sudo groupmod -R /mnt/kali -n user kali
+sudo chpasswd -R /mnt/kali <<< 'user:<new password>'
+sudo ln -sf /lib/systemd/system/multi-user.target /mnt/kali/etc/systemd/system/default.target
+sudo tee /mnt/kali/etc/NetworkManager/system-connections/uplink.nmconnection >/dev/null <<'EOF'
+[connection]
+id=uplink
+type=ethernet
+autoconnect=true
+
+[ethernet]
+mac-address=00:00:00:00:01:08
+
+[ipv4]
+method=manual
+address1=10.1.0.8/24,10.1.0.254
+dns=9.9.9.9;149.112.112.112;
+
+[ipv6]
+method=disabled
+EOF
+sudo tee /mnt/kali/etc/NetworkManager/system-connections/lab.nmconnection >/dev/null <<'EOF'
+[connection]
+id=lab
+type=ethernet
+autoconnect=true
+
+[ethernet]
+mac-address=00:00:00:00:02:08
+
+[ipv4]
+method=manual
+address1=10.5.0.8/24
+never-default=true
+
+[ipv6]
+method=disabled
+EOF
+sudo chmod 600 /mnt/kali/etc/NetworkManager/system-connections/*.nmconnection
+sudo umount /mnt/kali
+```
+
+### 3. SSH key, units
+
+The key `~/.ssh/kali-vm` (from the former NixOS kali) is in the registry
+already. Only on a machine without it: `ssh-keygen -t ed25519 -N "" -C
+kali-vm -f ~/.ssh/kali-vm` and put the public key into `imageDomains` in
+`vms/registry.nix`. After `dom0-update --switch`:
+
+```sh
+xen-image-setup kali
+```
+
+### 4. Use
+
+```sh
+sudo systemctl start xen-image@kali
+vm-run -c k 'ip -br addr; curl -sS https://ifconfig.me'
+vm-lab attach php             # php reachable from kali at 10.5.0.15
+vm-run k burpsuite            # proxy listener 127.0.0.1:8080
+vm-run k firefox-esr          # proxy 127.0.0.1:8080, import Burp's CA (http://burp)
+#   target e.g. http://10.5.0.15:8500 (the app must listen on 0.0.0.0)
+vm-lab detach php
+```
+
+If the domain does not come up: `sudo xl console kali-vm` (Kali's kernel
+needs `CONFIG_XEN_PVH`; fallback would be HVM with a stubdomain like Tails).
 
 ## Tails (HVM with a Linux stubdomain)
 

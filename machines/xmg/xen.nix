@@ -4,6 +4,7 @@
   config,
   lib,
   pkgs,
+  vmRegistry,
   ...
 }:
 let
@@ -54,9 +55,6 @@ in
     };
   };
 
-  # hp and xmg share the branch `hp` (one branch, two machines)
-  services.dom0-update.branch = "hp";
-
   # sys-usb owns the only USB controller (00:14.0): USB keyboard and mice only
   # reach dom0 over the input proxy once it runs (the internal keyboard and
   # touchpad are not on USB). irc's only uplink is the Whonix-Gateway, which
@@ -70,7 +68,45 @@ in
     "coding"
     "irc"
   ];
-  services.xen-image-domains.domains.whonix-gateway.autostart = true;
+  services = {
+    # hp and xmg share the branch `hp` (one branch, two machines)
+    dom0-update.branch = "hp";
+
+    xen-image-domains.domains = {
+      whonix-gateway.autostart = true;
+
+      # Kali from the upstream QEMU image (README "Kali (from scratch)"):
+      # pvgrub2 boots Kali's kernel, apps over wprs (`vm-run k burpsuite`),
+      # updates with apt in the guest (update-all). First vif: uplink on
+      # sys-net (10.1.0.8), second vif: lab bridge vm-lab (10.5.0.8) to the
+      # labTarget VMs (`vm-lab attach php`). The addresses are NetworkManager
+      # profiles in the guest, matched by MAC (README).
+      kali = {
+        image = "/home/nx/vm-images/kali/kali.raw";
+        # Check with `sfdisk -l kali.raw` before the first setup
+        rootPartition = 1;
+        memory = 6144;
+        vcpus = 4;
+        vifs = [
+          {
+            mac = "00:00:00:00:01:08";
+            bridge = "vm-uplink";
+          }
+          {
+            mac = "00:00:00:00:02:08";
+            bridge = "vm-lab";
+          }
+        ];
+        wprs = true;
+        authorizedKeys = map (d: d.hostSSHKey) (
+          builtins.filter (d: d.name == "kali") vmRegistry.imageDomains
+        );
+      };
+    };
+
+    # Lab bridge for kali: `vm-lab attach|detach <vm>`, `vm-lab status`
+    xen-lab.enable = true;
+  };
 
   # GSI 18 is shared by the RTL8125 (sys-net, INTx with pci=nomsi), the SMBus
   # (00:1f.4) and the dGPU's HDMI audio (02:00.1). While dom0 drivers hold

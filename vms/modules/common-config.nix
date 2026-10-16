@@ -48,6 +48,7 @@ in
     ./xen-meminfo.nix
     ./usbip-client.nix
     ./vchan-relay.nix
+    ./lab-target.nix
   ];
 
   options.services.common-config = {

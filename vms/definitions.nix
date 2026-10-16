@@ -15,7 +15,6 @@ in
     };
   };
   win = mkVm "win";
-  kali = mkVm "kali";
   office = mkVm "office";
   vault = mkVm "vault";
   irc = mkVm "irc";
