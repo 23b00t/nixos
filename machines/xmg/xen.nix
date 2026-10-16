@@ -1,8 +1,58 @@
 # Xen dom0 on xmg: the shared dom0 (machines/xen-dom0.nix) plus what only
 # this machine needs.
-{ lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  xl = "${config.virtualisation.xen.package}/bin/xl";
+
+  # steam gets the P-cores to itself while it runs: CPUs 0-15 (8 P-cores
+  # with HT) move from Pool-0 into the cpupool "steam" (vms/steam:
+  # microvm.xen.pool), dom0 and the other VMs keep the E-cores 16-31. A CPU
+  # Xen refuses to move (CPU 0 may have to stay in Pool-0) stays there
+  steamPoolUp = pkgs.writeShellScript "steam-cpupool-up" ''
+    set -u
+    ${xl} cpupool-list | ${pkgs.gawk}/bin/awk '$1 == "steam" { found = 1 } END { exit !found }' ||
+      ${xl} cpupool-create name=\"steam\" || exit 1
+    for cpu in $(seq 0 15); do
+      ${xl} cpupool-cpu-remove Pool-0 "$cpu" 2>/dev/null || {
+        echo "steam-cpupool: CPU $cpu stays in Pool-0" >&2
+        continue
+      }
+      ${xl} cpupool-cpu-add steam "$cpu" || ${xl} cpupool-cpu-add Pool-0 "$cpu"
+    done
+  '';
+  # After the stop (the domain is gone, ExecStopPost of microvm@ in
+  # machines/xen-dom0.nix runs first): everything back to Pool-0
+  steamPoolDown = pkgs.writeShellScript "steam-cpupool-down" ''
+    set -u
+    ${xl} cpupool-list | ${pkgs.gawk}/bin/awk '$1 == "steam" { found = 1 } END { exit !found }' || exit 0
+    for cpu in $(seq 0 15); do
+      ${xl} cpupool-cpu-remove steam "$cpu" 2>/dev/null && ${xl} cpupool-cpu-add Pool-0 "$cpu"
+    done
+    ${xl} cpupool-destroy steam
+  '';
+in
 {
   imports = [ ../xen-dom0.nix ];
+
+  # dom0 with 6 GB (measured 2026-10-15: 2.0 GB used + 0.7 GB shared of
+  # 6.8 GB). The xmg evaluates and builds in the builder VM (dom0-update),
+  # not in dom0; hp keeps 8 GB (local evaluation, machines/xen-dom0.nix)
+  virtualisation.xen.dom0Resources = {
+    memory = lib.mkForce 6144;
+    maxMemory = 6144;
+  };
+
+  systemd.services."microvm@steam" = lib.mkIf (config.microvm.vms ? steam) {
+    serviceConfig = {
+      ExecStartPre = [ steamPoolUp ];
+      ExecStopPost = [ steamPoolDown ];
+    };
+  };
 
   # hp and xmg share the branch `hp` (one branch, two machines)
   services.dom0-update.branch = "hp";

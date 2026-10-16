@@ -55,8 +55,9 @@ in
     xen = {
       # PCI passthrough with a PVH dom0 only works for HVM guests
       type = "hvm";
-      # P-cores, as the CPUAffinity under KVM
-      cpus = "0-9";
+      # P-cores: dom0 (machines/xmg/xen.nix) moves CPUs 0-15 into this
+      # pool while steam runs (before: cpus = "0-9", shared with Pool-0)
+      pool = "steam";
       # The NVIDIA driver writes config space registers pciback filters
       # otherwise (common for GPU passthrough on Xen)
       # SeaBIOS ran the NVIDIA VGA option ROM from the passed-through card and
