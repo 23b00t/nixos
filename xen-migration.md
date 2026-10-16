@@ -728,7 +728,7 @@ Reihenfolge: **vanilla → sys-vpn → win → kali** (einfach → aufwendig; sy
 - **Erledigt:** Schlüssel `~/.ssh/vanilla-vm` erzeugt, `hostSSHKey` in der Registry. **Beim Test:** `dom0-update`, optional `vmcopy-keys vanilla`.
 - **Abnahme:** `vm-run -c va true`; `nix profile install nixpkgs#hello` → `hello` läuft, nach Neustart der VM noch da; eine GUI-App (z. B. `nixpkgs#gnome-calculator`) per `vm-run va gnome-calculator`; `nix-collect-garbage` in der VM löscht das System nicht.
 
-#### 2. sys-vpn
+#### 2. sys-vpn (umgesetzt 2026-10-16, ungebaut, ungetestet)
 
 - **Ziel:** VPN-Gateway als eigene Domain, im Routing eingesetzt wie das Whonix-Gateway: Client-VMs hängen mit ihrem Uplink-vif an sys-vpn statt an sys-net. Provider werden in der VM konfiguriert (nicht im Repo), erster Kandidat Proton VPN.
 - **Basis:** NixOS-MicroVM als Driver-Domain wie sys-net (`microvm.xen.driverDomain = true`, `xl devd` + vif-bridge), aber ohne PCI → PVH versuchen (sys-net/sys-usb sind nur wegen PCI-Passthrough HVM; prüfen, ob der Fork Driver-Domains als PVH kann, sonst HVM). storeGroup `sys`, `allowVmCopy` an (nur damit Provider-Configs per `vm-copy` aus net hineinkommen; dom0 fragt), `allowGitHubAgent = false`, wprs für `nm-connection-editor`/nm-applet.
@@ -744,6 +744,8 @@ Reihenfolge: **vanilla → sys-vpn → win → kali** (einfach → aufwendig; sy
 - **Schritte:** Registry-Eintrag + Feld `uplink`; `net-config.nix` erweitern; `vms/sys-vpn/default.nix` (Bridge, nft, NAT, dnsmasq, NM, Volume); erster Client: vanilla mit `uplink = "sys-vpn"`; README (VMs je Maschine, Netzplan).
 - **Abnahme:** in vanilla `curl https://ifconfig.me` zeigt eine Proton-IP; Tunnel in sys-vpn trennen → vanilla hat weder Verbindung noch DNS; DNS-Leak-Test zeigt nur Proton-Resolver; zwei Clients an sys-vpn erreichen sich nicht; sys-vpn-Neustart → Clients wieder online (xen-links hängt vifs neu an).
 - **Nicht im Plan:** Whonix-Gateway hinter VPN, Provider deklarativ im Repo.
+- **Umsetzung (Abweichungen/Details):** `vms/sys-vpn` (Index 30, `sv`, storeGroup `sys`, PVH-Driver-Domain, Fallback `xen.type = "hvm"`); `net-config.nix` leitet die Uplink-Defaults aus dem Registry-Feld `uplink` ab (Tabelle `uplinkBackends`, Assertions für unbekannte Backends und fehlendes `nat`), DNS-Default für sys-vpn-Clients `10.4.0.254`; dom0: `microvm@<client>` zieht `microvm@sys-vpn` mit (`wants`/`after`, `machines/xen-dom0.nix`), sys-vpn bleibt ohne Autostart; sys-vpn bekommt keinen USB/IP-Link (`vms/usb-links.nix` `noTarget`). Killswitch per Forward-Regeln nur nach `wg*`/`tun*` + Masquerade nur dort; dnsmasq mit `servers-file`, das ein NM-Dispatcher beim Tunnel-Up/-Down schreibt/leert (`server=<dns>@<iface>`). Annahmen: Tunnel-Interfaces heißen `wg*`/`tun*` (bei NM-Import Dateiname bzw. `connection.interface-name` entsprechend wählen), ein Tunnel gleichzeitig. Erster Client: vanilla (`uplink = "sys-vpn"` in der Registry).
+- **Offen (User, dom0):** `ssh-keygen -t ed25519 -N "" -C sys-vpn-vm -f ~/.ssh/sys-vpn-vm`, Public Key statt Platzhalter in die Registry. **Beim Test:** `vmcopy-keys sys-vpn`; Proton-WireGuard-Config per `vm-copy` aus net, in sys-vpn `nmcli connection import type wireguard file ~/incoming/net/wg-proton.conf`.
 
 #### 3. win (ersetzt wine)
 

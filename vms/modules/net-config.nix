@@ -27,6 +27,29 @@ let
 
   indexHex = fixedWidthString 2 "0" (toLower (toHexString cfg.index));
 
+  # Backend of the uplink by registry field `uplink` (default sys-net). The
+  # backends are driver domains serving `bridge`; the VM gets `<net>.<index>`
+  # there, `<net>.254` is the backend's address (gateway).
+  uplinkBackends = {
+    sys-net = {
+      backend = "sys-net-vm";
+      backendAddress = "10.0.0.253";
+      bridge = "vm-uplink";
+      net = "10.1.0";
+    };
+    # VPN gateway with killswitch (vms/sys-vpn); DNS only through the tunnel,
+    # served by sys-vpn itself
+    sys-vpn = {
+      backend = "sys-vpn-vm";
+      backendAddress = "/run/nox-relay/sys-vpn-ssh.sock";
+      bridge = "vm-vpn";
+      net = "10.4.0";
+      dns = [ "10.4.0.254" ];
+    };
+  };
+  uplinkName = currentVm.uplink or "sys-net";
+  uplinkBackend = uplinkBackends.${uplinkName};
+
   hostPkgs = config.microvm.vmHostPackages;
 in
 {
@@ -73,12 +96,14 @@ in
 
     dns = mkOption {
       type = types.listOf types.str;
-      default = [
-        "9.9.9.9"
-        "149.112.112.112"
-        "2620:fe::fe"
-        "2620:fe::9"
-      ];
+      default =
+        uplinkBackend.dns or [
+          "9.9.9.9"
+          "149.112.112.112"
+          "2620:fe::fe"
+          "2620:fe::9"
+        ];
+      defaultText = literalExpression "the uplink backend's DNS (sys-vpn: 10.4.0.254), else Quad9";
       description = "DNS servers for the guest.";
     };
 
@@ -107,32 +132,36 @@ in
 
       address4 = mkOption {
         type = types.str;
-        default = "10.1.0.${toString cfg.index}/24";
-        defaultText = literalExpression ''"10.1.0.<index>/24"'';
+        default = "${uplinkBackend.net}.${toString cfg.index}/24";
+        defaultText = literalExpression ''"10.1.0.<index>/24" (sys-net), "10.4.0.<index>/24" (sys-vpn)'';
         description = "IPv4 address of the uplink interface.";
       };
 
       gateway4 = mkOption {
         type = types.str;
-        default = "10.1.0.254";
-        description = "Default gateway on the uplink (sys-net).";
+        default = "${uplinkBackend.net}.254";
+        defaultText = literalExpression ''"10.1.0.254" (sys-net), "10.4.0.254" (sys-vpn)'';
+        description = "Default gateway on the uplink (the backend).";
       };
 
       backend = mkOption {
         type = types.str;
-        default = "sys-net-vm";
+        default = uplinkBackend.backend;
+        defaultText = literalExpression ''"<registry uplink>-vm" (default "sys-net-vm")'';
         description = "Xen domain serving the uplink (driver domain).";
       };
 
       backendAddress = mkOption {
         type = types.str;
-        default = "10.0.0.253";
+        default = uplinkBackend.backendAddress;
+        defaultText = literalExpression ''"10.0.0.253" (sys-net), "/run/nox-relay/sys-vpn-ssh.sock" (sys-vpn)'';
         description = "Admin address (port 22) or relay SSH socket (absolute path) of the backend domain, used to wait for it before starting.";
       };
 
       bridge = mkOption {
         type = types.str;
-        default = "vm-uplink";
+        default = uplinkBackend.bridge;
+        defaultText = literalExpression ''"vm-uplink" (sys-net), "vm-vpn" (sys-vpn)'';
         description = "Bridge in the backend domain.";
       };
     };
@@ -149,6 +178,14 @@ in
       {
         assertion = !cfg.uplink.enable || (cfg.index != null && config.microvm.hypervisor == "xen");
         message = "services.net-config.uplink needs an index and microvm.hypervisor = \"xen\".";
+      }
+      {
+        assertion = uplinkBackends ? ${uplinkName};
+        message = "registry: unknown uplink \"${uplinkName}\" for ${vmName} (${concatStringsSep ", " (attrNames uplinkBackends)})";
+      }
+      {
+        assertion = uplinkName == "sys-net" || (currentVm.nat or false);
+        message = "registry: uplink = \"${uplinkName}\" for ${vmName} needs nat = true";
       }
     ];
 

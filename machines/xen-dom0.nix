@@ -440,7 +440,24 @@ in
           done
         '';
       };
-    };
+    }
+    # VMs with `uplink = "sys-vpn"` (registry) start sys-vpn with them; their
+    # preStart then waits for its sshd (vms/modules/net-config.nix)
+    // lib.listToAttrs (
+      map
+        (vm: {
+          name = "microvm@${vm.name}";
+          value = {
+            wants = [ "microvm@sys-vpn.service" ];
+            after = [ "microvm@sys-vpn.service" ];
+          };
+        })
+        (
+          builtins.filter (
+            vm: (vm.uplink or "sys-net") == "sys-vpn" && config.microvm.vms ? ${vm.name}
+          ) vmRegistry.vms
+        )
+    );
 
     network.networks =
       # Admin network: every VM port is isolated, so VMs reach dom0 (the

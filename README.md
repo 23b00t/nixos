@@ -264,7 +264,8 @@ the internal keyboard and touchpad are not on USB.
 | nvim, coding, chat, net, office, vault | ✓ | ✓ | |
 | irc | ✓ | ✓ | only uplink: Whonix-Gateway |
 | builder, sys-print | ✓ | ✓ | |
-| vanilla | ✓ | ✓ | only common-config, software imperatively in the store overlay |
+| sys-vpn | ✓ | ✓ | VPN driver domain with killswitch for VMs with registry `uplink = "sys-vpn"` |
+| vanilla | ✓ | ✓ | only common-config, software imperatively in the store overlay; uplink via sys-vpn (test) |
 | php, ruby | | ✓ | |
 | whonix-gateway, whonix-workstation | ✓ | ✓ | image domains |
 | steam, godot, wine, kali, mirage, nix | | | definitions kept (`hosts = [ ]`); steam prepared for the xmg |

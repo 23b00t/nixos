@@ -33,5 +33,6 @@ in
   builder = mkVm "builder";
   sys-print = mkVm "sys-print";
   vanilla = mkVm "vanilla";
+  sys-vpn = mkVm "sys-vpn";
   # create-vm: definitions
 }

@@ -17,6 +17,7 @@ let
   #   hosts       : machines that run this VM (`forHost` below); absent = all machines, [ ] = none (definition kept)
   #   clipboard   : explicit copy/paste through dom0 (vm-clip, Mod+Alt+C/V): "allow" | "ask" (copying out of
   #                 the VM asks in dom0) | "deny"; absent = "deny" for sys-* VMs, else "allow"
+  #   uplink      : driver domain serving the VM's uplink (needs `nat`): "sys-net" (default) | "sys-vpn" (vms/modules/net-config.nix)
   vms = [
     {
       name = "nvim";
@@ -250,7 +251,21 @@ let
       ip = "10.0.0.29";
       autostart = false;
       nat = true;
+      # First client of sys-vpn (test); remove for the direct uplink via sys-net
+      uplink = "sys-vpn";
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILmmEUd+6XhVoZtv9MH6Z/eBSgNxwMgEjBchegx2JuiS vanilla-vm";
+      allowGitHubAgent = false;
+    }
+    {
+      # VPN gateway (driver domain, killswitch) for VMs with `uplink = "sys-vpn"`;
+      # its own uplink goes to sys-net. Provider configs come in by vm-copy
+      name = "sys-vpn";
+      short = "sv";
+      storeGroup = "sys";
+      ip = "10.0.0.30";
+      autostart = false;
+      nat = true;
+      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMO7+AsxkBR62JHOSsKup+pI/sVvPONEzOf5ypuXCeNZ sys-vpn-vm";
       allowGitHubAgent = false;
     }
     # create-vm: registry-vms
