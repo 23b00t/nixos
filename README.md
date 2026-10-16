@@ -218,6 +218,9 @@ passthrough (sys-net, sys-usb, steam) have fixed memory.
   only. `eth1` inside the gateway (`10.152.152.10/18`): irc and the
   Workstation, so sys-net only ever sees Tor traffic.
 - `vm-tails` in sys-net (`10.3.0.1/24`, DHCP): Tails only.
+- `vm-vpn` in sys-vpn (`10.4.0.254/24`): uplink of VMs with registry
+  `uplink = "sys-vpn"` (`10.4.0.<index>`), only through the VPN tunnel
+  (see "sys-vpn (VPN)").
 - vifs are re-attached by `xen-links` when a driver domain restarts.
 - Never remove the dom0 networkd rule that leaves `vnet*` unmanaged.
 
@@ -625,6 +628,66 @@ For a permanent launcher in dom0 add an entry to
 
 winetricks outside Bottles works on a bottle's prefix as well:
 `vm-run -c w 'WINEPREFIX=~/.local/share/bottles/bottles/<bottle> winetricks <verb>'`.
+
+## sys-vpn (VPN)
+
+sys-vpn is a driver domain like the Whonix-Gateway: client VMs get their
+uplink from it (bridge `vm-vpn`, `10.4.0.<index>`, gateway and DNS
+`10.4.0.254`), sys-vpn itself goes out through sys-net. NetworkManager in
+sys-vpn runs the tunnel; the provider config lives on its volume
+(`/etc/NetworkManager/system-connections`), never in the repo.
+
+- **Killswitch:** clients are only forwarded into tunnel interfaces
+  (`wg*`, `tun*`), everything else is rejected. Without a tunnel the
+  clients have neither internet nor DNS.
+- **DNS:** dnsmasq in sys-vpn forwards only to the tunnel's DNS server
+  (written to `/run/sys-vpn/dns-servers` by an NM dispatcher on tunnel
+  up, emptied on down).
+- Clients are IPv4 only; they can't reach each other.
+
+### Set up a provider (Proton VPN, WireGuard)
+
+WireGuard is preferred: NetworkManager imports the config as is, no extra
+credentials (OpenVPN would need Proton's OpenVPN username/password and
+`networkmanager-openvpn`, which is installed).
+
+1. In net: account.protonvpn.com → Downloads → WireGuard configuration,
+   platform GNU/Linux, pick a server, create and download.
+2. **Rename the file to `wg-<name>.conf`** (e.g. `wg-proton.conf`, at
+   most 15 characters): NetworkManager names the interface after the file,
+   and the killswitch only forwards into `wg*`/`tun*`.
+3. Still in net: `vm-copy sys-vpn ~/Downloads/wg-proton.conf` (dom0
+   asks); it lands in `~/Incoming/net/` in sys-vpn.
+4. In sys-vpn (`ssh sys-vpn`):
+
+   ```sh
+   sudo nmcli connection import type wireguard file ~/Incoming/net/wg-proton.conf
+   sudo nmcli connection modify wg-proton connection.autoconnect yes
+   nmcli connection up wg-proton
+   ip -br link | grep wg               # wg-proton UP
+   cat /run/sys-vpn/dns-servers        # server=10.2.0.1@wg-proton
+   rm ~/Incoming/net/wg-proton.conf    # holds the private key
+   ```
+
+   Further servers: the same with another `wg-<name>.conf`; only one
+   tunnel should be up at a time.
+
+Note: Proton's tunnel uses `10.2.0.0/24` (DNS `10.2.0.1`), the same range
+as our `vm-usbip`. That does not matter for the clients (they only talk to
+`10.4.0.254`), but don't route `10.2.0.x` through sys-vpn.
+
+### Use
+
+- A VM goes through the VPN with `uplink = "sys-vpn"` (and `nat = true`)
+  in `vms/registry.nix`, then rebuild and restart the VM. Starting it
+  also starts sys-vpn (vanilla is the first client).
+- Check in the client: `curl -s https://ifconfig.me` shows the VPN's IP.
+- Tunnel in sys-vpn: `nmcli connection show --active`,
+  `nmcli connection down|up wg-proton`. With the tunnel down, clients
+  are offline; names they resolved before may still answer from their
+  own cache (`resolvectl flush-caches` in the client).
+- Switching server: `nmcli connection down wg-proton` and `up` another
+  `wg-…` connection.
 
 ## Tails (HVM with a Linux stubdomain)
 
