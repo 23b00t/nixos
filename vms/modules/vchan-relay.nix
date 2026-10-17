@@ -134,9 +134,11 @@ in
                 DISPLAY = ":100";
                 XDG_SESSION_TYPE = "wayland";
                 PULSE_SERVER = "unix:/tmp/wprs-pulse";
-                # GTK3 apps; GTK4/libadwaita follow dconf's color-scheme
-                # (common-config.nix)
+                # Dark: GTK3 by theme; libadwaita reads the color scheme from
+                # the settings portal, which VMs lack (dconf's default in
+                # common-config.nix did not reach Bottles in win)
                 GTK_THEME = "Adwaita:dark";
+                ADW_DEBUG_COLOR_SCHEME = "prefer-dark";
                 # dom0's filtered bus where forwarded, else the VM's own
                 # session bus: without one dconf can't save (Bottles closed
                 # every bottle it opened, win 2026-10-16)

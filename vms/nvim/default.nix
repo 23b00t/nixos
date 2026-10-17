@@ -50,6 +50,8 @@ in
     ../modules/zsh.nix
     ../modules/zellij.nix
     ../modules/common-config.nix
+    # Terminal (foot) over wprs as a niri tab in dom0
+    ../modules/wprs.nix
   ];
 
   networking.hostName = "nvim-vm";

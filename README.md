@@ -535,7 +535,7 @@ type=ethernet
 autoconnect=true
 
 [ethernet]
-mac-address=00:00:00:00:02:08
+mac-address=00:00:00:00:03:08
 
 [ipv4]
 method=manual

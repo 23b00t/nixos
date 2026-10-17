@@ -313,16 +313,18 @@ let
     "Mod+Ctrl+Shift+WheelScrollDown"."move-column-right" = { };
     "Mod+Ctrl+Shift+WheelScrollUp"."move-column-left" = { };
 
-    "Mod+1"."focus-workspace" = 1;
-    "Mod+2"."focus-workspace" = 2;
-    "Mod+3"."focus-workspace" = 3;
-    "Mod+4"."focus-workspace" = 4;
-    "Mod+5"."focus-workspace" = 5;
-    "Mod+6"."focus-workspace" = 6;
-    "Mod+7"."focus-workspace" = 7;
-    "Mod+8"."focus-workspace" = 8;
-    "Mod+9"."focus-workspace" = 9;
-    "Mod+0"."focus-workspace" = 10;
+    # Tabs of the focused column (VM terminals) by number; workspaces are
+    # reached with Mod+Page_Up/Down (Mod+I/U), Mod+Ctrl+<n> still moves columns
+    "Mod+1"."focus-window-in-column" = 1;
+    "Mod+2"."focus-window-in-column" = 2;
+    "Mod+3"."focus-window-in-column" = 3;
+    "Mod+4"."focus-window-in-column" = 4;
+    "Mod+5"."focus-window-in-column" = 5;
+    "Mod+6"."focus-window-in-column" = 6;
+    "Mod+7"."focus-window-in-column" = 7;
+    "Mod+8"."focus-window-in-column" = 8;
+    "Mod+9"."focus-window-in-column" = 9;
+    "Mod+0"."focus-window-bottom" = { };
 
     "Mod+Ctrl+1"."move-column-to-workspace" = 1;
     "Mod+Ctrl+2"."move-column-to-workspace" = 2;
@@ -556,6 +558,17 @@ in
         # New windows open full width (as after Mod+M); Mod+Alt+R cycles the
         # presets above
         "default-column-width".proportion = 1.0;
+
+        # Tabbed columns (VM terminals): one segment per tab, the focused
+        # one in the accent color; the focus ring colors were too alike
+        "tab-indicator" = {
+          "hide-when-single-tab" = { };
+          "gaps-between-tabs" = 4;
+          width = 4;
+          "corner-radius" = 2;
+          "active-color" = theme.color.accent;
+          "inactive-color" = theme.withAlpha "muted" 0.6;
+        };
 
         "focus-ring" = {
           width = 2;

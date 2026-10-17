@@ -85,7 +85,12 @@ rec {
   # (home/kitty/kitty.nix, current-theme.conf); dom0 (home/home.nix) and
   # the VMs over wprs (vms/modules/wprs.nix)
   foot = {
-    main.font = "${font.family}:size=11.5";
+    # Medium: Regular looked thin in foot next to kitty (kitty thickens
+    # glyphs, foot does not); bold set explicitly, foot derives it otherwise
+    main = {
+      font = "${font.family}:style=Medium:size=11.5";
+      font-bold = "${font.family}:style=Bold:size=11.5";
+    };
     scrollback.lines = 2000;
     mouse.hide-when-typing = "yes";
     colors-dark = {
