@@ -546,6 +546,10 @@ sudo mount -o loop,offset=$((start * 512)) kali.raw /mnt/kali
 sudo usermod -R /mnt/kali -l user -d /home/user -m kali
 sudo groupmod -R /mnt/kali -n user kali
 sudo chpasswd -R /mnt/kali <<< 'user:<new password>'
+# update-all: apt without a password (apt options can run commands as root,
+# so this is root without a password for `user`; fine for the lab VM)
+echo 'user ALL=(root) NOPASSWD: /usr/bin/apt-get' | sudo tee /mnt/kali/etc/sudoers.d/nox-apt >/dev/null
+sudo chmod 440 /mnt/kali/etc/sudoers.d/nox-apt
 sudo ln -sf /lib/systemd/system/multi-user.target /mnt/kali/etc/systemd/system/default.target
 sudo tee /mnt/kali/etc/NetworkManager/system-connections/uplink.nmconnection >/dev/null <<'EOF'
 [connection]
@@ -594,6 +598,13 @@ kali-vm -f ~/.ssh/kali-vm` and put the public key into `imageDomains` in
 
 ```sh
 xen-image-setup kali
+```
+
+An existing image without the sudo rule for apt (`update-all` asks for the
+password otherwise), once with kali running:
+
+```sh
+ssh -t kali-vm "echo 'user ALL=(root) NOPASSWD: /usr/bin/apt-get' | sudo tee /etc/sudoers.d/nox-apt >/dev/null && sudo chmod 440 /etc/sudoers.d/nox-apt && sudo visudo -c"
 ```
 
 ### 4. Use
