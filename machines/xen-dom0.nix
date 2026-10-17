@@ -374,6 +374,13 @@ in
   programs.nox = {
     enable = true;
     vms = map (vm: vm.name) vmRegistry.vms;
+    # `nox nix`: besides NoX's list (formerly in home/resources/cmds)
+    extraCommands = ''
+      ## nix
+      sudo nix-env --profile /nix/var/nix/profiles/system --delete-generations <n> <m> # Delete specific system generations (then GC)
+      nix build ~/nixos-config#nixosConfigurations.<host>.config.system.build.toplevel --no-link --show-trace # Build with full trace
+      dom0-update # Build on the builder VM and install (next boot)
+    '';
   };
 
   # nox-relay (root) creates the wprs sockets for dom0's wprsc here

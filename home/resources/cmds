@@ -1,21 +1,6 @@
 ## Ruby
 def ri(*args); system("ri", *args); end # Ruby: To make ri available in irb: ~/.irbrc
 
-## Nix
-nix flake update # Nixos: Update nixpkgs cache
-sudo nix-env --list-generations --profile /nix/var/nix/profiles/system # Nixos: List system generations
-sudo nix-env --delete-generations {1..5} --profile /nix/var/nix/profiles/system # Nixos: Delete old specific (1-4) system generations -> nix-collect-garbage
-sudo nix-collect-garbage # Nixos: Delete only not refferenced packages
-sudo nix-collect-garbage -d # Nixos: Delete all old system generations and unused packages
-sudo nixos-rebuild boot # Nixos: Rebuild boot configuration
-
-nix why-depends /run/current-system "nixpkgs#electron_36" # find which package depends on electron_36
-nix eval "nixpkgs#electron.version" # find latest version
-nix-store --query --deriver /nix/store/iy5fr9xni0b310qb3c5nvgwln77a5bfz-mimeapps.list # find which package installed mimeapps.list
-
-# Show trace...
-nix build --extra-experimental-features 'nix-command flakes' "/home/nx/nixos-config#nixosConfigurations."machine".config.system.build.toplevel" --no-link --show-trace
-
 ## Webserver
 nix shell "nixpkgs#python3" --command python -m http.server 8080 # Python: Simple webserver
 nix shell "nixpkgs#busybox" --command httpd -f -p 8080 # Busybox: CGI if -h -c, config in /etc/httpd.conf
