@@ -257,6 +257,15 @@ in
 
   boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
+  # Loaded at runtime (first bridge rule, iptables-nft) these deadlocked with
+  # xenwatch attaching new vifs after `mr sys-net` (xmg, 2026-10-16, Known
+  # Issues): load them at boot
+  boot.kernelModules = [
+    "nft_meta_bridge"
+    "br_netfilter"
+    "nft_compat"
+  ];
+
   # MSI under a PV dom0 (hp WLAN, xmg Ethernet: online, restarts work,
   # 2026-10-12). With a PVH dom0 MSI-X mapping fails for passthrough (v2.1;
   # xmg: no network), INTx (pci=nomsi) works there
