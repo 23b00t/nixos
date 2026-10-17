@@ -250,6 +250,7 @@ in
 
     fonts.packages = with pkgs; [
       nerd-fonts.fira-code
+      (import ../../home/desktop/symbols-font.nix { inherit pkgs; })
     ];
 
     # No nano: vim is the editor everywhere ($EDITOR, also yazi), the IDE

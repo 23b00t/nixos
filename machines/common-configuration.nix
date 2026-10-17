@@ -521,6 +521,7 @@ in
 
   fonts.packages = with pkgs; [
     nerd-fonts.fira-code
+    (import ../home/desktop/symbols-font.nix { inherit pkgs; })
   ];
 
   networking.networkmanager = {
