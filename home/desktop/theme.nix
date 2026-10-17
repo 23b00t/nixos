@@ -46,9 +46,12 @@ rec {
   };
 
   # Trust labels (vms/registry.nix `label`): window border and focus ring per
-  # VM in niri, hex without '#'; dom0 = windows without a wprsc title prefix
+  # VM in niri, hex without '#'; dom0 = titles not starting with "[" (VM
+  # windows always carry wprsc's "[<vm>] " prefix), unknown = everything else
+  # (e.g. a VM window without a title): never dom0's color
   labelRaw = {
     dom0 = palette.fg;
+    unknown = palette.comment;
     sys = palette.red;
     dev = palette.magenta;
     personal = palette.green;

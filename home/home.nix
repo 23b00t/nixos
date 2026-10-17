@@ -118,7 +118,9 @@ in
   # Terminal in dom0 and, over wprs, in the VMs (vms/modules/wprs.nix)
   programs.foot = {
     enable = true;
-    settings = theme.foot;
+    # locked-title: programs in dom0's terminal (also SSH sessions into VMs)
+    # can't set a title like "[vault] …" and get that VM's border in niri
+    settings = lib.recursiveUpdate theme.foot { main.locked-title = "yes"; };
   };
 
   # zellij in dom0 only on the hp (machines/hp/configuration.nix)

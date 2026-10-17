@@ -11,32 +11,32 @@ let
   # Trust label per VM (vms/registry.nix `label`, absent = untrusted): one
   # window rule per label on the "[<vm>] " title prefix that dom0's wprsc
   # sets (home/vm-management/vm-gui.nix, vm-run). A VM cannot fake it: its
-  # own title only follows the prefix. Windows without one are dom0's
-  labelRules = lib.mapAttrsToList (
-    label: vms:
-    let
-      c = theme.label.${label};
-      dim = theme.labelWithAlpha label theme.opacity.inactiveBorder;
-    in
-    {
-      "window-rule"._children = [
-        {
-          match._props.title = "^\\[(${lib.concatMapStringsSep "|" (vm: vm.name) vms})\\] ";
-        }
-        {
-          border = {
-            "active-color" = c;
-            "inactive-color" = dim;
-          };
-        }
-        {
-          "focus-ring" = {
-            "active-color" = c;
-            "inactive-color" = theme.labelWithAlpha label theme.opacity.inactiveRing;
-          };
-        }
-      ];
-    }
+  # own title only follows the prefix. dom0's color only for titles that
+  # don't start with "[" (dom0's foot locks its title, home/home.nix);
+  # windows matching neither (a VM window without a title) keep the layout
+  # default `unknown`, never dom0's. No wprs patch needed for that
+  labelRule = label: title: {
+    "window-rule"._children = [
+      { match._props.title = title; }
+      {
+        border = {
+          "active-color" = theme.label.${label};
+          "inactive-color" = theme.labelWithAlpha label theme.opacity.inactiveBorder;
+        };
+      }
+      {
+        "focus-ring" = {
+          "active-color" = theme.label.${label};
+          "inactive-color" = theme.labelWithAlpha label theme.opacity.inactiveRing;
+        };
+      }
+    ];
+  };
+  labelRules = [
+    (labelRule "dom0" "^[^\\[]")
+  ]
+  ++ lib.mapAttrsToList (
+    label: vms: labelRule label "^\\[(${lib.concatMapStringsSep "|" (vm: vm.name) vms})\\] "
   ) (lib.groupBy (vm: vm.label or "untrusted") (vmRegistry.vms ++ vmRegistry.imageDomains));
 
   # Internal panel per machine. xmg: 2560x1600 at 60 Hz; at its preferred
@@ -615,21 +615,21 @@ in
           "inactive-color" = theme.color.accent;
         };
 
-        # Border in the trust label color (dom0 here, VMs in `labelRules`):
-        # dimmed when unfocused, full plus a focus ring of the same color
-        # when focused
+        # Border in the trust label color (default `unknown` here; dom0 and the
+        # VMs in `labelRules`): dimmed when unfocused, full plus a focus ring of
+        # the same color when focused
         "focus-ring" = {
           width = 2;
-          "active-color" = theme.label.dom0;
-          "inactive-color" = theme.labelWithAlpha "dom0" theme.opacity.inactiveRing;
+          "active-color" = theme.label.unknown;
+          "inactive-color" = theme.labelWithAlpha "unknown" theme.opacity.inactiveRing;
           "urgent-color" = theme.color.urgent;
         };
 
         border = {
           on = { };
           width = 3;
-          "active-color" = theme.label.dom0;
-          "inactive-color" = theme.labelWithAlpha "dom0" theme.opacity.inactiveBorder;
+          "active-color" = theme.label.unknown;
+          "inactive-color" = theme.labelWithAlpha "unknown" theme.opacity.inactiveBorder;
           "urgent-color" = theme.color.urgent;
         };
 
