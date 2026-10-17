@@ -1,6 +1,9 @@
 { pkgs, vmRegistry, ... }:
 let
   vmNames = builtins.concatStringsSep " " (map (vm: vm.name) vmRegistry.vms);
+  # Image domains (Whonix, kali) run as xen-image@<name>, MicroVMs as
+  # microvm@<name>; both are handled the same way here
+  imageNames = builtins.concatStringsSep " " (map (d: d.name) vmRegistry.imageDomains);
   # name=group pairs for VMs with a shared store image (registry `storeGroup`)
   vmGroups = builtins.concatStringsSep " " (
     map (vm: "[${vm.name}]=${vm.storeGroup}") (
@@ -12,7 +15,8 @@ pkgs.writeShellScriptBin "manage-vms" ''
   #!/usr/bin/env bash
   set -eu
 
-  ALL_VMS=( ${vmNames} )
+  IMAGE_DOMAINS=( ${imageNames} )
+  ALL_VMS=( ${vmNames} "''${IMAGE_DOMAINS[@]}" )
   declare -A STORE_GROUP=( ${vmGroups} )
   STATE_DIR=/var/lib/microvms
   RUNNING_ONLY=0
@@ -44,6 +48,14 @@ EOF
     exit 1
   }
 
+  # systemd unit of a VM or image domain
+  unit_of() {
+    case " ''${IMAGE_DOMAINS[*]} " in
+      *" $1 "*) echo "xen-image@$1.service" ;;
+      *) echo "microvm@$1.service" ;;
+    esac
+  }
+
   # Store image a runner boots from ("-" if it has none, e.g. virtiofs store)
   store_image() {
     local runner="$1"
@@ -72,7 +84,7 @@ EOF
 
     if [ "''${#NAMES[@]}" -gt 0 ]; then
       for vm in "''${NAMES[@]}"; do
-        if [ "$RUNNING_ONLY" -eq 1 ] && ! systemctl is-active --quiet "microvm@$vm.service"; then
+        if [ "$RUNNING_ONLY" -eq 1 ] && ! systemctl is-active --quiet "$(unit_of "$vm")"; then
           continue
         fi
         candidates+=("$vm")
@@ -80,10 +92,11 @@ EOF
     elif [ "$RUNNING_ONLY" -eq 1 ]; then
       while IFS= read -r unit; do
         [ -n "$unit" ] || continue
-        vm="''${unit#microvm@}"
+        vm="''${unit#*@}"
         vm="''${vm%.service}"
         candidates+=("$vm")
-      done < <(systemctl list-units --type=service --state=running --no-legend --no-pager 'microvm@*.service' | awk '{print $1}')
+      done < <(systemctl list-units --type=service --state=running --no-legend --no-pager \
+        'microvm@*.service' 'xen-image@*.service' | awk '{print $1}')
     else
       candidates=("''${ALL_VMS[@]}")
     fi
@@ -106,7 +119,7 @@ EOF
     printf "%-14s %-10s %-12s %-10s %-9s %-6s\n" "--------------" "----------" "------------" "----------" "---------" "------"
 
     for vm in "''${TARGETS[@]}"; do
-      unit="microvm@$vm.service"
+      unit="$(unit_of "$vm")"
 
       active="$(systemctl is-active "$unit" 2>/dev/null || true)"
       [ -n "$active" ] || active="not-found"
@@ -127,10 +140,10 @@ EOF
     local vm unit was rc=0
 
     for vm in "''${TARGETS[@]}"; do
-      unit="microvm@$vm.service"
+      unit="$(unit_of "$vm")"
       was="$(systemctl is-active "$unit" 2>/dev/null || true)"
       echo "sudo systemctl $action $unit"
-      # sudo: NOPASSWD for start/stop/restart of microvm@ units
+      # sudo: NOPASSWD for start/stop/restart of microvm@ and xen-image@ units
       sudo systemctl "$action" "$unit" || { rc=1; continue; }
       if command -v vm-tray >/dev/null &&
         { [ "$action" = restart ] || { [ "$action" = start ] && [ "$was" != active ]; }; }; then

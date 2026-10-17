@@ -390,7 +390,7 @@ in
   # update-all and vm-usb; the VM names feed its completion
   programs.nox = {
     enable = true;
-    vms = map (vm: vm.name) vmRegistry.vms;
+    vms = map (vm: vm.name) (vmRegistry.vms ++ vmRegistry.imageDomains);
     # `nox nix`: besides NoX's list (formerly in home/resources/cmds)
     extraCommands = ''
       ## nix
