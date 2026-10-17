@@ -145,7 +145,7 @@ in
     ".config/rofi/theme.rasi" = {
       text = ''
         * {
-            main-bg:            ${theme.withAlpha "bg" theme.opacity.popup};
+            main-bg:            ${theme.withAlpha "bg" theme.opacity.launcher};
             main-fg:            ${theme.color.fg};
             main-br:            ${theme.color.accent};
             main-ex:            ${theme.color.accent};

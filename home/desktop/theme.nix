@@ -52,7 +52,8 @@ rec {
   # Transparency levels
   opacity = {
     surface = 0.8; # waybar modules, notifications
-    popup = 0.9; # rofi
+    popup = 0.9; # swaync control center
+    launcher = 0.97; # all rofi menus; less see-through than popup
     bar = 0.1; # waybar background (on black)
     shadow = 0.44;
     inactiveRing = 0.8;
