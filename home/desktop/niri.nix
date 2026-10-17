@@ -103,6 +103,29 @@ let
     "attach"
     "-c"
   ];
+  # Mod+Q: terminals (foot in dom0 or from a VM, zellij sessions inside)
+  # close only on a second Mod+Q within 3 s, the first one shows a
+  # notification; other windows close right away
+  closeGuard = pkgs.writeShellScriptBin "close-guard" ''
+    w=$(niri msg --json focused-window)
+    id=$(${pkgs.jq}/bin/jq -r '.id // empty' <<<"$w")
+    app=$(${pkgs.jq}/bin/jq -r '.app_id // ""' <<<"$w")
+    [ -n "$id" ] || exit 0
+    case "$app" in
+      foot | footclient | term-*) ;;
+      *) exec niri msg action close-window --id "$id" ;;
+    esac
+    mark="''${XDG_RUNTIME_DIR:-/tmp}/close-guard"
+    now=$(date +%s)
+    [ ! -r "$mark" ] || read -r last_id last_t <"$mark" || true
+    if [ "''${last_id:-}" = "$id" ] && [ $((now - ''${last_t:-0})) -le 3 ]; then
+      rm -f "$mark"
+      exec niri msg action close-window --id "$id"
+    fi
+    echo "$id $now" >"$mark"
+    ${pkgs.libnotify}/bin/notify-send -a niri -t 3000 "Close terminal?" "Press Mod+Q again within 3 s"
+  '';
+
   terminalTabs = pkgs.writeShellScript "terminal-tabs" ''
     # ids of the windows with app id $1, oldest first
     windows() {
@@ -300,7 +323,8 @@ let
 
     "Mod+Q" = {
       _props.repeat = false;
-      "close-window" = { };
+      _props."hotkey-overlay-title" = "Close Window (terminals: press twice)";
+      spawn = [ "close-guard" ];
     };
 
     "Mod+Left"."focus-column-left" = { };
@@ -525,6 +549,9 @@ in
     glib
     dconf
     gsettings-desktop-schemas
+
+    # Mod+Q (on PATH: the keybinding viewer may not name store paths)
+    closeGuard
 
     # Starts the tray apps of one VM again (after a restart the old ones are
     # gone); detached, vm-run waits for the VM itself
