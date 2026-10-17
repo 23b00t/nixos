@@ -15,6 +15,7 @@ let
     teal = "b4f9f8";
     magenta = "bb9af7";
     lavender = "d1bfff";
+    pink = "ff79c6";
     red = "f7768e";
     yellow = "e0af68";
     green = "9ece6a";
@@ -34,6 +35,7 @@ rec {
     fg = palette.blue; # text everywhere, as waybar always had it
     fgActive = palette.teal; # text on accent backgrounds
     accent = palette.magenta; # focus ring, active workspace, selection
+    accentStrong = palette.pink; # active tab indicator, stronger than accent
     accent2 = palette.blue; # second gradient stop, selection background
     inactive = palette.lavender;
     muted = palette.comment;

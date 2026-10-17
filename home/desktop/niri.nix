@@ -552,15 +552,15 @@ in
         # presets above
         "default-column-width".proportion = 1.0;
 
-        # Tabbed columns (VM terminals): one segment per tab, the focused
-        # one in the accent color; the focus ring colors were too alike
+        # Tabbed columns (VM terminals): one segment per tab; inactive tabs
+        # in the accent color, the focused one stronger (muted was too faint)
         "tab-indicator" = {
           "hide-when-single-tab" = { };
           "gaps-between-tabs" = 4;
-          width = 4;
-          "corner-radius" = 2;
-          "active-color" = theme.color.accent;
-          "inactive-color" = theme.withAlpha "muted" 0.6;
+          width = 6;
+          "corner-radius" = 3;
+          "active-color" = theme.color.accentStrong;
+          "inactive-color" = theme.color.accent;
         };
 
         "focus-ring" = {
