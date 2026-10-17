@@ -20,6 +20,7 @@ in
     ./ssh.nix
     ./vm-management/vm-run.nix
     ./vm-management/vm-gui.nix
+    ./vm-management/vm-doctor.nix
     ./vm-management/desktop-entries.nix
     ./vm-management/vm-dbus-forward.nix
     ./vm-management/github-agent-forward.nix
