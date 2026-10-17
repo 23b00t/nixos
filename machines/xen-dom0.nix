@@ -60,18 +60,31 @@ let
 
     usage() {
       cat <<EOF >&2
-    Usage: update-all [--switch] [--machine <name>] [--branch <branch>]
+    Usage: update-all [-y|--yes] [--switch] [--machine <name>] [--branch <branch>]
 
     Full update: dom0 from the builder (dom0-update with the same arguments;
     --switch activates right away), then the Whonix-Gateway and -Workstation
     (apt over Tor)${lib.optionalString hasKali ", then Kali (apt)"}. New flake inputs first with
     flake-bump in nvim. Only rebuild dom0: dom0-update.
+    -y: apt runs with -y in the Debian domains and no restart is offered
+    (sudo in the guests still asks for its password).
     EOF
       exit 1
     }
-    case "''${1:-}" in
-      -h | --help) usage ;;
-    esac
+    # -y is ours, everything else goes to dom0-update
+    yes=0
+    args=()
+    for a in "$@"; do
+      case "$a" in
+        -h | --help) usage ;;
+        -y | --yes) yes=1 ;;
+        *) args+=("$a") ;;
+      esac
+    done
+    # Whonix' upgrade-nonroot is `sudo apt-get --update full-upgrade` and
+    # takes no options
+    apt_upgrade="upgrade-nonroot"
+    [ "$yes" = 0 ] || apt_upgrade="sudo apt-get --update -y full-upgrade"
 
     # One password prompt for the whole run (dom0-update reuses it)
     if [ -t 0 ]; then
@@ -91,7 +104,7 @@ let
     }
     trap cleanup EXIT
 
-    dom0-update "$@"
+    dom0-update "''${args[@]}"
 
     # Starts the domain if it is off (the Gateway waits for sys-net's uplink)
     ensure_running() {
@@ -122,6 +135,10 @@ let
       newest="$(ssh "$1-vm" 'ls /boot/vmlinuz-* | sort -V | tail -n 1')"
       running="$(ssh "$1-vm" 'echo "/boot/vmlinuz-$(uname -r)"')"
       [ "$newest" != "$running" ] || return 0
+      if [ "$yes" = 1 ]; then
+        echo "update-all: new kernel in $1, restart it later" >&2
+        return 0
+      fi
       read -r -p "update-all: new kernel in $1, restart it now? [y/N] " answer
       case "$answer" in
         y | Y) sudo systemctl restart "xen-image@$1" ;;
@@ -131,7 +148,7 @@ let
     ensure_running whonix-gateway
     wait_tor whonix-gateway
     echo "update-all: updating the Whonix-Gateway" >&2
-    ssh -t whonix-gateway-vm upgrade-nonroot
+    ssh -t whonix-gateway-vm "$apt_upgrade"
 
     # The Workstation updates only in its sysmaint session (user/sysmaint
     # split, `user` has no sudo): boot that once, log in as sysmaint, then
@@ -151,7 +168,7 @@ let
     [ "$ws_was_running" = 1 ] || started+=("$ws")
     wait_tor "$ws" sysmaint
     echo "update-all: updating the Whonix-Workstation" >&2
-    ssh -t -l sysmaint "$ws-vm" upgrade-nonroot
+    ssh -t -l sysmaint "$ws-vm" "$apt_upgrade"
     if [ "$ws_was_running" = 1 ]; then
       echo "update-all: back to the normal session of $ws" >&2
       sudo systemctl restart "xen-image@$ws"
@@ -162,7 +179,7 @@ let
       # password of `user` in the guest
       ensure_running kali
       echo "update-all: updating Kali" >&2
-      ssh -t kali-vm 'sudo apt-get update && sudo apt-get full-upgrade'
+      ssh -t kali-vm "sudo apt-get update && sudo apt-get full-upgrade$([ "$yes" = 0 ] || echo " -y")"
       offer_restart kali
     ''}
     offer_restart whonix-gateway
