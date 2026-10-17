@@ -64,11 +64,22 @@ rec {
   radius = 10;
   radiusInner = 6;
 
+  # Gap between windows (niri) and around floating panels (swaync)
+  gap = 10;
+
   font = {
     family = "FiraCode Nerd Font";
     barSize = 14; # px, waybar
     launcherSize = 11; # pt, rofi
     lockSize = 24; # px, swaylock
+  };
+
+  # swaync: popups and the control center (waybar bell)
+  notifications = {
+    width = 420; # px, control center
+    iconSize = 64;
+    summarySize = 16; # px
+    bodySize = 15; # px
   };
 
   # Icon theme for GTK/Qt and rofi; package: tela-circle-icon-theme with this variant

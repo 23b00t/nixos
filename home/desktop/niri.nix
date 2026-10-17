@@ -572,7 +572,7 @@ in
       };
 
       layout = {
-        gaps = 10;
+        gaps = theme.gap;
         "center-focused-column" = "on-overflow";
         "always-center-single-column" = { };
 
@@ -774,6 +774,9 @@ in
       };
     };
 
+    # Notifications; colors, sizes and fonts from theme.nix. The control
+    # center (waybar bell) is a compact floating panel under the bar instead
+    # of the default full-height grey sidebar
     swaync = {
       enable = true;
       settings = {
@@ -783,31 +786,106 @@ in
         control-center-layer = "top";
         layer-shell = true;
         cssPriority = "application";
-        control-center-margin-top = 0;
-        control-center-margin-bottom = 0;
-        control-center-margin-right = 0;
-        control-center-margin-left = 0;
+        fit-to-screen = false;
+        control-center-width = theme.notifications.width;
+        control-center-height = -1; # fit to content
+        control-center-margin-top = theme.gap;
+        control-center-margin-bottom = theme.gap;
+        control-center-margin-right = theme.gap;
+        control-center-margin-left = theme.gap;
         notification-2fa-action = true;
         notification-inline-replies = false;
-        notification-icon-size = 64;
+        notification-icon-size = theme.notifications.iconSize;
         notification-body-image-height = 100;
         notification-body-image-width = 200;
+        widgets = [
+          "title"
+          "dnd"
+          "notifications"
+        ];
+        widget-config = {
+          title = {
+            text = "Notifications";
+            clear-all-button = true;
+            button-text = "Clear";
+          };
+          dnd.text = "Do not disturb";
+        };
       };
-      style = ''
+      # swaync 0.12 loads its packaged CSS first; this overrides its variables
+      style = with theme; ''
+        :root {
+          --cc-bg: alpha(${color.bgDark}, ${toString opacity.popup});
+          --noti-border-color: ${color.border};
+          --noti-bg-darker: ${color.bgDark};
+          --noti-bg-hover: alpha(${color.border}, ${toString opacity.surface});
+          --noti-bg-focus: alpha(${color.border}, 0.5);
+          --noti-close-bg: ${color.border};
+          --noti-close-bg-hover: ${color.accent};
+          --text-color: ${palette.fg};
+          --text-color-disabled: ${color.muted};
+          --bg-selected: ${color.accent};
+          --border-radius: ${toString radius}px;
+          --notification-icon-size: ${toString notifications.iconSize}px;
+          --notification-shadow:
+            0 0 0 1px alpha(${color.shadow}, 0.3),
+            0 1px 3px 1px alpha(${color.shadow}, 0.7),
+            0 2px 6px 2px alpha(${color.shadow}, 0.3);
+          --font-size-summary: ${toString notifications.summarySize}px;
+          --font-size-body: ${toString notifications.bodySize}px;
+        }
+
+        * {
+          font-family: "${font.family}";
+        }
+
         .notification-row {
           outline: none;
         }
 
         .notification {
-          border-radius: ${toString theme.radius}px;
           margin: 6px 12px;
-          box-shadow:
-            0 0 0 1px rgba(0, 0, 0, 0.3),
-            0 1px 3px 1px rgba(0, 0, 0, 0.7),
-            0 2px 6px 2px rgba(0, 0, 0, 0.3);
           padding: 0;
-          background: alpha(${theme.color.bg}, ${toString theme.opacity.surface});
-          color: ${theme.color.fg};
+          box-shadow: var(--notification-shadow);
+          background: alpha(${color.bg}, ${toString opacity.surface});
+          color: ${color.fg};
+        }
+
+        .control-center {
+          border: 1px solid ${color.border};
+          box-shadow: 0 2px 8px alpha(${color.shadow}, ${toString opacity.shadow});
+        }
+
+        .control-center .notification {
+          box-shadow: none;
+        }
+
+        .widget-title > label {
+          font-size: ${toString notifications.summarySize}px;
+          font-weight: bold;
+          color: ${color.accent};
+        }
+
+        .widget-title > button,
+        .widget-dnd switch {
+          background: alpha(${color.border}, ${toString opacity.surface});
+          color: var(--text-color);
+          border: none;
+          border-radius: ${toString radiusInner}px;
+        }
+
+        .widget-title > button:hover {
+          background: ${color.accent2};
+          color: ${color.bgDark};
+        }
+
+        .widget-dnd switch:checked {
+          background: ${color.accent};
+        }
+
+        .widget-dnd switch slider {
+          background: ${palette.fg};
+          border-radius: ${toString radiusInner}px;
         }
       '';
     };
