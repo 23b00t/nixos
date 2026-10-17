@@ -35,9 +35,16 @@ let
     fi
 
     # The out-link is the GC root of the last build per machine
-    out="$(${config.nix.package}/bin/nix build --print-out-paths \
-      --out-link "${stateDir}/systems/$machine" \
-      "$repo#nixosConfigurations.$machine.config.system.build.toplevel")"
+    # Progress through nom (nix-output-monitor) on stderr, which ssh brings
+    # to dom0's terminal; the store path stays on stdout for dom0-update.
+    # pipefail: a failed build fails here although nom exits 0
+    out="$( {
+      ${config.nix.package}/bin/nix build --print-out-paths \
+        --out-link "${stateDir}/systems/$machine" \
+        --log-format internal-json -v \
+        "$repo#nixosConfigurations.$machine.config.system.build.toplevel" \
+        2>&1 1>&3 | ${pkgs.nix-output-monitor}/bin/nom --json >&2
+    } 3>&1 )"
 
     # Re-sign the whole closure: substituted paths only carry the cache's
     # signature, dom0 trusts nothing but this key
