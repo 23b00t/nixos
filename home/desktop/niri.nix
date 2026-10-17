@@ -54,8 +54,11 @@ let
   # Terminals at login (replaced kitty's startup session): dom0's foot (on
   # the hp with zellij, which stays there) and foot from nvim and coding
   # over wprs, zellij in the VM, as tabs of one column (Mod+1…3). Started
-  # one after the other: each window (VMs may still boot, up to 2 min) is
-  # consumed into the column on its left; a VM that doesn't come is skipped
+  # one after the other: each window (VMs may still boot, up to 3 min) is
+  # consumed into the column on its left; a VM that doesn't come is skipped.
+  # A VM's foot could come twice at boot (xmg 2026-10-17, vm-run retried an
+  # app start whose answer got lost): the oldest window stays, the others
+  # (more zellij clients of the same session) are closed
   vmZellij = [
     "zellij"
     "--layout"
@@ -64,13 +67,25 @@ let
     "-c"
   ];
   terminalTabs = pkgs.writeShellScript "terminal-tabs" ''
-    # id of the window with app id $1, once it is there
+    # ids of the windows with app id $1, oldest first
+    windows() {
+      niri msg --json windows \
+        | ${pkgs.jq}/bin/jq -r --arg a "$1" 'map(select(.app_id == $a) | .id) | sort | .[]'
+    }
+    # id of the oldest window with app id $1, once it is there; duplicates
+    # that show up within 3 s are closed
     wait_window() {
-      local id
-      for _ in $(seq 240); do
-        id=$(niri msg --json windows \
-          | ${pkgs.jq}/bin/jq -r --arg a "$1" 'map(select(.app_id == $a) | .id) | max // empty')
-        [ -n "$id" ] && { echo "$id"; return 0; }
+      local id dup
+      for _ in $(seq 360); do
+        id=$(windows "$1" | head -1)
+        if [ -n "$id" ]; then
+          sleep 3
+          for dup in $(windows "$1" | tail -n +2); do
+            niri msg action close-window --id "$dup"
+          done
+          echo "$id"
+          return 0
+        fi
         sleep 0.5
       done
       return 1

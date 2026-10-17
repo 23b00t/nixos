@@ -70,10 +70,13 @@ let
     if [ -S "$rpc" ]; then
       # Retry while the VM is still booting (the relay drops the call
       # without an answer); the handler answers "ok: ..." or "error: ...".
-      # The app unit waits for wprsd, so wprsc comes after it
+      # The app unit waits for wprsd, so wprsc comes after it. One token for
+      # all tries: a retry after a lost answer doesn't start the app twice
+      # (NoX startApp; older handlers just get one more variable)
+      token="$(${pkgs.coreutils}/bin/od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
       answer=""
       for _ in $(seq 60); do
-        answer="$(printf '%s\0' env "$cursor" "$@" | nox-rpc --dom0 app "$VM" 2>/dev/null)" || true
+        answer="$(printf '%s\0' env "NOX_APP_TOKEN=$token" "$cursor" "$@" | nox-rpc --dom0 app "$VM" 2>/dev/null)" || true
         [ -n "$answer" ] && break
         sleep 1
       done
