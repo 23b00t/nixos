@@ -256,7 +256,6 @@ let
     "Mod+Up"."focus-window-up" = { };
     "Mod+Right"."focus-column-right" = { };
     "Mod+H"."focus-column-left" = { };
-    "Mod+J"."focus-window-down" = { };
     "Mod+K"."focus-window-up" = { };
 
     "Mod+Ctrl+Left"."move-column-left" = { };
@@ -268,8 +267,6 @@ let
     "Mod+Ctrl+K"."focus-monitor-up" = { };
     "Mod+Ctrl+L"."focus-monitor-right" = { };
 
-    "Mod+Home"."focus-column-first" = { };
-    "Mod+End"."focus-column-last" = { };
     "Mod+Ctrl+Home"."move-column-to-first" = { };
     "Mod+Ctrl+End"."move-column-to-last" = { };
 
@@ -277,8 +274,6 @@ let
     "Mod+Shift+Down"."focus-monitor-down" = { };
     "Mod+Shift+Up"."focus-monitor-up" = { };
     "Mod+Shift+Right"."focus-monitor-right" = { };
-    "Mod+Shift+H"."focus-monitor-left" = { };
-    "Mod+Shift+J"."focus-monitor-down" = { };
 
     "Mod+Shift+Ctrl+Left"."move-column-to-monitor-left" = { };
     "Mod+Shift+Ctrl+Down"."move-column-to-monitor-down" = { };
@@ -310,35 +305,6 @@ let
     "Mod+Shift+Page_Up"."move-workspace-up" = { };
     "Mod+Shift+U"."move-workspace-down" = { };
     "Mod+Shift+I"."move-workspace-up" = { };
-
-    "Mod+WheelScrollDown" = {
-      _props."cooldown-ms" = 150;
-      "focus-workspace-down" = { };
-    };
-
-    "Mod+WheelScrollUp" = {
-      _props."cooldown-ms" = 150;
-      "focus-workspace-up" = { };
-    };
-
-    "Mod+Ctrl+WheelScrollDown" = {
-      _props."cooldown-ms" = 150;
-      "move-column-to-workspace-down" = { };
-    };
-
-    "Mod+Ctrl+WheelScrollUp" = {
-      _props."cooldown-ms" = 150;
-      "move-column-to-workspace-up" = { };
-    };
-
-    "Mod+WheelScrollRight"."focus-column-right" = { };
-    "Mod+WheelScrollLeft"."focus-column-left" = { };
-    "Mod+Ctrl+WheelScrollRight"."move-column-right" = { };
-    "Mod+Ctrl+WheelScrollLeft"."move-column-left" = { };
-    "Mod+Shift+WheelScrollDown"."focus-column-right" = { };
-    "Mod+Shift+WheelScrollUp"."focus-column-left" = { };
-    "Mod+Ctrl+Shift+WheelScrollDown"."move-column-right" = { };
-    "Mod+Ctrl+Shift+WheelScrollUp"."move-column-left" = { };
 
     # Tabs of the focused column (VM terminals) by number; workspaces are
     # reached with Mod+Page_Up/Down (Mod+I/U), Mod+Ctrl+<n> still moves columns
