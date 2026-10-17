@@ -15,6 +15,7 @@ let
     teal = "b4f9f8";
     magenta = "bb9af7";
     lavender = "d1bfff";
+    pink = "ff79c6";
     red = "f7768e";
     yellow = "e0af68";
     green = "9ece6a";
@@ -34,8 +35,8 @@ rec {
     fg = palette.blue; # text everywhere, as waybar always had it
     fgActive = palette.teal; # text on accent backgrounds
     accent = palette.magenta; # focus ring, active workspace, selection
+    accentStrong = palette.pink; # active tab indicator, stronger than accent
     accent2 = palette.blue; # second gradient stop, selection background
-    inactive = palette.lavender;
     muted = palette.comment;
     urgent = palette.red;
     warn = palette.yellow;
@@ -44,16 +45,32 @@ rec {
     shadow = palette.black;
   };
 
+  # Trust labels (vms/registry.nix `label`): window border and focus ring per
+  # VM in niri, hex without '#'; dom0 = windows without a wprsc title prefix
+  labelRaw = {
+    dom0 = palette.fg;
+    sys = palette.red;
+    dev = palette.magenta;
+    personal = palette.green;
+    untrusted = palette.yellow;
+    vault = palette.cyan;
+    anon = palette.blue;
+  };
+  label = lib.mapAttrs (_: c: "#${c}") labelRaw;
+  labelWithAlpha = l: a: "${label.${l}}${alphaHex a}";
+
   # Same roles as "#rrggbb" for CSS, KDL and rasi
   color = lib.mapAttrs (_: c: "#${c}") raw;
 
   # Transparency levels
   opacity = {
     surface = 0.8; # waybar modules, notifications
-    popup = 0.9; # rofi
+    popup = 0.9; # swaync control center
+    launcher = 0.97; # all rofi menus; less see-through than popup
     bar = 0.1; # waybar background (on black)
     shadow = 0.44;
     inactiveRing = 0.8;
+    inactiveBorder = 0.5; # label border of unfocused windows
   };
 
   # "#rrggbbaa" / "rrggbbaa" from a role name and an opacity
@@ -64,11 +81,22 @@ rec {
   radius = 10;
   radiusInner = 6;
 
+  # Gap between windows (niri) and around floating panels (swaync)
+  gap = 10;
+
   font = {
     family = "FiraCode Nerd Font";
     barSize = 14; # px, waybar
     launcherSize = 11; # pt, rofi
     lockSize = 24; # px, swaylock
+  };
+
+  # swaync: popups and the control center (waybar bell)
+  notifications = {
+    width = 420; # px, control center
+    iconSize = 64;
+    summarySize = 16; # px
+    bodySize = 15; # px
   };
 
   # Icon theme for GTK/Qt and rofi; package: tela-circle-icon-theme with this variant

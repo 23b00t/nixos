@@ -1,6 +1,43 @@
-{ pkgs, lib, hostname, ... }:
+{
+  pkgs,
+  lib,
+  hostname,
+  vmRegistry,
+  ...
+}:
 let
   theme = import ./theme.nix { inherit lib; };
+
+  # Trust label per VM (vms/registry.nix `label`, absent = untrusted): one
+  # window rule per label on the "[<vm>] " title prefix that dom0's wprsc
+  # sets (home/vm-management/vm-gui.nix, vm-run). A VM cannot fake it: its
+  # own title only follows the prefix. Windows without one are dom0's
+  labelRules = lib.mapAttrsToList (
+    label: vms:
+    let
+      c = theme.label.${label};
+      dim = theme.labelWithAlpha label theme.opacity.inactiveBorder;
+    in
+    {
+      "window-rule"._children = [
+        {
+          match._props.title = "^\\[(${lib.concatMapStringsSep "|" (vm: vm.name) vms})\\] ";
+        }
+        {
+          border = {
+            "active-color" = c;
+            "inactive-color" = dim;
+          };
+        }
+        {
+          "focus-ring" = {
+            "active-color" = c;
+            "inactive-color" = theme.labelWithAlpha label theme.opacity.inactiveRing;
+          };
+        }
+      ];
+    }
+  ) (lib.groupBy (vm: vm.label or "untrusted") (vmRegistry.vms ++ vmRegistry.imageDomains));
 
   # Internal panel per machine. xmg: 2560x1600 at 60 Hz; at its preferred
   # 300 Hz the i915 cannot drive the two external monitors as well (the
@@ -271,7 +308,6 @@ let
     "Mod+Up"."focus-window-up" = { };
     "Mod+Right"."focus-column-right" = { };
     "Mod+H"."focus-column-left" = { };
-    "Mod+J"."focus-window-down" = { };
     "Mod+K"."focus-window-up" = { };
 
     "Mod+Ctrl+Left"."move-column-left" = { };
@@ -283,8 +319,6 @@ let
     "Mod+Ctrl+K"."focus-monitor-up" = { };
     "Mod+Ctrl+L"."focus-monitor-right" = { };
 
-    "Mod+Home"."focus-column-first" = { };
-    "Mod+End"."focus-column-last" = { };
     "Mod+Ctrl+Home"."move-column-to-first" = { };
     "Mod+Ctrl+End"."move-column-to-last" = { };
 
@@ -292,8 +326,6 @@ let
     "Mod+Shift+Down"."focus-monitor-down" = { };
     "Mod+Shift+Up"."focus-monitor-up" = { };
     "Mod+Shift+Right"."focus-monitor-right" = { };
-    "Mod+Shift+H"."focus-monitor-left" = { };
-    "Mod+Shift+J"."focus-monitor-down" = { };
 
     "Mod+Shift+Ctrl+Left"."move-column-to-monitor-left" = { };
     "Mod+Shift+Ctrl+Down"."move-column-to-monitor-down" = { };
@@ -325,35 +357,6 @@ let
     "Mod+Shift+Page_Up"."move-workspace-up" = { };
     "Mod+Shift+U"."move-workspace-down" = { };
     "Mod+Shift+I"."move-workspace-up" = { };
-
-    "Mod+WheelScrollDown" = {
-      _props."cooldown-ms" = 150;
-      "focus-workspace-down" = { };
-    };
-
-    "Mod+WheelScrollUp" = {
-      _props."cooldown-ms" = 150;
-      "focus-workspace-up" = { };
-    };
-
-    "Mod+Ctrl+WheelScrollDown" = {
-      _props."cooldown-ms" = 150;
-      "move-column-to-workspace-down" = { };
-    };
-
-    "Mod+Ctrl+WheelScrollUp" = {
-      _props."cooldown-ms" = 150;
-      "move-column-to-workspace-up" = { };
-    };
-
-    "Mod+WheelScrollRight"."focus-column-right" = { };
-    "Mod+WheelScrollLeft"."focus-column-left" = { };
-    "Mod+Ctrl+WheelScrollRight"."move-column-right" = { };
-    "Mod+Ctrl+WheelScrollLeft"."move-column-left" = { };
-    "Mod+Shift+WheelScrollDown"."focus-column-right" = { };
-    "Mod+Shift+WheelScrollUp"."focus-column-left" = { };
-    "Mod+Ctrl+Shift+WheelScrollDown"."move-column-right" = { };
-    "Mod+Ctrl+Shift+WheelScrollUp"."move-column-left" = { };
 
     # Tabs of the focused column (VM terminals) by number; workspaces are
     # reached with Mod+Page_Up/Down (Mod+I/U), Mod+Ctrl+<n> still moves columns
@@ -587,7 +590,7 @@ in
       };
 
       layout = {
-        gaps = 10;
+        gaps = theme.gap;
         "center-focused-column" = "on-overflow";
         "always-center-single-column" = { };
 
@@ -601,25 +604,34 @@ in
         # presets above
         "default-column-width".proportion = 1.0;
 
-        # Tabbed columns (VM terminals): one segment per tab, the focused
-        # one in the accent color; the focus ring colors were too alike
+        # Tabbed columns (VM terminals): one segment per tab; inactive tabs
+        # in the accent color, the focused one stronger (muted was too faint)
         "tab-indicator" = {
           "hide-when-single-tab" = { };
           "gaps-between-tabs" = 4;
-          width = 4;
-          "corner-radius" = 2;
-          "active-color" = theme.color.accent;
-          "inactive-color" = theme.withAlpha "muted" 0.6;
+          width = 6;
+          "corner-radius" = 3;
+          "active-color" = theme.color.accentStrong;
+          "inactive-color" = theme.color.accent;
         };
 
+        # Border in the trust label color (dom0 here, VMs in `labelRules`):
+        # dimmed when unfocused, full plus a focus ring of the same color
+        # when focused
         "focus-ring" = {
           width = 2;
-          "active-color" = theme.color.accent;
-          "inactive-color" = theme.withAlpha "inactive" theme.opacity.inactiveRing;
+          "active-color" = theme.label.dom0;
+          "inactive-color" = theme.labelWithAlpha "dom0" theme.opacity.inactiveRing;
           "urgent-color" = theme.color.urgent;
         };
 
-        border.off = { };
+        border = {
+          on = { };
+          width = 3;
+          "active-color" = theme.label.dom0;
+          "inactive-color" = theme.labelWithAlpha "dom0" theme.opacity.inactiveBorder;
+          "urgent-color" = theme.color.urgent;
+        };
 
         shadow = {
           on = { };
@@ -767,7 +779,8 @@ in
         ]
         ++ vmZellij;
       }
-      ++ map (args: { "spawn-at-startup"._args = args; }) trayCommands;
+      ++ map (args: { "spawn-at-startup"._args = args; }) trayCommands
+      ++ labelRules;
     };
   };
 
@@ -789,6 +802,9 @@ in
       };
     };
 
+    # Notifications; colors, sizes and fonts from theme.nix. The control
+    # center (waybar bell) is a compact floating panel under the bar instead
+    # of the default full-height grey sidebar
     swaync = {
       enable = true;
       settings = {
@@ -798,31 +814,106 @@ in
         control-center-layer = "top";
         layer-shell = true;
         cssPriority = "application";
-        control-center-margin-top = 0;
-        control-center-margin-bottom = 0;
-        control-center-margin-right = 0;
-        control-center-margin-left = 0;
+        fit-to-screen = false;
+        control-center-width = theme.notifications.width;
+        control-center-height = -1; # fit to content
+        control-center-margin-top = theme.gap;
+        control-center-margin-bottom = theme.gap;
+        control-center-margin-right = theme.gap;
+        control-center-margin-left = theme.gap;
         notification-2fa-action = true;
         notification-inline-replies = false;
-        notification-icon-size = 64;
+        notification-icon-size = theme.notifications.iconSize;
         notification-body-image-height = 100;
         notification-body-image-width = 200;
+        widgets = [
+          "title"
+          "dnd"
+          "notifications"
+        ];
+        widget-config = {
+          title = {
+            text = "Notifications";
+            clear-all-button = true;
+            button-text = "Clear";
+          };
+          dnd.text = "Do not disturb";
+        };
       };
-      style = ''
+      # swaync 0.12 loads its packaged CSS first; this overrides its variables
+      style = with theme; ''
+        :root {
+          --cc-bg: alpha(${color.bgDark}, ${toString opacity.popup});
+          --noti-border-color: ${color.border};
+          --noti-bg-darker: ${color.bgDark};
+          --noti-bg-hover: alpha(${color.border}, ${toString opacity.surface});
+          --noti-bg-focus: alpha(${color.border}, 0.5);
+          --noti-close-bg: ${color.border};
+          --noti-close-bg-hover: ${color.accent};
+          --text-color: ${palette.fg};
+          --text-color-disabled: ${color.muted};
+          --bg-selected: ${color.accent};
+          --border-radius: ${toString radius}px;
+          --notification-icon-size: ${toString notifications.iconSize}px;
+          --notification-shadow:
+            0 0 0 1px alpha(${color.shadow}, 0.3),
+            0 1px 3px 1px alpha(${color.shadow}, 0.7),
+            0 2px 6px 2px alpha(${color.shadow}, 0.3);
+          --font-size-summary: ${toString notifications.summarySize}px;
+          --font-size-body: ${toString notifications.bodySize}px;
+        }
+
+        * {
+          font-family: "${font.family}";
+        }
+
         .notification-row {
           outline: none;
         }
 
         .notification {
-          border-radius: ${toString theme.radius}px;
           margin: 6px 12px;
-          box-shadow:
-            0 0 0 1px rgba(0, 0, 0, 0.3),
-            0 1px 3px 1px rgba(0, 0, 0, 0.7),
-            0 2px 6px 2px rgba(0, 0, 0, 0.3);
           padding: 0;
-          background: alpha(${theme.color.bg}, ${toString theme.opacity.surface});
-          color: ${theme.color.fg};
+          box-shadow: var(--notification-shadow);
+          background: alpha(${color.bg}, ${toString opacity.surface});
+          color: ${color.fg};
+        }
+
+        .control-center {
+          border: 1px solid ${color.border};
+          box-shadow: 0 2px 8px alpha(${color.shadow}, ${toString opacity.shadow});
+        }
+
+        .control-center .notification {
+          box-shadow: none;
+        }
+
+        .widget-title > label {
+          font-size: ${toString notifications.summarySize}px;
+          font-weight: bold;
+          color: ${color.accent};
+        }
+
+        .widget-title > button,
+        .widget-dnd switch {
+          background: alpha(${color.border}, ${toString opacity.surface});
+          color: var(--text-color);
+          border: none;
+          border-radius: ${toString radiusInner}px;
+        }
+
+        .widget-title > button:hover {
+          background: ${color.accent2};
+          color: ${color.bgDark};
+        }
+
+        .widget-dnd switch:checked {
+          background: ${color.accent};
+        }
+
+        .widget-dnd switch slider {
+          background: ${palette.fg};
+          border-radius: ${toString radiusInner}px;
         }
       '';
     };

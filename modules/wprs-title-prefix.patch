@@ -1,0 +1,34 @@
+diff --git a/src/client/xdg_shell.rs b/src/client/xdg_shell.rs
+index ad3d31b..249b146 100644
+--- a/src/client/xdg_shell.rs
++++ b/src/client/xdg_shell.rs
+@@ -77,6 +77,11 @@ impl RemoteXdgToplevel {
+ 
+         let local_window =
+             xdg_shell_state.create_window(local_surface, WindowDecorations::ServerDefault, qh);
++        // The prefix labels the window before its first commit and stays if
++        // the remote never sets a title
++        if !title_prefix.is_empty() {
++            local_window.set_title(title_prefix.to_owned());
++        }
+ 
+         {
+             let toplevel_state = surface_state
+@@ -139,9 +144,14 @@ impl RemoteXdgToplevel {
+     fn set_title(&mut self, title: Option<String>) {
+         if self.title != title {
+             self.title = title;
+-            if let Some(title) = &self.title {
+-                self.local_window
+-                    .set_title(format!("{}{}", self.title_prefix, title));
++            match &self.title {
++                Some(title) => self
++                    .local_window
++                    .set_title(format!("{}{}", self.title_prefix, title)),
++                None if !self.title_prefix.is_empty() => {
++                    self.local_window.set_title(self.title_prefix.clone())
++                },
++                None => {},
+             }
+         }
+     }
