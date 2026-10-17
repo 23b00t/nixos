@@ -139,17 +139,55 @@ Pick an older generation in the systemd-boot menu. On the xmg,
 plain "NixOS (Generation …)" entry of a Xen generation: it boots the new
 config without the hypervisor, and no VM runs there.
 
+One VM only (configuration): `nox rollback <vm>` lists the system
+generations whose runner for that VM differs, `nox rollback <vm> --gen <n>`
+makes that runner the VM's `current` and restarts it (a GC root keeps it),
+`nox rollback <vm> --reset` goes back to the running system's runner. It
+holds until a switch installs a changed runner for that VM. For good: revert
+the VM's commit.
+
+One VM (data): `nox snapshot <vm>` copies the stopped VM's images (sparse,
+one snapshot per VM in `/var/lib/microvms/.snapshots`, space check first),
+`nox rollback --data <vm>` puts them back. By hand only; `backup` stays the
+backup.
+
+One program: take it from an older nixpkgs, until the fix lands upstream.
+Add a second input pinned to a good revision and an overlay in the VM's
+module (or dom0's), then remove both again:
+
+```nix
+# flake.nix inputs
+nixpkgs-good.url = "github:nixos/nixpkgs/<good-rev>";
+
+# vms/<vm>/default.nix
+nixpkgs.overlays = [
+  (final: _: {
+    termusic = inputs.nixpkgs-good.legacyPackages.${final.stdenv.hostPlatform.system}.termusic;
+  })
+];
+```
+
+`nox gc [--keep <n>] [-n]`: delete all but the newest n system generations
+(default 3; `-n` only shows them), rewrite the boot menu, collect garbage.
+
 ## Managing VMs
 
 ### Our tools (dom0)
+
+`nox` (NoX repo, `nox --help`, bash completion) is one command over the
+scripts below: `nox` = running VMs, `nox list|start|stop|restart`,
+`nox run|exec|ssh <vm> …`, `nox clip`, `nox copy`, `nox update [--all]`,
+`nox usb …`, `nox doctor` (smoke test of what runs: domains, SSH, relays,
+network, RPC, clipboard, wprs, D-Bus, stale runners, disk, failed units,
+new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 
 | Command | What |
 |---|---|
 | `vm-run <vm> <app> [args]` | start a GUI app in a VM (wprs over vchan, app start over RPC) |
 | `vm-run -c <vm> '<cmd>'` | run a command over SSH |
 | `ssh <vm>` | SSH session (over the vchan relay socket); `<vm>`, `<vm>-vm`, the short alias or the IP, also for `whonix-gateway`, `whonix-workstation`. No host key check (guests make new host keys at every boot; the relay socket ties the connection to the domain), no warnings (`LogLevel ERROR`). kitty terminfo: `kitten ssh <vm>` |
-| `manage-vms status [--running] [--group <g>] [--stale]` | state of all VMs |
-| `manage-vms <start\|stop\|restart> [--running] [--group <g>] [--stale]` | bulk operations |
+| `manage-vms status [<vm>...] [--running] [--group <g>] [--stale]` | state of all VMs |
+| `manage-vms <start\|stop\|restart> [<vm>...] [--running] [--group <g>] [--stale]` | single or bulk operations; a (re)started VM gets its tray apps (`vm-tray`); `ms`/`mst`/`mr <vm>...` are short for it |
 | `vm-usb list` | USB devices in sys-usb and their owners |
 | `vm-usb attach <device> <vm>` / `vm-usb detach <device>` | hand a USB device to a VM (USB/IP), device = busid, `vendor:product` or registry name |
 | `vm-usb allow-input <busid>` | accept a new input device for dom0 until it is unplugged |

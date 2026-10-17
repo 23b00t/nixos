@@ -614,6 +614,163 @@ Reihenfolge:
   - **Build für den Rest (hp, nach `git add modules/wprs-clipboard.nix`, dann ohne `path:`):** `nix build .#nixosConfigurations.hp.config.system.build.toplevel` (Eval-Spitze knapp für 8 GB dom0 neben laufenden Apps; vorher Firefox/Telegram/KeePassXC-Fenster schließen), dann `sudo …/bin/switch-to-configuration test`, coding/chat/vault neu starten. xmg-Eval: `nix eval .#nixosConfigurations.xmg.config.system.build.toplevel.drvPath`.
   - **Nachtrag 2026-10-16 nachmittags (User baut, Claude testet auf dem hp):** Build 2 aktiv (`switch test`). Whonix-sshd ✓ (`DenyUsers sysmaint` in Workstation und Gateway, `ssh -l sysmaint` abgelehnt, obwohl ein Key hinterlegt ist). Zwei Fehler gefunden und mit Build 3 behoben: **foot** 1.28 kennt `[colors]` nicht mehr → `colors-dark` (`--check-config` in dom0 und coding ✓). **Whonix-Clipboard:** `vm-clip-helper` liegt in `/nix/store/nox/bin`, nicht im PATH der SSH-Sitzung → vm-clip ruft ihn mit erweitertem PATH; jede SSH-Verbindung ist dort eine eigene Unit (`sshd-vchan@…`), deren Ende das per `setsid` gestartete `wl-copy` mitnahm → der Helfer startet `wl-copy --foreground` per `systemd-run --user` (Whonix und coding ✓, dom0 bleibt isoliert ✓). Nebenbefund: in der Workstation läuft ein zweiter wprsd als `_greetd` (die User-Unit startet auch für den Greeter; schon vorher so). hp: nix-daemon baut mit CPU/IO-Priorität `idle` (dom0 ruckelte bei Builds). Ab jetzt laufen auf dem hp nur die nötigen VMs, Test-VMs stoppt Claude danach wieder, GC nach jedem Switch. Achtung: die Whonix-Workstation braucht das Gateway (ihr Netz-Backend), sonst `Unable to set nic defaults`. **xmg-Tests (User, 17:30):** foot ✓ (dom0, `vm-run coding foot`, yazi-Vorschau in chat). cpupool ✓: beim Start von steam `steam` mit 15 CPUs (CPU 0 bleibt in Pool-0), steam-vCPUs auf 1–15, nach dem Stopp alles zurück in Pool-0, Pool weg; Stopp dauert ~15 s (Herunterfahren der Domain). dom0 6144 MB → `free` zeigt 4742 MB (Grundbedarf ≈ 1/64 des Host-RAMs für die Seitenverwaltung + Kernel, unabhängig von der dom0-Größe; hp 32 GB: ≈0,75 GB), 1,8 GB belegt; bleibt so (User). **Clipboard-Tasten gingen nicht:** Alt+Shift ist die Layout-Umschaltung (`grp:alt_shift_toggle`), xkb schluckt das Shift → jetzt **Mod+Alt+C/V** (nachts nur die Skripte direkt getestet, nicht die Tasten). Boot: alle VMs starten parallel um 17:26:25, fertig nach 6–17 s (coding 8,6 s Kernel), Whonix-Gateway +13 s; Login 17:26:34,8; zellij in coding erst 17:26:55, 2 s nach `sshd-keygen` (17:26:53): `/` ist tmpfs, jede MicroVM erzeugt bei jedem Boot neue Host-Keys, RSA 4096 kostet unter Last Sekunden → nur noch ed25519 (`vms/modules/common-config.nix`). Die Probe von `ssh-relay-wait` war nicht schuld. Clipboard mit Mod+Alt+C/V auf dem hp vom User komplett getestet ✓ (Generation 720). **Später (User): Bootzeit der VMs optimieren, jede Sekunde zählt** (Kandidaten: Kernel-Start unter Last, coding 8,6 s; initrd 2,7–4,1 s; Startreihenfolge der Domains).
   - **new-vms auf dem XMG (User + Claude, 2026-10-16 abends):** sys-vpn (PVH-Driver-Domain) läuft, Proton WireGuard per NM importiert (Datei muss `wg-*.conf` heißen, sonst blockt der Killswitch); vanilla über sys-vpn: Proton-IP ✓, DNS über den Tunnel ✓ nach Fix (der Dispatcher schrieb die Datei per `mktemp` mit 0600, dnsmasq läuft als `dnsmasq`: `chmod 0644`), Killswitch ✓ (Tunnel aus → keine Verbindung, nach `resolvectl flush-caches` kein DNS), Tunnel neu verbinden ✓. Gefunden beim Lesen: Lab-MAC `02:<Oktett>` = USB/IP-MAC → Lab jetzt `03:`. Anleitung: README „sys-vpn (VPN)“. win: Bottles öffnete keine Bottle (dconf ohne Session-Bus, Schreiben scheiterte) → RPC-Apps bekommen den eigenen Session-Bus der VM + dconf, dazu Dark Mode als Default (`vchan-relay.nix`, `common-config.nix`); mit `GSETTINGS_BACKEND=memory` vorab getestet: Notepad++ läuft sehr gut. kali: Lab ging nicht, weil `lab0` in php per gleicher MAC die USB/IP-Schnittstelle übernahm (Fix `03:` erst nach dem Build testbar); ILIAS lauscht auf `0.0.0.0:8500`, passt.
+  - **Spec Nachtlauf hp 2026-10-16/17 (User + Claude, grill 2026-10-16, Start erst auf Ansage nach Reboot des hp mit 12 GB dom0):**
+    - **Rahmen:** nur hp; ändern, bauen, `switch-to-configuration test`, VMs neu starten; kein Commit, kein Reboot; Repos `~/nixos-config` (Branch `hp`) und `~/code/NoX`. Bericht mit Zeitstempeln und `git commit -S`-Blöcken für beide Repos hier. Nur nötige VMs laufen, Test-VMs danach stoppen, GC nach jedem Switch, Evals nacheinander, abgebrochene Evals selbst neu starten.
+    - **Reihenfolge bei Zeitnot:** Fixes → nox → doctor → Pilot → Rollback → Snapshot.
+    - **Startzustand (2026-10-17 kurz nach 0 Uhr):** hp-Arbeitsbaum hat uncommittete, ungetestete Änderungen vom Abend: `home/desktop/niri.nix` (Tab-Indikator, `Mod+1…9` = Tab n der Spalte, `Mod+0` = letzter Tab), `home/desktop/theme.nix` (foot Medium/Bold), `vms/nvim/default.nix` + `vms/irc/default.nix` (wprs), `xen-migration.md` (diese Spec, Notizen). **Erster Schritt:** nach dem Reboot prüfen, dass dom0 12 GB hat (`free -m`, `xl info`), dann hp bauen (enthält diese Änderungen), `switch-to-configuration test`, nvim neu starten, `niri validate` auf die erzeugte Config, `vm-run nvim foot …` startet. Für diese Abend-Änderungen eigener Commit-Block im Bericht, getrennt von der Nachtarbeit. Der User testet Tabs/Indikator/Schrift/Zahlentasten am Morgen selbst.
+    - **1. Kleine Fixes:** (a) `nox-relay-<vm>` per `PartOf` an `microvm@<vm>`/`xen-image@<name>` (Test: VM hart neu starten, SSH geht ohne Handgriff); (b) sys-net lädt `nft_meta_bridge`, `br_netfilter`, `nft_compat` beim Boot (Test: `mr sys-net`, kein Hänger, neue VMs bekommen ihren vif); (c) nano raus, Editor nvim wo vorhanden sonst vim (`EDITOR`/`VISUAL`, MIME `text/*`, yazi-Opener); (d) statix W20 in `machines/common-configuration.nix`, rein strukturell, `drvPath` vorher = nachher.
+    - **2. nox-CLI:** neues Crate `crates/nox-cli` im NoX-Repo; dünner Wrapper (clap), ruft die Skripte, reicht Exit-Codes durch; englische Hilfe, bash-Completion mit VM-Namen. Befehle: `nox` (= laufende VMs), `list|start|stop|restart` → `manage-vms`; `run` → `vm-run`; `exec <vm> <cmd>` → `vm-run -c`; `ssh <vm>`; `clip copy|paste` → `vm-clip`; `copy` → `cp-vm`; `update [--all]` → `dom0-update`/`update-all`; `usb …` → `vm-usb`. `manage-vms start|restart` übernimmt das Verhalten von `ms`/`mr` (sudo NOPASSWD, `vm-tray`), `ms`/`mst`/`mr` rufen `manage-vms`. NixOS-Modul im NoX-Repo (`programs.nox.enable` + Option mit der VM-Liste), nixos-config füllt sie aus der Registry → `/etc/nox/registry.json` (nur für die Completion). Test per `--override-input nox path:/home/nx/code/NoX`; README-Abschnitt.
+    - **2b. Testing:** `nox doctor` → neues Skript `vm-doctor` (nixos-config), Rauchtest auf Befehl, startet keine VMs, prüft nur laufende; Tabelle PASS/FAIL/SKIP, Exit ≠ 0 bei Fehlern. Prüft: Autostart-Domains laufen, `ssh <vm> true` je laufender VM, Relay hängt nicht an alter Domain; Netz (curl + DNS aus einer VM über sys-net, bei sys-vpn-Clients Tunnel-IP); GUI/RPC (RPC-App `true`), Clipboard-Runde dom0 → VM → dom0 mit Sicherung/Wiederherstellung des dom0-Inhalts (erste laufende wprs-VM mit erlaubtem Clipboard); wprs (wprsd aktiv, genau ein wprsc je VM); D-Bus (Proxy-Socket bei weitergeleiteten VMs, `org.freedesktop.Notifications` aus der VM erreichbar); System (keine VM mit `current ≠ booted`, freier Platz, Kernel/`xl dmesg` ohne neue Fehler, keine failed Units). **Pilot NixOS-Test:** Killswitch-Teil von sys-vpn (nftables, dnsmasq, Dispatcher) als eigenes Modul herauslösen (sys-vpn importiert es, `drvPath` vorher = nachher); `tests/sys-vpn-killswitch.nix` mit drei Knoten (WireGuard-Server als Proton-Ersatz, Gateway, Client): Tunnel an → Client online + DNS, aus → offline + kein DNS; Flake-Check `checks.x86_64-linux.sys-vpn-killswitch`. Läuft in dom0 ohne KVM emuliert (TCG, langsam).
+    - **3. Rollback:** `nox rollback <vm> [--gen n]`: Generationen mit abweichendem Runner der VM listen, mit `--gen` deren Runner als `current` setzen und VM neu starten (gilt bis zum nächsten switch); Test mit einer älteren Generation. `nox gc [--keep n]` nur auf Aufruf (Annahme Standard 3): alte Systemgenerationen löschen, dann GC. Niedrigste Priorität: `nox snapshot <vm>` / `nox rollback --data <vm>`: von Hand, eine sparse Kopie der Images bei gestoppter Domain, MicroVMs und Image-Domains, Platzprüfung vorher (kein Automatismus; `backup` bleibt). Programm-Rollback nur dokumentieren (zweiter nixpkgs-Input + Overlay) im README.
+    - **Nicht im Nachtlauf:** foot statt kitty (gemeinsam), btop, tiny, ILIAS, Bootzeit der VMs, microvm-Fork (dort steht nichts an).
+    - **Abnahme:** Tests oben grün oder Fehler mit Ausgabe im Bericht; hp-Config baut, xmg-Config wertet aus; ein Commit-Block je Fix/Feature.
+    - **Bericht Nachtlauf (Claude, 2026-10-17 00:05–03:00, alles auf dem hp):**
+      - **Ergebnis:** alle Punkte der Spec umgesetzt und getestet (Fixes, nox, doctor, Pilot, Rollback, Snapshot). Läuft als `switch-to-configuration test` (Build 4, `5y3m2ms7…`), **keine Systemgeneration angelegt, nichts committet, kein Reboot**. Abschluss-`nox doctor`: **38/38 PASS**. hp-Config baut, **xmg-Config wertet aus** (`gws7bcjn…`). Laufende VMs am Ende: nur die Autostart-Domains (sys-net, sys-usb, vault, nvim, coding, chat), alle mit aktuellem Runner. Test-VMs office/net wieder gestoppt. GC nach jedem Switch, Platte 77 %.
+      - **00:05 Start: dom0 hatte 8192 MB, nicht 12 GB.** `a856fc4` (dom0 12 GB) war nie gebaut, Generation 720 ist älter (`xl info`: `dom0_mem=8192M`). Build 1 thrashte (6 GB RSS + 9 GB Swap) → **00:22 `xl mem-set 0 12288` zur Laufzeit**, das geht (`xl mem-max 0` scheitert an fehlendem `memory/target` in xenstore, war nicht nötig). dom0 hat bis zum Reboot 12 GB, danach greift `dom0_mem` aus `a856fc4`, sobald eine Generation mit diesem Stand gebootet wird. Evals mit 12 GB: unter 10 min.
+      - **00:56 Build 1** (Abend-Änderungen, 51 min, viele Store-Images wegen der gestageten `vchan-relay.nix`): `switch test` ✓ (startete chat neu), nvim neu gestartet, `niri validate` ✓, `vm-run nvim foot --version` und `foot -e true` ✓ (Journal in nvim: `foot version: 1.28.0`). Tabs/Indikator/Schrift/Zahlentasten testest du. Nebenbefund: `ide-lazyvim-sync` in nvim meldet beim Boot `cannot run ssh: No such file or directory` (nicht untersucht).
+      - **Gebaut aus Scratch-Kopien:** neue Dateien sind untracked, `git add` durfte ich nicht → Builds aus `path:`-Kopien beider Repos (`git ls-files -co --exclude-standard`), nox per `--override-input`. Builds 2 (01:47, alle Nachtänderungen), 3 (02:29, Relay-`After`, Rollback-Liste), 4 (02:46, doctor: nur `(XEN)`-Zeilen), je `switch test` ✓.
+      - **1a Relay ↔ VM:** `nox-relay-<vm>` mit `partOf`, `after`, `wantedBy` = `microvm@<vm>` bzw. `xen-image@<name>`. Erster Test (nur PartOf): office starten, nach 5 s `nox restart office` → Relay startete **vor dem Ende der alten Domain** neu, nahm deren ID (9) und wartete 30 s (`giving up`, dann Neustart, `peer connected`). Mit `after`: Relay startet nach der neuen Domain (17), `peer connected` nach 10 s, SSH ✓ ohne Handgriff. VM-Stopp stoppt den Relay, VM-Start startet ihn ✓. Der eigentliche Fix (Relay erkennt verschwundene Domains) bleibt fürs NoX-Repo.
+      - **1b sys-net:** `boot.kernelModules` = `nft_meta_bridge`, `br_netfilter`, `nft_compat`. `nox restart sys-net` (= `mr sys-net`): 45 s, Module nach dem Boot geladen, keine hängenden Tasks, xen-links hängte die Uplinks von chat/coding/nvim wieder an; danach gestartetes net bekommt seinen vif, DNS + HTTPS 200 ✓ (office hat `nat = false`, deshalb ohne Netz, richtig so). Ob es den Deadlock auf dem XMG verhindert, zeigt erst ein `mr sys-net` dort.
+      - **1c Editor:** dom0 ohne nano, `programs.vim.defaultEditor` → `EDITOR=vim` in neuen Sitzungen (deine laufende niri-Sitzung hat noch `nano` bis zum Neuanmelden), `text/plain`/`text/markdown` → `vim.desktop` ✓. VMs hatten nano/EDITOR schon (`dfa9786`); neu `text/plain`/`text/markdown` → `nvim.desktop` bzw. `vim.desktop` (coding hatte `Helix.desktop`; nach Neustart `nvim.desktop` ✓). yazi: der `edit`-Opener ist yazis Standard mit `$EDITOR`, unverändert.
+      - **1d statix W20:** war schon erledigt (`2e7203a`), nichts zu tun.
+      - **2 nox-CLI ✓:** Crate `crates/nox-cli` (clap, Binary `nox`), Modul `nixosModules.cli` (`programs.nox.enable`, `vms` → `/etc/nox/registry.json`), bash-Completion, README. `cargo test` (3 Tests), clippy, rustfmt sauber. Getestet: `nox` (laufende VMs), `ls --stale`, `start|stop|restart` (auch mit Namen), `exec` (Exit-Code von `false` → 1), `ssh`, `usb list`, `copy -n` (cp-vm: auf dem hp fehlt `~/.ssh/vmcopy`, Exit 6, war schon so), unbekannte VM → 1, fehlendes Skript → 127, Completion (Befehle, VM-Namen, `usb attach <dev> <vm>`, Flags). Zusätzlich zur Spec: `nox doctor`, `rollback`, `snapshot`, `gc`. `manage-vms` nimmt jetzt VM-Namen und ruft `vm-tray` nach start/restart; `ms`/`mst`/`mr` rufen `manage-vms` (gehen jetzt auch mit mehreren VMs). `nox clip` nur über den Doctor getestet (braucht ein fokussiertes Fenster).
+      - **2b `nox doctor` ✓** (`vm-doctor`, ~8 s): Autostart, SSH + Relay-Domain je laufender VM, Netz über sys-net (und Tunnel-IP bei sys-vpn-Clients, hier ungetestet: kein Client lief), RPC-App `true`, Clipboard-Runde dom0 → nvim → dom0 mit Wiederherstellung beider Inhalte, wprsd + wprsc-Anzahl, D-Bus (Notifications aus jeder VM), `current ≠ booted`, Platte, failed Units, neue Kernel-/Xen-Fehler seit dem letzten Lauf (erster Lauf: seit Boot). Erster Lauf fand korrekt die alten Runner nach dem Switch; Fehlalarm `(d21) parse_termlist` behoben (das sind Gastkonsolen-Zeilen, gezählt werden nur noch `(XEN)`-Zeilen mit Wortgrenzen).
+      - **2b Pilot ✓:** Killswitch als `vms/modules/vpn-killswitch.nix` (`services.vpn-killswitch`: dnsmasq, Dispatcher, tunnel-nat, Forward-Regeln), sys-vpn importiert es; **`drvPath` vorher = nachher** (`bnyhncxv…`; das Modul muss erster Import sein, sonst ändert sich die Reihenfolge in `tmpfiles.d`). `tests/sys-vpn-killswitch.nix` (Server = Proton-Ersatz mit WireGuard, DNS, „Internet“ 10.99.0.1; Gateway mit NM-WireGuard wie sys-vpn; Client), Schlüssel erzeugt der Test zur Laufzeit. `checks.x86_64-linux.sys-vpn-killswitch` **grün in 282 s unter TCG** (Tunnel an: online + DNS; aus: offline + kein DNS, obwohl das Gateway selbst über den Uplink rauskommt; wieder an: online). Erster Lauf scheiterte an meinem Test (Adresse per `networking.interfaces.lo` kam im Test-VM nicht an → per `ip addr` im Skript). **Gegentest:** mit `accept` statt `reject` im Killswitch schlägt „tunnel down“ fehl (`curl … unexpectedly succeeded`) → der Test erkennt einen kaputten Killswitch. Lauf: `nix build .#checks.x86_64-linux.sys-vpn-killswitch` (nach `git add` der neuen Dateien).
+      - **3 Rollback ✓:** `nox rollback nvim` listet Gen. 719/720 und das laufende System ohne Generation (`-`); `--gen 720` → nvim bootet mit `31x6…` (das Install-Unit setzt `current` beim VM-Neustart nicht zurück), GC-Root unter `~/.local/state/vm-rollback/` ✓, `--reset` ✓. Gilt bis ein Switch einen geänderten Runner für die VM installiert. `nox gc -n` ✓ (zeigt die zu löschenden Generationen); der echte Lauf braucht sudo mit Passwort, ungetestet. Programm-Rollback (zweiter nixpkgs-Input + Overlay) im README dokumentiert.
+      - **Snapshot ✓:** `nox snapshot office` (Sparse-Kopie, 12 MB, `cmp` identisch), Marker-Datei in office angelegt, `nox rollback --data office` → Marker weg ✓. Die zurückgeschriebenen Images gehören danach `nx:kvm` 664 statt `microvm`/`root` (für Xen egal, der Runner läuft als root). Test-Snapshot gelöscht.
+      - **Wie lief es:** ~3 h, keine Abbrüche durch den Reaper. Bremsen: die erste Eval mit 8 GB (gelöst per `mem-set`) und die Store-Images (lz4hc mit 4 dom0-vCPUs, ~30 min je Build mit VM-Änderung). Eigener Fehler: einmal `pgrep -f` mit einem Muster aus der eigenen Befehlszeile (griff dank zweiter Bedingung nicht), danach Warten über die PID.
+      - **Für dich offen:** (1) Commits unten (signiert), NoX zuerst pushen, dann `nix flake update nox`. (2) Danach `sudo nixos-rebuild boot --flake .#hp` + Reboot (oder `switch`), damit `dom0_mem=12288` und alles als Generation bleibt. Ohne Reboot verliert dom0 die 12 GB nicht, aber `switch-to-configuration test` gilt nur bis zum Reboot. (3) Tabs/Schrift/Zahlentasten (Abend-Änderungen). (4) Morgen-Themen: nox-Weiterentwicklung (rofi als Front-End), Bootzeit.
+      - **Commit-Blöcke:** siehe unten (Spalte 0, damit Heredocs und Patches beim Kopieren aus nvim stimmen).
+
+**Commit-Blöcke Nachtlauf 2026-10-16/17** (hp, signiert; jeder Commit baut für sich; `git diff --cached --stat` vor jedem Commit zeigt, was drin ist). **NoX zuerst:**
+
+```sh
+cd ~/code/NoX
+git add Cargo.toml Cargo.lock flake.nix README.md crates/nox-cli nix/nox-cli.nix nixos/modules/cli.nix
+git commit -S -m "nox-cli: one command for dom0 (thin wrapper over the scripts), NixOS module programs.nox, bash completion"
+git push
+```
+
+nixos-config, **C0 Abend** (der Index enthält schon deine gestageten Hunks in `README.md`, `vms/modules/vchan-relay.nix`, `xen-migration.md`):
+
+```sh
+cd ~/nixos-config
+git add home/desktop/niri.nix home/desktop/theme.nix vms/nvim/default.nix vms/irc/default.nix
+git commit -S -m "niri: Mod+1…9 = tab n of the column, Mod+0 = last tab, tab indicator; foot Medium/Bold; nvim, irc: wprs; win: libadwaita dark; lab MAC 03:"
+```
+
+**C1 Relay** (nur der Relay-Hunk aus `machines/xen-dom0.nix`):
+
+```sh
+git apply --cached <<'EOF'
+diff --git a/machines/xen-dom0.nix b/machines/xen-dom0.nix
+--- a/machines/xen-dom0.nix
++++ b/machines/xen-dom0.nix
+@@ -468,7 +468,20 @@ in
+             vm: (vm.uplink or "sys-net") == "sys-vpn" && config.microvm.vms ? ${vm.name}
+           ) vmRegistry.vms
+         )
+-    );
++    )
++    # The relay doesn't notice a domain that was killed hard (stop timeout)
++    # and stays attached to it (Known Issues): stopping or restarting the VM
++    # takes its relay along, starting the VM starts it again. After: on a
++    # restart the relay comes back only once the old domain is gone (without
++    # it, it looked up the old domain id and waited 30 s for it, 2026-10-17)
++    // lib.mapAttrs' (
++      name: _:
++      lib.nameValuePair "nox-relay-${name}" {
++        partOf = [ "microvm@${name}.service" ];
++        after = [ "microvm@${name}.service" ];
++        wantedBy = [ "microvm@${name}.service" ];
++      }
++    ) (lib.filterAttrs (name: _: config.microvm.vms ? ${name}) config.services.nox-relay.host.guests);
+ 
+     network.networks =
+       # Admin network: every VM port is isolated, so VMs reach dom0 (the
+EOF
+git add modules/xen-image-domains.nix
+git commit -S -m "[FIX]: nox-relay follows its VM (PartOf/After/WantedBy microvm@, xen-image@): no relay left on a hard-killed domain"
+```
+
+**C2 sys-net, C3 Editor:**
+
+```sh
+git add vms/sys-net/default.nix
+git commit -S -m "sys-net: load nft_meta_bridge, br_netfilter, nft_compat at boot (loading them at runtime deadlocked with xenwatch)"
+git add machines/common-configuration.nix home/desktop/xdg-gtk-qt.nix vms/modules/common-config.nix
+git commit -S -m "editor: no nano in dom0, vim is \$EDITOR; text files open in vim/nvim (dom0, VMs)"
+```
+
+**C4 nox** (nach dem NoX-Push; der ms/mr-Hunk aus `home/home.nix`):
+
+```sh
+git apply --cached <<'EOF'
+diff --git a/home/home.nix b/home/home.nix
+--- a/home/home.nix
++++ b/home/home.nix
+@@ -98,17 +98,11 @@ in
+ 
+       PS1='\[\e[1;34m\]\u@\h\[\e[0m\] \[\e[1;32m\]\w\[\e[0m\] \$ '
+ 
+-      # sudo: NOPASSWD for microvm@ units (plain systemctl asks polkit for
+-      # the password); one VM by its full name. A (re)started VM gets its
+-      # tray apps again (vm-tray, home/desktop/niri.nix)
++      # VMs by their full names, via manage-vms (sudo NOPASSWD for microvm@
++      # units; a (re)started VM gets its tray apps again, vm-tray)
+       vmunit() {
+-        [ $# -eq 2 ] && [ "$2" != help ] || { echo "usage: ms|mst|mr <vm>" >&2; return 2; }
+-        local was
+-        was=$(systemctl is-active microvm@"$2".service)
+-        sudo systemctl "$1" microvm@"$2".service || return
+-        if [ "$1" = restart ] || { [ "$1" = start ] && [ "$was" != active ]; }; then
+-          vm-tray "$2"
+-        fi
++        [ $# -ge 2 ] && [ "$2" != help ] || { echo "usage: ms|mst|mr <vm>..." >&2; return 2; }
++        manage-vms "$@"
+       }
+       ms() { vmunit start "$@"; }
+       mst() { vmunit stop "$@"; }
+EOF
+nix flake update nox
+git add machines/xen-dom0.nix home/vm-management/manage-vms.nix flake.lock
+git commit -S -m "nox: CLI in dom0 (programs.nox, completion from the registry); manage-vms takes VM names and runs vm-tray, ms/mst/mr use it"
+```
+
+**C5 doctor** (die `vm-doctor`-Importzeile aus `home/home.nix`):
+
+```sh
+git apply --cached <<'EOF'
+diff --git a/home/home.nix b/home/home.nix
+--- a/home/home.nix
++++ b/home/home.nix
+@@ -20,6 +20,7 @@ in
+     ./ssh.nix
+     ./vm-management/vm-run.nix
+     ./vm-management/vm-gui.nix
++    ./vm-management/vm-doctor.nix
+     ./vm-management/desktop-entries.nix
+     ./vm-management/vm-dbus-forward.nix
+     ./vm-management/github-agent-forward.nix
+EOF
+git add home/vm-management/vm-doctor.nix
+git commit -S -m "vm-doctor (nox doctor): smoke test of the running system"
+```
+
+**C6 Killswitch + Test, C7 Rollback, C8 Doku:**
+
+```sh
+git add vms/modules/vpn-killswitch.nix vms/sys-vpn/default.nix tests/sys-vpn-killswitch.nix flake.nix
+git commit -S -m "sys-vpn: killswitch as a module (same drvPath), NixOS test checks.sys-vpn-killswitch"
+git add home/home.nix home/vm-management/vm-rollback.nix
+git commit -S -m "rollback: vm-rollback, vm-snapshot, vm-gc (nox rollback|snapshot|gc)"
+git add README.md xen-migration.md
+git commit -S -m "docs: nox, rollback per VM/data/program; night run 2026-10-16/17 report"
+git push
+```
+
+  - **Morgen (2026-10-17, User + Claude): Bootzeit der VMs optimieren** („jede Sekunde zählt“). Ausgangswerte XMG 2026-10-16: alle Domains starten parallel um 17:26:25; nvim 8,1 s, irc 6,4 s, coding 17,1 s (davon 8,6 s Kernel, vermutlich CPU-Konkurrenz beim parallelen Start); Whonix-Gateway +13 s; sshd-keygen RSA 4096 kostete Sekunden (behoben: nur ed25519). Erst messen (`systemd-analyze`, `blame`, `critical-chain` je VM; Startreihenfolge in dom0), dann einzeln ändern.
+  - **Morgen außerdem (User, 2026-10-16 spät):** (a) Styling von Super/Menü (rofi) verbessern; (b) Recherche: Gruppierungen in rofi, z. B. App-Launcher nach VM gruppiert; (c) rofi statt `pcmd` und ausbauen: alle relevanten Befehle zur Bedienung von nox (nach dem Nachtlauf, nox-Befehlsbaum als Quelle); (e) nach dem Test der nox-CLI ihre weitere Entwicklung klären; (f) Verbesserungen am `backup`-Skript besprechen (Roadmap: Backup-Neubau); (d) niri-Keybinds aufräumen (heute: `Mod+1…9` = Tab n der fokussierten Spalte, `Mod+0` = letzter Tab, statt Workspaces).
   - **Notiert (User, 2026-10-16):** (a) Laufen die Terminals per wprs aus den VMs (foot als niri-Tabs statt kitty + remote-zellij in dom0), kann `environment.variables.PULSE_SERVER` aus `vms/coding/default.nix` raus (wprs-Starts bekommen den Pulse-Socket vom Relay); prüfen mit termusic in foot über wprs. (b) Später: braucht termusic noch den mpv-Patch (`pulse-buffer`), `/etc/mpv/mpv.conf` und die Configs aus der music-VM (der große Puffer stammt aus der Zeit von `ssh -R 4713` über TCP)? (c) btop: Theme u. a. springen in dom0 und VMs immer wieder auf Default, vermutlich nach jedem Rebuild. hp-dom0: `~/.config/btop/btop.conf` (nicht von Nix verwaltet, Stand 2025, `color_theme = "dracula"`) unverändert; in den VMs liegt `/` auf tmpfs, `~/.config/btop` überlebt nur auf einem Home-Volume. Prüfen auf dem XMG: Zeitstempel und `color_theme` vor/nach einem Rebuild; Lösung vermutlich `programs.btop.settings` (home-manager in dom0) bzw. `/etc/btop`-Vorgabe in den VMs.
   - **Konzept nox-CLI (Rust-Wrapper, Entwurf für den grill):** ein Binary `nox` statt der heutigen Einzelskripte, Daten aus der Registry (zur Build-Zeit als JSON eingebettet, wie heute die `case`-Blöcke), Ausgabe für Menschen und `--json` für Skripte/TUI. Die Einzelskripte bleiben zunächst als dünne Aliase (`vm-run` → `nox run`), bis die CLI sie ersetzt. Befehlsbaum:
     - `nox ls [--running|--stale|--group g]` (heute `manage-vms status`), `nox start|stop|restart <vm…|--running|--stale|--group g>`, `nox console <vm>` (`xl console`), `nox top` (`xl top`, RAM-Balancer-Sicht)
@@ -778,6 +935,7 @@ Reihenfolge: **vanilla → sys-vpn → win → kali** (einfach → aufwendig; sy
 
 ### Zu besprechen (User, 2026-10-14, später)
 
+- **Bluetooth-Workflow (User, 2026-10-16, irgendwann):** verbessern, dokumentieren, durchtesten. Aufgefallen: das waybar-Bluetooth-Icon (`custom/bluetooth`, `home/desktop/waybar.nix`) öffnet immer `blueman-manager` in sys-usb (`vm-run su …`), auch wenn der Adapter per `vm-usb attach bluetooth-… <vm>` gerade in einer App-VM hängt; dazu das offene Known Issue „BT-Gerät in einer App-VM verbinden“. Idee: Icon zeigt/öffnet blueman dort, wo der Adapter gerade ist (Besitzer aus `vm-usb`).
 - **Rollback einzelner VMs und Programme:** Szenario steam: heute läuft sie sehr gut, dann drei Wochen nicht benutzt, dazwischen mehrere Updates, plötzlich geht etwas nicht. Ziel: nur diese VM schnell auf den letzten funktionierenden Stand zurück, ohne das ganze System eine Generation zurückzurollen. Ansatzpunkte zum Diskutieren: microvm.nix hält je VM `/var/lib/microvms/<vm>/current` (Runner-Symlink) — ältere Runner sind in alten Systemgenerationen noch im Store; „known good“ je VM markieren (GC-Root auf den Runner, z. B. `/var/lib/microvms/<vm>/known-good`), Umschalten = Symlink zurück + Neustart der VM; Daten-Volumes (home.img) sind davon unberührt. Für einzelne Programme in einer VM: Paket-Pin bzw. Overlay auf die alte Version aus einem früheren nixpkgs-Stand.
 - **Automatisiertes Testen, auch auf dem XMG:** minimal und sicherheitsarm, ohne Framework: ein Skript in dom0, das nach einem Update/Switch die VMs nacheinander prüft (startet, `ssh <vm> true`, ein paar Kernfunktionen je VM: Netz über sys-net, USB-Geräte, Tor im Gateway, steam-GPU sichtbar via `nvidia-smi`), Ergebnis als kurze Tabelle + Log. Läuft nur mit den Rechten, die dom0 ohnehin hat; keine neuen Zugänge. Passt zum Rollback (Test schlägt fehl → VM auf known-good) und zum nox-CLI (`nox test [vm]`).
 
@@ -789,6 +947,7 @@ Reihenfolge: **vanilla → sys-vpn → win → kali** (einfach → aufwendig; sy
 ## v5
 
 - Installer entwickeln
+  - **Idee: KI-Skill zur Einrichtung (User, 2026-10-16):** ein detaillierter Skill (plus Enumerationsskripte), der auf einem neuen System die Hardware prüft (CPU/IOMMU/VT-d, GPUs, NICs, WLAN, USB-Controller und ihre Gruppen, RAM, Platten, Firmware-Eigenheiten wie hier GSI-Sharing oder MSI), den User nach seinen Workflows fragt (z. B. Office, Coding, Gaming, Pentest, Medien) und aus beidem eine nox-Config baut (Registry: VMs, Treiberdomains, Passthrough, Store-Gruppen, RAM-Aufteilung).
   - **Neuaufsetzen XMG mit dem Installer (User, 2026-10-16):** keinen oder nur einen kleinen Swap. Heute eine eigene Swap-Partition mit ~64 GB (`machines/xmg/hardware-configuration.nix`), die unter Xen nichts bringt: dom0 hat 6 GB, die VMs eigene Speicher, Hibernate geht mit Xen nicht. Platz auf dem XMG war am 2026-10-16 knapp (34 GB frei, nach Löschen der alten NixOS-kali-VM 53 GB). Im Installer: Swap optional, Standard klein (z. B. 4–8 GB) oder zram.
 - Admin Tooling, Scripts, TUI etc. entwickeln
 - Alle Scripts (manage-vms, vm-run, vm, dom0-update, …) bekommen Shell-Autocompletion (zsh)
@@ -800,8 +959,8 @@ Reihenfolge: **vanilla → sys-vpn → win → kali** (einfach → aufwendig; sy
 
 ## Known Issues
 
-- **sys-net: Kernel-Deadlock nach `mr sys-net` (XMG, 2026-10-16, erster Neustart mit den Lab-Regeln):** `xenwatch` wartet auf eine Sperre von `iptables` (PID 680), die an `modprobe` (PID 683) hängt; udev, wpa_supplicant, getty u. a. warten auf `xenwatch` („blocked for more than 122 seconds“). Folge: neue vifs in sys-net laufen in `rc -9` (Timeout) → nvim und php starteten in Schleife (Domain-IDs 141, 177, …), SSH zu sys-net/php hing zusätzlich am Relay-Fehler (unten). Bereits verbundene VMs hatten weiter Netz. Reboot half; danach sauber (`nft_meta_bridge`, `br_netfilter`, `nft_compat` geladen, kein `iptables`-Prozess). Vermutung: Modul-Nachladen zur Laufzeit (`meta ibrname` der Lab-Regel → `nft_meta_bridge`; `nft_compat` = irgendwer nutzt iptables-nft) kollidiert mit `xenwatch`, der gleichzeitig die von `xen-links` neu angehängten vifs anlegt. Fix-Kandidat, falls es wiederkommt: Module in sys-net per `boot.kernelModules` vorladen; prüfen, wer in sys-net iptables aufruft. Für den Relay: `nox-relay-<vm>` per `PartOf=microvm@<vm>` koppeln, bis der Relay im NoX-Repo verschwundene Domains erkennt.
-- **nox-relay bemerkt eine hart beendete Domain nicht** (hp, 2026-10-16): chat wurde vom Switch gestartet, 5 s später per `mr chat` neu gestartet; der Stopp mitten im Boot endete nach 61 s mit hartem Beenden. `nox-relay-chat` hatte sich in diesen Sekunden mit der alten Domain verbunden (`peer connected`) und hing danach an ihr: neue Domain lief, SSH/RPC/wprs liefen ins Leere (`Connection timed out during banner exchange`), bis `sudo systemctl restart nox-relay-chat`. Beim normalen Stopp kommt `peer closed the vchan` und der Relay verbindet neu. Fix gehört ins NoX-Repo: Relay muss das Verschwinden der Domain erkennen (xenstore-Watch `@releaseDomain` bzw. `/local/domain/<id>`).
+- **sys-net: Kernel-Deadlock nach `mr sys-net` (XMG, 2026-10-16, erster Neustart mit den Lab-Regeln):** `xenwatch` wartet auf eine Sperre von `iptables` (PID 680), die an `modprobe` (PID 683) hängt; udev, wpa_supplicant, getty u. a. warten auf `xenwatch` („blocked for more than 122 seconds“). Folge: neue vifs in sys-net laufen in `rc -9` (Timeout) → nvim und php starteten in Schleife (Domain-IDs 141, 177, …), SSH zu sys-net/php hing zusätzlich am Relay-Fehler (unten). Bereits verbundene VMs hatten weiter Netz. Reboot half; danach sauber (`nft_meta_bridge`, `br_netfilter`, `nft_compat` geladen, kein `iptables`-Prozess). Vermutung: Modul-Nachladen zur Laufzeit (`meta ibrname` der Lab-Regel → `nft_meta_bridge`; `nft_compat` = irgendwer nutzt iptables-nft) kollidiert mit `xenwatch`, der gleichzeitig die von `xen-links` neu angehängten vifs anlegt. Fix-Kandidat, falls es wiederkommt: Module in sys-net per `boot.kernelModules` vorladen; prüfen, wer in sys-net iptables aufruft. Für den Relay: `nox-relay-<vm>` per `PartOf=microvm@<vm>` koppeln, bis der Relay im NoX-Repo verschwundene Domains erkennt. **Umgesetzt (Nachtlauf 2026-10-17):** Module per `boot.kernelModules` vorgeladen, `mr sys-net` auf dem hp sauber (45 s, keine hängenden Tasks, vifs zurück); auf dem XMG noch zu prüfen. Wer iptables aufruft, nicht untersucht.
+- **nox-relay bemerkt eine hart beendete Domain nicht** (hp, 2026-10-16): chat wurde vom Switch gestartet, 5 s später per `mr chat` neu gestartet; der Stopp mitten im Boot endete nach 61 s mit hartem Beenden. `nox-relay-chat` hatte sich in diesen Sekunden mit der alten Domain verbunden (`peer connected`) und hing danach an ihr: neue Domain lief, SSH/RPC/wprs liefen ins Leere (`Connection timed out during banner exchange`), bis `sudo systemctl restart nox-relay-chat`. Beim normalen Stopp kommt `peer closed the vchan` und der Relay verbindet neu. Fix gehört ins NoX-Repo: Relay muss das Verschwinden der Domain erkennen (xenstore-Watch `@releaseDomain` bzw. `/local/domain/<id>`). **Workaround (Nachtlauf 2026-10-17):** `nox-relay-<vm>` hat `PartOf`/`After`/`WantedBy` = `microvm@<vm>` bzw. `xen-image@<name>`: ein Neustart der VM startet den Relay nach der neuen Domain neu (getestet mit Neustart mitten im Boot). Domains, die ohne systemd verschwinden, bleiben ein Fall für den Relay selbst.
 - **Gelöst (XMG, 2026-10-11): VM-Uploads über sys-net ~20 KB/s = TX-Prüfsummen-Offload der RTL8125 (`r8169`) bei weitergeleiteten (NAT) Paketen.** sys-net selbst 4,8 MB/s, VMs 13–66 KB/s, unabhängig von PVH/PV-dom0 und vif-Offloads; mit `ethtool -K ens3 tx off sg off tso off gso off` VMs 4,9 MB/s. **Fix:** `.link` in sys-net (`Driver=r8169`, TX-Checksum/TSO/GSO aus, Namensregeln von 99-default übernommen). Das war die eigentliche Ursache der Tor-/Whonix-/Builder-Hänger; MSI, GSI-18-Freigabe, `max_queues=1` und PV-dom0 waren dafür nicht nötig (PV-dom0 bleibt vorerst, Zweck: sys-net-Neustart/MSI noch zu prüfen).
 - **XMG: Upload über sys-net ~100× zu langsam (2026-10-11, Hauptursache der Tor-/Builder-Probleme).** Upload aus chat zu speed.cloudflare.com: 31 KB/s (Offloads an), 66 KB/s (aus); hp über sein sys-net (WLAN), gleiches LAN: 4,4 MB/s; Downloads auf dem XMG normal (22 MB/s), 40 parallele Downloads fehlerfrei. Verdacht: Sende-Interrupts der RTL8125 (INTx, `pci=nomsi`) kommen unter PVH-dom0 zu spät. **Test:** PV-dom0 auf dem XMG (`hostProfile.dom0Pv = true` → `dom0=pv`).
 - **Gelöst (XMG, 2026-10-11): Tor-Hänger / Workstation ohne Netz = vifs mit mehreren Warteschlangen.** Backends mit >1 vCPU (sys-net nach dem Wechsel auf 2 vCPUs, Whonix-Gateway mit 2 vCPUs) verhandeln multi-queue mit multi-queue-Gästen (Debian-Gateway, -Workstation; `xl network-list` zeigt dann `ring-ref -1/-1`); ein Teil der Verbindungen blieb stecken → Tor-Strecken „timed out“, Onion-Dienste/sdwdate scheitern, Workstation-Firewall bleibt zu. irc (1 vCPU, eine Queue) lief. Test zur Laufzeit `max_queues=1` in sys-net und Gateway → `clearnet 200` (1,5 s), `onion 200` (2,7 s). **Fix:** `options xen_netback max_queues=1` in sys-net (`vms/sys-net`) und im Gateway-Image (`/etc/modprobe.d/nox-netback.conf` über `xen-image-setup`, für Driver-Domains). Die RX-`dropped`-Zahl in sys-net war vermutlich nur Rauschen (Rahmen mit unbekanntem Protokoll), keine echten Verluste.
