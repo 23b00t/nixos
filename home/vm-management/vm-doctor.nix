@@ -173,9 +173,10 @@ let
       token="vm-doctor-$$-$RANDOM"
       printf %s "$token" | timeout 20 ssh -o BatchMode=yes "$vm" "$helper set" 2>/dev/null
       got="$(vssh "$vm" "$helper get")"
-      printf %s "$got" | wl-copy --type text/plain
+      # wl-copy forks and keeps serving: not on our stdout (doctor | tail hung)
+      printf %s "$got" | wl-copy --type text/plain >/dev/null 2>&1
       back="$(wl-paste --no-newline --type text 2>/dev/null)"
-      if [ "$have0" = 1 ]; then wl-copy --type text/plain <"$tmp/dom0"; else wl-copy --clear; fi
+      if [ "$have0" = 1 ]; then wl-copy --type text/plain <"$tmp/dom0" >/dev/null 2>&1; else wl-copy --clear; fi
       [ "$havevm" = 1 ] && timeout 20 ssh -o BatchMode=yes "$vm" "$helper set" <"$tmp/vm" 2>/dev/null
       rm -rf "$tmp"
       if [ "$back" = "$token" ]; then
