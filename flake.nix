@@ -109,6 +109,11 @@
     {
       packages.${system} = vmRunnerPackages // vmExtraPackages;
 
+      # NixOS tests (qemu; without KVM, e.g. in a Xen dom0, emulated and slow)
+      checks.${system}.sys-vpn-killswitch =
+        nixpkgs.legacyPackages.${system}.testers.runNixOSTest
+          ./tests/sys-vpn-killswitch.nix;
+
       nixosConfigurations = vmSystems // {
         hp = hpConfig;
         xmg = xmgConfig;
