@@ -18,11 +18,15 @@ let
   #   clipboard   : explicit copy/paste through dom0 (vm-clip, Mod+Alt+C/V): "allow" | "ask" (copying out of
   #                 the VM asks in dom0) | "deny"; absent = "deny" for sys-* VMs, else "allow"
   #   uplink      : driver domain serving the VM's uplink (needs `nat`): "sys-net" (default) | "sys-vpn" (vms/modules/net-config.nix)
+  #   label       : trust label (Qubes-like), the window border color in dom0 (home/desktop/theme.nix
+  #                 `labels`, niri rules on the "[<vm>] " title prefix from wprsc): "sys" | "dev" | "personal" |
+  #                 "untrusted" | "vault" | "anon"; absent = "untrusted"
   #   labTarget   : kali may test this VM's apps: `vm-lab attach <vm>` hangs a vif on sys-net's vm-lab (10.5.0.<last octet>, vms/modules/lab-target.nix)
   vms = [
     {
       name = "nvim";
       short = "n";
+      label = "dev";
       storeGroup = "dev";
       ip = "10.0.0.1";
       autostart = true;
@@ -34,6 +38,7 @@ let
     {
       name = "chat";
       short = "c";
+      label = "personal";
       storeGroup = "prop";
       ip = "10.0.0.2";
       autostart = true;
@@ -53,6 +58,7 @@ let
     {
       name = "net";
       short = "net";
+      label = "untrusted";
       storeGroup = "desktop";
       ip = "10.0.0.5";
       autostart = true;
@@ -63,6 +69,7 @@ let
     {
       name = "coding";
       short = "cc";
+      label = "dev";
       ip = "10.0.0.6";
       autostart = true;
       nat = true;
@@ -78,6 +85,7 @@ let
       # no GitHub agent
       name = "win";
       short = "w";
+      label = "untrusted";
       storeGroup = "prop";
       ip = "10.0.0.7";
       autostart = false;
@@ -89,6 +97,7 @@ let
     {
       name = "office";
       short = "o";
+      label = "personal";
       storeGroup = "desktop";
       ip = "10.0.0.9";
       autostart = false;
@@ -99,6 +108,7 @@ let
     {
       name = "vault";
       short = "v";
+      label = "vault";
       storeGroup = "desktop";
       ip = "10.0.0.10";
       autostart = false;
@@ -110,6 +120,7 @@ let
     {
       name = "irc";
       short = "i";
+      label = "personal";
       storeGroup = "desktop";
       ip = "10.0.0.11";
       autostart = true;
@@ -119,6 +130,7 @@ let
     {
       name = "sys-usb";
       short = "su";
+      label = "sys";
       storeGroup = "sys";
       ip = "10.0.0.23";
       autostart = false;
@@ -129,6 +141,7 @@ let
     {
       name = "sys-net";
       short = "sn";
+      label = "sys";
       storeGroup = "sys";
       ip = "10.0.0.253";
       autostart = true;
@@ -139,6 +152,7 @@ let
     {
       name = "builder";
       short = "b";
+      label = "sys";
       ip = "10.0.0.25";
       autostart = false;
       nat = true;
@@ -153,6 +167,7 @@ let
       # over RPC (`vm-print`), network only to LAN printers (sys-net)
       name = "sys-print";
       short = "sp";
+      label = "sys";
       storeGroup = "sys";
       ip = "10.0.0.26";
       autostart = false;
@@ -167,6 +182,7 @@ let
       # USB/IP from sys-usb (`vm-usb attach <device> steam`)
       name = "steam";
       short = "s";
+      label = "untrusted";
       ip = "10.0.0.12";
       autostart = false;
       nat = true;
@@ -180,6 +196,7 @@ let
       # dGPU passthrough like steam; not on Xen yet
       name = "godot";
       short = "g";
+      label = "dev";
       ip = "10.0.0.13";
       autostart = false;
       nat = true;
@@ -191,6 +208,7 @@ let
     {
       name = "mirage";
       short = "mi";
+      label = "dev";
       ip = "10.0.0.14";
       autostart = false;
       nat = true;
@@ -202,6 +220,7 @@ let
     {
       name = "php";
       short = "p";
+      label = "dev";
       storeGroup = "dev";
       ip = "10.0.0.15";
       autostart = false;
@@ -217,6 +236,7 @@ let
     {
       name = "ruby";
       short = "r";
+      label = "dev";
       storeGroup = "dev";
       ip = "10.0.0.16";
       autostart = false;
@@ -230,6 +250,7 @@ let
     {
       name = "nix";
       short = "nix";
+      label = "dev";
       ip = "10.0.0.24";
       autostart = false;
       nat = true;
@@ -244,6 +265,7 @@ let
       # overlay (standalone store image, no storeGroup)
       name = "vanilla";
       short = "va";
+      label = "untrusted";
       ip = "10.0.0.29";
       autostart = false;
       nat = true;
@@ -257,6 +279,7 @@ let
       # its own uplink goes to sys-net. Provider configs come in by vm-copy
       name = "sys-vpn";
       short = "sv";
+      label = "sys";
       storeGroup = "sys";
       ip = "10.0.0.30";
       autostart = false;
@@ -275,12 +298,14 @@ let
     {
       name = "whonix-gateway";
       short = "wg";
+      label = "anon";
       ip = "10.0.0.27";
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINnQth+MD3LJBK6GuG9cxgeZJNYG0yyfjpK0a04N/23G whonix-gateway-vm";
     }
     {
       name = "whonix-workstation";
       short = "ww";
+      label = "anon";
       ip = "10.0.0.28";
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXySg5FkNf1/uhANkgL7xyBtKvABMWQ3Y1BbQGkPZKU whonix-workstation-vm";
     }
@@ -289,6 +314,7 @@ let
       # sys-net, second vif on the lab bridge (vm-lab) for testing labTarget VMs
       name = "kali";
       short = "k";
+      label = "untrusted";
       ip = "10.0.0.8";
       # Same key as the former NixOS kali-vm (~/.ssh/kali-vm in dom0)
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";

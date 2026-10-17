@@ -1,6 +1,43 @@
-{ pkgs, lib, hostname, ... }:
+{
+  pkgs,
+  lib,
+  hostname,
+  vmRegistry,
+  ...
+}:
 let
   theme = import ./theme.nix { inherit lib; };
+
+  # Trust label per VM (vms/registry.nix `label`, absent = untrusted): one
+  # window rule per label on the "[<vm>] " title prefix that dom0's wprsc
+  # sets (home/vm-management/vm-gui.nix, vm-run). A VM cannot fake it: its
+  # own title only follows the prefix. Windows without one are dom0's
+  labelRules = lib.mapAttrsToList (
+    label: vms:
+    let
+      c = theme.label.${label};
+      dim = theme.labelWithAlpha label theme.opacity.inactiveBorder;
+    in
+    {
+      "window-rule"._children = [
+        {
+          match._props.title = "^\\[(${lib.concatMapStringsSep "|" (vm: vm.name) vms})\\] ";
+        }
+        {
+          border = {
+            "active-color" = c;
+            "inactive-color" = dim;
+          };
+        }
+        {
+          "focus-ring" = {
+            "active-color" = c;
+            "inactive-color" = theme.labelWithAlpha label theme.opacity.inactiveRing;
+          };
+        }
+      ];
+    }
+  ) (lib.groupBy (vm: vm.label or "untrusted") (vmRegistry.vms ++ vmRegistry.imageDomains));
 
   # Internal panel per machine. xmg: 2560x1600 at 60 Hz; at its preferred
   # 300 Hz the i915 cannot drive the two external monitors as well (the
@@ -563,14 +600,23 @@ in
           "inactive-color" = theme.color.accent;
         };
 
+        # Border in the trust label color (dom0 here, VMs in `labelRules`):
+        # dimmed when unfocused, full plus a focus ring of the same color
+        # when focused
         "focus-ring" = {
           width = 2;
-          "active-color" = theme.color.accent;
-          "inactive-color" = theme.withAlpha "inactive" theme.opacity.inactiveRing;
+          "active-color" = theme.label.dom0;
+          "inactive-color" = theme.labelWithAlpha "dom0" theme.opacity.inactiveRing;
           "urgent-color" = theme.color.urgent;
         };
 
-        border.off = { };
+        border = {
+          on = { };
+          width = 3;
+          "active-color" = theme.label.dom0;
+          "inactive-color" = theme.labelWithAlpha "dom0" theme.opacity.inactiveBorder;
+          "urgent-color" = theme.color.urgent;
+        };
 
         shadow = {
           on = { };
@@ -718,7 +764,8 @@ in
         ]
         ++ vmZellij;
       }
-      ++ map (args: { "spawn-at-startup"._args = args; }) trayCommands;
+      ++ map (args: { "spawn-at-startup"._args = args; }) trayCommands
+      ++ labelRules;
     };
   };
 

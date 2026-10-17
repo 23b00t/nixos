@@ -37,7 +37,6 @@ rec {
     accent = palette.magenta; # focus ring, active workspace, selection
     accentStrong = palette.pink; # active tab indicator, stronger than accent
     accent2 = palette.blue; # second gradient stop, selection background
-    inactive = palette.lavender;
     muted = palette.comment;
     urgent = palette.red;
     warn = palette.yellow;
@@ -45,6 +44,20 @@ rec {
     info = palette.cyan;
     shadow = palette.black;
   };
+
+  # Trust labels (vms/registry.nix `label`): window border and focus ring per
+  # VM in niri, hex without '#'; dom0 = windows without a wprsc title prefix
+  labelRaw = {
+    dom0 = palette.fg;
+    sys = palette.red;
+    dev = palette.magenta;
+    personal = palette.green;
+    untrusted = palette.yellow;
+    vault = palette.cyan;
+    anon = palette.blue;
+  };
+  label = lib.mapAttrs (_: c: "#${c}") labelRaw;
+  labelWithAlpha = l: a: "${label.${l}}${alphaHex a}";
 
   # Same roles as "#rrggbb" for CSS, KDL and rasi
   color = lib.mapAttrs (_: c: "#${c}") raw;
@@ -57,6 +70,7 @@ rec {
     bar = 0.1; # waybar background (on black)
     shadow = 0.44;
     inactiveRing = 0.8;
+    inactiveBorder = 0.5; # label border of unfocused windows
   };
 
   # "#rrggbbaa" / "rrggbbaa" from a role name and an opacity

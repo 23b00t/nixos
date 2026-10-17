@@ -21,11 +21,13 @@ let
           ;
       })
       # wprs: held modifiers follow the compositor (stuck Super, xen-migration.md);
-      # clipboard isolation for the wprsd of the image domains (Whonix)
+      # wprsc keeps its title prefix on windows without a title (trust label
+      # border in niri); clipboard isolation for the wprsd of the image domains (Whonix)
       (_final: prev: {
         wprs = prev.wprs.overrideAttrs (old: {
           patches = (old.patches or [ ]) ++ [
             ../modules/wprs-modifier-sync.patch
+            ../modules/wprs-title-prefix.patch
             (import ../modules/wprs-clipboard.nix { pkgs = prev; }).patch
           ];
         });

@@ -175,7 +175,9 @@ ${vmCases}
     if [ "$CLI_MODE" -eq 1 ]; then
       exec ssh -i "$KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "''${EXTRA_SSH_ARGS[@]}" "$VM_USER@$IP" -t -- "$BINARY" "$@"
     else
-      wprs "$IP" run -- "$BINARY" "$@" &
+      # Title prefix for niri's border rule per trust label (as vm-gui);
+      # straight to wprsc, the launcher's --title-prefix appends ": "
+      wprs --wprsc-args "--title-prefix='[$FULL_NAME] '" "$IP" run -- "$BINARY" "$@" &
       WPRS_PID=$!
       wait $WPRS_PID
       pkill -P $WPRS_PID ssh || true

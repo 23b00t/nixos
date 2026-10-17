@@ -55,8 +55,11 @@ let
       (
         ${pkgs.util-linux}/bin/flock 9
         if ! { [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; }; then
+          # Title prefix: niri's border rule per trust label matches it
+          # (home/desktop/niri.nix `labelRules`)
           setsid ${pkgs.wprs}/bin/wprsc --socket="$sock" \
             --control-socket="$run/wprsc-vchan-$VM-ctrl.sock" \
+            --title-prefix="[$VM] " \
             >"$run/wprsc-vchan-$VM.log" 2>&1 9>&- &
           echo $! >"$pidfile"
           sleep 1
