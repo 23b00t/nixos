@@ -745,7 +745,16 @@ in
         overrideStrategy = "asDropin";
         wantedBy = [ "multi-user.target" ];
       }
-    ) (lib.filterAttrs (_: d: d.autostart) cfg.domains);
+    ) (lib.filterAttrs (_: d: d.autostart) cfg.domains)
+    # Relay follows the domain (see microvm@ in machines/xen-dom0.nix)
+    // lib.mapAttrs' (
+      name: _:
+      lib.nameValuePair "nox-relay-${name}" {
+        partOf = [ "xen-image@${name}.service" ];
+        after = [ "xen-image@${name}.service" ];
+        wantedBy = [ "xen-image@${name}.service" ];
+      }
+    ) cfg.domains;
 
     # dom0's side of the relay: SSH (vm-run -c, ssh <name>-vm) plus extras
     services.nox-relay.host.guests = lib.mapAttrs (name: d: {

@@ -468,7 +468,20 @@ in
             vm: (vm.uplink or "sys-net") == "sys-vpn" && config.microvm.vms ? ${vm.name}
           ) vmRegistry.vms
         )
-    );
+    )
+    # The relay doesn't notice a domain that was killed hard (stop timeout)
+    # and stays attached to it (Known Issues): stopping or restarting the VM
+    # takes its relay along, starting the VM starts it again. After: on a
+    # restart the relay comes back only once the old domain is gone (without
+    # it, it looked up the old domain id and waited 30 s for it, 2026-10-17)
+    // lib.mapAttrs' (
+      name: _:
+      lib.nameValuePair "nox-relay-${name}" {
+        partOf = [ "microvm@${name}.service" ];
+        after = [ "microvm@${name}.service" ];
+        wantedBy = [ "microvm@${name}.service" ];
+      }
+    ) (lib.filterAttrs (name: _: config.microvm.vms ? ${name}) config.services.nox-relay.host.guests);
 
     network.networks =
       # Admin network: every VM port is isolated, so VMs reach dom0 (the
