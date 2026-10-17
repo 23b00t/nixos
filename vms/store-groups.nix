@@ -55,10 +55,19 @@ in
 
   # Module for VM `name`: boot from its group's image (no-op for standalone VMs
   # and for VMs not on this machine, whose closure is not in the image)
+  # Also for every VM: register the store closure in the Nix DB at boot
+  # (`nix-store --load-db`) only with a writable store overlay. On the
+  # read-only store nix can't build or fetch anyway, and the load failed
+  # (`.links`: read-only) and cost seconds of every boot (nvim, 2026-10-17)
   moduleFor =
     name:
     { config, ... }:
-    lib.optionalAttrs (groupOf name != null && builtins.any (vm: vm.name == name) vmRegistry.vms) {
-      microvm.storeDisk = lib.mkIf config.microvm.storeOnDisk images.${groupOf name};
+    {
+      microvm = {
+        registerClosure = lib.mkDefault (config.services.persistentStoreOverlay.enable or false);
+      }
+      // lib.optionalAttrs (groupOf name != null && builtins.any (vm: vm.name == name) vmRegistry.vms) {
+        storeDisk = lib.mkIf config.microvm.storeOnDisk images.${groupOf name};
+      };
     };
 }
