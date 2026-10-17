@@ -81,9 +81,8 @@ rec {
     lock = ./wallpapers/cat_lofi_cafe.jpg;
   };
 
-  # foot (foot.ini sections), font and colors as kitty
-  # (home/kitty/kitty.nix, current-theme.conf); dom0 (home/home.nix) and
-  # the VMs over wprs (vms/modules/wprs.nix)
+  # foot (foot.ini sections), font and colors as kitty had them; dom0
+  # (home/home.nix) and the VMs over wprs (vms/modules/wprs.nix)
   foot = {
     # Medium: Regular looked thin in foot next to kitty (kitty thickens
     # glyphs, foot does not); bold set explicitly, foot derives it otherwise

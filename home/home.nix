@@ -3,10 +3,10 @@
   lib,
   inputs,
   vmRegistry,
+  hostname,
   ...
 }:
 let
-  kittyConf = import ./kitty/kitty.nix;
   theme = import ./desktop/theme.nix { inherit lib; };
   myGithubAgent = import ./vm-management/github-agent.nix { inherit pkgs; };
 in
@@ -53,7 +53,6 @@ in
     nerd-fonts.fira-code
     # chromium
     bibata-cursors
-    (import ./vm-management/remote-zellij.nix { inherit pkgs; })
     (import ./vm-management/backup.nix {
       inherit
         pkgs
@@ -79,8 +78,6 @@ in
       la = "ls -la";
       edit = "sudo -e";
       sc = "systemctl";
-      kk = "kitty @ kitten";
-      tm = "vm-run -c coding termusic";
       kali = "vm-run -c kali distrobox enter kali";
     };
     historySize = 10000;
@@ -118,21 +115,14 @@ in
     '';
   };
 
-  home.file.".config/kitty/kitty.conf" = {
-    text = kittyConf;
-    force = true;
-  };
-  home.file.".config/kitty/current-theme.conf".source = ./kitty/current-theme.conf;
-  home.file.".config/kitty/startup".source = ./kitty/startup;
-
-  # foot on trial as kitty's successor (dom0 and VMs, xen-migration.md)
+  # Terminal in dom0 and, over wprs, in the VMs (vms/modules/wprs.nix)
   programs.foot = {
     enable = true;
     settings = theme.foot;
   };
 
-  # zellij
-  home.file.".config/zellij".source = ./zellij;
+  # zellij in dom0 only on the hp (machines/hp/configuration.nix)
+  home.file.".config/zellij" = lib.mkIf (hostname == "hp") { source = ./zellij; };
 
   # SSH_AUTH_SOCK stays dom0's own agent (programs.ssh.startAgent). The
   # GitHub agent (~/.ssh/agent/github.sock) is handed to VMs and must only

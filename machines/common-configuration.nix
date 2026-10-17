@@ -219,9 +219,7 @@ in
 
   environment = {
     systemPackages = with pkgs; [
-      kitty
       wl-clipboard
-      zellij
       wprs
 
       libnotify # Desktop notification library
@@ -400,21 +398,8 @@ in
       wireplumber.enable = true;
       # If you want to use JACK applications, uncomment this
       # jack.enable = true;
-      # Netzwerk-Audio aktivieren
-      # NOTE: Problems? -> ss -tulpn | grep 4713 -> nothing? ->
-      # systemctl --user restart pipewire pipewire-pulse
-      extraConfig.pipewire-pulse = {
-        "92-network" = {
-          "pulse.properties" = {
-            "server.address" = [
-              "tcp:4713"
-              "unix:native"
-            ];
-            "auth-anonymous" = true;
-            "auth-ip-acl" = "127.0.0.1;10.0.0.0/24";
-          };
-        };
-      };
+      # No network audio: VMs get the native socket over the vchan relay
+      # (/tmp/wprs-pulse in the VM), the former `ssh -R 4713` is gone
     };
 
     udev = {

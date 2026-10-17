@@ -185,7 +185,7 @@ new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 |---|---|
 | `vm-run <vm> <app> [args]` | start a GUI app in a VM (wprs over vchan, app start over RPC) |
 | `vm-run -c <vm> '<cmd>'` | run a command over SSH |
-| `ssh <vm>` | SSH session (over the vchan relay socket); `<vm>`, `<vm>-vm`, the short alias or the IP, also for `whonix-gateway`, `whonix-workstation`. No host key check (guests make new host keys at every boot; the relay socket ties the connection to the domain), no warnings (`LogLevel ERROR`). kitty terminfo: `kitten ssh <vm>` |
+| `ssh <vm>` | SSH session (over the vchan relay socket); `<vm>`, `<vm>-vm`, the short alias or the IP, also for `whonix-gateway`, `whonix-workstation`. No host key check (guests make new host keys at every boot; the relay socket ties the connection to the domain), no warnings (`LogLevel ERROR`). |
 | `manage-vms status [<vm>...] [--running] [--group <g>] [--stale]` | state of all VMs |
 | `manage-vms <start\|stop\|restart> [<vm>...] [--running] [--group <g>] [--stale]` | single or bulk operations; a (re)started VM gets its tray apps (`vm-tray`); `ms`/`mst`/`mr <vm>...` are short for it |
 | `vm-usb list` | USB devices in sys-usb and their owners |
@@ -198,9 +198,8 @@ new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 | `sys-net-rescue` | sys-net doesn't come up: NICs back to dom0 |
 | `sys-usb-rescue` | sys-usb doesn't come up: USB controllers back to dom0 (also automatic after 120 s) |
 | `create-vm`, `vmcopy-keys <vm>` | new VM, keys for inter-VM copy |
-| `tm` | termusic in coding |
 | Mod+Alt+C / Mod+Alt+V (`vm-clip copy\|paste`) | clipboard between domains: copy the text clipboard of the focused window's VM (or dom0) into dom0's store, paste it into the focused window's VM (or dom0), then press Ctrl+V there; the store is emptied. VMs don't share their clipboard with dom0 otherwise. Copying out of vault asks, sys-* VMs are excluded (registry `clipboard`) |
-| `vm-run <vm> foot` | terminal from a VM over wprs (foot on trial, also in dom0) |
+| `vm-run <vm> foot [cmd…]` | terminal from a VM over wprs (dom0: `foot`, Mod+T). At login: one column with tabs dom0, nvim, coding (zellij in the VM; Mod+1…3), on the xmg irc on "remote"; kitty and zellij are gone from dom0 (zellij stays on the hp) |
 
 In the VMs: `vm-copy <vm> <files>` (dom0 asks, files land in
 `~/Incoming/<source>`), `vm-print <printer-ip> <file>` (via sys-print).
@@ -441,9 +440,8 @@ over Tor once (`/run/sdwdate/first_success`). Start it after the Gateway's
 Tor is up; if it has no network, restart it:
 `sudo systemctl restart xen-image@whonix-workstation`.
 
-On the xmg the Gateway and irc start at boot. Debian guests lack kitty's
-terminfo (Backspace etc. broken over SSH): `TERM=xterm-256color ssh …`
-or `kitten ssh …`.
+On the xmg the Gateway and irc start at boot. Debian guests may lack foot's
+terminfo (Backspace etc. broken over SSH): `TERM=xterm-256color ssh …`.
 
 `xen-image@whonix-gateway` waits (up to 90 s) until sys-net reports a
 default route (`data/uplink` in its xenstore). Tor started without an
@@ -836,7 +834,7 @@ Known issues and their status are tracked in
 
 - Is there any virtue in exposing nvim to the host? Remove the host-share and implement proper write back or remove exposing host to nvim.
 - Remove not strictly needed host software
-- think over dropping zellij and zsh on the host
+- think over dropping zsh on the host (zellij: gone from dom0 except on the hp, 2026-10-17)
 - modularize config
 - restructure vms/ vm folders should not live on the same level as modules/ vmcopy-keys/ etc.
 - fix steam-vm bug: reboot is needed -> currently no way to do that. Maybe automate early reboot after first start and logging specific issue as trigger.

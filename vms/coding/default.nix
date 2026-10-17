@@ -177,11 +177,6 @@ in
     };
   };
 
-  # dom0's pulse over vchan (vms/modules/vchan-relay.nix), no `ssh -R 4713`
-  environment.variables = {
-    PULSE_SERVER = "unix:/tmp/wprs-pulse";
-  };
-
   # termusic from the former music VM (v3: music goes into coding)
   environment.etc."mpv/mpv.conf".text = ''
     ao=pulse

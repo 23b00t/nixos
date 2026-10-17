@@ -15,5 +15,7 @@ pkgs.writeShellScriptBin "explorer" ''
   selected=$(printf '%s\n' "''${vms[@]}" | rofi -dmenu -i -p "Start VM" -theme ~/.config/rofi/config.rasi)
 
   # If a selection was made, start the corresponding VM and open yazi in it
-  kitty -e vm-run -c "$selected" yazi
+  [ -n "$selected" ] || exit 0
+  # foot in the VM over wprs (image previews stay in the VM)
+  exec vm-run "$selected" foot yazi
 ''

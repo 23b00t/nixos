@@ -1,5 +1,6 @@
 {
   lib,
+  pkgs,
   inputs,
   ...
 }:
@@ -49,4 +50,8 @@
   nix.daemonIOSchedClass = "idle";
 
   networking.hostName = lib.mkForce "hp";
+
+  # zellij stays in dom0 only on the hp (config: home/home.nix); elsewhere
+  # it runs in the VMs only
+  environment.systemPackages = [ pkgs.zellij ];
 }

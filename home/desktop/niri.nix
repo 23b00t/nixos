@@ -51,6 +51,41 @@ let
     ] ++ app)) trayApps
   );
 
+  # Terminals at login (replaced kitty's startup session): dom0's foot (on
+  # the hp with zellij, which stays there) and foot from nvim and coding
+  # over wprs, zellij in the VM, as tabs of one column (Mod+1…3). Started
+  # one after the other: each window (VMs may still boot, up to 2 min) is
+  # consumed into the column on its left; a VM that doesn't come is skipped
+  vmZellij = [
+    "zellij"
+    "--layout"
+    "tabs"
+    "attach"
+    "-c"
+  ];
+  terminalTabs = pkgs.writeShellScript "terminal-tabs" ''
+    # id of the window with app id $1, once it is there
+    wait_window() {
+      local id
+      for _ in $(seq 240); do
+        id=$(niri msg --json windows \
+          | ${pkgs.jq}/bin/jq -r --arg a "$1" 'map(select(.app_id == $a) | .id) | max // empty')
+        [ -n "$id" ] && { echo "$id"; return 0; }
+        sleep 0.5
+      done
+      return 1
+    }
+
+    foot -a term-dom0 ${lib.optionalString (hostname == "hp") "zellij --layout tabs"} &
+    first=$(wait_window term-dom0) || exit 1
+    for vm in nvim coding; do
+      vm-run "$vm" foot -a "term-$vm" ${lib.escapeShellArgs vmZellij} &
+      id=$(wait_window "term-$vm") || continue
+      niri msg action consume-or-expel-window-left --id "$id"
+    done
+    niri msg action focus-window --id "$first"
+  '';
+
   binds = {
     # Replaces niri's built-in hotkey overlay (Mod+Shift+Slash)
     "Mod+Slash" = {
@@ -59,8 +94,8 @@ let
     };
 
     "Mod+T" = {
-      _props."hotkey-overlay-title" = "Open a Terminal: kitty";
-      spawn = [ "kitty" ];
+      _props."hotkey-overlay-title" = "Open a Terminal: foot";
+      spawn = [ "foot" ];
     };
 
     "Mod+A" = {
@@ -77,14 +112,6 @@ let
     "Mod+L" = {
       _props."hotkey-overlay-title" = "Lock the Screen: swaylock";
       spawn = [ "swaylock" ];
-    };
-
-    "Mod+Shift+K" = {
-      _props."hotkey-overlay-title" = "Open Secondary Kitty";
-      spawn = [
-        "kitty"
-        "--session=none"
-      ];
     };
 
     "Mod+Comma" = {
@@ -652,25 +679,17 @@ in
         # modifier patch (modules/wprs-modifier-sync.patch) should release it
         # (xen-migration.md, Known Issues). The tray apps (`trayApps` above)
         # are appended after this list.
-        { "spawn-at-startup"._args = [ "kitty" "--class=kitty-main" ]; }
-        {
-          "spawn-at-startup"._args = [
-            "kitty"
-            "--class=kitty-remote-zellij"
-            "--session=none"
-            "remote-zellij"
-            "i"
-          ];
-        }
+        { "spawn-at-startup"._args = [ "${terminalTabs}" ]; }
         { "spawn-at-startup"._args = [ "vm-run" "net" "zen" ]; }
         {
           "window-rule"._children = [
             {
               match._props = {
-                "app-id" = "^kitty-main$";
+                "app-id" = "^term-(dom0|nvim|coding)$";
               };
             }
             { "open-on-workspace" = "terminal"; }
+            { "default-column-display" = "tabbed"; }
             { "default-column-width".proportion = 1.0; }
           ];
         }
@@ -678,7 +697,7 @@ in
           "window-rule"._children = [
             {
               match._props = {
-                "app-id" = "^kitty-remote-zellij$";
+                "app-id" = "^term-irc$";
               };
             }
             { "open-on-workspace" = "remote"; }
@@ -722,6 +741,17 @@ in
           ];
         }
       ]
+      # irc (zellij with tiny) on "remote"; irc starts at boot only on the xmg
+      ++ lib.optional (hostname == "xmg") {
+        "spawn-at-startup"._args = [
+          "vm-run"
+          "irc"
+          "foot"
+          "-a"
+          "term-irc"
+        ]
+        ++ vmZellij;
+      }
       ++ map (args: { "spawn-at-startup"._args = args; }) trayCommands;
     };
   };

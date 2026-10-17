@@ -86,7 +86,7 @@ let
         if lib.elem h.name imageDomainNames then "xen-image@${h.name}" else "microvm@${h.name}"
       } ${relaySsh h.name}";
     }
-    # Debian images (Whonix) lack kitty's terminfo
+    # Debian images (Whonix) may lack the terminfo of dom0's terminal
     // lib.optionalAttrs (lib.elem h.name imageDomainNames) {
       SetEnv.TERM = "xterm-256color";
     };
