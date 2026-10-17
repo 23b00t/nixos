@@ -180,6 +180,7 @@ in
     ../modules/xen-lab.nix
     inputs.nox.nixosModules.relay
     inputs.nox.nixosModules.rpc
+    inputs.nox.nixosModules.cli
   ];
 
   virtualisation.xen = {
@@ -367,6 +368,13 @@ in
     sysNetRescue
     updateAll
   ];
+
+  # `nox`: one command over manage-vms, vm-run, vm-clip, cp-vm, dom0-update,
+  # update-all and vm-usb; the VM names feed its completion
+  programs.nox = {
+    enable = true;
+    vms = map (vm: vm.name) vmRegistry.vms;
+  };
 
   # nox-relay (root) creates the wprs sockets for dom0's wprsc here
   systemd.tmpfiles.rules = [ "d /run/nox-relay 0755 root root -" ];

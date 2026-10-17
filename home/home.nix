@@ -98,17 +98,11 @@ in
 
       PS1='\[\e[1;34m\]\u@\h\[\e[0m\] \[\e[1;32m\]\w\[\e[0m\] \$ '
 
-      # sudo: NOPASSWD for microvm@ units (plain systemctl asks polkit for
-      # the password); one VM by its full name. A (re)started VM gets its
-      # tray apps again (vm-tray, home/desktop/niri.nix)
+      # VMs by their full names, via manage-vms (sudo NOPASSWD for microvm@
+      # units; a (re)started VM gets its tray apps again, vm-tray)
       vmunit() {
-        [ $# -eq 2 ] && [ "$2" != help ] || { echo "usage: ms|mst|mr <vm>" >&2; return 2; }
-        local was
-        was=$(systemctl is-active microvm@"$2".service)
-        sudo systemctl "$1" microvm@"$2".service || return
-        if [ "$1" = restart ] || { [ "$1" = start ] && [ "$was" != active ]; }; then
-          vm-tray "$2"
-        fi
+        [ $# -ge 2 ] && [ "$2" != help ] || { echo "usage: ms|mst|mr <vm>..." >&2; return 2; }
+        manage-vms "$@"
       }
       ms() { vmunit start "$@"; }
       mst() { vmunit stop "$@"; }

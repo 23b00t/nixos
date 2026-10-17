@@ -18,20 +18,25 @@ pkgs.writeShellScriptBin "manage-vms" ''
   RUNNING_ONLY=0
   STALE_ONLY=0
   GROUP=""
+  NAMES=()
 
   usage() {
     cat <<EOF >&2
 Usage:
-  manage-vms status [--running] [--group <group>] [--stale]
-  manage-vms <start|stop|restart|reload> [--running] [--group <group>] [--stale]
+  manage-vms status [<vm>...] [--running] [--group <group>] [--stale]
+  manage-vms <start|stop|restart|reload> [<vm>...] [--running] [--group <group>] [--stale]
 
+  <vm>...          these VMs (default: all), narrowed by the filters
   --group <group>  only VMs of this store group (registry storeGroup)
   --stale          only running VMs whose store image differs from the
                    current one (e.g. after a group update)
 
+A VM that gets started or restarted gets its tray apps again (vm-tray).
+
 Examples:
   manage-vms status
   manage-vms status --running
+  manage-vms start chat
   manage-vms restart --running
   manage-vms restart --stale
   manage-vms restart --group desktop
@@ -65,7 +70,14 @@ EOF
     local vm candidates=()
     TARGETS=()
 
-    if [ "$RUNNING_ONLY" -eq 1 ]; then
+    if [ "''${#NAMES[@]}" -gt 0 ]; then
+      for vm in "''${NAMES[@]}"; do
+        if [ "$RUNNING_ONLY" -eq 1 ] && ! systemctl is-active --quiet "microvm@$vm.service"; then
+          continue
+        fi
+        candidates+=("$vm")
+      done
+    elif [ "$RUNNING_ONLY" -eq 1 ]; then
       while IFS= read -r unit; do
         [ -n "$unit" ] || continue
         vm="''${unit#microvm@}"
@@ -112,13 +124,20 @@ EOF
 
   run_action() {
     local action="$1"
-    local vm unit
+    local vm unit was rc=0
 
     for vm in "''${TARGETS[@]}"; do
       unit="microvm@$vm.service"
+      was="$(systemctl is-active "$unit" 2>/dev/null || true)"
       echo "sudo systemctl $action $unit"
-      sudo systemctl "$action" "$unit"
+      # sudo: NOPASSWD for start/stop/restart of microvm@ units
+      sudo systemctl "$action" "$unit" || { rc=1; continue; }
+      if command -v vm-tray >/dev/null &&
+        { [ "$action" = restart ] || { [ "$action" = start ] && [ "$was" != active ]; }; }; then
+        vm-tray "$vm"
+      fi
     done
+    return "$rc"
   }
 
   [ $# -ge 1 ] || usage
@@ -139,12 +158,21 @@ EOF
         GROUP="$2"
         shift
         ;;
-      -h|--help)
+      -h|--help|help)
+        usage
+        ;;
+      -*)
+        echo "Unknown argument: $1" >&2
         usage
         ;;
       *)
-        echo "Unknown argument: $1" >&2
-        usage
+        case " ''${ALL_VMS[*]} " in
+          *" $1 "*) NAMES+=("$1") ;;
+          *)
+            echo "Unknown VM: $1" >&2
+            exit 1
+            ;;
+        esac
         ;;
     esac
     shift
