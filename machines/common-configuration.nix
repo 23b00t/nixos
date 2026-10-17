@@ -257,7 +257,12 @@ in
     niri.enable = true;
     nix-ld.enable = true;
     dconf.enable = true;
-    vim.enable = true;
+    # No nano: vim is the editor in dom0 too ($EDITOR), like in the VMs
+    nano.enable = false;
+    vim = {
+      enable = true;
+      defaultEditor = true;
+    };
     ssh.startAgent = true;
   };
 

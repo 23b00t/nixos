@@ -265,18 +265,24 @@ in
     # (xmg 2026-10-15). Masked, the guest ignores it
     systemd.ctrlAltDelUnit = "/dev/null";
 
-    xdg.mime.defaultApplications = mkIf (cfg.browser != null) (
-      genAttrs [
-        "application/pdf"
-        "image/png"
-        "image/jpeg"
-        "image/gif"
-        "image/webp"
-        "image/svg+xml"
-        "image/bmp"
-        "image/avif"
-      ] (_: cfg.browser)
-    );
+    xdg.mime.defaultApplications = mkMerge [
+      (mkIf (cfg.browser != null) (
+        genAttrs [
+          "application/pdf"
+          "image/png"
+          "image/jpeg"
+          "image/gif"
+          "image/webp"
+          "image/svg+xml"
+          "image/bmp"
+          "image/avif"
+        ] (_: cfg.browser)
+      ))
+      # Text opens in the editor, not in whatever claims it (coding: Helix)
+      (genAttrs [ "text/plain" "text/markdown" ] (
+        _: if config.programs.neovim.defaultEditor then "nvim.desktop" else "vim.desktop"
+      ))
+    ];
 
     environment.shellInit = mkIf dbusForwardEnabled ''
       if [ -n "$SSH_CONNECTION" ] && [ -S /tmp/ssh_dbus.sock ] \

@@ -44,6 +44,10 @@ in
         "video/mpeg" = "chromium-browser.desktop";
         "video/3gpp" = "chromium-browser.desktop";
         "video/3gpp2" = "chromium-browser.desktop";
+
+        # Text: vim (in kitty)
+        "text/plain" = "vim.desktop";
+        "text/markdown" = "vim.desktop";
       };
     };
 
