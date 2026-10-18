@@ -29,11 +29,6 @@
         image = "home.img";
         size = 20000;
       }
-      {
-        mountPoint = "/root";
-        image = "root.img";
-        size = 256;
-      }
     ];
     # Boots with 2048 MB, the RAM balancer grows it up to 6144 MB
     mem = 6144;
@@ -46,7 +41,6 @@
   # (C2, vms/sys-print); no CUPS and no network here
 
   environment.systemPackages = with pkgs; [
-    euro-office-desktopeditors
     libreoffice
     gimp
     inkscape
