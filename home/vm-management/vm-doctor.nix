@@ -119,9 +119,14 @@ let
       [ -n "$dom" ] || continue
       pid="$(systemctl show -p MainPID --value "nox-relay-$vm.service")"
       peer="$(tr '\0' '\n' <"/proc/$pid/cmdline" 2>/dev/null | awk 'p { print; exit } $0 == "--peer" { p = 1 }')"
-      domid="$(sudo -n xl domid "$dom" 2>/dev/null)"
+      # The domain id from the unit's journal ("… (domid N) to die"), no
+      # sudo needed; xl as a fallback where it may run
+      inv="$(systemctl show -p InvocationID --value "''${UNIT[$vm]}.service")"
+      domid="$(journalctl -q _SYSTEMD_INVOCATION_ID="$inv" -o cat --no-pager 2>/dev/null |
+        sed -n 's/.*(domid \([0-9]*\)).*/\1/p' | tail -1)"
+      [ -n "$domid" ] || domid="$(sudo -n xl domid "$dom" 2>/dev/null)"
       if [ -z "$domid" ]; then
-        row SKIP "relay $vm" "no domid (xl needs sudo)"
+        row SKIP "relay $vm" "no domid (journal of ''${UNIT[$vm]}, xl)"
       elif [ "$peer" = "$domid" ]; then
         row PASS "relay $vm" "domain $domid"
       else
