@@ -117,10 +117,11 @@ rec {
   foot = {
     # Medium: Regular looked thin in foot next to kitty (kitty thickens
     # glyphs, foot does not); bold set explicitly, foot derives it otherwise.
-    # Fallback for symbols FiraCode lacks (home/desktop/symbols-font.nix)
+    # Fallback for symbols FiraCode lacks (home/desktop/symbols-font.nix) and
+    # emoji (termusic's highlight symbols)
     main = {
-      font = "${font.family}:style=Medium:size=11.5, Noto Sans Symbols 2:size=11.5";
-      font-bold = "${font.family}:style=Bold:size=11.5, Noto Sans Symbols 2:size=11.5";
+      font = "${font.family}:style=Medium:size=11.5, Noto Sans Symbols 2:size=11.5, FreeMono:size=11.5, Noto Color Emoji:size=11.5";
+      font-bold = "${font.family}:style=Bold:size=11.5, Noto Sans Symbols 2:size=11.5, FreeMono:size=11.5, Noto Color Emoji:size=11.5";
     };
     scrollback.lines = 2000;
     mouse.hide-when-typing = "yes";

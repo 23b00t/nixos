@@ -520,6 +520,7 @@ in
   fonts.packages = with pkgs; [
     nerd-fonts.fira-code
     (import ../home/desktop/symbols-font.nix { inherit pkgs; })
+    noto-fonts-color-emoji
   ];
 
   networking.networkmanager = {
