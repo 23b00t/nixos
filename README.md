@@ -177,7 +177,7 @@ nixpkgs.overlays = [
 `nox` (NoX repo, `nox --help`, bash completion) is one command over the
 scripts below: `nox` = running VMs, `nox list|start|stop|restart`,
 `nox run|exec|ssh <vm> …`, `nox clip`, `nox copy`, `nox update [--all]`,
-`nox usb …`, `nox doctor` (smoke test of what runs: domains, SSH, relays,
+`nox usb …`, `nox disp [cmd…]` (ad-hoc disposable), `nox doctor` (smoke test of what runs: domains, SSH, relays,
 network, RPC, clipboard, wprs, D-Bus, stale runners, disk, failed units,
 new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 
@@ -188,6 +188,8 @@ new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 | `ssh <vm>` | SSH session (over the vchan relay socket); `<vm>`, `<vm>-vm`, the short alias or the IP, also for `whonix-gateway`, `whonix-workstation`. No host key check (guests make new host keys at every boot; the relay socket ties the connection to the domain), no warnings (`LogLevel ERROR`). |
 | `manage-vms status [<vm>...] [--running] [--group <g>] [--stale]` | state of all VMs |
 | `manage-vms <start\|stop\|restart> [<vm>...] [--running] [--group <g>] [--stale]` | single or bulk operations; a (re)started VM gets its tray apps (`vm-tray`); `ms`/`mst`/`mr <vm>...` are short for it |
+| `manage-vms <start\|restart> --fresh <vm>...` (`nox restart --fresh`) | disposable VMs only: stop, set all their volume images aside (`/var/lib/microvms/<vm>/*.img.pre-fresh`, sudo asks for the password), start with empty ones. For a broken sys-net/sys-usb/sys-vpn state. Back: stop the VM, `sudo mv` the `.pre-fresh` files back, start it |
+| `vm-disp [cmd…]` (`nox disp`) | start the ad-hoc disposable `disp` and open `cmd` in it (default foot); `nox stop disp` throws everything away |
 | `vm-usb list` | USB devices in sys-usb and their owners |
 | `vm-usb attach <device> <vm>` / `vm-usb detach <device>` | hand a USB device to a VM (USB/IP), device = busid, `vendor:product` or registry name |
 | `vm-usb allow-input <busid>` | accept a new input device for dom0 until it is unplugged |
@@ -215,7 +217,16 @@ journalctl -b -u microvm@<vm>                           # VM start/stop
 journalctl -b -u xen-input-proxy -u vm-usb-auto -u xen-links
 journalctl -b -u nox-relay-<vm>                         # vchan relay
 systemctl --user status wprsd                           # (in the VM) GUI server
+journalctl -b -u nox-sys-ready                          # boot order barrier
 ```
+
+Boot order: the driver domains in `microvm.autostart` (sys-*) and the
+Whonix-Gateway (if it autostarts) start first, in parallel; every other
+domain waits for `nox-sys.target`, which is reached once each of them is
+booted (`/run/nox-relay/<name>.ready` exists while its relay is connected),
+at most 120 s, then the rest starts anyway (`nox-sys-ready` logs who was
+missing). Started by hand later, a VM doesn't wait (the target is already
+reached).
 
 ### Xen (`xl`)
 
@@ -302,12 +313,13 @@ the internal keyboard and touchpad are not on USB.
 
 | VM | hp | xmg | notes |
 |---|---|---|---|
-| sys-net, sys-usb | ✓ | ✓ | HVM driver domains |
+| sys-net, sys-usb | ✓ | ✓ | HVM driver domains, disposable: only data volumes stay (NetworkManager profiles, Bluetooth pairings) |
 | nvim, coding, chat, net, office, vault | ✓ | ✓ | |
 | irc | ✓ | ✓ | only uplink: Whonix-Gateway |
 | builder, sys-print | ✓ | ✓ | |
 | sys-vpn | ✓ | ✓ | VPN driver domain with killswitch for VMs with registry `uplink = "sys-vpn"` |
 | vanilla | ✓ | ✓ | only common-config, software imperatively in the store overlay; uplink via sys-vpn (test) |
+| disp, disp-backup | ✓ | ✓ | disposables (registry `disposable`): empty on every start; disp = vanilla setup for ad-hoc work (`nox disp`), disp-backup = backup disk holder (no network) |
 | php, ruby | | ✓ | |
 | whonix-gateway, whonix-workstation | ✓ | ✓ | image domains |
 | win | ✓ | ✓ | Windows apps via Bottles (replaces wine) |
