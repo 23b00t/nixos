@@ -265,6 +265,10 @@ let
     echo "not up after 120 s:$missing; starting the other domains anyway"
   '';
   afterSys = {
+    # A drop-in, not a whole unit: xen-image@ is a template from this config,
+    # a full instance unit would replace it (no ExecStart, "bad unit file
+    # setting", hp 2026-10-18)
+    overrideStrategy = "asDropin";
     wants = [ "nox-sys.target" ];
     after = [ "nox-sys.target" ];
   };
