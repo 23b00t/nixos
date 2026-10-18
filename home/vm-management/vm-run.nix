@@ -177,7 +177,7 @@ ${vmCases}
     else
       # Title prefix for niri's border rule per trust label (as vm-gui);
       # straight to wprsc, the launcher's --title-prefix appends ": "
-      wprs --wprsc-args "--title-prefix='[$FULL_NAME] '" "$IP" run -- "$BINARY" "$@" &
+      wprs --wprsc-args="--title-prefix='[$FULL_NAME] '" "$IP" run -- "$BINARY" "$@" &
       WPRS_PID=$!
       wait $WPRS_PID
       pkill -P $WPRS_PID ssh || true
