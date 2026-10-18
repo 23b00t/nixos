@@ -216,6 +216,61 @@ let
     offer_restart whonix-gateway
     echo "update-all: done" >&2
   '';
+  # Boot order (xen-migration.md, spec step 3): group 1 = the driver domains
+  # that start at boot plus the Whonix-Gateway, started in parallel (uplink
+  # waits order them among themselves); every other domain waits for
+  # nox-sys.target = each of them booted (its relay connected, NoX
+  # --ready-file), at most 120 s
+  imageDomains = config.services.xen-image-domains.domains;
+  sysGroup = {
+    vms = builtins.filter (lib.hasPrefix "sys-") config.microvm.autostart;
+    images = lib.optional (imageDomains.whonix-gateway.autostart or false) "whonix-gateway";
+  };
+  sysUnits =
+    map (n: "microvm@${n}.service") sysGroup.vms ++ map (n: "xen-image@${n}.service") sysGroup.images;
+  sysReady = pkgs.writeShellScript "nox-sys-ready" ''
+    for _ in $(${pkgs.coreutils}/bin/seq 240); do
+      missing=""
+      for n in ${lib.escapeShellArgs (sysGroup.vms ++ sysGroup.images)}; do
+        [ -e "/run/nox-relay/$n.ready" ] || missing="$missing $n"
+      done
+      [ -n "$missing" ] || exit 0
+      ${pkgs.coreutils}/bin/sleep 0.5
+    done
+    echo "not up after 120 s:$missing; starting the other domains anyway"
+  '';
+  afterSys = {
+    wants = [ "nox-sys.target" ];
+    after = [ "nox-sys.target" ];
+  };
+  # Disposable VMs (registry `disposable`) boot empty: home and store overlay
+  # images go before start and after stop, the runner creates them anew;
+  # other volumes (sys-net's NetworkManager, sys-usb's Bluetooth) are data
+  # volumes and stay
+  disposableImages = [
+    "home.img"
+    "nix-store-overlay.img"
+    "nix-db.img"
+  ];
+  disposableUnits = lib.listToAttrs (
+    map (
+      vm:
+      let
+        wipe = pkgs.writeShellScript "disposable-wipe-${vm.name}" ''
+          cd /var/lib/microvms/${vm.name} 2>/dev/null || exit 0
+          rm -f ${lib.escapeShellArgs disposableImages}
+        '';
+      in
+      {
+        name = "microvm@${vm.name}";
+        value.serviceConfig = {
+          # "+": as root whatever User= the unit has (the images are root's)
+          ExecStartPre = [ "+${wipe}" ];
+          ExecStopPost = [ "+${wipe}" ];
+        };
+      }
+    ) (builtins.filter (vm: (vm.disposable or false) && config.microvm.vms ? ${vm.name}) vmRegistry.vms)
+  );
 in
 {
   imports = [
@@ -329,14 +384,13 @@ in
   services.nox-rpc.host = {
     askCommand = copyAsk;
     enable = true;
+    # Every Xen guest that runs the rpc guest side (vms/modules/vchan-relay.nix)
     guests = builtins.filter (
       vm:
-      !builtins.elem vm [
-        "sys-net"
-        "sys-usb"
-        "builder"
-      ]
-      && config.microvm.vms.${vm}.config.config.microvm.hypervisor == "xen"
+      let
+        g = config.microvm.vms.${vm}.config.config;
+      in
+      g.microvm.hypervisor == "xen" && (g.services.nox-rpc.guest.enable or false)
     ) (builtins.attrNames config.microvm.vms);
     policy =
       let
@@ -448,118 +502,150 @@ in
 
   # nox-relay (root) creates the wprs sockets for dom0's wprsc here
   systemd.tmpfiles.rules = [ "d /run/nox-relay 0755 root root -" ];
+  # Boot order barrier (see sysGroup above)
+  systemd.targets.nox-sys = {
+    description = "Driver domains and Whonix-Gateway up";
+    wants = [ "nox-sys-ready.service" ];
+    after = [ "nox-sys-ready.service" ];
+  };
 
   # Xen creates vifs as vif<domid>.<n> before renaming them to vm<N>
   networking.networkmanager.unmanaged = [ "interface-name:vif*" ];
 
   systemd = {
-    services = {
-      # The microvm@ services manage the domains. xendomains (no /etc/xen/auto)
-      # falls back to `xl shutdown --all --wait` in parallel and hangs until
-      # systemd's stop timeout (90 s) on every dom0 shutdown.
-      xendomains.enable = false;
-      # oxenstored ignores SIGTERM: every shutdown waited 90 s for the
-      # SIGKILL. Its state only lives in RAM, nothing to save on the way down
-      xenstored.serviceConfig.TimeoutStopSec = "5s";
-      # A stopped VM can stay behind as a shut-down domain (state "s", its
-      # qemu already gone) that still holds its PCI devices: pci-setup then
-      # fails with "failed to quarantine" and the VM only started again after
-      # a reboot (sys-net, 2026-10-10/11). On `systemctl restart` pci-setup
-      # starts in the same second the old domain begins shutting down, so
-      # wait for it to go away and destroy it if it doesn't. The VM itself
-      # only starts after pci-setup, so no running domain is hit here.
-      "microvm-pci-devices@".serviceConfig.ExecStartPre = [ "${destroyLeftoverDomain} %i" ];
-      # The same after a stop: steam stayed behind as "--ps--" after
-      # `systemctl stop microvm@steam` and kept its 16 GB (xmg, 2026-10-14).
-      # Returns at once when the domain is gone.
-      "microvm@".serviceConfig.ExecStopPost = [ "${destroyLeftoverDomain} %i" ];
+    services = lib.mkMerge [
+      (
+        {
+          # The microvm@ services manage the domains. xendomains (no /etc/xen/auto)
+          # falls back to `xl shutdown --all --wait` in parallel and hangs until
+          # systemd's stop timeout (90 s) on every dom0 shutdown.
+          xendomains.enable = false;
+          # oxenstored ignores SIGTERM: every shutdown waited 90 s for the
+          # SIGKILL. Its state only lives in RAM, nothing to save on the way down
+          xenstored.serviceConfig.TimeoutStopSec = "5s";
+          # A stopped VM can stay behind as a shut-down domain (state "s", its
+          # qemu already gone) that still holds its PCI devices: pci-setup then
+          # fails with "failed to quarantine" and the VM only started again after
+          # a reboot (sys-net, 2026-10-10/11). On `systemctl restart` pci-setup
+          # starts in the same second the old domain begins shutting down, so
+          # wait for it to go away and destroy it if it doesn't. The VM itself
+          # only starts after pci-setup, so no running domain is hit here.
+          "microvm-pci-devices@".serviceConfig.ExecStartPre = [ "${destroyLeftoverDomain} %i" ];
+          # The same after a stop: steam stayed behind as "--ps--" after
+          # `systemctl stop microvm@steam` and kept its 16 GB (xmg, 2026-10-14).
+          # Returns at once when the domain is gone.
+          "microvm@".serviceConfig.ExecStopPost = [ "${destroyLeftoverDomain} %i" ];
 
-      # steam: shutting it down from inside Steam must keep it off. Guest
-      # poweroff and reboot both end `xl create -F` with exit code 0; steam
-      # sets on_reboot = "restart" so xl handles reboots itself (vms/steam)
-      "microvm@steam" = lib.mkIf (config.microvm.vms ? steam) {
-        serviceConfig.Restart = "on-failure";
-      };
-
-      # CPU and memory of the whole machine (all domains) for waybar, which
-      # only sees dom0 and must not need root for xl
-      xen-stats = {
-        description = "CPU and memory of all Xen domains for waybar";
-        wantedBy = [ "multi-user.target" ];
-        path = [
-          config.virtualisation.xen.package
-          pkgs.gawk
-          pkgs.coreutils
-        ];
-        serviceConfig = {
-          RuntimeDirectory = "xen-stats";
-          RuntimeDirectoryMode = "0755";
-          Restart = "always";
-          RestartSec = 5;
-        };
-        script = ''
-          out=/run/xen-stats
-          write() { printf '%s\n' "$2" > "$out/$1.tmp" && mv "$out/$1.tmp" "$out/$1"; }
-          ncpu=$(xl info | awk '/^nr_cpus/ { print $3 }')
-          prev="" prev_t=""
-          while :; do
-            now=$(date +%s.%N)
-            # Sum of the CPU seconds of all domains (last column of xl list)
-            busy=$(xl list | awk 'NR > 1 { s += $NF } END { printf "%.1f", s }')
-            if [ -n "$prev" ]; then
-              cpu=$(awk -v a="$prev" -v b="$busy" -v t0="$prev_t" -v t1="$now" -v n="$ncpu" \
-                'BEGIN { p = (b - a) / ((t1 - t0) * n) * 100; if (p < 0) p = 0; printf "%d", p + 0.5 }')
-              write cpu "{\"text\":\"$cpu%\",\"tooltip\":\"CPU of all domains ($ncpu CPUs)\",\"percentage\":$cpu}"
-            fi
-            # Per domain: memory it has now / its maximum (ballooning). Xen
-            # only sees what a guest was given, not what it uses inside
-            doms=""
-            while read -r name id cur _; do
-              [ "$name" = Name ] && continue
-              max=$(xenstore-read "/local/domain/$id/memory/static-max" 2>/dev/null || echo 0)
-              doms+=$(awk -v n="''${name%-vm}" -v c="$cur" -v m="$max" \
-                'BEGIN { if (n == "Domain-0") n = "dom0"; if (m > 0) printf "\\n%s %.1f/%.1f GB", n, c / 1024, m / 1048576; else printf "\\n%s %.1f GB", n, c / 1024 }')
-            done < <(xl list)
-            mem=$(xl info | DOMS="$doms" awk '/^total_memory/ { t = $3 } /^free_memory/ { f = $3 }
-              END { printf "{\"text\":\"%.1fG\",\"tooltip\":\"Given to domains: %.1f of %.1f GB (now/max)%s\",\"percentage\":%d}",
-                (t - f) / 1024, (t - f) / 1024, t / 1024, ENVIRON["DOMS"], (t - f) * 100 / t }')
-            write mem "$mem"
-            prev=$busy prev_t=$now
-            sleep 3
-          done
-        '';
-      };
-    }
-    # VMs with `uplink = "sys-vpn"` (registry) start sys-vpn with them; their
-    # preStart then waits for its sshd (vms/modules/net-config.nix)
-    // lib.listToAttrs (
-      map
-        (vm: {
-          name = "microvm@${vm.name}";
-          value = {
-            wants = [ "microvm@sys-vpn.service" ];
-            after = [ "microvm@sys-vpn.service" ];
+          # steam: shutting it down from inside Steam must keep it off. Guest
+          # poweroff and reboot both end `xl create -F` with exit code 0; steam
+          # sets on_reboot = "restart" so xl handles reboots itself (vms/steam)
+          "microvm@steam" = lib.mkIf (config.microvm.vms ? steam) {
+            serviceConfig.Restart = "on-failure";
           };
-        })
-        (
-          builtins.filter (
-            vm: (vm.uplink or "sys-net") == "sys-vpn" && config.microvm.vms ? ${vm.name}
-          ) vmRegistry.vms
+
+          # CPU and memory of the whole machine (all domains) for waybar, which
+          # only sees dom0 and must not need root for xl
+          xen-stats = {
+            description = "CPU and memory of all Xen domains for waybar";
+            wantedBy = [ "multi-user.target" ];
+            path = [
+              config.virtualisation.xen.package
+              pkgs.gawk
+              pkgs.coreutils
+            ];
+            serviceConfig = {
+              RuntimeDirectory = "xen-stats";
+              RuntimeDirectoryMode = "0755";
+              Restart = "always";
+              RestartSec = 5;
+            };
+            script = ''
+              out=/run/xen-stats
+              write() { printf '%s\n' "$2" > "$out/$1.tmp" && mv "$out/$1.tmp" "$out/$1"; }
+              ncpu=$(xl info | awk '/^nr_cpus/ { print $3 }')
+              prev="" prev_t=""
+              while :; do
+                now=$(date +%s.%N)
+                # Sum of the CPU seconds of all domains (last column of xl list)
+                busy=$(xl list | awk 'NR > 1 { s += $NF } END { printf "%.1f", s }')
+                if [ -n "$prev" ]; then
+                  cpu=$(awk -v a="$prev" -v b="$busy" -v t0="$prev_t" -v t1="$now" -v n="$ncpu" \
+                    'BEGIN { p = (b - a) / ((t1 - t0) * n) * 100; if (p < 0) p = 0; printf "%d", p + 0.5 }')
+                  write cpu "{\"text\":\"$cpu%\",\"tooltip\":\"CPU of all domains ($ncpu CPUs)\",\"percentage\":$cpu}"
+                fi
+                # Per domain: memory it has now / its maximum (ballooning). Xen
+                # only sees what a guest was given, not what it uses inside
+                doms=""
+                while read -r name id cur _; do
+                  [ "$name" = Name ] && continue
+                  max=$(xenstore-read "/local/domain/$id/memory/static-max" 2>/dev/null || echo 0)
+                  doms+=$(awk -v n="''${name%-vm}" -v c="$cur" -v m="$max" \
+                    'BEGIN { if (n == "Domain-0") n = "dom0"; if (m > 0) printf "\\n%s %.1f/%.1f GB", n, c / 1024, m / 1048576; else printf "\\n%s %.1f GB", n, c / 1024 }')
+                done < <(xl list)
+                mem=$(xl info | DOMS="$doms" awk '/^total_memory/ { t = $3 } /^free_memory/ { f = $3 }
+                  END { printf "{\"text\":\"%.1fG\",\"tooltip\":\"Given to domains: %.1f of %.1f GB (now/max)%s\",\"percentage\":%d}",
+                    (t - f) / 1024, (t - f) / 1024, t / 1024, ENVIRON["DOMS"], (t - f) * 100 / t }')
+                write mem "$mem"
+                prev=$busy prev_t=$now
+                sleep 3
+              done
+            '';
+          };
+        }
+        # VMs with `uplink = "sys-vpn"` (registry) start sys-vpn with them; their
+        # preStart then waits for its sshd (vms/modules/net-config.nix)
+        // lib.listToAttrs (
+          map
+            (vm: {
+              name = "microvm@${vm.name}";
+              value = {
+                wants = [ "microvm@sys-vpn.service" ];
+                after = [ "microvm@sys-vpn.service" ];
+              };
+            })
+            (
+              builtins.filter (
+                vm: (vm.uplink or "sys-net") == "sys-vpn" && config.microvm.vms ? ${vm.name}
+              ) vmRegistry.vms
+            )
         )
-    )
-    # The relay doesn't notice a domain that was killed hard (stop timeout)
-    # and stays attached to it (Known Issues): stopping or restarting the VM
-    # takes its relay along, starting the VM starts it again. After: on a
-    # restart the relay comes back only once the old domain is gone (without
-    # it, it looked up the old domain id and waited 30 s for it, 2026-10-17)
-    // lib.mapAttrs' (
-      name: _:
-      lib.nameValuePair "nox-relay-${name}" {
-        partOf = [ "microvm@${name}.service" ];
-        after = [ "microvm@${name}.service" ];
-        wantedBy = [ "microvm@${name}.service" ];
-      }
-    ) (lib.filterAttrs (name: _: config.microvm.vms ? ${name}) config.services.nox-relay.host.guests);
+        # The relay doesn't notice a domain that was killed hard (stop timeout)
+        # and stays attached to it (Known Issues): stopping or restarting the VM
+        # takes its relay along, starting the VM starts it again. After: on a
+        # restart the relay comes back only once the old domain is gone (without
+        # it, it looked up the old domain id and waited 30 s for it, 2026-10-17)
+        // lib.mapAttrs' (
+          name: _:
+          lib.nameValuePair "nox-relay-${name}" {
+            partOf = [ "microvm@${name}.service" ];
+            after = [ "microvm@${name}.service" ];
+            wantedBy = [ "microvm@${name}.service" ];
+          }
+        ) (lib.filterAttrs (name: _: config.microvm.vms ? ${name}) config.services.nox-relay.host.guests)
+      )
+      disposableUnits
+      # Boot order: the barrier and every domain outside group 1 after it
+      (
+        {
+          nox-sys-ready = {
+            description = "Wait until the driver domains and the Whonix-Gateway are up";
+            wants = sysUnits;
+            after = sysUnits;
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = sysReady;
+            };
+          };
+        }
+        // lib.mapAttrs' (n: _: lib.nameValuePair "microvm@${n}" afterSys) (
+          lib.filterAttrs (n: _: !builtins.elem n sysGroup.vms) config.microvm.vms
+        )
+        // lib.mapAttrs' (n: _: lib.nameValuePair "xen-image@${n}" afterSys) (
+          lib.filterAttrs (n: _: !builtins.elem n sysGroup.images) imageDomains
+        )
+      )
+    ];
 
     network.networks =
       # Admin network: every VM port is isolated, so VMs reach dom0 (the
