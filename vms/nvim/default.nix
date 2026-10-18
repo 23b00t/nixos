@@ -84,7 +84,7 @@ in
     mem = 4096;
     balloon = true;
     initialBalloonMem = 2048;
-    vcpu = 1;
+    vcpu = 2; # 1 vCPU: input lagged a little (xmg, 2026-10-17)
   };
 
   environment.systemPackages = with pkgs; [
