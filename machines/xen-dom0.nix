@@ -150,12 +150,33 @@ let
       fi
     }
 
+    # The domain's fixed rpc services (nox-rpc-in on the store disk, no SSH);
+    # images whose units predate them (xen-image-setup not run again): SSH
+    rpc_up() {
+      [ -S "/run/nox-relay/$1-rpc-in.sock" ] &&
+        [ "$(timeout 5 nox-rpc --dom0 ping "$1" </dev/null 2>/dev/null)" = ok ]
+    }
+    # apt-get --update full-upgrade as root in the guest, interactive;
+    # apt_upgrade <domain> <ssh arguments for the fallback>
+    apt_upgrade() {
+      if rpc_up "$1"; then
+        nox-rpc --dom0 apt-upgrade "$1"
+      else
+        shift
+        ssh -t "$@"
+      fi
+    }
+
     # sdwdate syncs only over working Tor; the Workstation's firewall stays
     # closed until then
     wait_tor() {
       echo "update-all: waiting for Tor in $1 (sdwdate)" >&2
       for _ in $(seq 60); do
-        ssh -o ConnectTimeout=5 -l "''${2:-user}" "$1-vm" test -e /run/sdwdate/first_success 2>/dev/null && return 0
+        if rpc_up "$1"; then
+          [ "$(nox-rpc --dom0 tor-ready "$1" </dev/null 2>/dev/null)" = ok ] && return 0
+        else
+          ssh -o ConnectTimeout=5 -l "''${2:-user}" "$1-vm" test -e /run/sdwdate/first_success 2>/dev/null && return 0
+        fi
         sleep 5
       done
       echo "update-all: no Tor in $1 after 5 min" >&2
@@ -167,8 +188,12 @@ let
     offer_restart() {
       local newest running answer
       case " ''${started[*]} " in *" $1 "*) return 0 ;; esac
-      newest="$(ssh "$1-vm" 'ls /boot/vmlinuz-* | sort -V | tail -n 1')"
-      running="$(ssh "$1-vm" 'echo "/boot/vmlinuz-$(uname -r)"')"
+      if rpc_up "$1"; then
+        read -r newest running < <(nox-rpc --dom0 kernel "$1" </dev/null 2>/dev/null)
+      else
+        newest="$(ssh "$1-vm" 'ls /boot/vmlinuz-* | sort -V | tail -n 1')"
+        running="$(ssh "$1-vm" 'echo "/boot/vmlinuz-$(uname -r)"')"
+      fi
       [ "$newest" != "$running" ] || return 0
       read -r -p "update-all: new kernel in $1, restart it now? [y/N] " answer
       case "$answer" in
@@ -179,7 +204,7 @@ let
     ensure_running whonix-gateway
     wait_tor whonix-gateway
     echo "update-all: updating the Whonix-Gateway" >&2
-    ssh -t whonix-gateway-vm upgrade-nonroot
+    apt_upgrade whonix-gateway whonix-gateway-vm upgrade-nonroot
 
     # The Workstation updates only in its sysmaint session (user/sysmaint
     # split, `user` has no sudo): boot that once, log in as sysmaint, then
@@ -199,18 +224,18 @@ let
     [ "$ws_was_running" = 1 ] || started+=("$ws")
     wait_tor "$ws" sysmaint
     echo "update-all: updating the Whonix-Workstation" >&2
-    ssh -t -l sysmaint "$ws-vm" upgrade-nonroot
+    apt_upgrade "$ws" -l sysmaint "$ws-vm" upgrade-nonroot
     if [ "$ws_was_running" = 1 ]; then
       echo "update-all: back to the normal session of $ws" >&2
       sudo systemctl restart "xen-image@$ws"
     fi
 
     ${lib.optionalString hasKali ''
-      # Kali (image domain, rolling): apt over sys-net, sudo asks for the
-      # password of `user` in the guest
+      # Kali (image domain, rolling): apt over sys-net, as root over rpc; the
+      # SSH fallback (units not set up again) asks for `user`'s password
       ensure_running kali
       echo "update-all: updating Kali" >&2
-      ssh -t kali-vm 'sudo apt-get update && sudo apt-get full-upgrade'
+      apt_upgrade kali kali-vm 'sudo apt-get update && sudo apt-get full-upgrade'
       offer_restart kali
     ''}
     offer_restart whonix-gateway

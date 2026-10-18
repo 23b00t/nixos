@@ -18,6 +18,7 @@ let
         lib.optionalString (vm.short != null && vm.short != vm.name) "|${vm.short}"
       }) VM=${vm.name}; IP=${vm.ip} ;;\n"
   ) (vmRegistry.vms ++ vmRegistry.imageDomains);
+  imageNames = lib.concatMapStringsSep " " (d: d.name) vmRegistry.imageDomains;
 
   vmGui = pkgs.writeShellScriptBin "vm-gui" ''
     set -eu
@@ -70,6 +71,13 @@ let
     # Same environment the wprs launcher sets for remote apps; over RPC the
     # VM sets it (apps.environment), only the cursor size comes from here
     cursor="XCURSOR_SIZE=''${XCURSOR_SIZE:-24}"
+    # Image domains have rpc-in only once xen-image-setup installed its
+    # units again (2026-10-18); until then they answer no ping: SSH
+    case " ${imageNames} " in
+      *" $VM "*)
+        [ "$(timeout 5 nox-rpc --dom0 ping "$VM" </dev/null 2>/dev/null)" = ok ] || rpc=/nonexistent
+        ;;
+    esac
     if [ -S "$rpc" ]; then
       # Retry while the VM is still booting (the relay drops the call
       # without an answer); the handler answers "ok: ..." or "error: ...".
@@ -109,6 +117,26 @@ let
     set -eu
     ssh() {
       ${pkgs.openssh}/bin/ssh -o BatchMode=yes -o ConnectTimeout=5 "$@"
+    }
+    # The VM's fixed service `clip` (nox-rpc, only dom0 calls); SSH only for
+    # image domains whose units predate it (xen-image-setup not run again)
+    rpc_ok() {
+      [ -S "/run/nox-relay/$1-rpc-in.sock" ] &&
+        [ "$(timeout 5 nox-rpc --dom0 ping "$1" </dev/null 2>/dev/null)" = ok ]
+    }
+    clip_get() {
+      if rpc_ok "$1"; then
+        printf 'get\n' | timeout 20 nox-rpc --dom0 clip "$1"
+      else
+        ssh "$1" "$helper get" </dev/null
+      fi
+    }
+    clip_set() {
+      if rpc_ok "$1"; then
+        { printf 'set\n'; cat; } | timeout 20 nox-rpc --dom0 clip "$1" >/dev/null
+      else
+        ssh "$1" "$helper set"
+      fi
     }
     notify() {
       ${pkgs.libnotify}/bin/notify-send -a vm-clip "Zwischenablage" "$1" || true
@@ -167,7 +195,7 @@ let
           ${pkgs.wl-clipboard}/bin/wl-paste --no-newline --type text >"$store/new" 2>/dev/null \
             || { rm -f "$store/new"; fail "dom0: keine Text-Zwischenablage"; }
         else
-          ssh "$src" "$helper get" </dev/null >"$store/new" 2>/dev/null \
+          clip_get "$src" >"$store/new" 2>/dev/null \
             || { rm -f "$store/new"; fail "$src: keine Text-Zwischenablage"; }
         fi
         mv "$store/new" "$store/data"
@@ -184,7 +212,7 @@ let
           # wl-copy forks and keeps serving the selection
           ${pkgs.wl-clipboard}/bin/wl-copy --type text/plain <"$store/data" >/dev/null 2>&1
         else
-          ssh "$dst" "$helper set" <"$store/data" || fail "Einfügen in $dst fehlgeschlagen"
+          clip_set "$dst" <"$store/data" || fail "Einfügen in $dst fehlgeschlagen"
         fi
         rm -f "$store/data" "$store/source"
         notify "$src → $dst ($size Bytes), einfügen mit Strg+V"

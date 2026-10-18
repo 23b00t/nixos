@@ -109,6 +109,21 @@ ${vmCases}
       systemctl start "$SERVICE"
     fi
 
+    # -c (nox exec): no SSH into the guests (xen-migration.md, spec rest of
+    # step 2): a terminal in the VM runs the command and stays open. Only
+    # the builder keeps SSH (dom0-update); guests without wprs still use it
+    # until they get a terminal (Whonix-Gateway)
+    if [ "$CLI_MODE" -eq 1 ] && [ "$RELAY_GUI" -eq 1 ] && [ "$FULL_NAME" != builder ]; then
+      cmd="$BINARY"
+      [ $# -eq 0 ] || cmd="$cmd $(printf '%q ' "$@")"
+      case " ${imageDomainNames} " in
+        *" $FULL_NAME "*)
+          exec vm-gui "$FULL_NAME" x-terminal-emulator -e sh -c "$cmd; echo; read -r -p 'Enter: close ' _"
+          ;;
+        *) exec vm-gui "$FULL_NAME" foot --hold sh -c "$cmd" ;;
+      esac
+    fi
+
     if [ "$RELAY_GUI" -eq 1 ] && [ "$CLI_MODE" -eq 0 ]; then
       # Xen guest: wprs over vchan, app started by RPC (stage C3), no SSH
       exec vm-gui "$FULL_NAME" "$BINARY" "$@"

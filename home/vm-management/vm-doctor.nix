@@ -110,9 +110,36 @@ let
       return 1
     }
 
-    # --- SSH and relay per running VM
+    # Probes over the VM's fixed rpc services (`ping`, `doctor`, `clip`), no
+    # SSH; image domains without them (xen-image-setup not run again) and
+    # the builder over SSH
+    rpcup() {
+      [ -S "/run/nox-relay/$1-rpc-in.sock" ] &&
+        [ "$(timeout 5 nox-rpc --dom0 ping "$1" </dev/null 2>/dev/null)" = ok ]
+    }
+    probe() { # probe <vm> <net|ip|wprsd|dbus> <command for SSH>
+      if rpcup "$1"; then
+        printf '%s\n' "$2" | timeout 20 nox-rpc --dom0 doctor "$1" 2>/dev/null
+      else
+        vssh "$1" "$3"
+      fi
+    }
+    clip_get() {
+      if rpcup "$1"; then printf 'get\n' | timeout 20 nox-rpc --dom0 clip "$1"; else vssh "$1" "$helper get"; fi
+    }
+    clip_set() {
+      if rpcup "$1"; then
+        { printf 'set\n'; cat; } | timeout 20 nox-rpc --dom0 clip "$1" >/dev/null
+      else
+        timeout 20 ssh -o BatchMode=yes "$1" "$helper set" 2>/dev/null
+      fi
+    }
+
+    # --- rpc (or SSH) and relay per running VM
     for vm in "''${RUNNING[@]}"; do
-      if [ "''${SSH[$vm]}" = 1 ]; then
+      if rpcup "$vm"; then
+        row PASS "rpc $vm" ok
+      elif [ "''${SSH[$vm]}" = 1 ]; then
         if vssh "$vm" true; then row PASS "ssh $vm" ok; else row FAIL "ssh $vm" "no answer"; fi
       fi
       dom="''${DOMAIN[$vm]}"
@@ -139,16 +166,16 @@ let
     ip_probe='curl -sS -m 10 https://api.ipify.org'
     direct_ip=""
     if vm="$(first '[ "''${UPLINK[$vm]}" = sys-net ] && [[ $vm != sys-* ]]')"; then
-      code="$(vssh "$vm" "$probe")"
+      code="$(probe "$vm" net "$probe")"
       if [ "$code" = 200 ]; then row PASS "net via sys-net ($vm)" "DNS + HTTPS"; else row FAIL "net via sys-net ($vm)" "''${code:-no DNS/connection}"; fi
-      direct_ip="$(vssh "$vm" "$ip_probe")"
+      direct_ip="$(probe "$vm" ip "$ip_probe")"
     else
       row SKIP "net via sys-net" "no running VM behind sys-net"
     fi
     for vm in "''${RUNNING[@]}"; do
       [ "''${UPLINK[$vm]}" = sys-vpn ] || continue
-      code="$(vssh "$vm" "$probe")"
-      ip="$(vssh "$vm" "$ip_probe")"
+      code="$(probe "$vm" net "$probe")"
+      ip="$(probe "$vm" ip "$ip_probe")"
       if [ "$code" != 200 ]; then
         row FAIL "net via sys-vpn ($vm)" "''${code:-no DNS/connection}"
       elif [ -z "$direct_ip" ] || [ -z "$ip" ]; then
@@ -174,15 +201,15 @@ let
       tmp="$(mktemp -d)"
       have0=0 havevm=0
       wl-paste --no-newline --type text >"$tmp/dom0" 2>/dev/null && have0=1
-      vssh "$vm" "$helper get" >"$tmp/vm" && havevm=1
+      clip_get "$vm" >"$tmp/vm" 2>/dev/null && havevm=1
       token="vm-doctor-$$-$RANDOM"
-      printf %s "$token" | timeout 20 ssh -o BatchMode=yes "$vm" "$helper set" 2>/dev/null
-      got="$(vssh "$vm" "$helper get")"
+      printf %s "$token" | clip_set "$vm"
+      got="$(clip_get "$vm" 2>/dev/null)"
       # wl-copy forks and keeps serving: not on our stdout (doctor | tail hung)
       printf %s "$got" | wl-copy --type text/plain >/dev/null 2>&1
       back="$(wl-paste --no-newline --type text 2>/dev/null)"
       if [ "$have0" = 1 ]; then wl-copy --type text/plain <"$tmp/dom0" >/dev/null 2>&1; else wl-copy --clear; fi
-      [ "$havevm" = 1 ] && timeout 20 ssh -o BatchMode=yes "$vm" "$helper set" <"$tmp/vm" 2>/dev/null
+      [ "$havevm" = 1 ] && clip_set "$vm" <"$tmp/vm"
       rm -rf "$tmp"
       if [ "$back" = "$token" ]; then
         row PASS "clipboard round trip" "dom0 -> $vm -> dom0, both restored"
@@ -195,7 +222,7 @@ let
 
     for vm in "''${RUNNING[@]}"; do
       [ "''${WPRS[$vm]}" = 1 ] || continue
-      state="$(vssh "$vm" systemctl --user is-active wprsd)"
+      state="$(probe "$vm" wprsd "systemctl --user is-active wprsd")"
       n=0
       for p in $(pgrep -x wprsc); do
         tr '\0' '\n' <"/proc/$p/cmdline" 2>/dev/null | grep -qxF -- "--socket=/run/nox-relay/$vm-wprs.sock" && n=$((n + 1))
@@ -216,9 +243,7 @@ let
         row FAIL "dbus $vm" "dom0 proxy socket missing"
         continue
       fi
-      if vssh "$vm" busctl --address=unix:path=/tmp/ssh_dbus.sock --timeout=3 call \
-        org.freedesktop.Notifications /org/freedesktop/Notifications \
-        org.freedesktop.Notifications GetServerInformation >/dev/null; then
+      if [ "$(probe "$vm" dbus 'busctl --address=unix:path=/tmp/ssh_dbus.sock --timeout=3 call org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications GetServerInformation >/dev/null && echo ok')" = ok ]; then
         row PASS "dbus $vm" "notifications reachable"
       else
         row FAIL "dbus $vm" "org.freedesktop.Notifications not reachable"

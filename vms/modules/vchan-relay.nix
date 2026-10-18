@@ -119,6 +119,45 @@ in
         environment.systemPackages = lib.mkIf (vmName != "sys-print") [ vmPrint ];
         services.nox-rpc.guest = {
           enable = true;
+          # dom0's vm-clip (home/vm-management/vm-gui.nix): first line get|set,
+          # then the text (set) or the answer (get); only dom0 calls
+          # Liveness for dom0 (vm-clip, nox doctor, update-all pick rpc over SSH)
+          handlers.ping = "echo ok";
+          # nox doctor's probes (home/vm-management/vm-doctor.nix), one per
+          # call: first line net|ip|wprsd|dbus, the answer on stdout
+          handlers.doctor = ''
+            if [ "$source" != dom0 ]; then
+              echo "error: only dom0"
+              exit 1
+            fi
+            IFS= read -r probe || exit 1
+            export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+            case "$probe" in
+              net)
+                ${pkgs.getent}/bin/getent hosts cache.nixos.org >/dev/null &&
+                  ${pkgs.curl}/bin/curl -sS -m 10 -o /dev/null -w "%{http_code}" https://cache.nixos.org/nix-cache-info
+                ;;
+              ip) ${pkgs.curl}/bin/curl -sS -m 10 https://api.ipify.org ;;
+              wprsd) ${pkgs.systemd}/bin/systemctl --user is-active wprsd ;;
+              dbus)
+                ${pkgs.systemd}/bin/busctl --address=unix:path=/tmp/ssh_dbus.sock --timeout=3 call \
+                  org.freedesktop.Notifications /org/freedesktop/Notifications \
+                  org.freedesktop.Notifications GetServerInformation >/dev/null && echo ok
+                ;;
+              *) echo "error: probe net|ip|wprsd|dbus"; exit 1 ;;
+            esac
+          '';
+          handlers.clip = lib.mkIf wprs ''
+            if [ "$source" != dom0 ]; then
+              echo "error: only dom0"
+              exit 1
+            fi
+            IFS= read -r action || exit 1
+            case "$action" in
+              get | set) exec /run/current-system/sw/bin/vm-clip-helper "$action" ;;
+              *) echo "error: clip get|set"; exit 1 ;;
+            esac
+          '';
           apps = lib.mkIf wprs {
             enable = true;
             after = [ "wprsd.service" ];
