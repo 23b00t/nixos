@@ -18,7 +18,6 @@
     ../modules/vpn-killswitch.nix
     ../modules/net-config.nix
     ../modules/common-config.nix
-    ../modules/wprs.nix
   ];
 
   networking.hostName = "sys-vpn-vm";
@@ -140,13 +139,10 @@
     # untested whether the fork's driver domains work as PVH (fallback:
     # xen.type = "hvm")
     xen.driverDomain = true;
+    # Disposable (registry): no home volume (provider configs come in by
+    # vm-copy to the tmpfs home and are imported in the same session), only
+    # the NetworkManager profiles stay
     volumes = [
-      {
-        # vm-copy incoming (provider configs from net)
-        mountPoint = "/home/user";
-        image = "home.img";
-        size = 512;
-      }
       {
         mountPoint = "/etc/NetworkManager/system-connections";
         image = "networkmanager.img";

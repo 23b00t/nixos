@@ -4,6 +4,10 @@ let
   # Image domains (Whonix, kali) run as xen-image@<name>, MicroVMs as
   # microvm@<name>; both are handled the same way here
   imageNames = builtins.concatStringsSep " " (map (d: d.name) vmRegistry.imageDomains);
+  # registry `disposable`: only these take --fresh
+  disposableNames = builtins.concatStringsSep " " (
+    map (vm: vm.name) (builtins.filter (vm: vm.disposable or false) vmRegistry.vms)
+  );
   # name=group pairs for VMs with a shared store image (registry `storeGroup`)
   vmGroups = builtins.concatStringsSep " " (
     map (vm: "[${vm.name}]=${vm.storeGroup}") (
@@ -18,6 +22,8 @@ pkgs.writeShellScriptBin "manage-vms" ''
   IMAGE_DOMAINS=( ${imageNames} )
   ALL_VMS=( ${vmNames} "''${IMAGE_DOMAINS[@]}" )
   declare -A STORE_GROUP=( ${vmGroups} )
+  DISPOSABLE=( ${disposableNames} )
+  FRESH=0
   STATE_DIR=/var/lib/microvms
   RUNNING_ONLY=0
   STALE_ONLY=0
@@ -29,11 +35,16 @@ pkgs.writeShellScriptBin "manage-vms" ''
 Usage:
   manage-vms status [<vm>...] [--running] [--group <group>] [--stale]
   manage-vms <start|stop|restart|reload> [<vm>...] [--running] [--group <group>] [--stale]
+  manage-vms <start|restart> --fresh <vm>...
 
   <vm>...          these VMs (default: all), narrowed by the filters
   --group <group>  only VMs of this store group (registry storeGroup)
   --stale          only running VMs whose store image differs from the
                    current one (e.g. after a group update)
+  --fresh          disposable VMs only (registry disposable): stop, set all
+                   their volume images aside (<image>.pre-fresh, needs sudo),
+                   start with empty ones. Back: stop the VM, move the
+                   .pre-fresh files back, start it
 
 A VM that gets started or restarted gets its tray apps again (vm-tray).
 
@@ -135,6 +146,28 @@ EOF
     done
   }
 
+  # --fresh: stop each (disposable) target and set its volume images aside;
+  # run_action then starts it with empty ones (the runner creates them)
+  fresh_images() {
+    local vm
+    [ "''${#NAMES[@]}" -gt 0 ] || { echo "--fresh needs VM names" >&2; exit 1; }
+    for vm in "''${TARGETS[@]}"; do
+      case " ''${DISPOSABLE[*]} " in
+        *" $vm "*) ;;
+        *)
+          echo "$vm is not disposable (registry), --fresh refused" >&2
+          exit 1
+          ;;
+      esac
+    done
+    for vm in "''${TARGETS[@]}"; do
+      echo "sudo systemctl stop $(unit_of "$vm")"
+      sudo systemctl stop "$(unit_of "$vm")"
+      # Image files are root's: sudo with password
+      sudo sh -c 'cd "$1" || exit 0; for f in *.img; do [ -e "$f" ] || continue; mv -f "$f" "$f.pre-fresh" && echo "set aside: $1/$f.pre-fresh"; done' sh "$STATE_DIR/$vm"
+    done
+  }
+
   run_action() {
     local action="$1"
     local vm unit was rc=0
@@ -165,6 +198,9 @@ EOF
         ;;
       --stale)
         STALE_ONLY=1
+        ;;
+      --fresh)
+        FRESH=1
         ;;
       --group)
         [ $# -ge 2 ] || usage
@@ -202,7 +238,12 @@ EOF
     status)
       print_status_table
       ;;
-    start|stop|restart|reload)
+    start|restart)
+      [ "$FRESH" -eq 0 ] || fresh_images
+      run_action "$COMMAND"
+      ;;
+    stop|reload)
+      [ "$FRESH" -eq 0 ] || { echo "--fresh only with start or restart" >&2; exit 1; }
       run_action "$COMMAND"
       ;;
     *)

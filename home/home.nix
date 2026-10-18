@@ -62,6 +62,20 @@ in
         ;
     })
     (import ./vm-management/manage-vms.nix { inherit pkgs vmRegistry; })
+    # nox disp: start the ad-hoc disposable (empty on every start, registry
+    # `disposable`) and open a program in it, foot by default; `nox stop
+    # disp` throws it away
+    (pkgs.writeShellScriptBin "vm-disp" ''
+      set -eu
+      [ $# -gt 0 ] || set -- foot
+      manage-vms start disp
+      # A fresh disp needs its volumes made and a boot: wait for its relay
+      for _ in $(seq 240); do
+        [ -e /run/nox-relay/disp.ready ] && break
+        sleep 0.5
+      done
+      exec vm-run disp "$@"
+    '')
     (import ./vm-management/create-vm.nix { inherit pkgs; })
     (import ./vm-management/explorer.nix { inherit pkgs vmRegistry; })
     myGithubAgent

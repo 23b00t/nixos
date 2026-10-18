@@ -23,6 +23,9 @@ let
   #   copy        : files between domains over nox-rpc (vm-copy in a VM, nox copy in dom0): { incoming; outgoing; },
   #                 each "ask" | "warn" (ask, the user types the VM's name) | "deny"; absent: sys-* incoming "ask",
   #                 outgoing "deny", else "ask"; dom0 -> VM needs no answer except for "warn"; never VM -> dom0
+  #   disposable  : boots empty every time: dom0 deletes the VM's home and store overlay images before start
+  #                 and after stop (machines/xen-dom0.nix); other volumes are data volumes and stay;
+  #                 `manage-vms restart --fresh <vm>` (nox restart --fresh) also sets those aside
   #   labTarget   : kali may test this VM's apps: `vm-lab attach <vm>` hangs a vif on sys-net's vm-lab (10.5.0.<last octet>, vms/modules/lab-target.nix)
   vms = [
     {
@@ -138,6 +141,7 @@ let
       ip = "10.0.0.23";
       autostart = false;
       nat = false;
+      disposable = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsMuzfPPoWJ9bgKKPBWx/l5qYuWtwEG5s/yHs4rUrJn sys-usb-vm";
       features = [ "yazi" ];
     }
@@ -149,6 +153,7 @@ let
       ip = "10.0.0.253";
       autostart = true;
       nat = false;
+      disposable = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2rxZHd/9pzQeQz3VDwlpcEP9KGOASXYsajKbcZdJ4/ sys-net-vm";
     }
     {
@@ -162,6 +167,11 @@ let
       allowGitHubAgent = false;
       enableHostDbusForward = false;
       memPriority = 10;
+      # nothing in or out by nox-rpc copy (the build VM sees untrusted code)
+      copy = {
+        incoming = "deny";
+        outgoing = "deny";
+      };
     }
     {
       # Print driver domain (C2): CUPS with driverless queues, PDFs come in
@@ -288,8 +298,38 @@ let
       ip = "10.0.0.30";
       autostart = false;
       nat = true;
+      disposable = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMO7+AsxkBR62JHOSsKup+pI/sVvPONEzOf5ypuXCeNZ sys-vpn-vm";
       allowGitHubAgent = false;
+    }
+    {
+      # Ad-hoc disposable (`nox disp`): vanilla's setup, empty on every start
+      name = "disp";
+      short = "d";
+      ip = "10.0.0.31";
+      autostart = false;
+      nat = true;
+      disposable = true;
+      allowGitHubAgent = false;
+      enableHostDbusForward = false;
+    }
+    {
+      # Disposable for `nox backup`: holds the backup disk, no network
+      name = "disp-backup";
+      short = "db";
+      label = "sys";
+      storeGroup = "sys";
+      ip = "10.0.0.32";
+      autostart = false;
+      nat = false;
+      disposable = true;
+      allowGitHubAgent = false;
+      enableHostDbusForward = false;
+      clipboard = "deny";
+      copy = {
+        incoming = "deny";
+        outgoing = "deny";
+      };
     }
     # create-vm: registry-vms
   ];

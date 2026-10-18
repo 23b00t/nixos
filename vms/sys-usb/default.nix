@@ -106,7 +106,6 @@ in
     ../modules/net-config.nix
     ../modules/common-config.nix
     ../modules/yazi-config.nix
-    ../modules/wprs.nix
   ];
 
   networking.hostName = "sys-usb-vm";
@@ -230,12 +229,8 @@ in
       type = "hvm";
       driverDomain = true;
     };
+    # Disposable (registry): no home volume, only the data volume below
     volumes = [
-      {
-        mountPoint = "/home/user";
-        image = "home.img";
-        size = 10000;
-      }
       {
         # Bluetooth pairings (vm-usb attach copies them to the target VM)
         mountPoint = "/var/lib/bluetooth";

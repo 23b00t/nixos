@@ -33,5 +33,7 @@ in
   sys-print = mkVm "sys-print";
   vanilla = mkVm "vanilla";
   sys-vpn = mkVm "sys-vpn";
+  disp = mkVm "disp";
+  disp-backup = mkVm "disp-backup";
   # create-vm: definitions
 }
