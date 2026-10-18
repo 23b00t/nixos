@@ -548,10 +548,6 @@ sudo mount -o loop,offset=$((start * 512)) kali.raw /mnt/kali
 sudo usermod -R /mnt/kali -l user -d /home/user -m kali
 sudo groupmod -R /mnt/kali -n user kali
 sudo chpasswd -R /mnt/kali <<< 'user:<new password>'
-# update-all: apt without a password (apt options can run commands as root,
-# so this is root without a password for `user`; fine for the lab VM)
-echo 'user ALL=(root) NOPASSWD: /usr/bin/apt-get' | sudo tee /mnt/kali/etc/sudoers.d/nox-apt >/dev/null
-sudo chmod 440 /mnt/kali/etc/sudoers.d/nox-apt
 sudo ln -sf /lib/systemd/system/multi-user.target /mnt/kali/etc/systemd/system/default.target
 sudo tee /mnt/kali/etc/NetworkManager/system-connections/uplink.nmconnection >/dev/null <<'EOF'
 [connection]
@@ -600,13 +596,6 @@ kali-vm -f ~/.ssh/kali-vm` and put the public key into `imageDomains` in
 
 ```sh
 xen-image-setup kali
-```
-
-An existing image without the sudo rule for apt (`update-all` asks for the
-password otherwise), once with kali running:
-
-```sh
-ssh -t kali-vm "echo 'user ALL=(root) NOPASSWD: /usr/bin/apt-get' | sudo tee /etc/sudoers.d/nox-apt >/dev/null && sudo chmod 440 /etc/sudoers.d/nox-apt && sudo visudo -c"
 ```
 
 ### 4. Use
@@ -737,6 +726,93 @@ as our `vm-usbip`. That does not matter for the clients (they only talk to
   own cache (`resolvectl flush-caches` in the client).
 - Switching server: `nmcli connection down wg-proton` and `up` another
   `wg-…` connection.
+
+## sys-print (printing)
+
+sys-print is a small VM without user data that prints for the other VMs.
+A VM sends a document with `vm-print <printer-ip> <file>`; dom0 asks
+(rofi: Allow/Deny); sys-print hands it to CUPS, which talks to the printer
+over IPP. office and coding themselves have no CUPS; office has no network
+at all. sys-net lets sys-print reach only private addresses on TCP 631
+(IPP), nothing else, no internet.
+
+- **Printer requirement:** driverless IPP ("IPP Everywhere"). Practically
+  every network printer that supports AirPrint or Mopria can do it. No
+  drivers, no PPDs.
+- **Same network:** the printer must be in the network sys-net is
+  connected to (same WLAN/router). A printer that only offers its own
+  hotspot ("Wi-Fi Direct") works only if sys-net joins that hotspot,
+  and then there is no internet while printing.
+- sys-print runs only when needed: `nox start sys-print` before
+  printing, `nox stop sys-print` afterwards. It is not started for you.
+
+### Set up a WLAN printer (once per printer)
+
+1. **Printer into the WLAN:** on the printer's display (network/Wi-Fi
+   setup wizard) choose the same WLAN as sys-net and enter the password.
+   Printers without a display: WPS button on the router and the printer,
+   or the vendor's setup instructions.
+2. **Find its IP address:** on the printer's display (network status /
+   Wi-Fi details) or print a network configuration page (usually in the
+   printer's menu, often a long press on the Wi-Fi or info button). As an
+   alternative, the router's list of connected devices. Note the IPv4
+   address, e.g. `192.168.1.57`. Best: give the printer a fixed address in
+   the router (DHCP reservation), otherwise it may change next time.
+3. **Check the printer speaks IPP** (dom0):
+
+   ```sh
+   nox start sys-print
+   vm-run -c sys-print ipptool -tv ipp://192.168.1.57/ipp/print get-printer-attributes.test | head -20
+   ```
+
+   Expected: `[PASS]` and attributes like `printer-make-and-model`. With
+   `Connection refused` or a timeout: wrong address, printer not in the
+   same network, or IPP switched off in the printer's web interface
+   (open `http://192.168.1.57` in net and enable IPP / AirPrint).
+
+There is nothing to configure in sys-print: the first print job to an
+address creates the queue (`ipp-192-168-1-57`) on its own.
+
+### Print from office
+
+office has no print dialog that reaches the printer (no CUPS there). The
+way is: save as PDF, send the PDF.
+
+1. `nox start sys-print` (dom0).
+2. In the office app make a PDF:
+   - LibreOffice: File → Export as PDF… → Export, e.g. to
+     `~/Documents/letter.pdf`.
+   - A PDF you already have (e.g. from `~/Incoming/…`) can be sent as is.
+3. Open a terminal in office: `vm-run office foot` (dom0), then in it:
+
+   ```sh
+   vm-print 192.168.1.57 ~/Documents/letter.pdf
+   ```
+
+4. dom0 shows a rofi question "print?" with office as the source: choose
+   **Allow**. Deny or no answer within 30 s cancels the job.
+5. The terminal shows `ok: request id is ipp-192-168-1-57-1 (1 file(s))`
+   and the printer starts. An `error: …` line says what went wrong (wrong
+   address, no IPP printer there).
+6. `nox stop sys-print` when done.
+
+Besides PDF, `vm-print` takes PostScript, images (PNG/JPEG) and plain
+text; CUPS converts them.
+
+### Test from coding
+
+Same as from office, with a text file:
+
+```sh
+nox start sys-print                       # dom0
+vm-run coding foot                        # dom0: terminal in coding
+echo "test print from coding $(date)" > ~/print-test.txt   # in coding
+vm-print 192.168.1.57 ~/print-test.txt                       # in coding
+```
+
+Allow in dom0's question; a page with the line comes out. Status of the
+jobs (dom0): `vm-run -c sys-print lpstat -o` (waiting jobs),
+`vm-run -c sys-print lpstat -W completed -o` (done ones).
 
 ## Tails (HVM with a Linux stubdomain)
 
