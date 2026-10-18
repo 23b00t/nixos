@@ -195,7 +195,7 @@ new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 | `vm-usb allow-input <busid>` | accept a new input device for dom0 until it is unplugged |
 | `dom0-update [--switch]` | system update via the builder |
 | `backup <dest> <vm>...` / `backup -a <dest>` / `backup -r <src>` | rsync of `/home/user` of VMs (not `/var`, not dom0) |
-| `xen-image-setup <name>` | install the units into a stopped image domain (once per image) |
+| `xen-image-setup <name>` | install the units into a stopped image domain (once per image, and again when the units change: 2026-10-18 added `nox-rpc-in` for dom0's fixed services — clip, app start, update-all — and `data/backend-ready`) |
 | `xen-vnc <domain>` | display of an HVM domain with a stubdomain (Tails) |
 | `sys-net-rescue` | sys-net doesn't come up: NICs back to dom0 |
 | `sys-usb-rescue` | sys-usb doesn't come up: USB controllers back to dom0 (also automatic after 120 s) |
