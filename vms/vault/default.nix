@@ -4,7 +4,6 @@
     ../modules/net-config.nix
     ../modules/common-config.nix
     ../modules/yazi-config.nix
-    ../modules/wprs.nix
   ];
 
   networking.hostName = "vault-vm";

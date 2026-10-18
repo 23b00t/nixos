@@ -7,8 +7,6 @@ in
     ../modules/net-config.nix
     ../modules/common-config.nix
     ../modules/zellij.nix
-    # Terminal (foot) over wprs as a niri tab in dom0
-    ../modules/wprs.nix
   ];
 
   networking.hostName = "irc-vm";

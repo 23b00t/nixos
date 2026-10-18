@@ -3,7 +3,6 @@
   imports = [
     ../modules/net-config.nix
     ../modules/common-config.nix
-    ../modules/wprs.nix
     ../modules/zen-firefox.nix
     ../modules/yazi-config.nix
   ];

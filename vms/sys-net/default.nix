@@ -32,7 +32,6 @@ in
   imports = [
     ../modules/net-config.nix
     ../modules/common-config.nix
-    ../modules/wprs.nix
   ];
 
   networking.hostName = "sys-net-vm";

@@ -110,45 +110,37 @@ in
       })
 
       # RPC (stage C): app VMs call (`vm-copy <vm> <files>`, `vm-print`) and
-      # receive (~/Incoming/<source>); sys-print only takes `print` (C2), the
-      # other driver domains and the builder take no part.
+      # receive (~/Incoming/<source>); sys-print only takes `print` (C2). The
+      # driver domains and the builder take part too (dom0's calls replace
+      # SSH, xen-migration.md spec SSH removal); copy rules: registry `copy`.
       # With wprs, dom0 starts GUI apps by RPC (`app`, C3, `vm-gui`) with the
       # environment the wprs launcher sets
-      (lib.mkIf
-        (
-          !builtins.elem vmName [
-            "sys-net"
-            "sys-usb"
-            "builder"
-          ]
-        )
-        {
-          environment.systemPackages = lib.mkIf (vmName != "sys-print") [ vmPrint ];
-          services.nox-rpc.guest = {
+      ({
+        environment.systemPackages = lib.mkIf (vmName != "sys-print") [ vmPrint ];
+        services.nox-rpc.guest = {
+          enable = true;
+          apps = lib.mkIf wprs {
             enable = true;
-            apps = lib.mkIf wprs {
-              enable = true;
-              after = [ "wprsd.service" ];
-              environment = {
-                WAYLAND_DISPLAY = "wprs-0";
-                DISPLAY = ":100";
-                XDG_SESSION_TYPE = "wayland";
-                PULSE_SERVER = "unix:/tmp/wprs-pulse";
-                # Dark: GTK3 by theme; libadwaita reads the color scheme from
-                # the settings portal, which VMs lack (dconf's default in
-                # common-config.nix did not reach Bottles in win)
-                GTK_THEME = "Adwaita:dark";
-                ADW_DEBUG_COLOR_SCHEME = "prefer-dark";
-                # dom0's filtered bus where forwarded, else the VM's own
-                # session bus: without one dconf can't save (Bottles closed
-                # every bottle it opened, win 2026-10-16)
-                DBUS_SESSION_BUS_ADDRESS =
-                  if dbus then "unix:path=/tmp/ssh_dbus.sock" else "unix:path=/run/user/1000/bus";
-              };
+            after = [ "wprsd.service" ];
+            environment = {
+              WAYLAND_DISPLAY = "wprs-0";
+              DISPLAY = ":100";
+              XDG_SESSION_TYPE = "wayland";
+              PULSE_SERVER = "unix:/tmp/wprs-pulse";
+              # Dark: GTK3 by theme; libadwaita reads the color scheme from
+              # the settings portal, which VMs lack (dconf's default in
+              # common-config.nix did not reach Bottles in win)
+              GTK_THEME = "Adwaita:dark";
+              ADW_DEBUG_COLOR_SCHEME = "prefer-dark";
+              # dom0's filtered bus where forwarded, else the VM's own
+              # session bus: without one dconf can't save (Bottles closed
+              # every bottle it opened, win 2026-10-16)
+              DBUS_SESSION_BUS_ADDRESS =
+                if dbus then "unix:path=/tmp/ssh_dbus.sock" else "unix:path=/run/user/1000/bus";
             };
           };
-        }
-      )
+        };
+      })
 
       # ... and no admin interface (only for VMs that use net-config)
       (lib.optionalAttrs (options.services ? net-config) {

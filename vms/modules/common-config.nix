@@ -28,6 +28,10 @@ in
     ./usbip-client.nix
     ./vchan-relay.nix
     ./lab-target.nix
+    # GUI over wprs (wprsd, foot as the terminal) in every VM: the admin
+    # interface once dom0 has no SSH into the guests (xen-migration.md, spec
+    # SSH removal)
+    ./wprs.nix
   ];
 
   options.services.common-config = {

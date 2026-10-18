@@ -39,7 +39,6 @@ in
     ../modules/zsh.nix
     ../modules/zellij.nix
     ../modules/persistent-store-overlay.nix
-    ../modules/wprs.nix
     ../modules/yazi-config.nix
   ];
 

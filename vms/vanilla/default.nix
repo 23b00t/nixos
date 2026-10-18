@@ -7,7 +7,6 @@
     ../modules/net-config.nix
     ../modules/common-config.nix
     ../modules/persistent-store-overlay.nix
-    ../modules/wprs.nix
   ];
 
   networking.hostName = "vanilla-vm";

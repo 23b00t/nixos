@@ -7,7 +7,6 @@ in
     ../modules/net-config.nix
     ../modules/common-config.nix
     ../modules/zsh.nix
-    ../modules/wprs.nix
   ];
 
   networking.hostName = "yazelix-vm";

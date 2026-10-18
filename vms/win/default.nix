@@ -10,7 +10,6 @@
   imports = [
     ../modules/common-config.nix
     ../modules/net-config.nix
-    ../modules/wprs.nix
   ];
 
   networking.hostName = "win-vm";
