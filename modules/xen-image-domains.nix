@@ -205,6 +205,7 @@ let
           d.relay.guest.serve
           // {
             ssh = guestSshSocket;
+            rpc-in = "/run/nox-rpc-in.sock";
           }
           // lib.optionalAttrs d.wprs { wprs = "/run/user/1000/wprs.sock"; };
       };
@@ -260,6 +261,100 @@ let
         exec "$SHELL" -l
       '';
 
+      # dom0's fixed services in the guest (xen-migration.md, spec rest of
+      # step 2): one call per connection on /run/nox-rpc-in.sock (relay
+      # `rpc-in`), first line "<service> <source>" as with nox-rpc. Runs as
+      # root; only dom0 may call. ping; clip get|set and app as the account of
+      # the booted session; apt-upgrade as root (with the user-sysmaint split
+      # only in the sysmaint session), interactive over the stream
+      appEnv = pkgs.writeShellScript "nox-app-env" ''
+        for f in /etc/profile.d/*.sh; do
+          [ -r "$f" ] && . "$f" >/dev/null 2>&1
+        done
+        exec env WAYLAND_DISPLAY=wprs-0 DISPLAY=:100 XDG_SESSION_TYPE=wayland \
+          PULSE_SERVER=unix:/tmp/wprs-pulse "$@"
+      '';
+      rpcIn = pkgs.writeShellScript "nox-rpc-in" ''
+        set -u
+        PATH=/usr/sbin:/usr/bin:/sbin:/bin
+        IFS=' ' read -r service source || exit 1
+        if ! [[ "$service" =~ ^[a-z0-9-]{1,32}$ && "$source" =~ ^[a-z0-9-]{1,32}$ ]]; then
+          echo "error bad header"
+          exit 1
+        fi
+        if [ "$source" != dom0 ]; then
+          echo "error: only dom0 calls here"
+          exit 1
+        fi
+        sysmaint=0
+        grep -qw boot-role=sysmaint /proc/cmdline && sysmaint=1
+        if [ "$sysmaint" = 1 ]; then u=sysmaint; else u=user; fi
+        uid="$(id -u "$u")"
+        asuser() {
+          runuser -u "$u" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            WAYLAND_DISPLAY=wprs-0 "$@"
+        }
+        case "$service" in
+          ping)
+            echo ok
+            ;;
+          # update-all: Tor's clock is set (Whonix), newest vs. running kernel
+          tor-ready)
+            [ -e /run/sdwdate/first_success ] && echo ok
+            ;;
+          kernel)
+            echo "$(ls /boot/vmlinuz-* | sort -V | tail -n 1) /boot/vmlinuz-$(uname -r)"
+            ;;
+        ${lib.optionalString d.wprs ''
+          clip)
+            IFS= read -r action || exit 1
+            case "$action" in
+              get | set) asuser /nix/store/nox/bin/vm-clip-helper "$action" ;;
+              *) echo "error: clip get|set"; exit 1 ;;
+            esac
+            ;;
+          app)
+            args=()
+            while IFS= read -r -d "" arg; do
+              args+=("$arg")
+            done
+            [ "''${#args[@]}" -gt 0 ] || { echo "error: no command"; exit 1; }
+            # Same token rule as NoX's app handler: a retried call doesn't
+            # start the app twice
+            unit=()
+            if [ "''${args[0]}" = env ] && [[ "''${args[1]:-}" =~ ^NOX_APP_TOKEN=([0-9a-f]{8,32})$ ]]; then
+              unit=(--unit="nox-app-''${BASH_REMATCH[1]}")
+              if [ "$(asuser systemctl --user show -p LoadState --value "nox-app-''${BASH_REMATCH[1]}.service")" = loaded ]; then
+                echo "ok: already started"
+                exit 0
+              fi
+            fi
+            if out="$(asuser systemd-run --user --collect --quiet "''${unit[@]}" -- /nix/store/nox/bin/nox-app-env "''${args[@]}" 2>&1)"; then
+              echo "ok: started ''${args[0]}"
+            else
+              echo "error: $out"
+              exit 1
+            fi
+            ;;
+        ''}
+          apt-upgrade)
+            exec 2>&1
+            ${lib.optionalString (d.sysmaintEntry != null) ''
+              if [ "$sysmaint" != 1 ]; then
+                echo "error: updates only in the sysmaint session"
+                exit 1
+              fi
+            ''}
+            exec apt-get --update full-upgrade
+            ;;
+          *)
+            echo "error unknown service $service"
+            exit 1
+            ;;
+        esac
+      '';
+
       # Default hotplug scripts, vif-bridge additionally isolates the port
       xenScripts = pkgs.runCommand "nox-xen-scripts" { } ''
         mkdir -p $out
@@ -285,13 +380,15 @@ let
         ln -s ${pkgs.openssh}/bin/sshd $out/bin/sshd
         ln -s ${sshdSetup} $out/bin/nox-sshd-setup
         ln -s ${session} $out/bin/nox-session
+        ln -s ${rpcIn} $out/bin/nox-rpc-in
+        ln -s ${appEnv} $out/bin/nox-app-env
         ln -s ${relayConfig} $out/etc/nox-relay.conf
         ln -s ${sshdConfig} $out/etc/ssh/sshd_config
         cp ${pkgs.writeText "authorized_keys" (lib.concatMapStrings (k: "${k}\n") d.authorizedKeys)} \
           $out/etc/ssh/authorized_keys/user
         ${lib.optionalString (d.sysmaintEntry != null) "ln -s user $out/etc/ssh/authorized_keys/sysmaint"}
         ${lib.optionalString d.driverDomain ''
-          ln -s ${xen}/bin/xl $out/bin/xl
+          ln -s ${xen}/bin/xl ${xen}/bin/xenstore-write ${xen}/bin/xenstore-rm $out/bin/
           mkdir -p $out/etc/xen
           ln -s ${xenScripts} $out/etc/xen/scripts
         ''}
@@ -335,6 +432,7 @@ let
       wants = [
         "nox-relay.service"
         "sshd-vchan.socket"
+        "nox-rpc-in.socket"
       ]
       ++ lib.optional d.driverDomain "xendriverdomain.service"
       ++ lib.optional (d.internalBridge != null) "nox-bridge.service";
@@ -415,6 +513,27 @@ let
           StandardInput=socket
           StandardError=journal
         ''} $s/sshd-vchan@.service
+        cp ${unit ''
+          [Unit]
+          Description=Calls from dom0 (nox-rpc-in)
+          Requires=nix-store.mount
+          After=nix-store.mount
+
+          [Socket]
+          ListenStream=/run/nox-rpc-in.sock
+          Accept=yes
+          SocketMode=0600
+        ''} $s/nox-rpc-in.socket
+        cp ${unit ''
+          [Unit]
+          Description=Call from dom0 (one connection)
+
+          [Service]
+          ExecStart=-/nix/store/nox/bin/nox-rpc-in
+          StandardInput=socket
+          StandardOutput=socket
+          StandardError=journal
+        ''} $s/nox-rpc-in@.service
         printf '%s\n' ${lib.escapeShellArgs modules} > $out/etc/modules-load.d/nox.conf
         ${lib.optionalString d.driverDomain ''
           # One queue per vif: with several, part of the connections of
@@ -444,6 +563,9 @@ let
             [Service]
             Type=forking
             ExecStart=/nix/store/nox/bin/xl devd
+            # Clients wait for it (uplink readiness, dom0 preStart)
+            ExecStartPost=/nix/store/nox/bin/xenstore-write data/backend-ready 1
+            ExecStopPost=-/nix/store/nox/bin/xenstore-rm data/backend-ready
             LogsDirectory=xen
             RuntimeDirectory=xen
             StateDirectory=xen
@@ -574,16 +696,21 @@ let
           echo "Disk image ${d.image} is missing" >&2
           exit 1
         fi
+        # Backend ready: its driver domain wrote data/backend-ready after xl
+        # devd started (common-config.nix, nox-backend-ready here); until every
+        # driver domain does (images set up again), its sshd answering counts
         reachable() {
-          case "$1" in
-            /*) [ "$(timeout 3 socat -t 2 - "UNIX-CONNECT:$1" </dev/null 2>/dev/null | head -c 4)" = SSH- ] ;;
-            *) timeout 1 bash -c "</dev/tcp/$1/22" 2>/dev/null ;;
+          local be
+          be="$(xl domid "$1" 2>/dev/null)" || return 1
+          [ "$(xenstore-read "/local/domain/$be/data/backend-ready" 2>/dev/null)" = 1 ] && return 0
+          case "$2" in
+            /*) [ "$(timeout 3 socat -t 2 - "UNIX-CONNECT:$2" </dev/null 2>/dev/null | head -c 4)" = SSH- ] ;;
+            *) timeout 1 bash -c "</dev/tcp/$2/22" 2>/dev/null ;;
           esac
         }
         ${lib.concatMapStrings (v: ''
           for _ in $(seq 180); do
-            xl domid ${lib.escapeShellArg v.backend} >/dev/null 2>&1 &&
-              reachable ${lib.escapeShellArg v.backendAddress} && break
+            reachable ${lib.escapeShellArg v.backend} ${lib.escapeShellArg v.backendAddress} && break
             sleep 1
           done
         '') (lib.unique d.vifs)}
@@ -765,6 +892,11 @@ in
         // {
           ssh = {
             path = "/run/nox-relay/${name}-ssh.sock";
+            owner = "1000:100";
+          };
+          # dom0's fixed services in the guest (nox-rpc-in on the store disk)
+          rpc-in = {
+            path = "/run/nox-relay/${name}-rpc-in.sock";
             owner = "1000:100";
           };
         }
