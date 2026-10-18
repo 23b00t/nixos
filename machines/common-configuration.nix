@@ -237,8 +237,6 @@ in
       pavucontrol
       # playerctl
       fzf
-
-      (import ../vms/copy-between-vms.nix { inherit pkgs lib vmRegistry; })
     ];
 
     variables = {

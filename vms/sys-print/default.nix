@@ -47,7 +47,6 @@ in
     common-config = {
       enable = true;
       withDefaultPkgs = false;
-      vmCopy.enable = false;
     };
 
     # Local only: no sharing, no browsing (no mDNS, no cups-browsed)

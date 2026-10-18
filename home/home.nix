@@ -61,7 +61,6 @@ in
         vmRegistry
         ;
     })
-    (import ./vm-management/vmcopy-keys.nix { inherit pkgs vmRegistry; })
     (import ./vm-management/manage-vms.nix { inherit pkgs vmRegistry; })
     (import ./vm-management/create-vm.nix { inherit pkgs; })
     (import ./vm-management/explorer.nix { inherit pkgs vmRegistry; })

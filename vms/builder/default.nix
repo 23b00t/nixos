@@ -73,7 +73,6 @@ in
     common-config = {
       enable = true;
       withDefaultPkgs = false;
-      vmCopy.enable = false;
     };
 
     persistentStoreOverlay = {

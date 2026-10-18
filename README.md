@@ -197,12 +197,14 @@ new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 | `xen-vnc <domain>` | display of an HVM domain with a stubdomain (Tails) |
 | `sys-net-rescue` | sys-net doesn't come up: NICs back to dom0 |
 | `sys-usb-rescue` | sys-usb doesn't come up: USB controllers back to dom0 (also automatic after 120 s) |
-| `create-vm`, `vmcopy-keys <vm>` | new VM, keys for inter-VM copy |
+| `create-vm` | new VM |
+| `nox copy [-m] [-n] [--max <bytes>] [<from-vm>] <to-vm> <path>…` | files over nox-rpc: from dom0, or from `<from-vm>` (paths relative to its home) when the first two arguments are VMs. dom0's own request needs no answer, except into a `warn` VM (vault: type its name). Lands in `~/Incoming/<source>` in the target, never overwrites (suffix), files and directories only (links dropped, `..` paths refused), at most what the sender announced and 10 GB. `-m` moves, `-n` shows what would be sent. Rules: registry `copy` (sys-* give nothing out, sys-print takes nothing, vault `warn`); never into dom0 |
 | Mod+Alt+C / Mod+Alt+V (`vm-clip copy\|paste`) | clipboard between domains: copy the text clipboard of the focused window's VM (or dom0) into dom0's store, paste it into the focused window's VM (or dom0), then press Ctrl+V there; the store is emptied. VMs don't share their clipboard with dom0 otherwise. Copying out of vault asks, sys-* VMs are excluded (registry `clipboard`) |
 | `vm-run <vm> foot [cmd…]` | terminal from a VM over wprs (dom0: `foot`, Mod+T). At login: one column with tabs dom0, nvim, coding (zellij in the VM; Mod+1…3), on the xmg irc on "remote"; kitty and zellij are gone from dom0 (zellij stays on the hp) |
 
-In the VMs: `vm-copy <vm> <files>` (dom0 asks, files land in
-`~/Incoming/<source>`), `vm-print <printer-ip> <file>` (via sys-print).
+In the VMs: `vm-copy [-m] [-n] <vm> <files>` (dom0 asks in a rofi dialog with the
+size and names, files land in `~/Incoming/<source>`; the old `cp-vm` over
+the vmcopy account is gone), `vm-print <printer-ip> <file>` (via sys-print).
 
 ### systemd units
 
@@ -847,7 +849,7 @@ Known issues and their status are tracked in
 - Remove not strictly needed host software
 - think over dropping zsh on the host (zellij: gone from dom0 except on the hp, 2026-10-17)
 - modularize config
-- restructure vms/ vm folders should not live on the same level as modules/ vmcopy-keys/ etc.
+- restructure vms/ vm folders should not live on the same level as modules/ etc.
 - fix steam-vm bug: reboot is needed -> currently no way to do that. Maybe automate early reboot after first start and logging specific issue as trigger.
 - improve steam-vm: initial wlserver: backend/hedless... is taking quiet long till steam starts (about 30s)
 - let steam-vm participate in file sharing?

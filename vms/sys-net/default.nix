@@ -50,7 +50,6 @@ in
     common-config = {
       enable = true;
       withDefaultPkgs = false;
-      vmCopy.enable = false;
     };
 
     # SSH only from the admin network (dom0), not from the uplink or the WLAN

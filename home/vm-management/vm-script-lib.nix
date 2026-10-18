@@ -1,10 +1,8 @@
 {
   vmUserDefault ? "user",
-  vmCopyUserDefault ? "vmcopy",
 }:
 let
   vmUser = vm: vm.user or vmUserDefault;
-  vmCopyUser = vm: vm.vmCopyUser or vmCopyUserDefault;
 
   vmPatterns =
     vm:
@@ -78,7 +76,6 @@ in
 {
   inherit
     vmUser
-    vmCopyUser
     vmList
     vmCaseBlock
     hostTable

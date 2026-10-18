@@ -7,7 +7,6 @@ let
   #   autostart   : whether the VM should autostart via microvm.host
   #   restartIfChanged: whether the VM should be automatically restarted if its configuration changes; defaults to true
   #   nat         : whether the VM should be included in networking.nat.internalIPs
-  #   allowVmCopy : whether the VM should participate in inter-VM copy; defaults to true
   #   allowGitHubAgent : whether the VM should receive the dedicated forwarded GitHub SSH agent/socket
   #   enableHostDbusForward : whether host should keep persistent forwarded /tmp/ssh_dbus.sock for this VM (defaults to true)
   #   extraSSH    : extra SSH matchOptions for home.ssh (may be [])
@@ -21,6 +20,9 @@ let
   #   label       : trust label (Qubes-like), the window border color in dom0 (home/desktop/theme.nix
   #                 `labels`, niri rules on the "[<vm>] " title prefix from wprsc): "sys" | "dev" | "personal" |
   #                 "untrusted" | "vault" | "anon"; absent = "untrusted"
+  #   copy        : files between domains over nox-rpc (vm-copy in a VM, nox copy in dom0): { incoming; outgoing; },
+  #                 each "ask" | "warn" (ask, the user types the VM's name) | "deny"; absent: sys-* incoming "ask",
+  #                 outgoing "deny", else "ask"; dom0 -> VM needs no answer except for "warn"; never VM -> dom0
   #   labTarget   : kali may test this VM's apps: `vm-lab attach <vm>` hangs a vif on sys-net's vm-lab (10.5.0.<last octet>, vms/modules/lab-target.nix)
   vms = [
     {
@@ -115,6 +117,7 @@ let
       nat = false;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPbWqbgvB7bf39HteuS/bmSDqLuPiZn5AV63fjRXEVw vault-vm";
       clipboard = "ask";
+      copy.incoming = "warn";
       features = [ "yazi" ];
     }
     {
@@ -147,7 +150,6 @@ let
       autostart = true;
       nat = false;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2rxZHd/9pzQeQz3VDwlpcEP9KGOASXYsajKbcZdJ4/ sys-net-vm";
-      allowVmCopy = false;
     }
     {
       name = "builder";
@@ -159,7 +161,6 @@ let
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINX+ZshJR9vhy9Fq1J6VteXQASQhNEzFtQ1bV1L+j1eY builder-vm";
       allowGitHubAgent = false;
       enableHostDbusForward = false;
-      allowVmCopy = false;
       memPriority = 10;
     }
     {
@@ -173,9 +174,13 @@ let
       autostart = false;
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBFHr1LwubMtQkVi+fFAkZUvJSL68pMSoQ6hE7Av57t sys-print-vm";
+      # holds no user data: print jobs only
+      copy = {
+        incoming = "deny";
+        outgoing = "deny";
+      };
       allowGitHubAgent = false;
       enableHostDbusForward = false;
-      allowVmCopy = false;
     }
     {
       # Xen HVM with the dGPU (PCI passthrough); input and Bluetooth via
@@ -188,7 +193,6 @@ let
       nat = true;
       hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL steam-vm";
       enableHostDbusForward = false;
-      allowVmCopy = false;
       # First test on the xmg (2026-10-14)
       hosts = [ "xmg" ];
     }
@@ -627,7 +631,6 @@ let
       imageDomains = builtins.filter onHost imageDomains;
       natIPs = map (vm: vm.ip) (builtins.filter (vm: vm.nat or false) hostVms);
       autostartNames = map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) hostVms);
-      vmCopyParticipants = builtins.filter (vm: vm.allowVmCopy or true) hostVms;
       dbusForwardParticipants = builtins.filter (vm: vm.enableHostDbusForward or true) hostVms;
       vmHasFeature = feature: builtins.filter (vm: builtins.elem feature (vm.features or [ ])) hostVms;
       globalExtraSSH = [ ];

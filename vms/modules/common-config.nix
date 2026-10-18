@@ -10,7 +10,7 @@ with lib;
 
 let
   cfg = config.services.common-config;
-  defaultPkgs = import ../default-pkgs.nix { inherit pkgs vmRegistry; };
+  defaultPkgs = import ../default-pkgs.nix { inherit pkgs; };
   hostName = config.networking.hostName or "";
   vmName = if hasSuffix "-vm" hostName then removeSuffix "-vm" hostName else hostName;
   currentVm =
@@ -21,27 +21,6 @@ let
   hostSSHKey = currentVm.hostSSHKey or null;
   dbusForwardParticipants = vmRegistry.dbusForwardParticipants or [ ];
   dbusForwardEnabled = builtins.elem vmName (map (vm: vm.name) dbusForwardParticipants);
-  vmCopyEnabled = cfg.vmCopy.enable && (currentVm.allowVmCopy or true);
-  vmCopyRoot = cfg.vmCopy.homeDirectory;
-  vmCopyIncomingDir = cfg.vmCopy.incomingDirectory;
-  vmCopyKeyDirectory = ../vmcopy-keys;
-  vmCopySourceDirectories = map (vm: vm.name) (
-    builtins.filter (vm: vm.name != vmName) vmRegistry.vmCopyParticipants
-  );
-  vmCopyAutoAuthorizedKeys =
-    map
-      (
-        sourceVm:
-        let
-          keyPath = vmCopyKeyDirectory + "/${sourceVm}.pub";
-        in
-        removeSuffix "\n" (builtins.readFile keyPath)
-      )
-      (
-        builtins.filter (
-          sourceVm: builtins.pathExists (vmCopyKeyDirectory + "/${sourceVm}.pub")
-        ) vmCopySourceDirectories
-      );
 in
 {
   imports = [
@@ -62,33 +41,6 @@ in
       type = types.bool;
       default = true;
       description = "Enable the default set of packages defined in default-pkgs.nix";
-    };
-    vmCopy = {
-      enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Enable the restricted inter-VM copy account on transfer-capable VMs.";
-      };
-      user = mkOption {
-        type = types.str;
-        default = "vmcopy";
-        description = "Name of the restricted inter-VM copy account.";
-      };
-      homeDirectory = mkOption {
-        type = types.str;
-        default = "/home/user/incoming";
-        description = "Home directory for the restricted inter-VM copy account.";
-      };
-      incomingDirectory = mkOption {
-        type = types.str;
-        default = "/home/user/incoming";
-        description = "Persistent incoming directory used for inter-VM copy uploads.";
-      };
-      authorizedKeys = mkOption {
-        type = types.listOf types.str;
-        default = [ ];
-        description = "Extra authorized SSH public keys for the restricted inter-VM copy account.";
-      };
     };
     browser = mkOption {
       type = types.nullOr types.str;
@@ -165,17 +117,6 @@ in
         UseDNS no
         # DBus Forwarding
         StreamLocalBindUnlink yes
-      ''
-      + optionalString vmCopyEnabled ''
-
-        Match User ${cfg.vmCopy.user}
-          AllowAgentForwarding no
-          AllowStreamLocalForwarding no
-          AllowTcpForwarding no
-          PermitTunnel no
-          X11Forwarding no
-          PermitTTY no
-          ForceCommand internal-sftp -d ${vmCopyIncomingDir}
       '';
     };
 
@@ -199,34 +140,14 @@ in
       wheelNeedsPassword = false;
     };
 
-    users.groups = mkMerge [
-      {
-        users = { };
-      }
-      (mkIf vmCopyEnabled {
-        "${cfg.vmCopy.user}" = { };
-      })
-    ];
+    users.groups.users = { };
 
-    users.users = mkMerge [
-      {
-        "${cfg.user}" = {
-          isNormalUser = true;
-          group = "users";
-          extraGroups = [ "wheel" ];
-          openssh.authorizedKeys.keys = mkIf (hostSSHKey != null) [ hostSSHKey ];
-        };
-      }
-      (mkIf vmCopyEnabled {
-        "${cfg.vmCopy.user}" = {
-          isSystemUser = true;
-          group = cfg.vmCopy.user;
-          home = vmCopyRoot;
-          createHome = false;
-          openssh.authorizedKeys.keys = vmCopyAutoAuthorizedKeys ++ cfg.vmCopy.authorizedKeys;
-        };
-      })
-    ];
+    users.users."${cfg.user}" = {
+      isNormalUser = true;
+      group = "users";
+      extraGroups = [ "wheel" ];
+      openssh.authorizedKeys.keys = mkIf (hostSSHKey != null) [ hostSSHKey ];
+    };
 
     # dconf on the VM's own session bus (apps started over RPC use it,
     # vchan-relay.nix); dark by default for GTK4/libadwaita apps
@@ -297,15 +218,7 @@ in
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user} 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.ssh 0700 ${cfg.user} users -"
-    ]
-    ++ optionals vmCopyEnabled (
-      [
-        "d ${vmCopyIncomingDir} 0755 ${cfg.user} users -"
-      ]
-      ++ map (
-        sourceVm: "d ${vmCopyIncomingDir}/${sourceVm} 2770 ${cfg.vmCopy.user} users -"
-      ) vmCopySourceDirectories
-    );
+    ];
 
     environment.systemPackages = mkMerge [
       (mkIf cfg.withDefaultPkgs (mkBefore defaultPkgs))

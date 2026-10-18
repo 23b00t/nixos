@@ -11,6 +11,7 @@
   ...
 }:
 let
+  theme = import ../home/desktop/theme.nix { inherit lib; };
   nicPciPaths = vmRegistry.hardware.pci.devicePaths.nic or [ ];
   # NIC drivers blacklisted in dom0 (registry hostProfile), loaded again by
   # sys-net-rescue
@@ -49,6 +50,53 @@ let
     ${lib.concatMapStringsSep "\n" (m: "sudo ${pkgs.kmod}/bin/modprobe ${m}") nicDrivers}
     echo "WLAN is back in dom0, NetworkManager reconnects as before."
     echo "Start sys-net again later with: sudo systemctl start microvm@sys-net"
+  '';
+
+  # Copy rules of a VM (registry `copy`): sys-* VMs take files (e.g. a
+  # WireGuard config for sys-vpn) but give none out
+  copyRules = vm: {
+    incoming = vm.copy.incoming or "ask";
+    outgoing = vm.copy.outgoing or (if lib.hasPrefix "sys-" vm.name then "deny" else "ask");
+  };
+
+  # nox-rpcd's question (ask/warn) as a rofi dialog in the session: args
+  # service source target ask|warn, for a copy also entries bytes names…
+  # (from the sender, so escaped). warn: allowed only by typing the target's
+  # name. No answer within 30 s = deny
+  copyAsk = pkgs.writeShellScript "nox-ask" ''
+    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+    for s in "$XDG_RUNTIME_DIR"/wayland-*; do
+      case "$s" in *.lock) continue ;; esac
+      [ -S "$s" ] && export WAYLAND_DISPLAY="''${s##*/}" && break
+    done
+    esc() { ${pkgs.gnused}/bin/sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
+    service="$1" source="$2" target="$3" mode="$4"
+    shift 4
+    msg="<b>$source</b> → <b>$target</b>: $service"
+    if [ "$service" = copy ] && [ $# -ge 2 ]; then
+      msg="$msg"$'\n'"$1 entries, $(${pkgs.coreutils}/bin/numfmt --to=iec "$2")B"
+      shift 2
+      for n in "$@"; do
+        msg="$msg"$'\n'"  $(printf '%s' "$n" | esc)"
+      done
+    fi
+    # The launcher theme has no message box: add one above the choices
+    rofi() {
+      timeout 30 ${pkgs.rofi}/bin/rofi -dmenu -theme ~/.config/rofi/config.rasi \
+        -theme-str 'mainbox { children: [ "inputbar", "message", "listview" ]; }
+          message { padding: 10px 14px; background-color: @main-bg; }
+          textbox { horizontal-align: 0; background-color: @main-bg; text-color: @main-fg; }
+          listview { lines: 2; }' \
+        "$@"
+    }
+    if [ "$mode" = warn ]; then
+      msg="<span foreground='${theme.color.urgent}'><b>$target is protected.</b></span>"$'\n'"$msg"$'\n'"Type <b>$target</b> to allow."
+      answer="$(rofi -p "$target?" -mesg "$msg" </dev/null)" || exit 1
+      [ "$answer" = "$target" ]
+    else
+      answer="$(printf 'Deny\nAllow\n' | rofi -i -no-custom -p "$service?" -mesg "$msg")" || exit 1
+      [ "$answer" = Allow ]
+    fi
   '';
 
   # Full system update, step 2 (step 1: `flake-bump` in nvim pushes new
@@ -291,9 +339,12 @@ in
   };
 
   # Stage C: RPC between app VMs (NoX nox-rpc), mediated by dom0. Copying
-  # (`vm-copy <vm> <files>` in a VM) always asks (notification with buttons).
-  # Guest side: vms/modules/vchan-relay.nix
+  # (`vm-copy <vm> <files>` in a VM, `nox copy` in dom0) follows the registry
+  # field `copy` (vms/registry.nix): deny rules first, then warn, then ask;
+  # the question is a rofi dialog (copyAsk). Guest side:
+  # vms/modules/vchan-relay.nix
   services.nox-rpc.host = {
+    askCommand = copyAsk;
     enable = true;
     guests = builtins.filter (
       vm:
@@ -304,28 +355,40 @@ in
       ]
       && config.microvm.vms.${vm}.config.config.microvm.hypervisor == "xen"
     ) (builtins.attrNames config.microvm.vms);
-    policy = [
-      # sys-print (C2) holds no user data: no files in or out, only print jobs
-      {
-        service = "copy";
-        source = "sys-print";
-        action = "deny";
-      }
-      {
-        service = "copy";
-        target = "sys-print";
-        action = "deny";
-      }
-      {
-        service = "print";
-        target = "sys-print";
-        action = "ask";
-      }
-      {
-        service = "copy";
-        action = "ask";
-      }
-    ];
+    policy =
+      let
+        rules =
+          action:
+          lib.concatMap (
+            vm:
+            let
+              c = copyRules vm;
+            in
+            lib.optional (c.outgoing == action) {
+              service = "copy";
+              source = vm.name;
+              inherit action;
+            }
+            ++ lib.optional (c.incoming == action) {
+              service = "copy";
+              target = vm.name;
+              inherit action;
+            }
+          ) vmRegistry.vms;
+      in
+      rules "deny"
+      ++ rules "warn"
+      ++ [
+        {
+          service = "print";
+          target = "sys-print";
+          action = "ask";
+        }
+        {
+          service = "copy";
+          action = "ask";
+        }
+      ];
   };
 
   # v3: Whonix-Gateway from the upstream image (PVH, pvgrub2), not NixOS.
@@ -386,7 +449,7 @@ in
     updateAll
   ];
 
-  # `nox`: one command over manage-vms, vm-run, vm-clip, cp-vm, dom0-update,
+  # `nox`: one command over manage-vms, vm-run, vm-clip, nox-copy, dom0-update,
   # update-all and vm-usb; the VM names feed its completion
   programs.nox = {
     enable = true;
