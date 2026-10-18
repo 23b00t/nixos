@@ -207,12 +207,17 @@ in
       };
 
       # Runs in dom0 before the domain is created: the uplink backend (xl devd
-      # in sys-net) must be up, otherwise creating the vif fails. sys-net's
-      # sshd comes up with its other services, so it is a usable readiness signal
-      # (over the relay socket for backends without an admin link).
+      # in sys-net) must be up, otherwise creating the vif fails. The driver
+      # domain writes data/backend-ready once xl devd runs (common-config.nix);
+      # until every one does, its sshd answering counts as well (over the relay
+      # socket for backends without an admin link).
       preStart = mkIf cfg.uplink.enable ''
         for _ in $(${hostPkgs.coreutils}/bin/seq 180); do
-          if ${config.microvm.xen.package}/bin/xl domid ${cfg.uplink.backend} >/dev/null 2>&1 \
+          be="$(${config.microvm.xen.package}/bin/xl domid ${cfg.uplink.backend} 2>/dev/null)" || be=""
+          if [ -n "$be" ] && [ "$(${config.microvm.xen.package}/bin/xenstore-read "/local/domain/$be/data/backend-ready" 2>/dev/null)" = 1 ]; then
+            break
+          fi
+          if [ -n "$be" ] \
             && ${
               if hasPrefix "/" cfg.uplink.backendAddress then
                 ''[ "$(${hostPkgs.coreutils}/bin/timeout 3 ${hostPkgs.socat}/bin/socat -t 2 - UNIX-CONNECT:${cfg.uplink.backendAddress} </dev/null 2>/dev/null | ${hostPkgs.coreutils}/bin/head -c 4)" = SSH- ]''

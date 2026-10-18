@@ -55,6 +55,16 @@ in
   };
 
   config = mkIf cfg.enable {
+    # Driver domains (sys-net, sys-vpn, …): tell dom0 the backend is up once
+    # xl devd runs (data/backend-ready, guest-writable); clients' preStart
+    # waits for it (vms/modules/net-config.nix)
+    systemd.services.xendriverdomain = mkIf (config.microvm.xen.driverDomain or false) {
+      serviceConfig = {
+        ExecStartPost = "${config.microvm.xen.package}/bin/xenstore-write data/backend-ready 1";
+        ExecStopPost = "-${config.microvm.xen.package}/bin/xenstore-rm data/backend-ready";
+      };
+    };
+
     nixpkgs.overlays = [
       (final: prev: {
         inherit (final.lixPackageSets.latest)
