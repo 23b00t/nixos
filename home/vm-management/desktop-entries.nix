@@ -1,10 +1,20 @@
-{ lib, ... }:
+{
+  lib,
+  osConfig ? { },
+  vmRegistry,
+  ...
+}:
 let
-  # Helper für Desktop-Entries: nutzt VM-Key (name oder short), nicht IP-Suffix
+  # VMs and image domains of this machine (registry `hosts`)
+  domains = vmRegistry.vms ++ vmRegistry.imageDomains;
+  onHost = vm: builtins.any (d: d.name == vm) domains;
+
+  # Helper für Desktop-Entries: VM-Name aus registry.nix, Anzeige "App (vm)";
+  # Einträge für VMs, die auf dieser Maschine nicht laufen, entfallen
   mkVmEntry =
     {
       name,
-      vm,               # name oder short aus registry.nix
+      vm,
       binary,
       genericName ? name,
       categories ? [ ],
@@ -12,383 +22,375 @@ let
       icon ? null,
       args ? "",
     }:
-    {
-      "${name}" = {
+    lib.optionalAttrs (onHost vm) {
+      "nox-${vm}-${lib.toLower (lib.strings.sanitizeDerivationName name)}" = {
+        name = "${name} (${vm})";
         inherit
-          name
           genericName
           categories
           mimeType
           icon
           ;
-        exec =
-          if args == "" then
-            "vm-run ${vm} ${binary} %U"
-          else
-            "vm-run ${vm} ${binary} ${args} %U";
+        exec = if args == "" then "vm-run ${vm} ${binary} %U" else "vm-run ${vm} ${binary} ${args} %U";
         terminal = false;
         type = "Application";
       };
     };
+
+  # One terminal per domain with a GUI over wprs: foot in the NixOS VMs
+  # (wprsd, vms/modules/wprs.nix), the image's default terminal in the
+  # Debian image domains (`wprs = true`; Whonix-Gateway has none yet)
+  terminalOf =
+    vm:
+    if (osConfig.microvm.vms.${vm.name}.config.config.systemd.user.services or { }) ? wprsd then
+      "foot"
+    else if osConfig.services.xen-image-domains.domains.${vm.name}.wprs or false then
+      "x-terminal-emulator"
+    else
+      null;
+  terminalEntries = map (
+    vm:
+    lib.optionalAttrs (terminalOf vm != null) {
+      "nox-${vm.name}-terminal" = {
+        name = "Terminal (${vm.name})";
+        genericName = "Terminal";
+        exec = "vm-run ${vm.name} ${terminalOf vm}";
+        icon = "utilities-terminal";
+        categories = [
+          "System"
+          "TerminalEmulator"
+        ];
+        terminal = false;
+        type = "Application";
+      };
+    }
+  ) domains;
+
+  # dom0 runs no foot server: hide foot's client and server entries
+  hidden = name: {
+    inherit name;
+    exec = "false";
+    noDisplay = true;
+  };
 in
 {
-  xdg.desktopEntries = lib.mkMerge [
-    # --- Chat VM ---
-    (mkVmEntry {
-      name = "zoom";
-      genericName = "Zoom Video Chat";
-      vm = "chat"; # oder short name aus registry.nix
-      binary = "flatpak";
-      args = "run us.zoom.Zoom";
-      icon = "Zoom";
-      categories = [
-        "Network"
-        "VideoConference"
-      ];
-      mimeType = [
-        "x-scheme-handler/zoommtg"
-        "x-scheme-handler/zoomus"
-        "application/x-zoom"
-      ];
-    })
+  xdg.desktopEntries = lib.mkMerge (
+    terminalEntries
+    ++ [
+      {
+        footclient = hidden "Foot Client";
+        foot-server = hidden "Foot Server";
+      }
+      # --- Chat VM ---
+      (mkVmEntry {
+        name = "Vesktop";
+        genericName = "Discord Client";
+        vm = "chat";
+        binary = "vesktop";
+        icon = "discord";
+        categories = [
+          "Network"
+          "InstantMessaging"
+          "Chat"
+        ];
+      })
 
-    (mkVmEntry {
-      name = "vesktop";
-      genericName = "Discord Client";
-      vm = "chat";
-      binary = "vesktop";
-      icon = "discord";
-      categories = [
-        "Network"
-        "InstantMessaging"
-        "Chat"
-      ];
-    })
+      (mkVmEntry {
+        name = "Telegram";
+        genericName = "Telegram Desktop";
+        vm = "chat";
+        binary = "Telegram";
+        icon = "telegram";
+        categories = [
+          "Network"
+          "InstantMessaging"
+          "Chat"
+        ];
+        mimeType = [ "x-scheme-handler/tg" ];
+      })
 
-    (mkVmEntry {
-      name = "telegram-desktop";
-      genericName = "Telegram Desktop";
-      vm = "chat";
-      binary = "Telegram";
-      icon = "telegram";
-      categories = [
-        "Network"
-        "InstantMessaging"
-        "Chat"
-      ];
-      mimeType = [ "x-scheme-handler/tg" ];
-    })
+      (mkVmEntry {
+        name = "Slack";
+        genericName = "Slack";
+        vm = "chat";
+        binary = "slack";
+        icon = "slack";
+        categories = [
+          "Network"
+          "InstantMessaging"
+          "Chat"
+        ];
+        mimeType = [ "x-scheme-handler/slack" ];
+      })
 
-    (mkVmEntry {
-      name = "slack";
-      genericName = "Slack";
-      vm = "chat";
-      binary = "slack";
-      icon = "slack";
-      categories = [
-        "Network"
-        "InstantMessaging"
-        "Chat"
-      ];
-      mimeType = [ "x-scheme-handler/slack" ];
-    })
+      (mkVmEntry {
+        name = "Chrome";
+        genericName = "Web Browser";
+        vm = "chat";
+        binary = "google-chrome-stable";
+        icon = "google-chrome";
+        categories = [
+          "Network"
+          "WebBrowser"
+        ];
+      })
 
-    (mkVmEntry {
-      name = "google-chrome";
-      genericName = "Web Browser";
-      vm = "chat";
-      binary = "google-chrome-stable";
-      icon = "google-chrome";
-      categories = [
-        "Network"
-        "WebBrowser"
-      ];
-    })
+      (mkVmEntry {
+        name = "Element";
+        genericName = "Element Matrix Client";
+        vm = "chat";
+        binary = "element-desktop";
+        # Tray show/hide needs XWayland under wprs (see niri.nix)
+        args = "--ozone-platform=x11";
+        icon = "element-desktop";
+        categories = [
+          "Network"
+          "InstantMessaging"
+          "Chat"
+        ];
+        mimeType = [ "x-scheme-handler/web+msteams" ];
+      })
 
-    (mkVmEntry {
-      name = "teams";
-      genericName = "Microsoft Teams (PWA)";
-      vm = "chat";
-      binary = "google-chrome-stable";
-      args = "--profile-directory=Default --app-id=cifhbcnohmdccbgoicgdjpfamggdegmo";
-      icon = "teams";
-      categories = [
-        "Network"
-        "InstantMessaging"
-        "Chat"
-      ];
-      mimeType = [ "x-scheme-handler/web+msteams" ];
-    })
+      # --- Office VM ---
+      (mkVmEntry {
+        name = "GIMP";
+        genericName = "GNU Image Manipulation Program";
+        vm = "office";
+        binary = "gimp";
+        icon = "gimp";
+        categories = [
+          "Graphics"
+          "2DGraphics"
+          "RasterGraphics"
+        ];
+        mimeType = [
+          "image/jpeg"
+          "image/png"
+          "image/tiff"
+          "image/webp"
+        ];
+      })
 
-    (mkVmEntry {
-      name = "element-desktop";
-      genericName = "Element Matrix Client";
-      vm = "chat";
-      binary = "element-desktop";
-      # Tray show/hide needs XWayland under wprs (see niri.nix)
-      args = "--ozone-platform=x11";
-      icon = "element-desktop";
-      categories = [
-        "Network"
-        "InstantMessaging"
-        "Chat"
-      ];
-      mimeType = [ "x-scheme-handler/web+msteams" ];
-    })
+      (mkVmEntry {
+        name = "LibreOffice";
+        genericName = "LibreOffice Suite";
+        vm = "office";
+        binary = "libreoffice";
+        icon = "libreoffice";
+        categories = [
+          "Office"
+          "WordProcessor"
+          "Spreadsheet"
+          "Presentation"
+        ];
+        mimeType = [
+          "application/vnd.oasis.opendocument.text"
+          "application/vnd.oasis.opendocument.spreadsheet"
+          "application/vnd.oasis.opendocument.presentation"
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        ];
+      })
 
-    (mkVmEntry {
-      name = "element";
-      genericName = "Element";
-      vm = "chat";
-      binary = "google-chrome-stable";
-      args = "--profile-directory=Default --app-id=ejhkdoiecgkmdpomoahkdihbcldkgjci";
-      icon = "element";
-      categories = [
-        "Network"
-        "InstantMessaging"
-        "Chat"
-      ];
-    })
+      (mkVmEntry {
+        name = "Inkscape";
+        genericName = "Vector Graphics Editor";
+        vm = "office";
+        binary = "dbus-run-session";
+        args = "inkscape";
+        icon = "inkscape";
+        categories = [
+          "Graphics"
+          "VectorGraphics"
+        ];
+        mimeType = [
+          "image/svg+xml"
+          "application/pdf"
+        ];
+      })
 
-    # --- Office VM ---
-    (mkVmEntry {
-      name = "gimp";
-      genericName = "GNU Image Manipulation Program";
-      vm = "office";
-      binary = "gimp";
-      icon = "gimp";
-      categories = [
-        "Graphics"
-        "2DGraphics"
-        "RasterGraphics"
-      ];
-      mimeType = [
-        "image/jpeg"
-        "image/png"
-        "image/tiff"
-        "image/webp"
-      ];
-    })
+      (mkVmEntry {
+        name = "VLC";
+        genericName = "Media Player";
+        vm = "office";
+        binary = "vlc";
+        icon = "vlc";
+        categories = [
+          "AudioVideo"
+          "Player"
+          "Recorder"
+        ];
+      })
 
-    (mkVmEntry {
-      name = "libreoffice";
-      genericName = "LibreOffice Suite";
-      vm = "office";
-      binary = "libreoffice";
-      icon = "libreoffice";
-      categories = [
-        "Office"
-        "WordProcessor"
-        "Spreadsheet"
-        "Presentation"
-      ];
-      mimeType = [
-        "application/vnd.oasis.opendocument.text"
-        "application/vnd.oasis.opendocument.spreadsheet"
-        "application/vnd.oasis.opendocument.presentation"
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-      ];
-    })
+      (mkVmEntry {
+        name = "Pinta";
+        genericName = "Image Editor";
+        vm = "office";
+        binary = "pinta";
+        icon = "pinta";
+        categories = [
+          "Graphics"
+          "2DGraphics"
+        ];
+      })
 
-    (mkVmEntry {
-      name = "inkscape";
-      genericName = "Vector Graphics Editor";
-      vm = "office";
-      binary = "dbus-run-session";
-      args = "inkscape";
-      icon = "inkscape";
-      categories = [
-        "Graphics"
-        "VectorGraphics"
-      ];
-      mimeType = [
-        "image/svg+xml"
-        "application/pdf"
-      ];
-    })
+      (mkVmEntry {
+        name = "PDF Arranger";
+        genericName = "PDF Arranger";
+        vm = "office";
+        binary = "pdfarranger";
+        icon = "pdfarranger";
+        categories = [ "Office" ];
+        mimeType = [ "application/pdf" ];
+      })
 
-    (mkVmEntry {
-      name = "vlc";
-      genericName = "Media Player";
-      vm = "office";
-      binary = "vlc";
-      icon = "vlc";
-      categories = [
-        "AudioVideo"
-        "Player"
-        "Recorder"
-      ];
-    })
+      # --- Net VM ---
+      (mkVmEntry {
+        name = "Firefox";
+        genericName = "Web Browser";
+        vm = "net";
+        binary = "firefox";
+        icon = "firefox";
+        categories = [
+          "Network"
+          "WebBrowser"
+        ];
+        mimeType = [
+          "text/html"
+          "application/xhtml+xml"
+          "application/xml"
+          "application/pdf"
+          "application/x-xpinstall"
+        ];
+      })
 
-    (mkVmEntry {
-      name = "pinta";
-      genericName = "Image Editor";
-      vm = "office";
-      binary = "pinta";
-      icon = "pinta";
-      categories = [
-        "Graphics"
-        "2DGraphics"
-      ];
-    })
+      (mkVmEntry {
+        name = "Zen";
+        genericName = "Web Browser";
+        vm = "net";
+        binary = "zen";
+        icon = "web-browser";
+        categories = [
+          "Network"
+          "WebBrowser"
+        ];
+        mimeType = [
+          "text/html"
+          "application/xhtml+xml"
+          "application/xml"
+          "application/pdf"
+          "application/x-xpinstall"
+        ];
+      })
 
-    (mkVmEntry {
-      name = "pdfarranger";
-      genericName = "PDF Arranger";
-      vm = "office";
-      binary = "pdfarranger";
-      icon = "pdfarranger";
-      categories = [ "Office" ];
-      mimeType = [ "application/pdf" ];
-    })
+      # ---- Vault VM ---
+      (mkVmEntry {
+        name = "KeePassXC";
+        genericName = "Password Manager";
+        vm = "vault";
+        binary = "keepassxc";
+        icon = "keepassxc";
+        categories = [
+          "Utility"
+        ];
+        mimeType = [
+          "application/x-keepass2"
+          "application/x-keepass"
+        ];
+      })
 
-    # --- Net VM ---
-    (mkVmEntry {
-      name = "Firefox Web Browser";
-      genericName = "Web Browser";
-      vm = "net";
-      binary = "firefox";
-      icon = "firefox";
-      categories = [
-        "Network"
-        "WebBrowser"
-      ];
-      mimeType = [
-        "text/html"
-        "application/xhtml+xml"
-        "application/xml"
-        "application/pdf"
-        "application/x-xpinstall"
-      ];
-    })
+      # ---- Coding VM ---
+      (mkVmEntry {
+        name = "Postman";
+        genericName = "API Client";
+        vm = "coding";
+        binary = "postman";
+        icon = "postman";
+        categories = [
+          "Development"
+          "Utility"
+        ];
+      })
 
-    (mkVmEntry {
-      name = "Zen Browser";
-      genericName = "Web Browser";
-      vm = "net";
-      binary = "zen";
-      icon = "web-browser";
-      categories = [
-        "Network"
-        "WebBrowser"
-      ];
-      mimeType = [
-        "text/html"
-        "application/xhtml+xml"
-        "application/xml"
-        "application/pdf"
-        "application/x-xpinstall"
-      ];
-    })
+      (mkVmEntry {
+        name = "DBeaver";
+        genericName = "Database Manager";
+        vm = "coding";
+        binary = "dbeaver";
+        icon = "dbeaver";
+        categories = [
+          "Development"
+          "Database"
+        ];
+      })
 
-    # ---- Vault VM ---
-    (mkVmEntry {
-      name = "KeePassXC";
-      genericName = "Password Manager";
-      vm = "vault";
-      binary = "keepassxc";
-      icon = "keepassxc";
-      categories = [
-        "Utility"
-      ];
-      mimeType = [
-        "application/x-keepass2"
-        "application/x-keepass"
-      ];
-    })
+      (mkVmEntry {
+        name = "Firefox";
+        genericName = "Web Browser";
+        vm = "coding";
+        binary = "firefox";
+        icon = "firefox";
+        categories = [
+          "Network"
+          "WebBrowser"
+        ];
+        mimeType = [
+          "text/html"
+          "application/xhtml+xml"
+          "application/xml"
+          "application/pdf"
+          "application/x-xpinstall"
+        ];
+      })
 
-    # ---- Coding VM ---
-    (mkVmEntry {
-      name = "postman";
-      genericName = "API Client";
-      vm = "coding";
-      binary = "postman";
-      icon = "postman";
-      categories = [
-        "Development"
-        "Utility"
-      ];
-    })
+      # --- win VM (Windows apps) ---
+      (mkVmEntry {
+        name = "Bottles";
+        genericName = "Windows Apps";
+        vm = "win";
+        binary = "bottles";
+        icon = "com.usebottles.bottles";
+        categories = [ "Utility" ];
+      })
 
-    (mkVmEntry {
-      name = "dbeaver";
-      genericName = "Database Manager";
-      vm = "coding";
-      binary = "dbeaver";
-      icon = "dbeaver";
-      categories = [
-        "Development"
-        "Database"
-      ];
-    })
+      # --- Kali (image domain, wprs over vchan) ---
+      (mkVmEntry {
+        name = "Burp Suite";
+        genericName = "Web Security Testing";
+        vm = "kali";
+        binary = "burpsuite";
+        icon = "kali-burpsuite";
+        categories = [
+          "Network"
+          "Security"
+        ];
+      })
 
-    (mkVmEntry {
-      name = "firefox coding vm";
-      genericName = "Web Browser";
-      vm = "coding";
-      binary = "firefox";
-      icon = "firefox";
-      categories = [
-        "Network"
-        "WebBrowser"
-      ];
-      mimeType = [
-        "text/html"
-        "application/xhtml+xml"
-        "application/xml"
-        "application/pdf"
-        "application/x-xpinstall"
-      ];
-    })
+      (mkVmEntry {
+        name = "Firefox";
+        genericName = "Web Browser";
+        vm = "kali";
+        binary = "firefox-esr";
+        icon = "firefox";
+        categories = [
+          "Network"
+          "WebBrowser"
+        ];
+      })
 
-    # --- win VM (Windows apps) ---
-    (mkVmEntry {
-      name = "bottles win";
-      genericName = "Windows Apps";
-      vm = "win";
-      binary = "bottles";
-      icon = "com.usebottles.bottles";
-      categories = [ "Utility" ];
-    })
-
-    # --- Kali (image domain, wprs over vchan) ---
-    (mkVmEntry {
-      name = "burpsuite kali";
-      genericName = "Web Security Testing";
-      vm = "kali";
-      binary = "burpsuite";
-      icon = "kali-burpsuite";
-      categories = [
-        "Network"
-        "Security"
-      ];
-    })
-
-    (mkVmEntry {
-      name = "firefox kali";
-      genericName = "Web Browser";
-      vm = "kali";
-      binary = "firefox-esr";
-      icon = "firefox";
-      categories = [
-        "Network"
-        "WebBrowser"
-      ];
-    })
-
-    # --- Whonix-Workstation (image domain, wprs over vchan) ---
-    (mkVmEntry {
-      name = "torbrowser whonix";
-      genericName = "Web Browser";
-      vm = "whonix-workstation";
-      binary = "torbrowser";
-      icon = "web-browser";
-      categories = [
-        "Network"
-        "WebBrowser"
-      ];
-    })
-  ];
+      # --- Whonix-Workstation (image domain, wprs over vchan) ---
+      (mkVmEntry {
+        name = "Tor Browser";
+        genericName = "Web Browser";
+        vm = "whonix-workstation";
+        binary = "torbrowser";
+        icon = "web-browser";
+        categories = [
+          "Network"
+          "WebBrowser"
+        ];
+      })
+    ]
+  );
 }
