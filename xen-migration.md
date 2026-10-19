@@ -870,7 +870,9 @@ git push
       - mit Patch, 1920×1080: RSS flach ≈ 165 MB, 352 Drops (≈ 54 fps), wprsc 96 s CPU.
       - Bewertung: der OOM-Pfad ist zu, die Latenz ist auf ≤ 4 Nachrichten begrenzt; die Grenze ist jetzt CPU (Kompression im Gast, Dekompression in dom0, je ≈ 1,6–1,7 Kerne bei Vollbild-Rauschen, echtes Video komprimiert besser). Offen: Test auf dem xmg (zen, Tor Browser, Tastenwiederholung).
       - **Korrektur zu Option (b):** waypipe `--video` kodiert nur linux-dmabuf-Puffer; unsere Gäste haben keine GPU, Apps zeichnen in wl_shm → waypipe fiele auf Diff + lz4/zstd zurück, also dasselbe Verfahren wie wprs (ohne Persistenz). Frontend-Befunde (wprsc, Quelle): `app_id` wird ungepräfixt durchgereicht, der Titel-Präfix nur gesetzt, wenn die App einen Titel setzt, Vollbild-Anfragen der VM werden an niri weitergereicht (niri zeigt im Vollbild keinen Rahmen).
-    - **Später, eigener Schritt (User, 2026-10-19):** wprsc-Härtung nach dem Qubes-Vorbild: App-ID mit VM-Präfix (niri-Regeln anpassen), Vollbild-Anfragen aus VMs ignorieren bzw. nur per Option, `[vm]` als Titel für Fenster ohne Titel. Mittelfristig (v5) prüfen: Pixel über geteilten Speicher (gntalloc/gntdev) statt zstd, Protokoll bleibt wprs. Erst nach den xmg-Tests.
+    - **wprs-Fork (User, 2026-10-19), Schritt vor der Härtung:** `23b00t/wprs` (Repo legt der User an), Branch mit je einem Commit pro Patch (modifier-sync, frame-backpressure, Clipboard-Isolation aus `modules/wprs-clipboard.nix`), Basis = heutiger nixpkgs-Stand (`12b864dc`); Flake-Input statt nixpkgs-wprs, ein gemeinsames Overlay für dom0 und VMs (heute doppelte Patch-Liste in `machines/common-configuration.nix` und `vms/modules/wprs.nix`); wprs ändert sich nur noch per `nix flake update wprs`, Update = Rebase auf upstream + `cargo test`. Neue Patches als Schalter im Stil von `--title-prefix` (z. B. `--app-id-prefix`, `--deny-fullscreen-requests`, `--no-selection-sync`). Upstream-Beiträge macht der User, wenn alles läuft.
+    - **Später, eigener Schritt (User, 2026-10-19):** wprsc-Härtung nach dem Qubes-Vorbild: App-ID mit VM-Präfix (niri-Regeln anpassen), Vollbild-Anfragen der App ignorieren (auch beim Öffnen), Verlassen per App erlaubt (User), Vollbild nur per niri-Tastenkürzel, `[vm]` als Titel für Fenster ohne Titel. Mittelfristig (v5) prüfen: Pixel über geteilten Speicher (gntalloc/gntdev) statt zstd, Protokoll bleibt wprs. Erst nach den xmg-Tests.
+    - **Option (User, 2026-10-19): wprsc in dom0 abschotten** (Zwischenschritt statt eigener GUI-Domain/sys-gui): wprsc pro VM als eigene systemd-User-Unit statt `setsid` aus `vm-gui` (Neustart-Schleife entfällt dann), `PrivateNetwork`, `SystemCallFilter=@system-service`, `NoNewPrivileges`, `ProtectSystem=strict`/`ProtectHome` mit Schreibzugriff nur auf `$XDG_RUNTIME_DIR` (Wayland-Socket von niri, eigener Control-Socket) und Lesezugriff auf `/run/nox-relay/<vm>-wprs.sock`, `MemoryMax` als OOM-Schutz für dom0. Prüfen: was wprsc für Pulse/DBus/Clipboard braucht (Clipboard läuft über vm-clip, nicht über wprsc). sys-gui (GUI-Domain mit iGPU-Passthrough) höchstens v5.
   - **Heute außerdem (User, 2026-10-17):** (a) `update-all -y`: apt mit `-y` in den Debian-Domains, kein Neustart-Angebot **wieder entfernt (User, 2026-10-18), samt sudo-Regel für kali im README.** Whonix-Gateway fragt nicht, weil `user` dort ein leeres Passwort hat (`pam_unix nullok`, Whonix-Standard; bleibt so, User). (b) **Super+Q-Schutz** für Terminals: erstes Mod+Q zeigt eine Benachrichtigung, zweites innerhalb von 3 s schließt (umgesetzt, uncommittet). (c) **nom** (nix-output-monitor) im Builder, schöne Ausgabe in dom0 bei `dom0-update`/`update-all`. (d) Befund: nach `systemctl restart microvm@…` von Hand kommen die Tray-Apps nicht wieder (nur `mr`/`nox restart` ruft `vm-tray`); Kandidat: vm-tray als User-Unit, die beim Start der VM selbst anspringt.
   - **Morgen (2026-10-18), gemeinsam mit dem User:** Desktop-Einträge ergänzen und aufräumen (`home/vm-management/desktop-entries.nix`, 24 VM-Apps über `mkVmEntry`): was fehlt, was weg kann, Namen und Icons. **Pflicht: ein Terminal-Eintrag für jede VM und Image-Domain.** Stand (hp, 2026-10-17): NixOS-VMs foot über wprs; Whonix-Workstation hat qterminal (LXQt, `x-terminal-emulator`); Whonix-Gateway (CLI-Image) hat kein grafisches Terminal → Terminal über SSH in einem dom0-foot oder foot aus der Store-Disk der Image-Domains; kali (nur xmg) vermutlich qterminal (Kali Xfce), dort prüfen. Option: foot (Nix) auf die Store-Disk der Image-Domains legen, dann überall dasselbe Terminal mit Theme.
   - **Bericht Nachmittag/Abend (Claude, 2026-10-17, hp, uncommittet):**
@@ -1051,6 +1053,57 @@ Reihenfolge: **vanilla → sys-vpn → win → kali** (einfach → aufwendig; sy
 
 - **sys-net und sys-usb zusammenlegen**, falls das der Stabilität hilft (aus Sicht des Users möglich). Abzuwägen: weniger HVM-Domains mit PCI-Passthrough und qemu, weniger Start-Reihenfolge, gegen Qubes-Trennung (USB-Geräte und Netzkarte in einer Domain) und dass ein Neustart dann beides trifft.
 - **Disposable VMs** (Qubes-Muster), später gemeinsam besprechen.
+
+## Reihenfolge bis zum Installer (User + Claude, 2026-10-19)
+
+Nächster großer Meilenstein des Users: **NoX-Module** (ein großer Teil dieser Config wandert als Nix-Module ins NoX-Repo, die Config nutzt sie nur noch); muss gründlich geplant werden (grill). Davor haben Debugging, Bugfixing und etwas Härtung Vorrang. Danach der Installer (v5). Reihenfolge:
+
+### 1. xmg-Tests und Bugs
+
+- **xmg-Tests** von allem seit 2026-10-18 (Commit vom 2026-10-19): SSH-Abbau 2.5/2.6 (vm-usb/Input-Proxy über rpc, sshd nur im builder), sys-firewall, Whonix und kali nach `xen-image-setup`, `vm-pull`/`nox pull`, Autologin auf hvc0 (`sudo xl console <vm>-vm`), wprs-Gegendruck-Patch (zen und Tor Browser mit Video, RSS von wprsd, Tastenwiederholung), `nox doctor`.
+- **Tastenwiederholung:** zuerst klären, warum dom0 auf dem xmg 4,7 statt der eingestellten 6 GB hatte (`sudo xl list 0; free -m; ps -eo rss=,comm= --sort=-rss | head -15`); Hypothese: niri teils ausgelagert, Tasten-Release kommt verspätet.
+- **Tor Browser** (gemeinsam mit dem User): prüfen, ob der Gegendruck-Patch es mit erledigt hat (die Abstürze waren OOM-Kills von wprsd).
+- **Bekannte Fehler, die beim Umbau stören:** VMs laufen nach einem Switch mit altem Runner weiter (`nox restart --stale` fehlt, braucht man nach jedem Umbau-Schritt); Shutdown hängt 90 s an `xenstored`; nox-relay bemerkt eine hart beendete Domain nicht; Xwayland-Fenster ohne Label-Rahmen (Known Issues).
+- **Ungetestete VMs vanilla, sys-vpn, win:** Entscheidung User: testen oder vorerst aus der Registry nehmen (ungetestete VMs mitzuverschieben macht den Umbau unübersichtlich).
+
+### 2. Backup prüfen (vorgezogen)
+
+- `vm-backup`/`nox backup` ist gebaut, aber nie mit der Platte getestet; offene Entscheidung User zu den `/var`-Pfaden (Handler laufen als `user`, siehe „Offen, Entscheidung User – backup“).
+- Abnahme: W1 (Home aller VMs) und W2 (volle Images) auf die LUKS-Platte, **Probe-Wiederherstellung einer VM**, Erinnerung in `nox doctor`.
+- Pflicht vor dem Umbau und vor jeder Neuinstallation (hp, xmg) durch den Installer.
+
+### 3. Härtung
+
+- **wprs-Fork** (zuerst): `23b00t/wprs` (Repo legt der User an), Branch mit je einem Commit pro Patch (modifier-sync, frame-backpressure, Clipboard-Isolation aus `modules/wprs-clipboard.nix`), Basis = heutiger nixpkgs-Stand (`12b864dc`); Flake-Input statt nixpkgs-wprs, ein gemeinsames Overlay für dom0 und VMs (heute doppelte Patch-Liste in `machines/common-configuration.nix` und `vms/modules/wprs.nix`); wprs ändert sich nur per `nix flake update wprs`, Update = Rebase auf upstream + `cargo test`. Neue Patches als Schalter im Stil von `--title-prefix`. Upstream-Beiträge macht der User, wenn alles läuft (Kandidaten: Gegendruck und Modifier-Sync als Fehlerbehebungen).
+- **Frontend-Härtung in wprsc (Qubes-Vorbild):**
+  - App-ID immer mit VM-Präfix (`[coding] org.mozilla.firefox`, ohne App-ID der App nur `[coding]`): die VM kann weder dom0-Apps noch andere VMs vortäuschen; Rahmenfarben (niri `labelRules`) nach App-ID statt nach Titel; niri-Regeln auf VM-App-IDs (floating, vesktop …) und Icon-Suche in der Leiste anpassen.
+  - Titel immer mit Präfix, `[vm]` als Titel für Fenster ohne Titel (heute grau ohne Präfix).
+  - Vollbild: Anforderungen der App ignorieren (zur Laufzeit, `client/server_handlers.rs` `SetFullscreen`, und beim Öffnen, `client/xdg_shell.rs`); Verlassen durch die App erlaubt (User); Vollbild nur per niri-Tastenkürzel, niri meldet den Zustand weiter, die App passt sich an. Testen: YouTube-Vollbild-Button in zen und Tor Browser. wprsc nutzt weder keyboard-shortcuts-inhibit noch pointer-constraints → niri-Tastenkürzel greifen immer.
+  - Grenze: was die VM ins Fenster zeichnet (gefälschte Dialoge) verhindert nur der Rahmen.
+- **Option: wprsc in dom0 abschotten** (Details im Bericht 2026-10-19): eigene systemd-User-Unit je VM, ohne Netz, Syscall-Filter, Schreibzugriff nur auf `$XDG_RUNTIME_DIR`, `MemoryMax`.
+- sys-gui (eigene GUI-Domain mit iGPU-Passthrough) höchstens v5; mittelfristig (v5) prüfen: Pixel über geteilten Speicher (gntalloc/gntdev) statt zstd, Protokoll bleibt wprs.
+
+### 4. Vorbereitung NoX-Module
+
+- **`drvPath`-Abgleich:** kleines Skript, das für hp, xmg und jede VM `config.system.build.toplevel.drvPath` festhält; ein reiner Verschiebe-Schritt muss identische drvPaths ergeben → Umbau ohne Test auf der Maschine nachweisbar verhaltensgleich. Wichtigstes Werkzeug für den Meilenstein.
+- **Registry-Schema festlegen:** die Registry wird die Schnittstelle der NoX-Module. Felder der letzten Tage (`disposable`, `egress`, `backup`, `label`, `uplink`, `copy`, …) aufräumen, dokumentieren und sortieren: gehört zu NoX / gehört zur Config des Users.
+- **SSH-Rückfälle entfernen,** sobald die Image-Domains auf dem xmg neu eingerichtet sind (`vm-clip`, `nox doctor`, `update-all`); übrig bleibt nur der builder.
+- **Shell vs. Rust klären** (offene grill-Fragen zu `nox-cli` oben): bestimmt, wie die Module aussehen.
+
+### 5. NoX-Module (gründlich planen, grill)
+
+- **Anforderungen aus dem Installer:**
+  - Vorlage für die Nutzer-Config (`nix flake init -t nox`); Abnahmetest des Meilensteins: die Config des Users ist im Kern diese Vorlage plus eigene Anpassungen.
+  - Hardware-Unterschiede nicht in den Modulen verdrahten: PVH/PV-dom0 (hp-Touchpad), Passthrough nur bei passenden IOMMU-Gruppen, Rechner mit nur einer GPU, Swap klein oder zram, dom0-RAM.
+  - Erstinstallation ohne builder: wo beim ersten Mal gebaut wird; Erststart-Ablauf (`xen-image-setup` für Whonix/kali, Schlüssel, Backup-Platte).
+
+### 6. Installer (v5)
+
+- Zuerst Vorlage und Hardware-Prüfung (KI-Skill mit Enumerationsskripten, siehe v5), dann **Neuinstallation des hp**, dann des **xmg** (kleiner Swap, siehe v5). Vorher jeweils geprüftes Backup (Schritt 2).
+
+### Kann warten oder parallel laufen
+
+statix-Aufräumen (W20), Steam-Kaltstart, Bluetooth-Ablauf, Bildschirmfreigabe, Rollback-Befehle (außer `--stale`), NixOS-Tests (Stufe 2), sys-gui.
 
 ## v5
 
