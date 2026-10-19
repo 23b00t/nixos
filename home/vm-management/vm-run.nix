@@ -117,8 +117,19 @@ ${vmCases}
     esac
 
     if ! systemctl is-active --quiet "$SERVICE"; then
-      ${pkgs.libnotify}/bin/notify-send "Starting VM: $FULL_NAME" "Please wait..."
-      systemctl start "$SERVICE"
+      # At boot the autostart VMs wait for nox-sys.target with a queued start
+      # job: wait for it instead of starting again (polkit asked for the
+      # password once per VM at niri's autostart, xmg 2026-10-19)
+      if [ -n "$(systemctl list-jobs --no-legend "$SERVICE")" ]; then
+        ${pkgs.libnotify}/bin/notify-send "Waiting for VM: $FULL_NAME" "It is still starting..."
+        for _ in $(seq 300); do
+          [ -z "$(systemctl list-jobs --no-legend "$SERVICE")" ] && break
+          sleep 1
+        done
+      else
+        ${pkgs.libnotify}/bin/notify-send "Starting VM: $FULL_NAME" "Please wait..."
+        systemctl start "$SERVICE"
+      fi
     fi
 
     # -c (nox exec): no SSH into the guests (xen-migration.md, spec rest of

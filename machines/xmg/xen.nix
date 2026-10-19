@@ -48,6 +48,18 @@ in
     maxMemory = 6144;
   };
 
+  virtualisation.xen.boot.params = [
+    # nixpkgs writes `,max:` only if maxMemory differs from memory; without
+    # it the PV dom0 kernel reserves page structures for all 64 GB of the
+    # host (Linux saw 4.7 of 6 GB, 2026-10-19). Xen keeps the size from the
+    # other dom0_mem and takes only the max from this one
+    "dom0_mem=max:6144M"
+    # Intel HWP: the CPU picks clock and turbo itself within the limits of
+    # the hardware profile (Fn key). acpi-cpufreq/ondemand capped it at
+    # 2.2 GHz without turbo and ran idle cores at 800 MHz (2026-10-19)
+    "cpufreq=hwp"
+  ];
+
   systemd.services."microvm@steam" = lib.mkIf (config.microvm.vms ? steam) {
     serviceConfig = {
       ExecStartPre = [ steamPoolUp ];
