@@ -34,7 +34,7 @@
     mem = 6144;
     balloon = true;
     initialBalloonMem = 3072;
-    vcpu = 2;
+    vcpu = 4;
   };
 
   programs.firefox = {

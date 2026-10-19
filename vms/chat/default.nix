@@ -37,7 +37,7 @@
     mem = 8192;
     balloon = true;
     initialBalloonMem = 4096;
-    vcpu = 2;
+    vcpu = 4;
   };
 
   services.pulseaudio.enable = false;
