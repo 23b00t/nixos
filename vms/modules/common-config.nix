@@ -64,6 +64,15 @@ in
         ExecStopPost = "-${config.microvm.xen.package}/bin/xenstore-rm data/backend-ready";
       };
     };
+    # Xen's vif-bridge adds `iptables -m physdev` rules for every new vif;
+    # loading these modules then (modprobe) deadlocked with xenwatch: no
+    # new vifs, usb-helper hung (sys-net 2026-10-16, sys-usb xmg 2026-10-19,
+    # Known Issues). Load them at boot in every driver domain
+    boot.kernelModules = mkIf (config.microvm.xen.driverDomain or false) [
+      "nft_compat"
+      "xt_physdev"
+      "br_netfilter"
+    ];
 
     nixpkgs.overlays = [
       (final: prev: {
