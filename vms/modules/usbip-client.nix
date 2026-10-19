@@ -1,6 +1,6 @@
 # USB/IP client (v2.6, v2.8.3): every Xen target VM (vms/usb-links.nix) has
 # the link to sys-usb (interface hot-plugged by dom0's xen-links) and
-# `usbip-client`, which dom0's `vm-usb` calls over SSH to attach/detach the
+# `usbip-client`, which dom0's `vm-usb` calls over RPC to attach/detach the
 # devices it assigns. VMs allowed to own a registry Bluetooth adapter get
 # bluez and take over sys-usb's pairings on attach.
 {
@@ -103,6 +103,24 @@ in
           usbip
           usbipClient
         ];
+
+        # dom0's vm-usb (modules/xen-usb.nix), no SSH: first line
+        # `<usbip-client command> [busid]`, then `exit <rc>`; for `bt-import`
+        # the rest of the stream is sys-usb's tar
+        services.nox-rpc.guest.handlers.usbip = ''
+          if [ "$source" != dom0 ]; then
+            echo "error: only dom0"
+            exit 1
+          fi
+          IFS= read -r line || exit 1
+          read -ra args <<<"$line"
+          if [ "''${args[0]:-}" = bt-import ]; then
+            /run/wrappers/bin/sudo ${usbipClient}/bin/usbip-client bt-import
+          else
+            /run/wrappers/bin/sudo ${usbipClient}/bin/usbip-client "''${args[@]}" </dev/null
+          fi
+          echo "exit $?"
+        '';
       }
       (lib.mkIf bluetooth {
         hardware.bluetooth.enable = true;

@@ -1,7 +1,7 @@
 # steam (v4): Xen HVM with the NVIDIA dGPU passed through (gamescope runs on
 # its HDMI output, as before under KVM). Keyboard, mouse and the Bluetooth
 # adapter come over USB/IP from sys-usb (`vm-usb attach <device> steam`),
-# SSH over vchan (vms/modules/vchan-relay.nix).
+# dom0 calls over nox-rpc (vms/modules/vchan-relay.nix), no sshd.
 {
   lib,
   pkgs,
@@ -23,6 +23,8 @@ in
     ../modules/net-config.nix
     ../modules/vchan-relay.nix
     ../modules/usbip-client.nix
+    # GUI and foot over wprs instead of SSH (no common-config here)
+    ../modules/wprs.nix
   ];
 
   nixpkgs.overlays = [
@@ -231,13 +233,6 @@ in
 
   services.upower.enable = true;
 
-  services.openssh = {
-    enable = true;
-    settings = {
-      PermitRootLogin = "no";
-      PasswordAuthentication = false;
-    };
-  };
   security.sudo = {
     enable = true;
     wheelNeedsPassword = false;
@@ -254,9 +249,6 @@ in
       "render"
       "input"
       "seat"
-    ];
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL steam-vm"
     ];
   };
 

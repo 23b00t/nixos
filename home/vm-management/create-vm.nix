@@ -19,13 +19,11 @@ Options:
   --vcpus <count>
   --home-img-size <MiB>
   --ip <10.0.0.X>
-  --host-ssh-key <public-key>
   --force                               Overwrite existing VM module/definition if present
   -h, --help                            Show this help
 
 Notes:
   - If --ip is not provided, the next free IP after the current max (<253) is used.
-  - If --host-ssh-key is not provided, ~/.ssh/<name>-vm(.pub) is created/read.
 EOF
   }
 
@@ -194,7 +192,6 @@ EOF
   VCPUS=""
   HOME_IMG_SIZE=""
   VM_IP=""
-  HOST_SSH_KEY=""
   FORCE=0
 
   while [ $# -gt 0 ]; do
@@ -242,10 +239,6 @@ EOF
         ;;
       --ip)
         VM_IP="$2"
-        shift 2
-        ;;
-      --host-ssh-key)
-        HOST_SSH_KEY="$2"
         shift 2
         ;;
       --force)
@@ -403,27 +396,11 @@ EOF
     exit 1
   fi
 
-
   NET_INDEX="$octet"
   MAC_SUFFIX="$(printf '%02x' "$NET_INDEX")"
   MAC_ADDR="00:00:00:00:00:$MAC_SUFFIX"
 
   mkdir -p "$VM_DIR"
-
-  if [ -z "$HOST_SSH_KEY" ]; then
-    mkdir -p "$HOME/.ssh"
-    chmod 700 "$HOME/.ssh"
-    key_path="$HOME/.ssh/$VM_NAME-vm"
-    if [ ! -f "$key_path" ]; then
-      ssh-keygen -t ed25519 -f "$key_path" -N "" -C "$VM_NAME-vm" >/dev/null
-      echo "Created SSH key: $key_path"
-    fi
-    if [ ! -f "$key_path.pub" ]; then
-      echo "Missing public key: $key_path.pub" >&2
-      exit 1
-    fi
-    HOST_SSH_KEY="$(cat "$key_path.pub")"
-  fi
 
   # Prepare template values for the selected profile.
   EXTRA_SERVICE_BLOCKS=""
@@ -500,7 +477,6 @@ EOF
       ip = "$VM_IP";
       autostart = $AUTOSTART;
       nat = $NAT;
-      hostSSHKey = "$HOST_SSH_KEY";
       allowGitHubAgent = $ALLOW_GITHUB_AGENT;
       enableHostDbusForward = $ENABLE_HOST_DBUS_FORWARD;
     }

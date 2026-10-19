@@ -21,6 +21,7 @@ in
     ./vm-management/vm-run.nix
     ./vm-management/vm-gui.nix
     ./vm-management/vm-doctor.nix
+    ./vm-management/vm-backup.nix
     ./vm-management/vm-rollback.nix
     ./vm-management/desktop-entries.nix
     ./vm-management/vm-dbus-forward.nix
@@ -53,14 +54,6 @@ in
     nerd-fonts.fira-code
     # chromium
     bibata-cursors
-    (import ./vm-management/backup.nix {
-      inherit
-        pkgs
-        lib
-        inputs
-        vmRegistry
-        ;
-    })
     (import ./vm-management/manage-vms.nix { inherit pkgs vmRegistry; })
     # nox disp: start the ad-hoc disposable (empty on every start, registry
     # `disposable`) and open a program in it, foot by default; `nox stop

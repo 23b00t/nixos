@@ -4,7 +4,7 @@
 #   unplugged; vm-usb-auto keeps the assignments (defaultOwner, VM restarts,
 #   unplugging). State in /run/vm-usb.
 # - input proxy: input devices from the registry whitelist (owner `host`) or
-#   allowed with `vm-usb allow-input` come back from sys-usb over SSH as raw
+#   allowed with `vm-usb allow-input` come back from sys-usb over RPC as raw
 #   events (cat) into a filtering uinput receiver; others raise a notification
 # - USB/IP links: kept connected by modules/xen-links.nix
 # - fallback: if sys-usb is not reachable 120 s after its start, the USB
@@ -23,13 +23,22 @@ let
   usbPciPaths = vmRegistry.hardware.pci.devicePaths.usb or [ ];
   xen = config.virtualisation.xen.package;
   stateDir = "/run/vm-usb";
-  # One SSH connection per VM, shared by the input proxy, vm-usb-auto and
-  # vm-usb (all run as cfg.user): queries become channels instead of a full
-  # login (and an sshd -i in the VM) every few seconds
-  sshMux = "-o ControlMaster=auto -o ControlPath=${stateDir}/ssh-%C -o ControlPersist=60";
-  sshOpts = "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=5 -o LogLevel=ERROR ${sshMux}";
-  # How dom0 checks that sys-usb is up: its relay SSH socket (stage B2) or IP
-  sysUsbCheck = config.services.nox-relay.host.guests.sys-usb.listen.ssh.path or links.adminAddress;
+  noxRpc = "${config.services.nox-rpc.package}/bin/nox-rpc";
+  # dom0-only RPC services `usb` (sys-usb, vms/sys-usb) and `usbip` (target
+  # VMs, vms/modules/usbip-client.nix): the command on the first line, the
+  # answer, then `exit <rc>` as the last line. `rpc_cmd <vm> <service> <cmd…>`
+  # prints the answer and returns the rc (1 if the VM does not answer)
+  rpcLib = ''
+    rpc_cmd() {
+      local vm="$1" svc="$2" out rc
+      shift 2
+      out="$(printf '%s\n' "$*" | ${noxRpc} --dom0 "$svc" "$vm")" || return 1
+      rc="''${out##*$'\n'}"
+      [[ "$rc" =~ ^exit\ [0-9]+$ ]] || return 1
+      [ "$out" = "$rc" ] || printf '%s\n' "''${out%$'\n'*}"
+      return "''${rc#exit }"
+    }
+  '';
 
   # Target VMs on this host: "name short adminAddress linkAddress"
   targetVms = builtins.filter (
@@ -154,16 +163,16 @@ let
   inputProxy = pkgs.writeShellScript "xen-input-proxy" ''
     PATH=${
       lib.makeBinPath [
-        pkgs.openssh
         pkgs.coreutils
         pkgs.gnugrep
         pkgs.libnotify
       ]
     }
     whitelist=" ${lib.concatMapStringsSep " " (d: "${d.vendorId}:${d.productId}") links.inputDevices} "
+    ${rpcLib}
     declare -A pids notified
     while true; do
-      if inputs="$(ssh ${sshOpts} ${links.adminAddress} usb-helper inputs)"; then
+      if inputs="$(rpc_cmd sys-usb usb inputs)"; then
         allowed="$(cat ${stateDir}/input-allowed 2>/dev/null)"
         while read -r ev vp busid; do
           # Fields come from sys-usb: check them strictly
@@ -182,7 +191,7 @@ let
           d="''${vp/:/-}-$ev"
           if [ -z "''${pids[$d]:-}" ] || ! kill -0 "''${pids[$d]}" 2>/dev/null; then
             echo "forwarding $d (busid $busid)"
-            ssh -n ${sshOpts} ${links.adminAddress} "cat /dev/input/$ev" \
+            printf 'input %s\n' "$ev" | ${noxRpc} --dom0 usb sys-usb \
               | ${inputRecv}/bin/xen-input-recv "$d" &
             pids[$d]=$!
           fi
@@ -196,7 +205,6 @@ let
     set -uo pipefail
     PATH=${
       lib.makeBinPath [
-        pkgs.openssh
         pkgs.coreutils
         pkgs.gnugrep
         pkgs.gawk
@@ -209,19 +217,19 @@ let
     inputs="$state/input-allowed" # busid vendor:product, forwarded to dom0
     policy=${policyFile}          # vendor:product name defaultOwner allowedOwner,...
     targets=${targetsFile}        # vm short adminAddress linkAddress
-    ssh_opts=(-o BatchMode=yes -o ConnectTimeout=5 -o LogLevel=ERROR ${sshMux})
+    ${rpcLib}
 
     die() { echo "vm-usb: $*" >&2; exit 1; }
-    helper() { ssh -n "''${ssh_opts[@]}" ${links.adminAddress} sudo usb-helper "$@"; }
+    helper() { rpc_cmd sys-usb usb "$@"; }
     # sys-usb's device list, checked strictly: busids end up in commands for
-    # the VMs (ssh runs them through the VM's shell)
+    # the VMs
     list_devs() {
       helper list | awk 'NF == 5 && $1 ~ /^[0-9]+-[0-9]+(\.[0-9]+)*$/ \
         && $2 ~ /^[0-9a-f]{4}:[0-9a-f]{4}$/ && $3 ~ /^([0-9]+|-)$/ && $4 ~ /^[01]$/ \
         && $5 ~ /^[A-Za-z0-9._?-]+$/'
     }
     field() { awk -v v="$1" -v f="$2" '$1 == v { print $f }' "$targets"; }
-    client() { local vm="$1"; shift; ssh -n "''${ssh_opts[@]}" "$(field "$vm" 3)" sudo usbip-client "$@"; }
+    client() { local vm="$1"; shift; rpc_cmd "$vm" usbip "$@"; }
     resolve_vm() { awk -v v="$1" '$1 == v || $2 == v || $1 "-vm" == v { print $1; exit }' "$targets"; }
     # systemd invocation of the VM's microvm@ unit: changes on every start
     running() { systemctl is-active -q "microvm@$1" && systemctl show -p InvocationID --value "microvm@$1"; }
@@ -257,8 +265,8 @@ let
     do_attach() { # busid bt vm
       if [ "$2" = 1 ]; then
         # Bluetooth adapter: sys-usb's pairings go along (one-way)
-        ssh -n "''${ssh_opts[@]}" ${links.adminAddress} sudo usb-helper bt-export \
-          | ssh "''${ssh_opts[@]}" "$(field "$3" 3)" sudo usbip-client bt-import \
+        { echo bt-import; echo bt-export | ${noxRpc} --dom0 usb sys-usb; } \
+          | ${noxRpc} --dom0 usbip "$3" | tail -n 1 | grep -qx "exit 0" \
           || echo "vm-usb: pairings not copied to $3 (no bluez there?)" >&2
       fi
       helper bind "$1" && client "$3" attach "$1"
@@ -498,7 +506,7 @@ in
     user = lib.mkOption {
       type = lib.types.str;
       default = "nx";
-      description = "dom0 user whose SSH setup reaches sys-usb; runs the input proxy and vm-usb.";
+      description = "dom0 user that may use the rpc-in relay sockets (nox-rpc --dom0); runs the input proxy and vm-usb.";
     };
 
     fallbackTimeout = lib.mkOption {
@@ -554,23 +562,15 @@ in
           pkgs.coreutils
           pkgs.bash
           pkgs.systemd
-          pkgs.socat
         ];
         serviceConfig = {
           Type = "oneshot";
           TimeoutStartSec = cfg.fallbackTimeout + 60;
         };
         script = ''
-          # sshd answers: over the admin network, or (stage B2, no admin link)
-          # its banner comes back through nox-relay
-          reachable() {
-            case "$1" in
-              /*) [ "$(timeout 3 socat -t 2 - "UNIX-CONNECT:$1" </dev/null 2>/dev/null | head -c 4)" = SSH- ] ;;
-              *) timeout 1 bash -c "</dev/tcp/$1/22" 2>/dev/null ;;
-            esac
-          }
+          # sys-usb's userland answers dom0's rpc ping (through nox-relay)
           for _ in $(seq ${toString cfg.fallbackTimeout}); do
-            if reachable ${lib.escapeShellArg sysUsbCheck}; then
+            if [ "$(timeout 3 ${noxRpc} --dom0 ping sys-usb </dev/null 2>/dev/null)" = ok ]; then
               exit 0
             fi
             sleep 1

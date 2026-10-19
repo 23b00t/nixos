@@ -105,7 +105,9 @@ in
     };
 
     services.openssh = {
-      enable = true;
+      # Only VMs dom0 still logs into (registry `hostSSHKey`: the builder);
+      # the others get dom0's calls over nox-rpc (xen-migration.md SSH removal)
+      enable = hostSSHKey != null;
       # / is a tmpfs, so sshd-keygen runs on every boot; RSA 4096 delayed
       # sshd (and zellij from dom0) by seconds while all VMs boot at once
       # (xmg 2026-10-16). dom0 and the image domains use ed25519 only
@@ -162,6 +164,10 @@ in
       extraGroups = [ "wheel" ];
       openssh.authorizedKeys.keys = mkIf (hostSSHKey != null) [ hostSSHKey ];
     };
+
+    # Emergency access over `xl console` (hvc0): the user has no password,
+    # so log in automatically; the console is reachable only from dom0
+    services.getty.autologinUser = cfg.user;
 
     # dconf on the VM's own session bus (apps started over RPC use it,
     # vchan-relay.nix); dark by default for GTK4/libadwaita apps

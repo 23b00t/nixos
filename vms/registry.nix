@@ -10,13 +10,19 @@ let
   #   allowGitHubAgent : whether the VM should receive the dedicated forwarded GitHub SSH agent/socket
   #   enableHostDbusForward : whether host should keep persistent forwarded /tmp/ssh_dbus.sock for this VM (defaults to true)
   #   extraSSH    : extra SSH matchOptions for home.ssh (may be [])
+  #   hostSSHKey  : public key dom0 logs in with over SSH; only the builder (dom0-update), every other
+  #                 domain has no sshd (xen-migration.md SSH removal, dom0 uses nox-rpc)
   #   features    : arbitrary list of features/tags used for dynamic grouping in helper tools
   #   storeGroup  : shared read-only store image (vms/store-groups.nix): "sys" | "dev" | "desktop" | "prop"; absent = own image
   #   memPriority : RAM balancer priority when host RAM is short (modules/xen-memory.nix); higher grows first, default 0
   #   hosts       : machines that run this VM (`forHost` below); absent = all machines, [ ] = none (definition kept)
   #   clipboard   : explicit copy/paste through dom0 (vm-clip, Mod+Alt+C/V): "allow" | "ask" (copying out of
   #                 the VM asks in dom0) | "deny"; absent = "deny" for sys-* VMs, else "allow"
-  #   uplink      : driver domain serving the VM's uplink (needs `nat`): "sys-net" (default) | "sys-vpn" (vms/modules/net-config.nix)
+  #   uplink      : driver domain serving the VM's uplink (needs `nat`): "sys-firewall" (default) | "sys-vpn" | "sys-net"
+  #                 (sys-firewall and sys-print only; vms/modules/net-config.nix)
+  #   backup      : /home in the quick backup (vm-backup, W1); absent = true except sys-* and disposables
+  #   egress      : outgoing traffic the VM may send through sys-firewall: [ { to = "<cidr>"; ports = [ <port> … ]; } … ]
+  #                 (no ports = all ports to that net); absent = everything. DNS always via sys-firewall's resolver
   #   label       : trust label (Qubes-like), the window border color in dom0 (home/desktop/theme.nix
   #                 `labels`, niri rules on the "[<vm>] " title prefix from wprsc): "sys" | "dev" | "personal" |
   #                 "untrusted" | "vault" | "anon"; absent = "untrusted"
@@ -26,7 +32,7 @@ let
   #   disposable  : boots empty every time: dom0 deletes the VM's home and store overlay images before start
   #                 and after stop (machines/xen-dom0.nix); other volumes are data volumes and stay;
   #                 `manage-vms restart --fresh <vm>` (nox restart --fresh) also sets those aside
-  #   labTarget   : kali may test this VM's apps: `vm-lab attach <vm>` hangs a vif on sys-net's vm-lab (10.5.0.<last octet>, vms/modules/lab-target.nix)
+  #   labTarget   : kali may test this VM's apps: `vm-lab attach <vm>` hangs a vif on sys-firewall's vm-lab (10.5.0.<last octet>, vms/modules/lab-target.nix)
   vms = [
     {
       name = "nvim";
@@ -36,7 +42,6 @@ let
       ip = "10.0.0.1";
       autostart = true;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzJjZw0V2CdaWI/IBFcTQPwQhYtFn/31i5iNPSc1j8G nvim-vm";
       allowGitHubAgent = true;
       features = [ "yazi" ];
     }
@@ -48,7 +53,6 @@ let
       ip = "10.0.0.2";
       autostart = true;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqGdw377nJ+Zcf2kXwIiXPi5OFuY5KPOuhi0YaWhGmb chat-vm";
       features = [ "yazi" ];
     }
     # {
@@ -58,7 +62,6 @@ let
     #   ip = "10.0.0.3";
     #   autostart = false;
     #   nat = true;
-    #   hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA2091GSIL+SlR1BsWswg+6DZzrL+enxmXo74d/OSUwv test-vm";
     # }
     {
       name = "net";
@@ -68,7 +71,6 @@ let
       ip = "10.0.0.5";
       autostart = true;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII1NctcWQx10E7C96SSb9LSDqFln/7g82rFnRfsPLpFX net-vm";
       features = [ "yazi" ];
     }
     {
@@ -78,7 +80,6 @@ let
       ip = "10.0.0.6";
       autostart = true;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9Co+A8G16ciSIU3vldErgRNpmZ+JVHzsj2oNteV1e+ coding-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = true;
       features = [ "yazi" ];
@@ -95,7 +96,6 @@ let
       ip = "10.0.0.7";
       autostart = false;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPTUop+lQO7/LZFvIJY+BO6n4jUS+Iy4xsRNtNfamVOH win-vm";
       allowGitHubAgent = false;
       enableHostDbusForward = false;
     }
@@ -107,7 +107,6 @@ let
       ip = "10.0.0.9";
       autostart = false;
       nat = false;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDC76Fb5xSeNdZ9BVPf7OdLWhULXgb1OCAgPfYoeLZBl office-vm";
       features = [ "yazi" ];
     }
     {
@@ -118,7 +117,6 @@ let
       ip = "10.0.0.10";
       autostart = false;
       nat = false;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPbWqbgvB7bf39HteuS/bmSDqLuPiZn5AV63fjRXEVw vault-vm";
       clipboard = "ask";
       copy.incoming = "warn";
       features = [ "yazi" ];
@@ -131,7 +129,6 @@ let
       ip = "10.0.0.11";
       autostart = true;
       nat = false;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIi5GV6zFAWtdZu3NoVn/48ntuGf6nSpC/eoi5cxJyoZ irc-vm";
     }
     {
       name = "sys-usb";
@@ -142,7 +139,6 @@ let
       autostart = false;
       nat = false;
       disposable = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsMuzfPPoWJ9bgKKPBWx/l5qYuWtwEG5s/yHs4rUrJn sys-usb-vm";
       features = [ "yazi" ];
     }
     {
@@ -154,7 +150,6 @@ let
       autostart = true;
       nat = false;
       disposable = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO2rxZHd/9pzQeQz3VDwlpcEP9KGOASXYsajKbcZdJ4/ sys-net-vm";
     }
     {
       name = "builder";
@@ -183,7 +178,8 @@ let
       ip = "10.0.0.26";
       autostart = false;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBFHr1LwubMtQkVi+fFAkZUvJSL68pMSoQ6hE7Av57t sys-print-vm";
+      # Prints into the local network: its rule lives in sys-net (IPP to the LAN)
+      uplink = "sys-net";
       # holds no user data: print jobs only
       copy = {
         incoming = "deny";
@@ -200,8 +196,9 @@ let
       label = "untrusted";
       ip = "10.0.0.12";
       autostart = false;
+      # Games come back from Steam; its images only in a full backup (W2)
+      backup = false;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/v5mOcbtZ/shL0s5Y2xJYkfEdkPMsznhEC3X7cGgmL steam-vm";
       enableHostDbusForward = false;
       # First test on the xmg (2026-10-14)
       hosts = [ "xmg" ];
@@ -214,7 +211,6 @@ let
       ip = "10.0.0.13";
       autostart = false;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhv6q3siBUASk16LN8tCa2nPUp4g2isRuwo1ndDPz7g godot-vm";
       allowGitHubAgent = true;
       features = [ "yazi" ];
       hosts = [ ];
@@ -226,7 +222,6 @@ let
       ip = "10.0.0.14";
       autostart = false;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAXSVOR0aTAo/5lDeG+3r3QeOygbLKY7WrkB8wSK+rh9 mirage-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = false;
       hosts = [ ];
@@ -239,7 +234,6 @@ let
       ip = "10.0.0.15";
       autostart = false;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHpfcEv27hamz0HELXGKpLd6M+/m5m/fopZ3A7fonUVw php-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = false;
       features = [ "yazi" ];
@@ -255,7 +249,6 @@ let
       ip = "10.0.0.16";
       autostart = false;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkF7qniIZVKtoIrUUWkU8t/1QeK34BSEgI54MbqbieC ruby-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = false;
       features = [ "yazi" ];
@@ -268,7 +261,6 @@ let
       ip = "10.0.0.24";
       autostart = false;
       nat = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK1BBz8Jz9CHLkp7C7gfxG+HuEfj+PK+xXxiJGh2pE+H nix-vm";
       allowGitHubAgent = true;
       enableHostDbusForward = false;
       features = [ "yazi" ];
@@ -285,7 +277,6 @@ let
       nat = true;
       # First client of sys-vpn (test); remove for the direct uplink via sys-net
       uplink = "sys-vpn";
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILmmEUd+6XhVoZtv9MH6Z/eBSgNxwMgEjBchegx2JuiS vanilla-vm";
       allowGitHubAgent = false;
     }
     {
@@ -299,7 +290,6 @@ let
       autostart = false;
       nat = true;
       disposable = true;
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMO7+AsxkBR62JHOSsKup+pI/sVvPONEzOf5ypuXCeNZ sys-vpn-vm";
       allowGitHubAgent = false;
     }
     {
@@ -331,27 +321,42 @@ let
         outgoing = "deny";
       };
     }
+    {
+      # Firewall between the VMs and sys-net (Qubes model, driver domain):
+      # serves `vm-fw` (10.6.0.0/24) for every VM with `nat` (default uplink),
+      # sys-vpn, the Whonix-Gateway (vm-whx-ext) and kali (vm-fw, vm-lab);
+      # routed to sys-net without NAT; isolation, egress lists, DNS resolver
+      name = "sys-firewall";
+      short = "sf";
+      label = "sys";
+      storeGroup = "sys";
+      ip = "10.0.0.33";
+      autostart = true;
+      nat = true;
+      uplink = "sys-net";
+      disposable = true;
+      allowGitHubAgent = false;
+      enableHostDbusForward = false;
+    }
     # create-vm: registry-vms
   ];
 
   # Image domains: guests from upstream disk images (Whonix, Kali), not NixOS and
   # not run by microvm.nix (modules/xen-image-domains.nix). Same fields as
-  # `vms` where they apply. They have no admin link: `ip` is only the SSH
-  # alias (SSH goes over vchan), `hostSSHKey` the key dom0 logs in with.
+  # `vms` where they apply. They have no admin link and no sshd (dom0 calls
+  # their fixed rpc services); `ip` only fills the tables of the scripts.
   imageDomains = [
     {
       name = "whonix-gateway";
       short = "wg";
       label = "anon";
       ip = "10.0.0.27";
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINnQth+MD3LJBK6GuG9cxgeZJNYG0yyfjpK0a04N/23G whonix-gateway-vm";
     }
     {
       name = "whonix-workstation";
       short = "ww";
       label = "anon";
       ip = "10.0.0.28";
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXySg5FkNf1/uhANkgL7xyBtKvABMWQ3Y1BbQGkPZKU whonix-workstation-vm";
     }
     {
       # Kali from the upstream QEMU image (machines/xmg/xen.nix); uplink via
@@ -360,8 +365,6 @@ let
       short = "k";
       label = "untrusted";
       ip = "10.0.0.8";
-      # Same key as the former NixOS kali-vm (~/.ssh/kali-vm in dom0)
-      hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWLTApfkMyJatXN+xw4HAvSq9MH8fBjf7kxj2dOZmV+ kali-vm";
       hosts = [ "xmg" ];
     }
   ];
@@ -672,6 +675,11 @@ let
       natIPs = map (vm: vm.ip) (builtins.filter (vm: vm.nat or false) hostVms);
       autostartNames = map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) hostVms);
       dbusForwardParticipants = builtins.filter (vm: vm.enableHostDbusForward or true) hostVms;
+      # W1 backup (vm-backup) preselects these; field `backup`, default false
+      # for sys-* and disposables
+      backupVms = builtins.filter (
+        vm: vm.backup or (!(builtins.substring 0 4 vm.name == "sys-" || (vm.disposable or false)))
+      ) hostVms;
       vmHasFeature = feature: builtins.filter (vm: builtins.elem feature (vm.features or [ ])) hostVms;
       globalExtraSSH = [ ];
       hardware = mkHardware host;

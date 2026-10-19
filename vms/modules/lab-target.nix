@@ -1,4 +1,4 @@
-# Lab target (registry `labTarget`): kali tests this VM's apps over sys-net's
+# Lab target (registry `labTarget`): kali tests this VM's apps over sys-firewall's
 # lab bridge vm-lab. dom0 hangs the vif on only while needed (`vm-lab attach
 # <vm>`, MAC 00:00:00:00:03:<last octet as hex>); until then the interface
 # simply does not exist. Address 10.5.0.<last octet>/24, no gateway. Apps

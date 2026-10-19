@@ -97,11 +97,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792338764,
-        "narHash": "sha256-lR6gh7sh9taBlGWmHtwq1uPeOJoy0FWtnMcNsenSCMg=",
+        "lastModified": 1792422848,
+        "narHash": "sha256-L26sq+LAa2KI73oGVAFcWOcJ5soCF/5nqWjlqVQW50c=",
         "owner": "23b00t",
         "repo": "NoX",
-        "rev": "d74bf7bdf9034f0d77104d8d8ea9a3e5160551a5",
+        "rev": "8f2c883e8c54aa2fe2f81ae6731efd06c963499f",
         "type": "github"
       },
       "original": {

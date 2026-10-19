@@ -40,8 +40,10 @@ let
     exit 1
   '';
 
-  # Image domains (Whonix) have no admin link: SSH only through the relay
-  hosts = vmRegistry.vms ++ vmRegistry.imageDomains;
+  # Only guests dom0 still logs into (registry `hostSSHKey`: the builder,
+  # xen-migration.md SSH removal). Image domains have no admin link: SSH
+  # only through the relay
+  hosts = builtins.filter (h: h ? hostSSHKey) (vmRegistry.vms ++ vmRegistry.imageDomains);
   imageDomainNames = map (d: d.name) vmRegistry.imageDomains;
   githubAgentSocket = "%d/.ssh/agent/github.sock";
 

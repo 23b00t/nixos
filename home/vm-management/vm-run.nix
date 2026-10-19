@@ -1,8 +1,20 @@
-{ pkgs, osConfig ? { }, vmRegistry, ... }:
+{
+  lib,
+  pkgs,
+  osConfig ? { },
+  vmRegistry,
+  ...
+}:
 let
   vmScriptLib = import ./vm-script-lib.nix { };
   # Image domains (Whonix) run as xen-image@<name>, not microvm@<name>
   imageDomainNames = builtins.concatStringsSep " " (map (d: d.name) vmRegistry.imageDomains);
+  # Image domains whose terminal is foot from the store disk (Whonix-Gateway)
+  footImageNames = builtins.concatStringsSep " " (
+    builtins.attrNames (
+      lib.filterAttrs (_: d: d.foot or false) (osConfig.services.xen-image-domains.domains or { })
+    )
+  );
 
   vmCases = vmScriptLib.vmCaseBlock {
     vms = vmRegistry.vms ++ vmRegistry.imageDomains;
@@ -111,11 +123,13 @@ ${vmCases}
 
     # -c (nox exec): no SSH into the guests (xen-migration.md, spec rest of
     # step 2): a terminal in the VM runs the command and stays open. Only
-    # the builder keeps SSH (dom0-update); guests without wprs still use it
-    # until they get a terminal (Whonix-Gateway)
+    # the builder keeps SSH (dom0-update)
     if [ "$CLI_MODE" -eq 1 ] && [ "$RELAY_GUI" -eq 1 ] && [ "$FULL_NAME" != builder ]; then
       cmd="$BINARY"
       [ $# -eq 0 ] || cmd="$cmd $(printf '%q ' "$@")"
+      case " ${footImageNames} " in
+        *" $FULL_NAME "*) exec vm-gui "$FULL_NAME" /nix/store/nox/bin/foot --hold sh -c "$cmd" ;;
+      esac
       case " ${imageDomainNames} " in
         *" $FULL_NAME "*)
           exec vm-gui "$FULL_NAME" x-terminal-emulator -e sh -c "$cmd; echo; read -r -p 'Enter: close ' _"

@@ -18,7 +18,7 @@ let
   };
   usbip = config.boot.kernelPackages.usbip;
 
-  # `usb-helper <command>`, called by dom0's vm-usb and input proxy over SSH
+  # `usb-helper <command>`, called by dom0's vm-usb and input proxy over RPC
   # (as `user`, with sudo where root is needed). Arguments are checked
   # strictly; dom0 is the only caller.
   usbHelper = pkgs.writeShellScriptBin "usb-helper" ''
@@ -123,10 +123,30 @@ in
       withDefaultPkgs = false;
     };
 
-    # SSH only from the admin network (dom0)
-    openssh.openFirewall = false;
-
     udev.extraRules = inputProxyRules;
+
+    # dom0's vm-usb and input proxy (modules/xen-usb.nix), no SSH: first line
+    # `<usb-helper command> [arg]`, answer on stdout, then `exit <rc>`;
+    # `input eventN` streams the raw events, `bt-export` the tar (no status)
+    nox-rpc.guest.handlers.usb = ''
+      if [ "$source" != dom0 ]; then
+        echo "error: only dom0"
+        exit 1
+      fi
+      IFS= read -r line || exit 1
+      read -ra args <<<"$line"
+      case "''${args[0]:-}" in
+        input)
+          [[ "''${args[1]:-}" =~ ^event[0-9]+$ ]] || exit 2
+          exec ${pkgs.coreutils}/bin/cat "/dev/input/''${args[1]}"
+          ;;
+        bt-export) exec /run/wrappers/bin/sudo ${usbHelper}/bin/usb-helper bt-export ;;
+        *)
+          /run/wrappers/bin/sudo ${usbHelper}/bin/usb-helper "''${args[@]}" </dev/null
+          echo "exit $?"
+          ;;
+      esac
+    '';
 
     dbus.enable = true;
     blueman.enable = true;
@@ -214,7 +234,6 @@ in
     };
     firewall = {
       enable = true;
-      interfaces.vm-lan.allowedTCPPorts = [ 22 ];
       # Narrowed further by table usbip
       extraInputRules = ''
         iifname "${links.bridge}" ip saddr ${links.network}/${toString links.prefixLength} tcp dport ${toString links.port} accept

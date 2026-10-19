@@ -27,27 +27,33 @@ let
 
   indexHex = fixedWidthString 2 "0" (toLower (toHexString cfg.index));
 
-  # Backend of the uplink by registry field `uplink` (default sys-net). The
+  # Backend of the uplink by registry field `uplink` (default sys-firewall). The
   # backends are driver domains serving `bridge`; the VM gets `<net>.<index>`
   # there, `<net>.254` is the backend's address (gateway).
   uplinkBackends = {
     sys-net = {
       backend = "sys-net-vm";
-      backendAddress = "10.0.0.253";
       bridge = "vm-uplink";
       net = "10.1.0";
+    };
+    # Firewall between the VMs and sys-net (vms/sys-firewall), routed without
+    # NAT; DNS only through its resolver
+    sys-firewall = {
+      backend = "sys-firewall-vm";
+      bridge = "vm-fw";
+      net = "10.6.0";
+      dns = [ "10.6.0.254" ];
     };
     # VPN gateway with killswitch (vms/sys-vpn); DNS only through the tunnel,
     # served by sys-vpn itself
     sys-vpn = {
       backend = "sys-vpn-vm";
-      backendAddress = "/run/nox-relay/sys-vpn-ssh.sock";
       bridge = "vm-vpn";
       net = "10.4.0";
       dns = [ "10.4.0.254" ];
     };
   };
-  uplinkName = currentVm.uplink or "sys-net";
+  uplinkName = currentVm.uplink or (if currentVm.nat or false then "sys-firewall" else "sys-net");
   uplinkBackend = uplinkBackends.${uplinkName};
 
   hostPkgs = config.microvm.vmHostPackages;
@@ -103,7 +109,7 @@ in
           "2620:fe::fe"
           "2620:fe::9"
         ];
-      defaultText = literalExpression "the uplink backend's DNS (sys-vpn: 10.4.0.254), else Quad9";
+      defaultText = literalExpression "the uplink backend's DNS (sys-firewall: 10.6.0.254, sys-vpn: 10.4.0.254), else Quad9";
       description = "DNS servers for the guest.";
     };
 
@@ -149,13 +155,6 @@ in
         default = uplinkBackend.backend;
         defaultText = literalExpression ''"<registry uplink>-vm" (default "sys-net-vm")'';
         description = "Xen domain serving the uplink (driver domain).";
-      };
-
-      backendAddress = mkOption {
-        type = types.str;
-        default = uplinkBackend.backendAddress;
-        defaultText = literalExpression ''"10.0.0.253" (sys-net), "/run/nox-relay/sys-vpn-ssh.sock" (sys-vpn)'';
-        description = "Admin address (port 22) or relay SSH socket (absolute path) of the backend domain, used to wait for it before starting.";
       };
 
       bridge = mkOption {
@@ -208,22 +207,12 @@ in
 
       # Runs in dom0 before the domain is created: the uplink backend (xl devd
       # in sys-net) must be up, otherwise creating the vif fails. The driver
-      # domain writes data/backend-ready once xl devd runs (common-config.nix);
-      # until every one does, its sshd answering counts as well (over the relay
-      # socket for backends without an admin link).
+      # domain writes data/backend-ready once xl devd runs (common-config.nix,
+      # Whonix-Gateway: modules/xen-image-domains.nix).
       preStart = mkIf cfg.uplink.enable ''
         for _ in $(${hostPkgs.coreutils}/bin/seq 180); do
           be="$(${config.microvm.xen.package}/bin/xl domid ${cfg.uplink.backend} 2>/dev/null)" || be=""
           if [ -n "$be" ] && [ "$(${config.microvm.xen.package}/bin/xenstore-read "/local/domain/$be/data/backend-ready" 2>/dev/null)" = 1 ]; then
-            break
-          fi
-          if [ -n "$be" ] \
-            && ${
-              if hasPrefix "/" cfg.uplink.backendAddress then
-                ''[ "$(${hostPkgs.coreutils}/bin/timeout 3 ${hostPkgs.socat}/bin/socat -t 2 - UNIX-CONNECT:${cfg.uplink.backendAddress} </dev/null 2>/dev/null | ${hostPkgs.coreutils}/bin/head -c 4)" = SSH- ]''
-              else
-                "${hostPkgs.coreutils}/bin/timeout 1 ${hostPkgs.bash}/bin/bash -c '</dev/tcp/${cfg.uplink.backendAddress}/22' 2>/dev/null"
-            }; then
             break
           fi
           ${hostPkgs.coreutils}/bin/sleep 1

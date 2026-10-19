@@ -31,7 +31,6 @@ let
           mac
           bridge
           backend
-          backendAddress
           ;
       }
     ) config.microvm.vms
@@ -44,9 +43,6 @@ let
         mac = usbLinks.macOf vm;
         inherit (usbLinks) bridge;
         backend = usbLinks.domain;
-        # Without an admin link (stage B2) sys-usb is checked through the relay
-        backendAddress =
-          config.services.nox-relay.host.guests.sys-usb.listen.ssh.path or usbLinks.adminAddress;
       })
       (
         builtins.filter (
@@ -54,9 +50,9 @@ let
         ) (builtins.attrNames config.microvm.vms)
       );
 
-  # "domain mac bridge backend backendAddress" per line
+  # "domain mac bridge backend" per line
   linkTable = pkgs.writeText "xen-links" (
-    lib.concatMapStrings (l: "${l.domain} ${l.mac} ${l.bridge} ${l.backend} ${l.backendAddress}\n") (
+    lib.concatMapStrings (l: "${l.domain} ${l.mac} ${l.bridge} ${l.backend}\n") (
       uplinks ++ usbipLinks ++ cfg.extraLinks
     )
   );
@@ -67,25 +63,12 @@ let
         xen
         pkgs.coreutils
         pkgs.gawk
-        pkgs.bash
-        pkgs.socat
       ]
     }
     declare -A notconnected
 
-    # Is the backend's sshd reachable? An IP over the admin network, or a
-    # nox-relay socket (stage B2): then the SSH banner comes back over vchan
-    reachable() {
-      case "$1" in
-        /*) [ "$(timeout 3 socat -t 2 - "UNIX-CONNECT:$1" </dev/null 2>/dev/null | head -c 4)" = SSH- ] ;;
-        *) timeout 1 bash -c "</dev/tcp/$1/22" 2>/dev/null ;;
-      esac
-    }
-
     while true; do
-      # Backend checks of this round (each starts an sshd in the backend)
-      declare -A checked=()
-      while read -r dom mac bridge backend address <&3; do
+      while read -r dom mac bridge backend <&3; do
         key="$dom/$mac"
         domid="$(xl domid "$dom" 2>/dev/null)" || domid=""
 
@@ -107,11 +90,8 @@ let
 
         # Something to fix: the backend must be up (its bridge exists only
         # once its network is configured), otherwise the hotplug script
-        # there fails
-        if [ -z "''${checked[$address]:-}" ]; then
-          if reachable "$address"; then checked[$address]=up; else checked[$address]=down; fi
-        fi
-        [ "''${checked[$address]}" = up ] || continue
+        # there fails. It writes data/backend-ready once xl devd runs.
+        [ "$(xenstore-read "/local/domain/$bedomid/data/backend-ready" 2>/dev/null)" = 1 ] || continue
 
         if [ -n "$idx" ]; then
           if [ "$state" = 4 ]; then
@@ -155,7 +135,6 @@ in
           mac = "00:00:00:00:02:1b";
           bridge = "vm-whx-ext";
           backend = "sys-net-vm";
-          backendAddress = "10.0.0.253";
         }
       ];
       description = "Further vifs to keep connected (domains not run by microvm.nix, see xen-image-domains).";

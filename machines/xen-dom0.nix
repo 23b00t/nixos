@@ -141,7 +141,7 @@ let
 
     dom0-update "$@"
 
-    # Starts the domain if it is off (the Gateway waits for sys-net's uplink)
+    # Starts the domain if it is off (the Gateway waits for sys-firewall's uplink)
     ensure_running() {
       if ! systemctl is-active --quiet "xen-image@$1"; then
         echo "update-all: starting $1" >&2
@@ -150,21 +150,18 @@ let
       fi
     }
 
-    # The domain's fixed rpc services (nox-rpc-in on the store disk, no SSH);
-    # images whose units predate them (xen-image-setup not run again): SSH
+    # The domain's fixed rpc services (nox-rpc-in on the store disk; images
+    # set up with xen-image-setup since the SSH removal)
     rpc_up() {
-      [ -S "/run/nox-relay/$1-rpc-in.sock" ] &&
-        [ "$(timeout 5 nox-rpc --dom0 ping "$1" </dev/null 2>/dev/null)" = ok ]
+      [ "$(timeout 5 nox-rpc --dom0 ping "$1" </dev/null 2>/dev/null)" = ok ]
     }
-    # apt-get --update full-upgrade as root in the guest, interactive;
-    # apt_upgrade <domain> <ssh arguments for the fallback>
+    # apt-get --update full-upgrade as root in the guest, interactive
     apt_upgrade() {
-      if rpc_up "$1"; then
-        nox-rpc --dom0 apt-upgrade "$1"
-      else
-        shift
-        ssh -t "$@"
+      if ! rpc_up "$1"; then
+        echo "update-all: $1 does not answer over rpc (xen-image-setup $1 run?)" >&2
+        return 1
       fi
+      nox-rpc --dom0 apt-upgrade "$1"
     }
 
     # sdwdate syncs only over working Tor; the Workstation's firewall stays
@@ -172,11 +169,7 @@ let
     wait_tor() {
       echo "update-all: waiting for Tor in $1 (sdwdate)" >&2
       for _ in $(seq 60); do
-        if rpc_up "$1"; then
-          [ "$(nox-rpc --dom0 tor-ready "$1" </dev/null 2>/dev/null)" = ok ] && return 0
-        else
-          ssh -o ConnectTimeout=5 -l "''${2:-user}" "$1-vm" test -e /run/sdwdate/first_success 2>/dev/null && return 0
-        fi
+        [ "$(timeout 10 nox-rpc --dom0 tor-ready "$1" </dev/null 2>/dev/null)" = ok ] && return 0
         sleep 5
       done
       echo "update-all: no Tor in $1 after 5 min" >&2
@@ -186,15 +179,10 @@ let
     # A running domain with a newer kernel on disk: offer a restart (pvgrub
     # boots the newest one); domains we started are stopped anyway
     offer_restart() {
-      local newest running answer
+      local newest="" running="" answer
       case " ''${started[*]} " in *" $1 "*) return 0 ;; esac
-      if rpc_up "$1"; then
-        read -r newest running < <(nox-rpc --dom0 kernel "$1" </dev/null 2>/dev/null)
-      else
-        newest="$(ssh "$1-vm" 'ls /boot/vmlinuz-* | sort -V | tail -n 1')"
-        running="$(ssh "$1-vm" 'echo "/boot/vmlinuz-$(uname -r)"')"
-      fi
-      [ "$newest" != "$running" ] || return 0
+      read -r newest running < <(timeout 10 nox-rpc --dom0 kernel "$1" </dev/null 2>/dev/null)
+      [ -n "$newest" ] && [ "$newest" != "$running" ] || return 0
       read -r -p "update-all: new kernel in $1, restart it now? [y/N] " answer
       case "$answer" in
         y | Y) sudo systemctl restart "xen-image@$1" ;;
@@ -204,10 +192,10 @@ let
     ensure_running whonix-gateway
     wait_tor whonix-gateway
     echo "update-all: updating the Whonix-Gateway" >&2
-    apt_upgrade whonix-gateway whonix-gateway-vm upgrade-nonroot
+    apt_upgrade whonix-gateway
 
     # The Workstation updates only in its sysmaint session (user/sysmaint
-    # split, `user` has no sudo): boot that once, log in as sysmaint, then
+    # split, `user` has no sudo): boot that once, apt runs there, then
     # back to the normal session if it was running before (2026-10-15)
     ws=whonix-workstation
     ws_was_running=0
@@ -222,20 +210,19 @@ let
     sudo touch "/run/xen-image/$ws.sysmaint"
     sudo systemctl start "xen-image@$ws"
     [ "$ws_was_running" = 1 ] || started+=("$ws")
-    wait_tor "$ws" sysmaint
+    wait_tor "$ws"
     echo "update-all: updating the Whonix-Workstation" >&2
-    apt_upgrade "$ws" -l sysmaint "$ws-vm" upgrade-nonroot
+    apt_upgrade "$ws"
     if [ "$ws_was_running" = 1 ]; then
       echo "update-all: back to the normal session of $ws" >&2
       sudo systemctl restart "xen-image@$ws"
     fi
 
     ${lib.optionalString hasKali ''
-      # Kali (image domain, rolling): apt over sys-net, as root over rpc; the
-      # SSH fallback (units not set up again) asks for `user`'s password
+      # Kali (image domain, rolling): apt over sys-net, as root over rpc
       ensure_running kali
       echo "update-all: updating Kali" >&2
-      apt_upgrade kali kali-vm 'sudo apt-get update && sudo apt-get full-upgrade'
+      apt_upgrade kali
       offer_restart kali
     ''}
     offer_restart whonix-gateway
@@ -364,7 +351,7 @@ in
     # forwards: GitHub agent (registry `allowGitHubAgent`), filtered session
     # bus (`enableHostDbusForward`), wprs for VMs with wprsd (`vm-gui`, the
     # wprsc socket is /run/nox-relay/<vm>-wprs.sock; apps get dom0's pulse),
-    # SSH to the guests (stage B: /run/nox-relay/<vm>-ssh.sock).
+    # SSH to the guests with sshd (only the builder: /run/nox-relay/builder-ssh.sock).
     # Guest side: vms/modules/vchan-relay.nix
     nox-relay.host = {
       enable = true;
@@ -444,6 +431,22 @@ in
       in
       rules "deny"
       ++ rules "warn"
+      # W1 backup (vm-backup): only disp-backup reads /home/user of the VMs
+      # with a backup (registry `backupVms`) and writes it back
+      ++ lib.concatMap (
+        vm:
+        map
+          (service: {
+            inherit service;
+            source = "disp-backup";
+            target = vm.name;
+            action = "allow";
+          })
+          [
+            "backup-send"
+            "backup-recv"
+          ]
+      ) vmRegistry.backupVms
       ++ [
         {
           service = "print";
@@ -458,10 +461,10 @@ in
   };
 
   # v3: Whonix-Gateway from the upstream image (PVH, pvgrub2), not NixOS.
-  # Outside: eth0 on sys-net's `vm-whx-ext` (10.0.2.15 via 10.0.2.2, as in the
+  # Outside: eth0 on sys-firewall's `vm-whx-ext` (10.0.2.15 via 10.0.2.2, as in the
   # image). Inside: it serves the vifs of irc/workstation itself on the bridge
-  # `eth1` (Whonix' internal interface), so sys-net only sees Tor traffic.
-  # Terminal only: `vm-run -c wg …` (SSH over vchan). Image setup once with
+  # `eth1` (Whonix' internal interface), so sys-firewall/sys-net only see Tor traffic.
+  # Terminal: foot from the store disk over wprs (`vm-run -c wg …`). Image setup with
   # `xen-image-setup whonix-gateway` (xen-migration.md).
   services.xen-image-domains.domains.whonix-gateway = {
     # Test phase: the converted download; later /var/lib/xen-images
@@ -473,15 +476,17 @@ in
       {
         mac = "00:00:00:00:01:1b";
         bridge = "vm-whx-ext";
+        # Behind sys-firewall (xen-migration.md step 4), which waits for sys-net
+        backend = "sys-firewall-vm";
         waitForUplink = true;
       }
     ];
     ifupdownHotplug = [ "eth0" ];
     driverDomain = true;
     internalBridge = "eth1";
-    authorizedKeys = map (d: d.hostSSHKey) (
-      builtins.filter (d: d.name == "whonix-gateway") vmRegistry.imageDomains
-    );
+    # Terminal over wprs (the image has none), no SSH
+    wprs = true;
+    foot = true;
   };
 
   # v3: Whonix-Workstation (LXQt image), only network: the gateway's eth1.
@@ -496,17 +501,17 @@ in
         mac = "00:00:00:00:01:1c";
         bridge = "eth1";
         backend = "whonix-gateway-vm";
-        backendAddress = "/run/nox-relay/whonix-gateway-ssh.sock";
       }
     ];
     ifupdownHotplug = [ "eth0" ];
     wprs = true;
     # Updates only in the sysmaint session (update-all boots it)
     sysmaintEntry = "PERSISTENT Mode | SYSMAINT Session | system maintenance tasks";
-    authorizedKeys = map (d: d.hostSSHKey) (
-      builtins.filter (d: d.name == "whonix-workstation") vmRegistry.imageDomains
-    );
   };
+
+  # dom0 swapped out ~470 MB with ~3 GB still available (page cache pushed
+  # program pages out, xmg 2026-10-18). Swap only when memory is really short
+  boot.kernel.sysctl."vm.swappiness" = 1;
 
   # v2.5: the WLAN card belongs to sys-net (registry `hardware.pci`, driver
   # blacklisted in dom0). `sys-net-rescue` hands it back in an emergency.
@@ -622,7 +627,7 @@ in
           };
         }
         # VMs with `uplink = "sys-vpn"` (registry) start sys-vpn with them; their
-        # preStart then waits for its sshd (vms/modules/net-config.nix)
+        # preStart then waits for its data/backend-ready (vms/modules/net-config.nix)
         // lib.listToAttrs (
           map
             (vm: {

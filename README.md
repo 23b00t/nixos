@@ -177,15 +177,15 @@ nixpkgs.overlays = [
 `nox` (NoX repo, `nox --help`, bash completion) is one command over the
 scripts below: `nox` = running VMs, `nox list|start|stop|restart`,
 `nox run|exec|ssh <vm> …`, `nox clip`, `nox copy`, `nox update [--all]`,
-`nox usb …`, `nox disp [cmd…]` (ad-hoc disposable), `nox doctor` (smoke test of what runs: domains, SSH, relays,
+`nox usb …`, `nox disp [cmd…]` (ad-hoc disposable), `nox backup …`, `nox doctor` (smoke test of what runs: domains, rpc, relays,
 network, RPC, clipboard, wprs, D-Bus, stale runners, disk, failed units,
 new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 
 | Command | What |
 |---|---|
 | `vm-run <vm> <app> [args]` | start a GUI app in a VM (wprs over vchan, app start over RPC) |
-| `vm-run -c <vm> '<cmd>'` | run a command over SSH |
-| `ssh <vm>` | SSH session (over the vchan relay socket); `<vm>`, `<vm>-vm`, the short alias or the IP, also for `whonix-gateway`, `whonix-workstation`. No host key check (guests make new host keys at every boot; the relay socket ties the connection to the domain), no warnings (`LogLevel ERROR`). |
+| `vm-run -c <vm> '<cmd>'` (`nox exec`) | open a terminal in the VM (foot over wprs) running the command; no SSH. Emergency access: `xl console <vm>-vm` |
+| `ssh builder` | the only SSH (dom0-update), over the vchan relay socket; the other domains have no sshd |
 | `manage-vms status [<vm>...] [--running] [--group <g>] [--stale]` | state of all VMs |
 | `manage-vms <start\|stop\|restart> [<vm>...] [--running] [--group <g>] [--stale]` | single or bulk operations; a (re)started VM gets its tray apps (`vm-tray`); `ms`/`mst`/`mr <vm>...` are short for it |
 | `manage-vms <start\|restart> --fresh <vm>...` (`nox restart --fresh`) | disposable VMs only: stop, set all their volume images aside (`/var/lib/microvms/<vm>/*.img.pre-fresh`, sudo asks for the password), start with empty ones. For a broken sys-net/sys-usb/sys-vpn state. Back: stop the VM, `sudo mv` the `.pre-fresh` files back, start it |
@@ -194,8 +194,9 @@ new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 | `vm-usb attach <device> <vm>` / `vm-usb detach <device>` | hand a USB device to a VM (USB/IP), device = busid, `vendor:product` or registry name |
 | `vm-usb allow-input <busid>` | accept a new input device for dom0 until it is unplugged |
 | `dom0-update [--switch]` | system update via the builder |
-| `backup <dest> <vm>...` / `backup -a <dest>` / `backup -r <src>` | rsync of `/home/user` of VMs (not `/var`, not dom0) |
-| `xen-image-setup <name>` | install the units into a stopped image domain (once per image, and again when the units change: 2026-10-18 added `nox-rpc-in` for dom0's fixed services — clip, app start, update-all — and `data/backend-ready`) |
+| `vm-backup …` (`nox backup`) | backup onto the external LUKS disk on disp-backup, see "Backup" |
+| `vm-pull <vm> [file]` (`nox pull`) | one-time copy of a file from the VM's `~/outbox` into dom0 `~/Incoming/<vm>/` (asks first; without a file: list the outbox) |
+| `xen-image-setup <name>` | install the units into a stopped image domain (once per image, and again when the units change: 2026-10-18 added `nox-rpc-in` for dom0's fixed services — clip, app start, update-all — and `data/backend-ready`; later the same day sshd went away and the Gateway got foot: run it again for every image) |
 | `xen-vnc <domain>` | display of an HVM domain with a stubdomain (Tails) |
 | `sys-net-rescue` | sys-net doesn't come up: NICs back to dom0 |
 | `sys-usb-rescue` | sys-usb doesn't come up: USB controllers back to dom0 (also automatic after 120 s) |
@@ -258,15 +259,22 @@ passthrough (sys-net, sys-usb, steam) have fixed memory.
 ## Networking
 
 - `vm-internal`: admin bridge in dom0 (`10.0.0.254`), every VM port
-  isolated, VM `10.0.0.<index>`; SSH to the VMs goes over the vchan relay.
-- `vm-uplink` in sys-net (`10.1.0.254/24`): internet for VMs with
-  `nat = true` (`10.1.0.<index>`), NAT to the physical NIC, VMs can't reach
-  each other or dom0.
+  isolated; only sys-net still has a port (dom0's internet in the test
+  phase). dom0 reaches the VMs over vchan (nox-relay, nox-rpc), SSH only
+  to the builder.
+- `vm-uplink` in sys-net (`10.1.0.254/24`): only sys-firewall (`10.1.0.33`)
+  and sys-print; sys-net routes sys-firewall's nets (`10.6.0.0/24`,
+  `10.0.2.0/24`) back to it and NATs everything to the physical NIC.
+- `vm-fw` in sys-firewall (`10.6.0.254/24`): uplink of every VM with
+  `nat = true` (`10.6.0.<index>`), of sys-vpn and of kali; routed without
+  a second NAT. VMs can't reach each other or dom0, DNS only through the
+  resolver on `10.6.0.254`, registry `egress` narrows what a VM may send.
 - `vm-usbip` in sys-usb (`10.2.0.254/24`): USB/IP to the VMs that own USB
   devices.
-- `vm-whx-ext` in sys-net (`10.0.2.2/24`): outside of the Whonix-Gateway
-  only. `eth1` inside the gateway (`10.152.152.10/18`): irc and the
-  Workstation, so sys-net only ever sees Tor traffic.
+- `vm-whx-ext` in sys-firewall (`10.0.2.2/24`): outside of the
+  Whonix-Gateway only. `eth1` inside the gateway (`10.152.152.10/18`): irc
+  and the Workstation, so sys-firewall/sys-net only ever see Tor traffic.
+- `vm-lab` in sys-firewall (pure L2, `10.5.0.0/24`, only where kali runs).
 - `vm-tails` in sys-net (`10.3.0.1/24`, DHCP): Tails only.
 - `vm-vpn` in sys-vpn (`10.4.0.254/24`): uplink of VMs with registry
   `uplink = "sys-vpn"` (`10.4.0.<index>`), only through the VPN tunnel
@@ -300,6 +308,32 @@ Useful checks: `xl dmesg | grep -i remap`, in sys-net
 `ethtool -k ens3`, `xl network-list <vm>` (`ring-ref -1/-1` = multi-queue),
 upload test from a VM against speed.cloudflare.com.
 
+## Backup
+
+`nox backup` (= `vm-backup`) writes onto an external USB disk that is
+itself LUKS-encrypted (format it once by hand, ext4 inside). It starts the
+disposable `disp-backup`, attaches the disk (registry USB device
+`backup-disk`, else it asks for the busid from `vm-usb list`), asks for the
+passphrase, and closes and stops everything at the end. No SSH, dom0
+mounts nothing: data goes over nox-rpc.
+
+```sh
+nox backup                     # W1: /home/user of the VMs (rofi checklist; preselected: registry `backup`)
+nox backup nvim chat | --all   # W1 for these
+nox backup restore [--from <run>] <vm…|--all>   # W1 back in place (rsync --update: newer files stay, nothing is deleted)
+nox backup --full [--level N] [vm…|--all]      # W2: whole volume images, Whonix/kali images, builder key, dom0 ~/.ssh + ~/vm-images
+nox backup restore --full <vm…|--all>          # W2 back (replaces the images, VM stopped)
+nox backup list
+nox backup prune --keep N [-n]                 # W1: keep the newest N runs per VM
+```
+
+W1 runs are folders `nox/home/<vm>/<date>/` with hard links to the previous
+run (only changes take space); stopped VMs are started and stopped again.
+W2 keeps one copy per image (`nox/full/<name>/<file>.zst`, sha256 of the raw
+image next to it), replaced only after a complete write; running VMs are
+stopped and started again after one confirmation. `nox doctor` and a daily
+notification remind after 7 days without W1.
+
 ## USB
 
 sys-usb owns the USB controllers. Input devices with owner `host` in the
@@ -330,9 +364,8 @@ the internal keyboard and touchpad are not on USB.
 
 Use `create-vm` or the `new-vm` Claude skill; keep `vms/registry.nix`,
 `vms/definitions.nix` and `vms/<name>/default.nix` consistent (markers
-`# create-vm: registry-vms` and `# create-vm: definitions`). Host SSH key:
-`ssh-keygen -t ed25519 -N "" -C <vm>-vm -f ~/.ssh/<vm>-vm`, public key into
-the registry (`hostSSHKey`).
+`# create-vm: registry-vms` and `# create-vm: definitions`). No SSH key:
+dom0 reaches new VMs over nox-rpc and wprs (only the builder has `hostSSHKey`).
 
 ### Additional setup for IDE VMs
 
@@ -393,16 +426,11 @@ The raw images are 100 GB sparse (~4 and ~7 GB used). Copy them with
 `tar -S`, not `rsync --sparse` (rsync reads and sends the holes):
 `ssh <host> 'tar -cS -C vm-images/whonix whonix-gateway.raw whonix-workstation.raw | zstd -T0 -3' | zstd -d | tar -xS -C ~/vm-images/whonix`.
 
-### 3. SSH keys
+### 3. No SSH keys
 
-```sh
-ssh-keygen -t ed25519 -N "" -C whonix-gateway-vm -f ~/.ssh/whonix-gateway-vm
-ssh-keygen -t ed25519 -N "" -C whonix-workstation-vm -f ~/.ssh/whonix-workstation-vm
-```
-
-Public keys into `imageDomains` in `vms/registry.nix` (`hostSSHKey`),
-commit, `dom0-update --switch`. The keys are on the store disk, no new
-setup needed when they change.
+dom0 talks to the images over nox-rpc (`nox-rpc-in` on the store disk) and
+wprs; there is no sshd. Terminal: Gateway foot from the store disk
+(`vm-run -c wg …`), Workstation its own terminal.
 
 ### 4. Install the units (once per image, domain stopped)
 
@@ -419,7 +447,7 @@ its setup wizard). Keep this line in `50_user.conf` whenever you edit it.
 
 ```sh
 sudo systemctl start xen-image@whonix-gateway
-ssh whonix-gateway-vm
+vm-run whonix-gateway /nix/store/nox/bin/foot   # terminal (Terminal (whonix-gateway) in rofi)
 sudo nano /usr/local/etc/torrc.d/50_user.conf
 #   DisableNetwork 0
 #   MapAddress guybrush.hackint.org dtlbunzs5b7s5sl775quwezleyeplxzicdoh3cnhm7feolxmkfd42nqd.onion
@@ -447,7 +475,7 @@ Tor Browser settings that wprs needs or that you want:
   Settings → General → Website appearance → "Dark". Tor Browser may still
   report a light preference to websites (fingerprinting protection).
 
-**Updates:** `dom0-update` only renews the store disk (nox-relay, sshd, wprsd), not the Debian system inside the images. Gateway: `update-all` (see 7.), or by hand `ssh -t whonix-gateway-vm upgrade-nonroot` (Whonix 18: `sudo apt-get --update full-upgrade`; `apt-get-update-plus` is gone). Workstation: `sudo` and `upgrade-nonroot` only work in the sysmaint session (Kicksecure user/sysmaint split); `update-all` boots it once (`/run/xen-image/whonix-workstation.sysmaint`) and logs in as `sysmaint`. Over SSH only the account of the running session may log in (`user` in the normal session, `sysmaint` in the sysmaint session). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
+**Updates:** `dom0-update` only renews the store disk (nox-relay, nox-rpc-in, wprsd, foot), not the Debian system inside the images. `update-all` runs `apt-get --update full-upgrade` as root over the rpc service `apt-upgrade` (interactive, questions come to the dom0 terminal); by hand in the Gateway's terminal `upgrade-nonroot`. Workstation: updates only work in the sysmaint session (Kicksecure user/sysmaint split); `update-all` boots it once (`/run/xen-image/whonix-workstation.sysmaint`). New Debian kernels just work (pvgrub reads the guest's grub.cfg).
 
 The Workstation's firewall stays closed until `sdwdate` has synced the time
 over Tor once (`/run/sdwdate/first_success`). Start it after the Gateway's
@@ -455,17 +483,17 @@ Tor is up; if it has no network, restart it:
 `sudo systemctl restart xen-image@whonix-workstation`.
 
 On the xmg the Gateway and irc start at boot. Debian guests may lack foot's
-terminfo (Backspace etc. broken over SSH): `TERM=xterm-256color ssh …`.
+terminfo; the Gateway's foot from the store disk sets `TERM=xterm-256color`.
 
-`xen-image@whonix-gateway` waits (up to 90 s) until sys-net reports a
-default route (`data/uplink` in its xenstore). Tor started without an
+`xen-image@whonix-gateway` waits (up to 90 s) until sys-firewall reports a
+working uplink (`data/uplink` in its xenstore). Tor started without an
 uplink marks its guards unreachable and stays stuck; if that still
 happens, restart the Gateway.
 
 ### 7. Gateway commands
 
 From the Whonix wiki (Tor, Tor Controller, Bridges), run in
-`ssh whonix-gateway-vm`; not all tried here yet.
+the Gateway's terminal (`vm-run -c wg …`); not all tried here yet.
 
 ```sh
 tor-ctrl signal NEWNYM                  # new circuits for new connections ("250 OK")
@@ -503,12 +531,12 @@ Workstation).
 
 Kali runs on the xmg as a PVH image domain from the official QEMU image
 (domain in `machines/xmg/xen.nix`), like the Whonix-Workstation: pvgrub2
-boots Kali's kernel, the store disk brings nox-relay, sshd and wprsd. Apps
+boots Kali's kernel, the store disk brings nox-relay, nox-rpc-in and wprsd. Apps
 over wprs (`vm-run k burpsuite`), updates with apt (`update-all`). The
 image domain integration expects the user `user` (UID 1000): Kali's `kali`
 is renamed once, offline.
 
-Network: first vif on sys-net's `vm-uplink` (10.1.0.8, internet), second
+Network: first vif on sys-firewall's `vm-fw` (static 10.6.0.8/24 via 10.6.0.254, DNS 10.6.0.254, set by `nmcli` in kali; internet), second
 vif on the lab bridge `vm-lab` (10.5.0.8). VMs with registry `labTarget`
 (php, coding) join the lab only on demand: `vm-lab attach <vm>`
 (10.5.0.<last octet of the VM's IP>), `vm-lab detach <vm>`, `vm-lab status`.
@@ -536,14 +564,17 @@ nix shell nixpkgs#p7zip -c 7z e "$f" && rm "$f"
 nix shell nixpkgs#qemu-utils -c qemu-img convert -p -O raw -S 4k kali-linux-$V-qemu-amd64.qcow2 kali.raw
 rm kali-linux-$V-qemu-amd64.qcow2
 nix shell nixpkgs#util-linux -c sfdisk -l kali.raw   # root partition -> rootPartition in machines/xmg/xen.nix
+mkdir -p ~/outbox && mv kali.raw ~/outbox/   # nox pull only reads ~/outbox
 ```
 
-Into dom0 (sparse, as for Whonix):
+Into dom0 (`nox pull`: dom0 asks, the VM streams the file zstd-compressed
+over nox-rpc, dom0 writes it sparse to `~/Incoming/<vm>/`, never runs it):
 
 ```sh
-mkdir -p ~/vm-images/kali
-ssh coding-vm 'tar -cS -C kali kali.raw | zstd -T0 -3' | zstd -d | tar -xS -C ~/vm-images/kali
-ssh coding-vm 'rm -rf kali'
+nox pull coding              # list coding's ~/outbox
+nox pull coding kali.raw     # asks, then ~/Incoming/coding/kali.raw
+mkdir -p ~/vm-images/kali && mv ~/Incoming/coding/kali.raw ~/vm-images/kali/
+# then in coding: rm -rf ~/kali ~/outbox/kali.raw
 ```
 
 ### 2. Prepare the image (dom0, once, domain stopped)
@@ -599,12 +630,10 @@ sudo chmod 600 /mnt/kali/etc/NetworkManager/system-connections/*.nmconnection
 sudo umount /mnt/kali
 ```
 
-### 3. SSH key, units
+### 3. Units
 
-The key `~/.ssh/kali-vm` (from the former NixOS kali) is in the registry
-already. Only on a machine without it: `ssh-keygen -t ed25519 -N "" -C
-kali-vm -f ~/.ssh/kali-vm` and put the public key into `imageDomains` in
-`vms/registry.nix`. After `dom0-update --switch`:
+No SSH key (dom0 uses nox-rpc). After `dom0-update --switch`, and again
+when the units change (2026-10-18: sshd removed):
 
 ```sh
 xen-image-setup kali
@@ -708,7 +737,7 @@ credentials (OpenVPN would need Proton's OpenVPN username/password and
    and the killswitch only forwards into `wg*`/`tun*`.
 3. Still in net: `vm-copy sys-vpn ~/Downloads/wg-proton.conf` (dom0
    asks); it lands in `~/Incoming/net/` in sys-vpn.
-4. In sys-vpn (`ssh sys-vpn`):
+4. In sys-vpn (terminal: `vm-run sys-vpn foot`):
 
    ```sh
    sudo nmcli connection import type wireguard file ~/Incoming/net/wg-proton.conf
@@ -930,6 +959,16 @@ Known issues and their status are tracked in
   failures, `hctosys: unable to read the hardware clock`, `xen_mcelog:
   Failed to get CPU numbers`, `The kernel doesn't support reset from sysfs`
   for the xmg's xHCI.
+- **Video over wprs** (xmg, 2026-10-18): wprs has no video codec, every
+  frame is compressed in the VM and unpacked in dom0, Firefox decodes in
+  software. With `wprsd --framerate 120` (default 60 paced Firefox to ~50 fps,
+  a third of a 60 fps video was dropped) about 10–20 % of the frames still
+  drop and the CPU works noticeably; 240 brought nothing more.
+- **Repeated keys in Claude Code over wprs** (xmg, 2026-10-18): in a foot
+  of a VM (ssh → zellij → Claude Code) single key presses sometimes repeat
+  ("sooooo"); only Claude Code, which redraws a lot per key press. foot
+  makes the key repeat itself and handles the release late. To retest with
+  `wprsd --framerate 120`; niri's repeat delay stays as it is.
 
 ## TODOs <!-- TODO: -->
 

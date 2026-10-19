@@ -1,6 +1,6 @@
 # vm-doctor (`nox doctor`): smoke test of the running system on demand.
-# Starts no VMs, checks only what runs: autostart domains, SSH and relay per
-# VM, network over sys-net (and the tunnel for sys-vpn clients), app start
+# Starts no VMs, checks only what runs: autostart domains, rpc and relay per
+# VM, network over sys-firewall (and the tunnel for sys-vpn clients), app start
 # by RPC, clipboard round trip, wprs, D-Bus, stale runners, disk, failed
 # units, kernel/Xen errors. Table of PASS/FAIL/SKIP, exit 1 on any FAIL.
 {
@@ -51,15 +51,12 @@ let
 
     ${assoc "UNIT" (h: unitOf h.name)}
     ${assoc "DOMAIN" (h: if relayed ? ${h.name} then relayed.${h.name}.domain else "")}
-    ${assoc "SSH" (h: flag (listen h ? ssh))}
     ${assoc "WPRS" (h: flag (listen h ? wprs))}
     ${assoc "DBUS" (h: flag ((relayed.${h.name}.serve or { }) ? dbus))}
-    ${assoc "UPLINK" (h: if h.nat or false then h.uplink or "sys-net" else "")}
+    ${assoc "UPLINK" (h: if h.nat or false then h.uplink or "sys-firewall" else "")}
     ${assoc "CLIP" clipPolicy}
     VMS=( ${lib.concatMapStringsSep " " (h: h.name) hosts} )
     AUTOSTART=( ${lib.concatStringsSep " " autostart} )
-    # Image domains keep the helper in /nix/store/nox/bin
-    helper='PATH="$PATH:/nix/store/nox/bin" vm-clip-helper'
 
     case "''${1:-}" in
       "") ;;
@@ -77,11 +74,6 @@ let
         FAIL) fail=$((fail + 1)) ;;
         *) skip=$((skip + 1)) ;;
       esac
-    }
-    vssh() {
-      local vm="$1"
-      shift
-      timeout 20 ssh -o BatchMode=yes -o ConnectTimeout=5 "$vm" "$@" </dev/null 2>/dev/null
     }
 
     printf '%-4s  %-26s %s\n' STAT CHECK DETAIL
@@ -111,37 +103,23 @@ let
     }
 
     # Probes over the VM's fixed rpc services (`ping`, `doctor`, `clip`), no
-    # SSH; image domains without them (xen-image-setup not run again) and
-    # the builder over SSH
+    # SSH
     rpcup() {
-      [ -S "/run/nox-relay/$1-rpc-in.sock" ] &&
-        [ "$(timeout 5 nox-rpc --dom0 ping "$1" </dev/null 2>/dev/null)" = ok ]
+      [ "$(timeout 5 nox-rpc --dom0 ping "$1" </dev/null 2>/dev/null)" = ok ]
     }
-    probe() { # probe <vm> <net|ip|wprsd|dbus> <command for SSH>
-      if rpcup "$1"; then
-        printf '%s\n' "$2" | timeout 20 nox-rpc --dom0 doctor "$1" 2>/dev/null
-      else
-        vssh "$1" "$3"
-      fi
+    probe() { # probe <vm> <net|ip|wprsd|dbus>
+      printf '%s\n' "$2" | timeout 20 nox-rpc --dom0 doctor "$1" 2>/dev/null
     }
     clip_get() {
-      if rpcup "$1"; then printf 'get\n' | timeout 20 nox-rpc --dom0 clip "$1"; else vssh "$1" "$helper get"; fi
+      printf 'get\n' | timeout 20 nox-rpc --dom0 clip "$1"
     }
     clip_set() {
-      if rpcup "$1"; then
-        { printf 'set\n'; cat; } | timeout 20 nox-rpc --dom0 clip "$1" >/dev/null
-      else
-        timeout 20 ssh -o BatchMode=yes "$1" "$helper set" 2>/dev/null
-      fi
+      { printf 'set\n'; cat; } | timeout 20 nox-rpc --dom0 clip "$1" >/dev/null
     }
 
-    # --- rpc (or SSH) and relay per running VM
+    # --- rpc and relay per running VM
     for vm in "''${RUNNING[@]}"; do
-      if rpcup "$vm"; then
-        row PASS "rpc $vm" ok
-      elif [ "''${SSH[$vm]}" = 1 ]; then
-        if vssh "$vm" true; then row PASS "ssh $vm" ok; else row FAIL "ssh $vm" "no answer"; fi
-      fi
+      if rpcup "$vm"; then row PASS "rpc $vm" ok; else row FAIL "rpc $vm" "no answer"; fi
       dom="''${DOMAIN[$vm]}"
       [ -n "$dom" ] || continue
       pid="$(systemctl show -p MainPID --value "nox-relay-$vm.service")"
@@ -162,20 +140,18 @@ let
     done
 
     # --- network
-    probe='getent hosts cache.nixos.org >/dev/null && curl -sS -m 10 -o /dev/null -w "%{http_code}" https://cache.nixos.org/nix-cache-info'
-    ip_probe='curl -sS -m 10 https://api.ipify.org'
     direct_ip=""
-    if vm="$(first '[ "''${UPLINK[$vm]}" = sys-net ] && [[ $vm != sys-* ]]')"; then
-      code="$(probe "$vm" net "$probe")"
-      if [ "$code" = 200 ]; then row PASS "net via sys-net ($vm)" "DNS + HTTPS"; else row FAIL "net via sys-net ($vm)" "''${code:-no DNS/connection}"; fi
-      direct_ip="$(probe "$vm" ip "$ip_probe")"
+    if vm="$(first '[ "''${UPLINK[$vm]}" = sys-firewall ] && [[ $vm != sys-* ]]')"; then
+      code="$(probe "$vm" net)"
+      if [ "$code" = 200 ]; then row PASS "net via sys-firewall ($vm)" "DNS + HTTPS"; else row FAIL "net via sys-firewall ($vm)" "''${code:-no DNS/connection}"; fi
+      direct_ip="$(probe "$vm" ip)"
     else
-      row SKIP "net via sys-net" "no running VM behind sys-net"
+      row SKIP "net via sys-firewall" "no running VM behind sys-firewall"
     fi
     for vm in "''${RUNNING[@]}"; do
       [ "''${UPLINK[$vm]}" = sys-vpn ] || continue
-      code="$(probe "$vm" net "$probe")"
-      ip="$(probe "$vm" ip "$ip_probe")"
+      code="$(probe "$vm" net)"
+      ip="$(probe "$vm" ip)"
       if [ "$code" != 200 ]; then
         row FAIL "net via sys-vpn ($vm)" "''${code:-no DNS/connection}"
       elif [ -z "$direct_ip" ] || [ -z "$ip" ]; then
@@ -222,7 +198,7 @@ let
 
     for vm in "''${RUNNING[@]}"; do
       [ "''${WPRS[$vm]}" = 1 ] || continue
-      state="$(probe "$vm" wprsd "systemctl --user is-active wprsd")"
+      state="$(probe "$vm" wprsd)"
       n=0
       for p in $(pgrep -x wprsc); do
         tr '\0' '\n' <"/proc/$p/cmdline" 2>/dev/null | grep -qxF -- "--socket=/run/nox-relay/$vm-wprs.sock" && n=$((n + 1))
@@ -243,12 +219,23 @@ let
         row FAIL "dbus $vm" "dom0 proxy socket missing"
         continue
       fi
-      if [ "$(probe "$vm" dbus 'busctl --address=unix:path=/tmp/ssh_dbus.sock --timeout=3 call org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications GetServerInformation >/dev/null && echo ok')" = ok ]; then
+      if [ "$(probe "$vm" dbus)" = ok ]; then
         row PASS "dbus $vm" "notifications reachable"
       else
         row FAIL "dbus $vm" "org.freedesktop.Notifications not reachable"
       fi
     done
+
+    # --- backup (vm-backup records the last W1 run)
+    last="$(cat "''${XDG_STATE_HOME:-$HOME/.local/state}/nox-backup/last" 2>/dev/null || echo 0)"
+    age=$(( ($(date +%s) - last) / 86400 ))
+    if [ "$last" = 0 ]; then
+      row WARN backup "none yet (nox backup)"
+    elif [ "$age" -gt 7 ]; then
+      row WARN backup "$age days ago (nox backup)"
+    else
+      row PASS backup "$age days ago"
+    fi
 
     # --- system
     stale=()

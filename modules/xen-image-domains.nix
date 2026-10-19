@@ -5,8 +5,9 @@
 #
 # Guest integration without Nix in the guest: a read-only store disk
 # (squashfs of a Nix closure, mounted at /nix/store, stable entry point
-# /nix/store/nox) carries nox-relay, sshd and, for driver domains, `xl devd`
-# with the hotplug scripts. `xen-image-setup <name>` installs the systemd
+# /nix/store/nox) carries nox-relay, dom0's rpc services (nox-rpc-in, no
+# sshd), wprsd (+ foot) and, for driver domains, `xl devd` with the hotplug
+# scripts. `xen-image-setup <name>` installs the systemd
 # units into the stopped image once (debugfs, as the image owner); later
 # store disks keep working with the same units.
 {
@@ -24,9 +25,6 @@ let
   quote = s: ''"${s}"'';
   xlList = items: "[ ${lib.concatMapStringsSep ", " quote items} ]";
 
-  # Socket of sshd -i in the guest, served to dom0 over the relay
-  guestSshSocket = "/run/nox-sshd.sock";
-
   vifOpts = {
     options = {
       mac = lib.mkOption {
@@ -41,11 +39,6 @@ let
         type = lib.types.str;
         default = "sys-net-vm";
         description = "Xen domain serving the vif (driver domain).";
-      };
-      backendAddress = lib.mkOption {
-        type = lib.types.str;
-        default = "10.0.0.253";
-        description = "Admin address (port 22) or relay SSH socket of the backend, to wait for it.";
       };
       waitForUplink = lib.mkOption {
         type = lib.types.bool;
@@ -104,11 +97,6 @@ let
           default = [ ];
           description = "Network interfaces (eth0, eth1, … in order), re-attached by xen-links.";
         };
-        authorizedKeys = lib.mkOption {
-          type = lib.types.listOf lib.types.str;
-          default = [ ];
-          description = "Keys dom0 logs in with as `user` (sshd over the relay).";
-        };
         driverDomain = lib.mkOption {
           type = lib.types.bool;
           default = false;
@@ -127,7 +115,12 @@ let
         wprs = lib.mkOption {
           type = lib.types.bool;
           default = false;
-          description = "GUI apps over wprs (wprsd as user service, socket over the relay; `vm-gui` starts apps over SSH) with dom0's pulse.";
+          description = "GUI apps over wprs (wprsd as user service, socket over the relay; `vm-gui` starts apps over rpc `app`) with dom0's pulse.";
+        };
+        foot = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "foot on the store disk (/nix/store/nox/bin/foot, own fonts) for images without a terminal (Whonix-Gateway); needs `wprs`.";
         };
         relay = {
           host = relayRules;
@@ -141,7 +134,7 @@ let
             GRUB menu entry of the guest's sysmaint session (Kicksecure
             user-sysmaint-split: updates only work there). When set, the next
             start boots this entry if /run/xen-image/<name>.sysmaint exists
-            (removed on start), dom0 may also log in as `sysmaint`, and the
+            (removed on start), rpc calls run as `sysmaint` there, and the
             dom0 integration runs in sysmaint-boot.target too.
           '';
         };
@@ -158,37 +151,7 @@ let
   mkGuest =
     name: d:
     let
-      sshdConfig = pkgs.writeText "sshd_config" ''
-        HostKey /var/lib/nox/ssh/ssh_host_ed25519_key
-        AuthorizedKeysFile /nix/store/nox/etc/ssh/authorized_keys/%u
-        AllowUsers user${lib.optionalString (d.sysmaintEntry != null) " sysmaint"}
-        # DenyUsers for the account of the other session (nox-sshd-setup)
-        Include ${sshdSessionConfig}
-        PermitRootLogin no
-        PasswordAuthentication no
-        KbdInteractiveAuthentication no
-        UsePAM no
-        AllowAgentForwarding no
-        AllowTcpForwarding no
-        AllowStreamLocalForwarding no
-        X11Forwarding no
-        PermitTunnel no
-        PrintMotd no
-        # Login environment of the distribution (Whonix sets e.g. the Tor Browser
-        # variables in /etc/profile.d), see nox-session
-        ForceCommand /nix/store/nox/bin/nox-session
-        Subsystem sftp ${pkgs.openssh}/libexec/sftp-server
-        ${lib.optionalString d.wprs ''
-          # Without PAM there is no login session: apps started over SSH
-          # (vm-gui) find wprsd's socket here
-          SetEnv XDG_RUNTIME_DIR=/run/user/1000
-        ''}
-      '';
-
       wprsClipboard = import ./wprs-clipboard.nix { inherit pkgs; };
-
-      # Written at boot by nox-sshd-setup
-      sshdSessionConfig = "/run/nox-sshd-session.conf";
 
       # Same paths as in the NixOS VMs (vms/modules/vchan-relay.nix); the
       # user's group is 1000 in Debian
@@ -204,7 +167,6 @@ let
         serve =
           d.relay.guest.serve
           // {
-            ssh = guestSshSocket;
             rpc-in = "/run/nox-rpc-in.sock";
           }
           // lib.optionalAttrs d.wprs { wprs = "/run/user/1000/wprs.sock"; };
@@ -220,46 +182,6 @@ let
           ++ lib.mapAttrsToList (service: path: "serve ${service} ${path}\n") relayRulesGuest.serve
         )
       );
-
-      # Runs as root before the first SSH connection: privilege separation
-      # user and directory of sshd, host key
-      sshdSetup = pkgs.writeShellScript "nox-sshd-setup" ''
-        set -eu
-        PATH=${
-          lib.makeBinPath [
-            pkgs.coreutils
-            pkgs.openssh
-          ]
-        }:/usr/sbin:/usr/bin
-        getent passwd sshd >/dev/null ||
-          useradd --system --no-create-home --home-dir /var/empty --shell /usr/sbin/nologin sshd
-        install -d -m 0555 /var/empty
-        install -d -m 0700 /var/lib/nox/ssh
-        [ -e /var/lib/nox/ssh/ssh_host_ed25519_key ] ||
-          ssh-keygen -q -t ed25519 -N "" -f /var/lib/nox/ssh/ssh_host_ed25519_key
-        # Kicksecure user-sysmaint-split: only the account of the booted
-        # session may log in. sshd runs without PAM, which enforces this for
-        # local logins
-        if grep -qw boot-role=sysmaint /proc/cmdline; then
-          echo "DenyUsers user" >${sshdSessionConfig}
-        else
-          echo "DenyUsers sysmaint" >${sshdSessionConfig}
-        fi
-      '';
-
-      # sshd ForceCommand: what a Debian login sets up (/etc/profile.d) without
-      # its output (welcome texts would end up in vm-run -c), then the command
-      # (or an interactive login) in the user's shell
-      session = pkgs.writeScript "nox-session" ''
-        #!${pkgs.bash}/bin/bash
-        for f in /etc/profile.d/*.sh; do
-          [ -r "$f" ] && . "$f" >/dev/null 2>&1
-        done
-        if [ -n "''${SSH_ORIGINAL_COMMAND:-}" ]; then
-          exec "$SHELL" -c "$SSH_ORIGINAL_COMMAND"
-        fi
-        exec "$SHELL" -l
-      '';
 
       # dom0's fixed services in the guest (xen-migration.md, spec rest of
       # step 2): one call per connection on /run/nox-rpc-in.sock (relay
@@ -307,6 +229,15 @@ let
             echo "$(ls /boot/vmlinuz-* | sort -V | tail -n 1) /boot/vmlinuz-$(uname -r)"
             ;;
         ${lib.optionalString d.wprs ''
+          # nox doctor's probe (home/vm-management/vm-doctor.nix); only wprsd
+          # here, network checks run in the NixOS VMs
+          doctor)
+            IFS= read -r probe || exit 1
+            case "$probe" in
+              wprsd) asuser systemctl --user is-active wprsd ;;
+              *) echo "error: probe wprsd only" ;;
+            esac
+            ;;
           clip)
             IFS= read -r action || exit 1
             case "$action" in
@@ -375,18 +306,18 @@ let
       '';
 
       env = pkgs.runCommand "nox-guest-${name}" { } ''
-        mkdir -p $out/bin $out/etc/ssh/authorized_keys
+        mkdir -p $out/bin $out/etc
         ln -s ${relayPackage}/bin/nox-relay $out/bin/nox-relay
-        ln -s ${pkgs.openssh}/bin/sshd $out/bin/sshd
-        ln -s ${sshdSetup} $out/bin/nox-sshd-setup
-        ln -s ${session} $out/bin/nox-session
         ln -s ${rpcIn} $out/bin/nox-rpc-in
         ln -s ${appEnv} $out/bin/nox-app-env
         ln -s ${relayConfig} $out/etc/nox-relay.conf
-        ln -s ${sshdConfig} $out/etc/ssh/sshd_config
-        cp ${pkgs.writeText "authorized_keys" (lib.concatMapStrings (k: "${k}\n") d.authorizedKeys)} \
-          $out/etc/ssh/authorized_keys/user
-        ${lib.optionalString (d.sysmaintEntry != null) "ln -s user $out/etc/ssh/authorized_keys/sysmaint"}
+        ${lib.optionalString d.foot ''
+          # Own fonts (the image may have none) and a TERM Debian knows
+          ln -s ${pkgs.writeShellScript "foot" ''
+            export FONTCONFIG_FILE=${pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; }}
+            exec ${pkgs.foot}/bin/foot -o term=xterm-256color "$@"
+          ''} $out/bin/foot
+        ''}
         ${lib.optionalString d.driverDomain ''
           ln -s ${xen}/bin/xl ${xen}/bin/xenstore-write ${xen}/bin/xenstore-rm $out/bin/
           mkdir -p $out/etc/xen
@@ -399,7 +330,8 @@ let
           # no selection sync with dom0 (modules/wprs-clipboard.nix)
           ln -s ${pkgs.writeShellScript "wprsd" ''
             export WPRS_NO_SELECTION_SYNC=1
-            exec ${pkgs.wprs}/bin/wprsd "$@"
+            # Frame pacing as in the NixOS VMs (vms/modules/wprs.nix)
+            exec ${pkgs.wprs}/bin/wprsd --framerate 120 "$@"
           ''} $out/bin/wprsd
         ''}
       '';
@@ -431,7 +363,6 @@ let
       ];
       wants = [
         "nox-relay.service"
-        "sshd-vchan.socket"
         "nox-rpc-in.socket"
       ]
       ++ lib.optional d.driverDomain "xendriverdomain.service"
@@ -444,7 +375,7 @@ let
         s=$out/etc/systemd/system
         cp ${unit ''
           [Unit]
-          Description=Nix store disk (nox-relay, sshd${lib.optionalString d.driverDomain ", Xen tools"})
+          Description=Nix store disk (nox-relay, rpc${lib.optionalString d.driverDomain ", Xen tools"})
 
           [Mount]
           What=/dev/xvdb
@@ -454,7 +385,7 @@ let
         ''} $s/nix-store.mount
         cp ${unit ''
           [Unit]
-          Description=dom0 integration (nox-relay, sshd over vchan${lib.optionalString d.driverDomain ", xl devd"})
+          Description=dom0 integration (nox-relay, rpc over vchan${lib.optionalString d.driverDomain ", xl devd"})
           Wants=${toString wants}
 
           [Install]
@@ -478,41 +409,6 @@ let
           Restart=always
           RestartSec=1
         ''} $s/nox-relay.service
-        cp ${unit ''
-          [Unit]
-          Description=sshd setup (user, host key)
-          Requires=nix-store.mount
-          After=nix-store.mount
-
-          [Service]
-          Type=oneshot
-          RemainAfterExit=yes
-          ExecStart=/nix/store/nox/bin/nox-sshd-setup
-        ''} $s/nox-sshd-setup.service
-        cp ${unit ''
-          [Unit]
-          Description=SSH over vchan (nox-relay)
-          # Not before sockets.target: the setup runs after basic.target
-          DefaultDependencies=no
-          Requires=nox-sshd-setup.service
-          After=nox-sshd-setup.service
-          Before=shutdown.target
-          Conflicts=shutdown.target
-
-          [Socket]
-          ListenStream=${guestSshSocket}
-          Accept=yes
-          SocketMode=0600
-        ''} $s/sshd-vchan.socket
-        cp ${unit ''
-          [Unit]
-          Description=SSH over vchan (one connection)
-
-          [Service]
-          ExecStart=-/nix/store/nox/bin/sshd -i -f /nix/store/nox/etc/ssh/sshd_config
-          StandardInput=socket
-          StandardError=journal
-        ''} $s/sshd-vchan@.service
         cp ${unit ''
           [Unit]
           Description=Calls from dom0 (nox-rpc-in)
@@ -697,25 +593,20 @@ let
           exit 1
         fi
         # Backend ready: its driver domain wrote data/backend-ready after xl
-        # devd started (common-config.nix, nox-backend-ready here); until every
-        # driver domain does (images set up again), its sshd answering counts
+        # devd started (common-config.nix, the guest's xendriverdomain here)
         reachable() {
           local be
           be="$(xl domid "$1" 2>/dev/null)" || return 1
-          [ "$(xenstore-read "/local/domain/$be/data/backend-ready" 2>/dev/null)" = 1 ] && return 0
-          case "$2" in
-            /*) [ "$(timeout 3 socat -t 2 - "UNIX-CONNECT:$2" </dev/null 2>/dev/null | head -c 4)" = SSH- ] ;;
-            *) timeout 1 bash -c "</dev/tcp/$2/22" 2>/dev/null ;;
-          esac
+          [ "$(xenstore-read "/local/domain/$be/data/backend-ready" 2>/dev/null)" = 1 ]
         }
         ${lib.concatMapStrings (v: ''
           for _ in $(seq 180); do
-            reachable ${lib.escapeShellArg v.backend} ${lib.escapeShellArg v.backendAddress} && break
+            reachable ${lib.escapeShellArg v.backend} && break
             sleep 1
           done
         '') (lib.unique d.vifs)}
         ${lib.concatMapStrings (v: ''
-          # sys-net's sshd is up before its uplink (DHCP); Tor that starts
+          # sys-net is ready before its uplink (DHCP); Tor that starts
           # without one marks its guards unreachable and does not recover
           # (Whonix-Gateway, 2026-10-12). Start anyway after 90 s.
           for i in $(seq 90); do
@@ -799,6 +690,13 @@ let
     cmds="$(mktemp)"
     trap 'rm -f "$cmds"' EXIT
     cd "$tree"
+    {
+      # Units of earlier store disks (sshd over vchan, gone with the SSH removal)
+      for old in sshd-vchan.socket sshd-vchan@.service nox-sshd-setup.service; do
+        exists "/etc/systemd/system/$old" && echo "rm /etc/systemd/system/$old"
+      done
+      true
+    } >"$cmds"
     while IFS= read -r p; do
       d="''${p#.}"
       if [ -L "$p" ]; then
@@ -815,7 +713,7 @@ let
       fi
       echo "sif $d uid 0"
       echo "sif $d gid 0"
-    done < <(find . -mindepth 1 | sort) >"$cmds"
+    done < <(find . -mindepth 1 | sort) >>"$cmds"
     # debugfs echoes every command; show only what went wrong
     debugfs -w -f "$cmds" "$fs" 2>&1 | grep -vE '^(debugfs( [0-9]|: )|Allocated inode|$)' || true
     echo "Installed $(grep -c -E '^(write|symlink|mkdir) ' "$cmds") entries from $tree into $image (partition $part)"
@@ -883,17 +781,13 @@ in
       }
     ) cfg.domains;
 
-    # dom0's side of the relay: SSH (vm-run -c, ssh <name>-vm) plus extras
+    # dom0's side of the relay: rpc-in (nox-rpc --dom0), wprs, extras
     services.nox-relay.host.guests = lib.mapAttrs (name: d: {
       inherit (d) domain;
       serve = d.relay.host.serve // lib.optionalAttrs d.wprs { pulse = "/run/user/1000/pulse/native"; };
       listen =
         d.relay.host.listen
         // {
-          ssh = {
-            path = "/run/nox-relay/${name}-ssh.sock";
-            owner = "1000:100";
-          };
           # dom0's fixed services in the guest (nox-rpc-in on the store disk)
           rpc-in = {
             path = "/run/nox-relay/${name}-rpc-in.sock";
@@ -919,7 +813,6 @@ in
             mac
             bridge
             backend
-            backendAddress
             ;
         }) d.vifs
       ) cfg.domains

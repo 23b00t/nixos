@@ -61,6 +61,7 @@ in
   # starts at boot as well.
   microvm.autostart = lib.mkForce [
     "sys-net"
+    "sys-firewall"
     "sys-usb"
     "nvim"
     "chat"
@@ -90,17 +91,17 @@ in
         vifs = [
           {
             mac = "00:00:00:00:01:08";
-            bridge = "vm-uplink";
+            # Internet behind sys-firewall (static 10.6.0.8/24 via 10.6.0.254 in kali)
+            bridge = "vm-fw";
+            backend = "sys-firewall-vm";
           }
           {
             mac = "00:00:00:00:03:08";
             bridge = "vm-lab";
+            backend = "sys-firewall-vm";
           }
         ];
         wprs = true;
-        authorizedKeys = map (d: d.hostSSHKey) (
-          builtins.filter (d: d.name == "kali") vmRegistry.imageDomains
-        );
       };
     };
 

@@ -35,5 +35,6 @@ in
   sys-vpn = mkVm "sys-vpn";
   disp = mkVm "disp";
   disp-backup = mkVm "disp-backup";
+  sys-firewall = mkVm "sys-firewall";
   # create-vm: definitions
 }

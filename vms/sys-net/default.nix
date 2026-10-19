@@ -1,6 +1,7 @@
 # sys-net (v2.5): Xen HVM driver domain owning the WLAN card. Serves the
-# uplink bridge `vm-uplink` (10.1.0.254/24) as backend for the VMs' uplink vifs
-# and NATs it to the WLAN. dom0 is only on the admin network (vm-lan).
+# uplink bridge `vm-uplink` (10.1.0.254/24) as backend for sys-firewall and
+# sys-print, routes sys-firewall's client nets back to it and NATs to the
+# WLAN; Tails has its own bridge. dom0 is only on the admin network (vm-lan).
 {
   lib,
   pkgs,
@@ -18,15 +19,8 @@ let
   dom0TestAccess = vmRegistry.hostProfile.dom0TestAccess or null;
   # sys-print (C2) on the uplink: 10.1.0.<last octet of its registry IP>
   sysPrint = "10.1.0.${lib.last (lib.splitString "." vmRegistry.byName.sys-print.ip)}";
-  # Lab bridge vm-lab (kali tests the registry's labTarget VMs), only where
-  # kali runs. kali's lab vif: 00:00:00:00:03:<last octet of its IP as hex>
-  kali = lib.findFirst (d: d.name == "kali") null vmRegistry.imageDomains;
-  lab = kali != null;
-  kaliLabMac = "00:00:00:00:03:${
-    lib.fixedWidthString 2 "0" (
-      lib.toLower (lib.toHexString (lib.toInt (lib.last (lib.splitString "." kali.ip))))
-    )
-  }";
+  # sys-firewall on the uplink: its client nets are routed there (no NAT)
+  sysFirewall = "10.1.0.${lib.last (lib.splitString "." vmRegistry.byName.sys-firewall.ip)}";
 in
 {
   imports = [
@@ -50,9 +44,6 @@ in
       enable = true;
       withDefaultPkgs = false;
     };
-
-    # SSH only from the admin network (dom0), not from the uplink or the WLAN
-    openssh.openFirewall = false;
   };
 
   users.users.user.extraGroups = lib.mkAfter [ "networkmanager" ];
@@ -87,23 +78,9 @@ in
         Name = "vm-uplink";
         Kind = "bridge";
       };
-      # External side of the Whonix-Gateway (its eth0 is fixed to 10.0.2.15/24
-      # via 10.0.2.2 in the image); nothing else is on this bridge
-      "20-vm-whx-ext".netdevConfig = {
-        Name = "vm-whx-ext";
-        Kind = "bridge";
-      };
       # Tails (HVM): DHCP from sys-net, nothing else on this bridge
       "20-vm-tails".netdevConfig = {
         Name = "vm-tails";
-        Kind = "bridge";
-      };
-    }
-    // lib.optionalAttrs lab {
-      # Lab: kali and the attached labTarget VMs (10.5.0.0/24), pure L2,
-      # sys-net has no address here and routes nothing in or out
-      "20-vm-lab".netdevConfig = {
-        Name = "vm-lab";
         Kind = "bridge";
       };
     };
@@ -111,12 +88,16 @@ in
       "30-vm-uplink" = {
         matchConfig.Name = "vm-uplink";
         address = [ "10.1.0.254/24" ];
-        networkConfig.ConfigureWithoutCarrier = true;
-        linkConfig.RequiredForOnline = "no";
-      };
-      "30-vm-whx-ext" = {
-        matchConfig.Name = "vm-whx-ext";
-        address = [ "10.0.2.2/24" ];
+        routes =
+          map
+            (net: {
+              Destination = net;
+              Gateway = sysFirewall;
+            })
+            [
+              "10.6.0.0/24"
+              "10.0.2.0/24"
+            ];
         networkConfig.ConfigureWithoutCarrier = true;
         linkConfig.RequiredForOnline = "no";
       };
@@ -140,16 +121,6 @@ in
         matchConfig.Name = "vif*";
         linkConfig.Unmanaged = true;
       };
-    }
-    // lib.optionalAttrs lab {
-      "30-vm-lab" = {
-        matchConfig.Name = "vm-lab";
-        networkConfig = {
-          ConfigureWithoutCarrier = true;
-          LinkLocalAddressing = "no";
-        };
-        linkConfig.RequiredForOnline = "no";
-      };
     };
   };
 
@@ -159,11 +130,9 @@ in
       unmanaged = [
         "interface-name:vm-lan"
         "interface-name:vm-uplink"
-        "interface-name:vm-whx-ext"
         "interface-name:vm-tails"
         "interface-name:vif*"
-      ]
-      ++ lib.optional lab "interface-name:vm-lab";
+      ];
     };
     nftables = {
       enable = true;
@@ -175,16 +144,6 @@ in
             chain forward {
               # priority 0 would be skipped: br_netfilter re-injects after its own hook (prio 0)
               type filter hook forward priority filter; policy accept;
-              ${lib.optionalString lab ''
-                # Lab: only frames from or to kali; the targets never reach
-                # each other (ARP passes, IP does not). By MAC: the targets
-                # are own VMs. No conntrack on the bridge, so a target could
-                # also open connections to kali (kali offers no services)
-                meta ibrname "vm-lab" ether type arp accept
-                meta ibrname "vm-lab" ether saddr ${kaliLabMac} accept
-                meta ibrname "vm-lab" ether daddr ${kaliLabMac} accept
-                meta ibrname "vm-lab" drop
-              ''}
               iifname "vif*" oifname "vif*" drop
             }
           '';
@@ -205,31 +164,23 @@ in
     };
     firewall = {
       enable = true;
-      interfaces.vm-lan.allowedTCPPorts = [ 22 ];
       # DHCP for Tails (it takes its address only by DHCP)
       interfaces.vm-tails.allowedUDPPorts = [ 67 ];
       filterForward = true;
       extraForwardRules = ''
         # sys-print (C2): printers in the local network (IPP), nothing else
-        iifname "vm-uplink" ip saddr ${sysPrint} oifname != { "vm-uplink", "vm-lan", "vm-whx-ext", "vm-tails" } ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 631 accept
+        iifname "vm-uplink" ip saddr ${sysPrint} oifname != { "vm-uplink", "vm-lan", "vm-tails" } ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } tcp dport 631 accept
         iifname "vm-uplink" ip saddr ${sysPrint} reject with icmpx type admin-prohibited
-        # VMs -> outside only (not into the admin network, not to Whonix-Gateway or Tails)
-        iifname "vm-uplink" oifname != { "vm-uplink", "vm-lan", "vm-whx-ext", "vm-tails" } accept
-        # Whonix-Gateway -> outside only (Tor); nothing gets in, see ct state below
-        iifname "vm-whx-ext" oifname != { "vm-uplink", "vm-lan", "vm-whx-ext", "vm-tails" } accept
+        # VMs and sys-firewall (its clients routed: 10.6.0.0/24, Whonix-Gateway
+        # 10.0.2.0/24) -> outside only (not into the admin network, not to Tails)
+        iifname "vm-uplink" oifname != { "vm-uplink", "vm-lan", "vm-tails" } accept
         # Tails -> outside only (it only speaks Tor itself)
-        iifname "vm-tails" oifname != { "vm-uplink", "vm-lan", "vm-whx-ext", "vm-tails" } accept
-      ''
-      + lib.optionalString lab ''
-        # Lab: bridged frames stay on vm-lab (policy in the bridge table
-        # above); only matters if br_netfilter hands them to this chain
-        iifname "vm-lab" oifname "vm-lab" accept
-        iifname "vm-lab" reject with icmpx type admin-prohibited
+        iifname "vm-tails" oifname != { "vm-uplink", "vm-lan", "vm-tails" } accept
       ''
       + lib.optionalString (dom0TestAccess != null) ''
         # Test phase: dom0 -> outside, HTTPS/DNS/NTP/ICMP only (as on the XMG),
         # never into the uplink network
-        iifname "vm-lan" ip saddr ${dom0} oifname { "vm-uplink", "vm-whx-ext", "vm-tails" } reject with icmpx type admin-prohibited
+        iifname "vm-lan" ip saddr ${dom0} oifname { "vm-uplink", "vm-tails" } reject with icmpx type admin-prohibited
         iifname "vm-lan" ip saddr ${dom0} meta l4proto icmp accept
         iifname "vm-lan" ip saddr ${dom0} tcp dport { 22, 80, 443 } accept
         iifname "vm-lan" ip saddr ${dom0} udp dport { 53, 123 } accept
@@ -246,7 +197,6 @@ in
       enable = true;
       internalInterfaces = [
         "vm-uplink"
-        "vm-whx-ext"
         "vm-tails"
       ]
       ++ lib.optional (dom0TestAccess != null) "vm-lan";

@@ -1,8 +1,8 @@
 # `vm-lab attach|detach <vm>`, `vm-lab status`: hangs a labTarget VM
-# (registry) on sys-net's lab bridge vm-lab while kali tests its apps, and
+# (registry) on sys-firewall's lab bridge vm-lab while kali tests its apps, and
 # takes it off again. Only registry labTarget VMs; the vif is not persistent
-# (gone after a restart of the VM or sys-net, attach again). Guest side:
-# vms/modules/lab-target.nix, bridge and filter: vms/sys-net.
+# (gone after a restart of the VM or sys-firewall, attach again). Guest side:
+# vms/modules/lab-target.nix, bridge and filter: vms/sys-firewall.
 {
   lib,
   pkgs,
@@ -70,12 +70,12 @@ let
 
     case "''${1:-}" in
       attach)
-        sudo xl domid sys-net-vm >/dev/null 2>&1 || { echo "vm-lab: sys-net is not running" >&2; exit 1; }
+        sudo xl domid sys-firewall-vm >/dev/null 2>&1 || { echo "vm-lab: sys-firewall is not running" >&2; exit 1; }
         if attached "$name" "$m"; then
           echo "vm-lab: $name is already on the lab bridge ($addr)"
           exit 0
         fi
-        sudo xl network-attach "$name-vm" mac="$m" bridge=vm-lab backend=sys-net-vm
+        sudo xl network-attach "$name-vm" mac="$m" bridge=vm-lab backend=sys-firewall-vm
         echo "vm-lab: $name attached, reachable from kali at $addr"
         ;;
       detach)
@@ -104,7 +104,7 @@ let
   '';
 in
 {
-  options.services.xen-lab.enable = lib.mkEnableOption "the `vm-lab` command (kali lab bridge in sys-net)";
+  options.services.xen-lab.enable = lib.mkEnableOption "the `vm-lab` command (kali lab bridge in sys-firewall)";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ vmLab ];

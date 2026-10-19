@@ -20,6 +20,7 @@
   # Only the VMs switched to Xen can run; KVM-based ones would fail on start
   microvm.autostart = lib.mkForce [
     "sys-net"
+    "sys-firewall"
     "sys-usb"
     "vault"
     "nvim"

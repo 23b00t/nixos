@@ -39,11 +39,14 @@ let
 
   # One terminal per domain with a GUI over wprs: foot in the NixOS VMs
   # (wprsd, vms/modules/wprs.nix), the image's default terminal in the
-  # Debian image domains (`wprs = true`; Whonix-Gateway has none yet)
+  # Debian image domains (`wprs = true`), foot from the store disk where the
+  # image has none (`foot = true`, Whonix-Gateway)
   terminalOf =
     vm:
     if (osConfig.microvm.vms.${vm.name}.config.config.systemd.user.services or { }) ? wprsd then
       "foot"
+    else if osConfig.services.xen-image-domains.domains.${vm.name}.foot or false then
+      "/nix/store/nox/bin/foot"
     else if osConfig.services.xen-image-domains.domains.${vm.name}.wprs or false then
       "x-terminal-emulator"
     else

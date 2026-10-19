@@ -3,7 +3,7 @@
 # used:
 # - GitHub agent (registry `allowGitHubAgent`)
 # - filtered session bus, notifications + tray (`enableHostDbusForward`)
-# - SSH (VMs with sshd): dom0's ssh reaches sshd -i (socket-activated per
+# - SSH (VMs with sshd, only the builder): dom0's ssh reaches sshd -i (socket-activated per
 #   connection) instead of the admin network (stage B, ProxyCommand in
 #   home/ssh.nix); stage B2 drops the admin interface (except sys-net)
 # - wprs (VMs with wprsd, vms/modules/wprs.nix): dom0's wprsc reaches wprsd,
@@ -147,6 +147,71 @@ in
               *) echo "error: probe net|ip|wprsd|dbus"; exit 1 ;;
             esac
           '';
+          # W1 backup (dom0's vm-backup, xen-migration.md spec Backup): only
+          # disp-backup calls (nox-rpcd policy too). First line: the rsync
+          # server command its rsync sends; only this form on /home/user:
+          # send = read-only sender (no .cache, the client excludes it),
+          # recv = --update (never deletes, newer files stay)
+          handlers.backup-send = ''
+            if [ "$source" != disp-backup ]; then
+              echo "error: only disp-backup"
+              exit 1
+            fi
+            IFS= read -r line || exit 1
+            if ! [[ "$line" =~ ^rsync\ --server\ --sender\ -[A-Za-z.]+\ --numeric-ids\ \.\ /home/user/$ ]]; then
+              echo "error: unexpected rsync command" >&2
+              exit 1
+            fi
+            read -ra args <<<"$line"
+            cd /home/user && exec ${pkgs.rsync}/bin/rsync "''${args[@]:1}"
+          '';
+          handlers.backup-recv = ''
+            if [ "$source" != disp-backup ]; then
+              echo "error: only disp-backup"
+              exit 1
+            fi
+            IFS= read -r line || exit 1
+            if ! [[ "$line" =~ ^rsync\ --server\ -u[A-Za-z.]+\ --numeric-ids\ \.\ /home/user/$ ]]; then
+              echo "error: unexpected rsync command" >&2
+              exit 1
+            fi
+            read -ra args <<<"$line"
+            cd /home/user && exec ${pkgs.rsync}/bin/rsync "''${args[@]:1}"
+          '';
+          # One-time copy into dom0 (dom0's `vm-pull` / `nox pull`, Qubes
+          # `qvm-run --pass-io` model): only dom0 calls, only plain files
+          # directly in ~/outbox. First line `list` (name<TAB>bytes per line)
+          # or `get <name>` (answer `ok <bytes>`, then the file zstd-compressed:
+          # sparse images like kali.raw would send their holes as zeros)
+          handlers.pull = ''
+            if [ "$source" != dom0 ]; then
+              echo "error: only dom0"
+              exit 1
+            fi
+            IFS= read -r line || exit 1
+            dir="''${HOME:-/home/user}/outbox"
+            case "$line" in
+              list)
+                [ -d "$dir" ] || exit 0
+                ${pkgs.findutils}/bin/find "$dir" -mindepth 1 -maxdepth 1 -type f -printf '%f\t%s\n'
+                ;;
+              "get "*)
+                name="''${line#get }"
+                if ! [[ "$name" =~ ^[A-Za-z0-9_+-][A-Za-z0-9._+-]*$ ]]; then
+                  echo "error: bad name"
+                  exit 1
+                fi
+                f="$dir/$name"
+                if [ -L "$f" ] || [ ! -f "$f" ]; then
+                  echo "error: no file $name in ~/outbox"
+                  exit 1
+                fi
+                echo "ok $(stat -c %s "$f")"
+                exec ${pkgs.zstd}/bin/zstd -q -c -T0 -3 <"$f"
+                ;;
+              *) echo "error: list | get <name>"; exit 1 ;;
+            esac
+          '';
           handlers.clip = lib.mkIf wprs ''
             if [ "$source" != dom0 ]; then
               echo "error: only dom0"
@@ -183,7 +248,7 @@ in
 
       # ... and no admin interface (only for VMs that use net-config)
       (lib.optionalAttrs (options.services ? net-config) {
-        services.net-config.adminInterface = lib.mkIf ssh (lib.mkDefault (vmName == "sys-net"));
+        services.net-config.adminInterface = lib.mkDefault (vmName == "sys-net");
       })
     ]
   );

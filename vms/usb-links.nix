@@ -31,6 +31,7 @@ rec {
     "sys-net"
     "sys-usb"
     "sys-vpn"
+    "sys-firewall"
     "builder"
   ];
   isTarget = name: vmRegistry.byName ? ${name} && !builtins.elem name noTarget;

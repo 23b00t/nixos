@@ -12,7 +12,7 @@ in
   networking.hostName = "irc-vm";
 
   # v3: the only network is the uplink to the Whonix-Gateway (backend of the
-  # vif, bridge eth1 there), never sys-net. SSH/zellij from dom0 over vchan.
+  # vif, bridge eth1 there), never sys-net.
   services.net-config = {
     enable = true;
     inherit index;
@@ -23,13 +23,12 @@ in
       address4 = "10.152.152.21/18";
       gateway4 = "10.152.152.10";
       backend = "whonix-gateway-vm";
-      backendAddress = "/run/nox-relay/whonix-gateway-ssh.sock";
       bridge = "eth1";
     };
   };
 
   microvm = {
-    
+
     hypervisor = "xen";
     volumes = [
       {

@@ -1,8 +1,8 @@
 # vm-gui (v2.8.4): GUI apps from Xen VMs over vchan. dom0's wprsc talks to
 # the VM's wprsd through nox-relay (/run/nox-relay/<vm>-wprs.sock) instead
 # of an SSH tunnel; one wprsc per VM. The app is started by RPC (stage C3,
-# `nox-rpc --dom0 app <vm>`, handler in vms/modules/vchan-relay.nix), VMs
-# without it (sys-net, sys-usb) still over SSH. vm-run uses vm-gui for Xen
+# `nox-rpc --dom0 app <vm>`, handler in vms/modules/vchan-relay.nix, image
+# domains: modules/xen-image-domains.nix). vm-run uses vm-gui for Xen
 # guests with wprs over the relay.
 {
   lib,
@@ -16,9 +16,8 @@ let
     vm:
     "  ${vm.name}${
         lib.optionalString (vm.short != null && vm.short != vm.name) "|${vm.short}"
-      }) VM=${vm.name}; IP=${vm.ip} ;;\n"
+      }) VM=${vm.name} ;;\n"
   ) (vmRegistry.vms ++ vmRegistry.imageDomains);
-  imageNames = lib.concatMapStringsSep " " (d: d.name) vmRegistry.imageDomains;
 
   vmGui = pkgs.writeShellScriptBin "vm-gui" ''
     set -eu
@@ -51,11 +50,15 @@ let
     pidfile="$run/wprsc-vchan-$VM.pid"
     # Locked: apps started together (niri spawn-at-startup) each saw no
     # pidfile and started their own wprsc (three for chat, 2026-10-15).
-    # wprsc must not inherit the lock fd, it would hold the lock forever
+    # wprsc must not inherit the lock fd, it would hold the lock forever.
+    # The app answer comes before wprsd listens at boot: the VM refuses the
+    # stream and wprsc exits at once (nvim's foot missing for 3 min, hp
+    # 2026-10-19), so start it again until it stays up
     start_wprsc() {
       (
         ${pkgs.util-linux}/bin/flock 9
-        if ! { [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; }; then
+        for _ in $(seq 30); do
+          [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null && break
           # Title prefix: niri's border rule per trust label matches it
           # (home/desktop/niri.nix `labelRules`)
           setsid ${pkgs.wprs}/bin/wprsc --socket="$sock" \
@@ -64,43 +67,28 @@ let
             >"$run/wprsc-vchan-$VM.log" 2>&1 9>&- &
           echo $! >"$pidfile"
           sleep 1
-        fi
+        done
       ) 9>"$run/wprsc-vchan-$VM.lock"
     }
 
     # Same environment the wprs launcher sets for remote apps; over RPC the
     # VM sets it (apps.environment), only the cursor size comes from here
     cursor="XCURSOR_SIZE=''${XCURSOR_SIZE:-24}"
-    # Image domains have rpc-in only once xen-image-setup installed its
-    # units again (2026-10-18); until then they answer no ping: SSH
-    case " ${imageNames} " in
-      *" $VM "*)
-        [ "$(timeout 5 nox-rpc --dom0 ping "$VM" </dev/null 2>/dev/null)" = ok ] || rpc=/nonexistent
-        ;;
-    esac
-    if [ -S "$rpc" ]; then
-      # Retry while the VM is still booting (the relay drops the call
-      # without an answer); the handler answers "ok: ..." or "error: ...".
-      # The app unit waits for wprsd, so wprsc comes after it. One token for
-      # all tries: a retry after a lost answer doesn't start the app twice
-      # (NoX startApp; older handlers just get one more variable)
-      token="$(${pkgs.coreutils}/bin/od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
-      answer=""
-      for _ in $(seq 60); do
-        answer="$(printf '%s\0' env "NOX_APP_TOKEN=$token" "$cursor" "$@" | nox-rpc --dom0 app "$VM" 2>/dev/null)" || true
-        [ -n "$answer" ] && break
-        sleep 1
-      done
-      [[ "$answer" == ok* ]] || fail "start of $1 failed: ''${answer:-no answer}"
-      start_wprsc
-    else
-      start_wprsc
-      exec ${pkgs.openssh}/bin/ssh -i "$HOME/.ssh/$VM-vm" \
-        -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
-        "user@$IP" env WAYLAND_DISPLAY=wprs-0 DISPLAY=:100 XDG_SESSION_TYPE=wayland \
-        PULSE_SERVER=unix:/tmp/wprs-pulse "$cursor" \
-        "$(printf '%q ' "$@")"
-    fi
+    [ -S "$rpc" ] || fail "$rpc missing (is nox-relay-$VM up?)"
+    # Retry while the VM is still booting (the relay drops the call
+    # without an answer); the handler answers "ok: ..." or "error: ...".
+    # The app unit waits for wprsd, so wprsc comes after it. One token for
+    # all tries: a retry after a lost answer doesn't start the app twice
+    # (NoX startApp; older handlers just get one more variable)
+    token="$(${pkgs.coreutils}/bin/od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
+    answer=""
+    for _ in $(seq 60); do
+      answer="$(printf '%s\0' env "NOX_APP_TOKEN=$token" "$cursor" "$@" | nox-rpc --dom0 app "$VM" 2>/dev/null)" || true
+      [ -n "$answer" ] && break
+      sleep 1
+    done
+    [[ "$answer" == ok* ]] || fail "start of $1 failed: ''${answer:-no answer}"
+    start_wprsc
   '';
 
   # Clipboard between domains (Qubes model): each VM keeps its own clipboard
@@ -115,35 +103,16 @@ let
 
   vmClip = pkgs.writeShellScriptBin "vm-clip" ''
     set -eu
-    ssh() {
-      ${pkgs.openssh}/bin/ssh -o BatchMode=yes -o ConnectTimeout=5 "$@"
-    }
-    # The VM's fixed service `clip` (nox-rpc, only dom0 calls); SSH only for
-    # image domains whose units predate it (xen-image-setup not run again)
-    rpc_ok() {
-      [ -S "/run/nox-relay/$1-rpc-in.sock" ] &&
-        [ "$(timeout 5 nox-rpc --dom0 ping "$1" </dev/null 2>/dev/null)" = ok ]
-    }
+    # The VM's fixed service `clip` (nox-rpc, only dom0 calls)
     clip_get() {
-      if rpc_ok "$1"; then
-        printf 'get\n' | timeout 20 nox-rpc --dom0 clip "$1"
-      else
-        ssh "$1" "$helper get" </dev/null
-      fi
+      printf 'get\n' | timeout 20 nox-rpc --dom0 clip "$1"
     }
     clip_set() {
-      if rpc_ok "$1"; then
-        { printf 'set\n'; cat; } | timeout 20 nox-rpc --dom0 clip "$1" >/dev/null
-      else
-        ssh "$1" "$helper set"
-      fi
+      { printf 'set\n'; cat; } | timeout 20 nox-rpc --dom0 clip "$1" >/dev/null
     }
     notify() {
       ${pkgs.libnotify}/bin/notify-send -a vm-clip "Zwischenablage" "$1" || true
     }
-    # Image domains (Whonix) keep it in /nix/store/nox/bin, not on the
-    # session PATH
-    helper='PATH="$PATH:/nix/store/nox/bin" vm-clip-helper'
     fail() {
       notify "$1"
       echo "vm-clip: $1" >&2
@@ -223,10 +192,85 @@ let
         ;;
     esac
   '';
+
+  # One-time copy from a NixOS VM into dom0 (Qubes `qvm-run --pass-io`
+  # model, e.g. the kali image from coding): dom0 asks, the VM's fixed
+  # service `pull` (vms/modules/vchan-relay.nix) sends a file from its
+  # ~/outbox, it lands in ~/Incoming/<vm>/ without exec bit and is never run.
+  # The VM's answer is untrusted: names checked, control characters dropped
+  pullCases = lib.concatMapStrings (
+    vm:
+    "  ${vm.name}${
+        lib.optionalString (vm.short != null && vm.short != vm.name) "|${vm.short}"
+      }) VM=${vm.name} ;;\n"
+  ) vmRegistry.vms;
+
+  vmPull = pkgs.writeShellScriptBin "vm-pull" ''
+    set -euo pipefail
+    if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+      echo "usage: vm-pull <vm|short> [<file in the VM's ~/outbox>]" >&2
+      echo "  without a file: list the VM's ~/outbox" >&2
+      exit 2
+    fi
+    case "$1" in
+    ${pullCases}
+      *) echo "vm-pull: unknown VM: $1" >&2; exit 2 ;;
+    esac
+    [ -S "/run/nox-relay/$VM-rpc-in.sock" ] || { echo "vm-pull: $VM is not running" >&2; exit 1; }
+    name_re='^[A-Za-z0-9_+-][A-Za-z0-9._+-]*$'
+
+    if [ $# -eq 1 ]; then
+      printf 'list\n' | timeout 20 nox-rpc --dom0 pull "$VM" | while IFS=$'\t' read -r n s; do
+        [[ "$n" =~ $name_re && "$s" =~ ^[0-9]+$ ]] || continue
+        printf '%s\t%s\n' "$(${pkgs.coreutils}/bin/numfmt --to=iec "$s")" "$n"
+      done
+      exit 0
+    fi
+
+    name="$2"
+    [[ "$name" =~ $name_re ]] || { echo "vm-pull: bad file name (only letters, digits, ._+-)" >&2; exit 2; }
+    dest="$HOME/Incoming/$VM"
+    out="$dest/$name"
+    part="$out.partial"
+    [ ! -e "$out" ] || { echo "vm-pull: $out exists" >&2; exit 1; }
+    mkdir -p "$dest"
+
+    exec 3< <(printf 'get %s\n' "$name" | nox-rpc --dom0 pull "$VM")
+    IFS= read -r hdr <&3 || { echo "vm-pull: no answer from $VM" >&2; exit 1; }
+    if ! [[ "$hdr" =~ ^ok\ ([0-9]+)$ ]]; then
+      echo "vm-pull: $VM: ''${hdr//[^[:print:]]/?}" >&2
+      exit 1
+    fi
+    size="''${BASH_REMATCH[1]}"
+    printf 'Copy %s (%s) from %s to %s? [y/N] ' "$name" \
+      "$(${pkgs.coreutils}/bin/numfmt --to=iec "$size")" "$VM" "$out"
+    read -r yn </dev/tty
+    case "$yn" in
+      [yYjJ]*) ;;
+      *) echo "aborted"; exit 1 ;;
+    esac
+    umask 022
+    rm -f "$part"
+    if ! ${pkgs.zstd}/bin/zstd -d -q -c <&3 \
+      | dd of="$part" bs=1M iflag=fullblock conv=sparse status=progress; then
+      rm -f "$part"
+      echo "vm-pull: transfer failed" >&2
+      exit 1
+    fi
+    got="$(stat -c %s "$part")"
+    if [ "$got" != "$size" ]; then
+      rm -f "$part"
+      echo "vm-pull: got $got bytes, $VM announced $size" >&2
+      exit 1
+    fi
+    mv -n "$part" "$out"
+    echo "$out"
+  '';
 in
 {
   home.packages = [
     vmGui
     vmClip
+    vmPull
   ];
 }
