@@ -262,14 +262,14 @@ in
             "format": " {}",
             "return-type": "json",
             "exec": "cat /run/xen-stats/mem",
-            "interval": 3
+            "interval": 30
           },
 
           "custom/xen-cpu": {
             "format": " {}",
             "return-type": "json",
             "exec": "cat /run/xen-stats/cpu",
-            "interval": 3
+            "interval": 5
           },
 
           "backlight": {

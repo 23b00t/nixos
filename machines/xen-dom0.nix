@@ -494,7 +494,7 @@ in
   services.xen-image-domains.domains.whonix-workstation = {
     image = "/home/nx/vm-images/whonix/whonix-workstation.raw";
     rootPartition = 3;
-    memory = 2048;
+    memory = 4096;
     vcpus = 2;
     vifs = [
       {
@@ -585,6 +585,7 @@ in
             path = [
               config.virtualisation.xen.package
               pkgs.gawk
+              pkgs.gnused
               pkgs.coreutils
             ];
             serviceConfig = {
@@ -597,31 +598,45 @@ in
               out=/run/xen-stats
               write() { printf '%s\n' "$2" > "$out/$1.tmp" && mv "$out/$1.tmp" "$out/$1"; }
               ncpu=$(xl info | awk '/^nr_cpus/ { print $3 }')
-              prev="" prev_t=""
+              # CPU every 5 s, memory every 30 s (waybar intervals in
+              # home/desktop/waybar.nix). Few processes per round: every fork
+              # costs page-table hypercalls in a PV dom0 (2026-10-21: 3 s with
+              # two awk per domain took ~5 % of a core on the hp)
+              prev="" prev_t="" tick=0
               while :; do
-                now=$(date +%s.%N)
+                now=$EPOCHREALTIME
+                list=$(xl list)
                 # Sum of the CPU seconds of all domains (last column of xl list)
-                busy=$(xl list | awk 'NR > 1 { s += $NF } END { printf "%.1f", s }')
-                if [ -n "$prev" ]; then
-                  cpu=$(awk -v a="$prev" -v b="$busy" -v t0="$prev_t" -v t1="$now" -v n="$ncpu" \
-                    'BEGIN { p = (b - a) / ((t1 - t0) * n) * 100; if (p < 0) p = 0; printf "%d", p + 0.5 }')
+                read -r busy cpu < <(awk -v a="$prev" -v t0="$prev_t" -v t1="$now" -v n="$ncpu" \
+                  'NR > 1 { s += $NF } END { p = -1; if (a != "") { p = (s - a) / ((t1 - t0) * n) * 100; if (p < 0) p = 0 }
+                    printf "%.1f %d\n", s, (p < 0 ? -1 : p + 0.5) }' <<<"$list")
+                if [ "$cpu" -ge 0 ]; then
                   write cpu "{\"text\":\"$cpu%\",\"tooltip\":\"CPU of all domains ($ncpu CPUs)\",\"percentage\":$cpu}"
                 fi
-                # Per domain: memory it has now / its maximum (ballooning). Xen
-                # only sees what a guest was given, not what it uses inside
-                doms=""
-                while read -r name id cur _; do
-                  [ "$name" = Name ] && continue
-                  max=$(xenstore-read "/local/domain/$id/memory/static-max" 2>/dev/null || echo 0)
-                  doms+=$(awk -v n="''${name%-vm}" -v c="$cur" -v m="$max" \
-                    'BEGIN { if (n == "Domain-0") n = "dom0"; if (m > 0) printf "\\n%s %.1f/%.1f GB", n, c / 1024, m / 1048576; else printf "\\n%s %.1f GB", n, c / 1024 }')
-                done < <(xl list)
-                mem=$(xl info | DOMS="$doms" awk '/^total_memory/ { t = $3 } /^free_memory/ { f = $3 }
-                  END { printf "{\"text\":\"%.1fG\",\"tooltip\":\"Given to domains: %.1f of %.1f GB (now/max)%s\",\"percentage\":%d}",
-                    (t - f) / 1024, (t - f) / 1024, t / 1024, ENVIRON["DOMS"], (t - f) * 100 / t }')
-                write mem "$mem"
-                prev=$busy prev_t=$now
-                sleep 3
+                if [ $((tick % 6)) -eq 0 ]; then
+                  # Per domain: memory it has now / its maximum (ballooning). Xen
+                  # only sees what a guest was given, not what it uses inside
+                  maxes=""
+                  while read -r name id _; do
+                    [ "$name" = Name ] && continue
+                    maxes+="$id $(xenstore-read "/local/domain/$id/memory/static-max" 2>/dev/null || echo 0)"$'\n'
+                  done <<<"$list"
+                  mem=$({ printf '%s\n' "$maxes" | sed 's/^/max /'; printf '%s\n' "$list" | sed 's/^/dom /'; xl info; } |
+                    awk '$1 == "max" { m[$2] = $3; next }
+                      $1 == "dom" { if ($2 == "Name") next; n[++k] = $2; id[k] = $3; c[k] = $4; next }
+                      /^total_memory/ { t = $3 } /^free_memory/ { f = $3 }
+                      END {
+                        for (i = 1; i <= k; i++) {
+                          nm = n[i]; sub(/-vm$/, "", nm); if (nm == "Domain-0") nm = "dom0"
+                          if (m[id[i]] > 0) d = d sprintf("\\n%s %.1f/%.1f GB", nm, c[i] / 1024, m[id[i]] / 1048576)
+                          else d = d sprintf("\\n%s %.1f GB", nm, c[i] / 1024)
+                        }
+                        printf "{\"text\":\"%.1fG\",\"tooltip\":\"Given to domains: %.1f of %.1f GB (now/max)%s\",\"percentage\":%d}",
+                          (t - f) / 1024, (t - f) / 1024, t / 1024, d, (t - f) * 100 / t }')
+                  write mem "$mem"
+                fi
+                prev=$busy prev_t=$now tick=$((tick + 1))
+                sleep 5
               done
             '';
           };
