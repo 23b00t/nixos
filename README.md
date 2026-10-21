@@ -343,6 +343,22 @@ registry (`hardware.usb`) come back to dom0 over the input proxy
 typed on a USB keyboard (dom0 still owns the controller in the initrd);
 the internal keyboard and touchpad are not on USB.
 
+### Partition, format, encrypt a disk
+
+In the disposable `disp` (empty on every start, the disk never sits on a
+VM with data). GNOME Disks does partition table, LUKS and file system in
+one dialog ("Format Partition" → "Ext4 + LUKS"); `disp` has udisks2 for it.
+
+```sh
+nox disp
+nox usb list
+nox usb attach <busid> disp
+# in disp's foot:
+nix shell nixpkgs#gnome-disk-utility -c gnome-disks
+```
+
+A disk for `nox backup`: one LUKS partition with ext4 inside (see Backup).
+
 ## VMs per machine
 
 | VM | hp | xmg | notes |
@@ -526,6 +542,20 @@ which serves no DNS on `vm-whx-ext` yet, so snowflake does not work as is.
 **Update:** `update-all` (see "Full system update" under Build and update)
 updates both images with `upgrade-nonroot` (Gateway and
 Workstation).
+
+## Changing image domains (Whonix, Kali)
+
+Three layers, each changed in its own place:
+
+| What | Where | How it takes effect |
+|---|---|---|
+| Domain: RAM, vCPUs, vifs, `extraConfig` | Nix: `services.xen-image-domains.domains.<name>` (Whonix in `machines/xen-dom0.nix`, Kali in `machines/xmg/xen.nix`) | rebuild/switch (xmg: `dom0-update`), then `sudo systemctl restart xen-image@<name>` |
+| Store disk: nox-relay, nox-rpc-in, wprsd, foot | Nix: `modules/xen-image-domains.nix` | same; when the units change, also `xen-image-setup <name>` once (domain stopped) |
+| Inside the guest: torrc, packages, app settings | in the domain itself | persistent in the image; updates via `update-all`; saved only by `nox backup --full` (W2) |
+
+A switch does not restart running image domains: their `xl.cfg` lives in
+`/etc/xen/image-domains/<name>/` and is read at the next start. Memory is
+fixed (`memory`, no ballooning).
 
 ## Kali (from scratch)
 

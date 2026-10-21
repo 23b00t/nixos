@@ -42,7 +42,22 @@
     };
 
     common-config.enable = true;
+
+    # Disks attached via vm-usb: gnome-disks / udisksctl (format, LUKS)
+    udisks2.enable = true;
   };
+
+  # As in yazi-config.nix: wheel may use udisks2 without a polkit agent
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+      if (
+        subject.isInGroup("wheel") &&
+        action.id.indexOf("org.freedesktop.udisks2.") == 0
+      ) {
+        return polkit.Result.YES;
+      }
+    });
+  '';
 
   system.stateVersion = "26.05";
 }
