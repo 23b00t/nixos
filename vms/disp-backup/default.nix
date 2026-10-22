@@ -1,10 +1,15 @@
-# disp-backup: disposable for `nox backup` (spec in xen-migration.md "Spec
-# Backup"): holds the backup disk (USB/IP from sys-usb), no network, empty
-# home on every start (registry `disposable`, machines/xen-dom0.nix). dom0's
-# vm-backup (home/vm-management/vm-backup.nix) drives it over the rpc
-# service `backup` below; the disk is LUKS, opened with the passphrase dom0
-# sends. Layout on the disk: nox/home/<vm>/<run>/ (W1, hard links to the
-# previous run), nox/full/<name>/<file>.zst + .sha256 (W2, raw sha256).
+# disp-backup: disposable for `nox backup` (README "Backup", spec in
+# xen-migration.md "2. Backup"): holds the backup disk (USB/IP from sys-usb),
+# no network, empty home on every start (registry `disposable`,
+# machines/xen-dom0.nix). dom0's vm-backup (home/vm-management/vm-backup.nix)
+# drives it over the rpc service `backup` below; the disk is LUKS, opened
+# with the passphrase dom0 sends. Layout on the disk, <gen> = start time
+# YYYY-MM-DD_HHMMSS of the run, unfinished runs are <gen>.partial (removed
+# on failure, never used):
+#   nox/home/<vm>/<gen>/                      /home/user, hard links to the previous gen
+#   nox/full/<target>/<gen>/<disk>.tar.zst    one disk (sparse tar), .sha256 and
+#                                             .used (bytes of data) next to it;
+#                                             the builder's key is key.zst
 {
   lib,
   pkgs,
@@ -15,15 +20,27 @@ let
   mnt = "/mnt/backup";
   noxRpc = "${config.services.nox-rpc.package}/bin/nox-rpc";
   # rsync's remote shell: `<rsh> <vm> rsync --server …` becomes a call of
-  # the VM's backup-send/backup-recv with that command as the first line
+  # the VM's backup-send/backup-recv with that command as the first line.
+  # `cat` (rsync's data after that line) is killed when nox-rpc ends: it
+  # would wait on rsync's stdin while rsync waits for this script to exit,
+  # so every run hung after its last byte (hp, 2026-10-21 night)
   rsh =
     service:
     pkgs.writeShellScript "backup-rsh-${service}" ''
       host="$1"
       shift
-      { printf '%s\n' "$*"; exec ${pkgs.coreutils}/bin/cat; } | exec ${noxRpc} ${service} "$host"
+      ${noxRpc} ${service} "$host" < <(printf '%s\n' "$*"; exec ${pkgs.coreutils}/bin/cat)
+      rc=$?
+      kill $! 2>/dev/null
+      exit $rc
     '';
-  rsyncOpts = "-aHS --numeric-ids --info=stats1,progress2";
+  # --timeout: rsync gives up after 120 s without data instead of hanging
+  # (the first W1 test on the xmg hung forever, 2026-10-21);
+  # --no-inc-recursive: progress2 knows the total before it starts; stats2:
+  # "Total transferred file size" for the summary (stats1 lacks it);
+  # --no-msgs2stderr: the VM's errors ("opendir … Permission denied") come
+  # through the protocol, its stderr only reaches the VM's journal
+  rsyncOpts = "-aHS --numeric-ids --timeout=120 --no-inc-recursive --no-msgs2stderr --info=progress2,stats2";
 
   # Root part of the service (sudo from the handler). Names are checked:
   # they end up in paths
@@ -34,32 +51,59 @@ let
         pkgs.coreutils
         pkgs.util-linux
         pkgs.cryptsetup
+        pkgs.e2fsprogs
         pkgs.rsync
         pkgs.findutils
         pkgs.gnugrep
+        pkgs.gawk
+        pkgs.gnused
       ]
     }
+    # rsync's numbers as dom0's `show` parses them ("1,234,567", "0.00kB/s");
+    # the VMs' LC_NUMERIC is German
+    export LC_ALL=C
     name_ok() { [[ "$1" =~ ^[a-z0-9][a-z0-9-]{0,31}$ ]]; }
-    file_ok() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]]; }
-    run_ok() { [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{6}$ ]]; }
+    disk_ok() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]]; }
+    gen_ok() { [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{6}$ ]]; }
     home="${mnt}/nox/home"
     full="${mnt}/nox/full"
-    latest() { find "$home/$1" -mindepth 1 -maxdepth 1 -type d -regex '.*/[0-9_-]*' -printf '%f\n' 2>/dev/null | sort | tail -n 1; }
+    # Generations of <dir>, oldest first (no .partial)
+    gens() { find "$1" -mindepth 1 -maxdepth 1 -type d -regextype egrep -regex '.*/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{6}' -printf '%f\n' 2>/dev/null | sort; }
+    # <gen> or `latest` of <dir> → the generation, or fail with a message
+    resolve() {
+      local g="$2"
+      [ "$g" = latest ] && g="$(gens "$1" | tail -n 1)"
+      gen_ok "$g" && [ -d "$1/$g" ] || { echo "error: no generation ''${2/latest/at all} in $1" >&2; return 1; }
+      echo "$g"
+    }
+    human() { LC_ALL=C numfmt --to=si --round=nearest --format=%.1f "$1" | sed -E 's/([0-9])([kMGTP]?)$/\1 \2B/'; }
 
     case "$1" in
-      open)
-        # The disk is the only sd* here (own disks are xvd*); LUKS on the
-        # whole disk or on a partition
+      open | open-test)
+        # The disk is the only sd* here (own disks are xvd*); vm-backup's
+        # test disk (NOX_BACKUP_TEST_DISK) comes as xvdz. LUKS on the whole
+        # disk or on a partition
         IFS= read -r pw || exit 1
         dev=""
         for _ in $(seq 30); do
-          for d in /dev/sd?*; do
+          for d in /dev/sd?* /dev/xvdz*; do
             [ -b "$d" ] && cryptsetup isLuks "$d" 2>/dev/null && { dev="$d"; break 2; }
           done
+          [ "$1" = open-test ] && [ -b /dev/xvdz ] && break
           sleep 1
         done
-        [ -n "$dev" ] || { echo "no LUKS disk found"; exit 1; }
-        printf '%s' "$pw" | cryptsetup open --key-file=- "$dev" noxbackup || exit 1
+        if [ -z "$dev" ] && [ "$1" = open-test ] && [ -b /dev/xvdz ]; then
+          # Fresh test disk: format it like a real one (LUKS + ext4)
+          echo "formatting the test disk"
+          printf '%s' "$pw" | cryptsetup luksFormat -q --key-file=- /dev/xvdz || exit 1
+          printf '%s' "$pw" | cryptsetup open --key-file=- /dev/xvdz noxbackup || exit 1
+          mkfs.ext4 -q /dev/mapper/noxbackup || exit 1
+          cryptsetup close noxbackup
+          dev=/dev/xvdz
+        fi
+        [ -n "$dev" ] || { echo "error: no LUKS disk found (attached? formatted?)"; exit 1; }
+        printf '%s' "$pw" | cryptsetup open --key-file=- "$dev" noxbackup \
+          || { echo "error: wrong passphrase?"; exit 1; }
         mkdir -p ${mnt}
         mount /dev/mapper/noxbackup ${mnt} || { cryptsetup close noxbackup; exit 1; }
         mkdir -p "$home" "$full"
@@ -71,65 +115,118 @@ let
         if [ -e /dev/mapper/noxbackup ]; then cryptsetup close noxbackup || exit 1; fi
         echo "closed"
         ;;
-      w1)
-        name_ok "$2" && run_ok "$3" || exit 2
-        prev="$(latest "$2")"
+      home-backup) # <vm> <gen>
+        name_ok "$2" && gen_ok "$3" || exit 2
+        prev="$(gens "$home/$2" | tail -n 1)"
         mkdir -p "$home/$2"
-        rsync ${rsyncOpts} --exclude=/.cache \
+        rm -rf "$home/$2/$3.partial"
+        if rsync ${rsyncOpts} --exclude=/.cache --exclude=/lost+found \
           ''${prev:+--link-dest="$home/$2/$prev"} \
-          -e ${rsh "backup-send"} "$2:/home/user/" "$home/$2/$3.partial/" || exit 1
-        mv "$home/$2/$3.partial" "$home/$2/$3"
+          -e ${rsh "backup-send"} "$2:/home/user/" "$home/$2/$3.partial/"; then
+          mv "$home/$2/$3.partial" "$home/$2/$3"
+        else
+          rc=$?
+          rm -rf "$home/$2/$3.partial"
+          exit "$rc"
+        fi
         ;;
-      restore)
+      home-restore) # <vm> <gen|latest>
         name_ok "$2" || exit 2
-        run="$3"
-        [ "$run" = latest ] && run="$(latest "$2")"
-        run_ok "$run" && [ -d "$home/$2/$run" ] || { echo "no run $3 for $2"; exit 1; }
+        g="$(resolve "$home/$2" "$3")" || exit 1
+        echo "generation $g"
         rsync ${rsyncOpts} --update \
-          -e ${rsh "backup-recv"} "$home/$2/$run/" "$2:/home/user/"
+          -e ${rsh "backup-recv"} "$home/$2/$g/" "$2:/home/user/"
+        ;;
+      full-put) # <target> <gen> <disk> <file name> <used bytes>; stdin = the stream
+        name_ok "$2" && gen_ok "$3" && disk_ok "$4" && [[ "$5" =~ ^[A-Za-z0-9._-]+$ ]] && [[ "$6" =~ ^[0-9]+$ ]] || exit 2
+        d="$full/$2/$3.partial"
+        mkdir -p "$d"
+        tee "$d/$5" | sha256sum | cut -d' ' -f1 >"$d/$4.sha256" || exit 1
+        [ -s "$d/$5" ] || { echo "error: empty stream"; exit 1; }
+        echo "$6" >"$d/$4.used"
+        echo "stored $(human "$(stat -c %s "$d/$5")")"
+        ;;
+      full-commit) # <target> <gen>
+        name_ok "$2" && gen_ok "$3" || exit 2
+        [ -d "$full/$2/$3.partial" ] || exit 1
+        mv "$full/$2/$3.partial" "$full/$2/$3" && sync
+        ;;
+      full-abort) # <target> <gen>
+        name_ok "$2" && gen_ok "$3" || exit 2
+        rm -rf "$full/$2/$3.partial"
+        ;;
+      full-info) # <target> <gen|latest>: "gen <gen>" and "disk <name> <file> <used>" lines
+        name_ok "$2" || exit 2
+        g="$(resolve "$full/$2" "$3")" || exit 1
+        echo "gen $g"
+        for s in "$full/$2/$g"/*.sha256; do
+          [ -e "$s" ] || continue
+          n="$(basename "$s" .sha256)"
+          f="$(cd "$full/$2/$g" && ls "$n".tar.zst "$n".zst 2>/dev/null | head -n 1)"
+          echo "disk $n $f $(cat "$full/$2/$g/$n.used" 2>/dev/null || echo 0)"
+        done
+        ;;
+      full-get) # <target> <gen> <disk>: checks the checksum, then the stream
+        # (first line `ok` or `error: …`, no status line)
+        name_ok "$2" && gen_ok "$3" && disk_ok "$4" || { echo "error: bad arguments"; exit 2; }
+        d="$full/$2/$3"
+        f="$(cd "$d" 2>/dev/null && ls "$4".tar.zst "$4".zst 2>/dev/null | head -n 1)"
+        [ -n "$f" ] || { echo "error: $2/$3 has no disk $4"; exit 1; }
+        [ "$(sha256sum "$d/$f" | cut -d' ' -f1)" = "$(cat "$d/$4.sha256")" ] \
+          || { echo "error: checksum of $2/$3/$f wrong, not restored"; exit 1; }
+        echo ok
+        exec cat "$d/$f"
         ;;
       list)
-        echo "W1 (home):"
+        echo "home - /home/user                 restore: nox backup restore [--from <generation>] <vm>"
         for d in "$home"/*/; do
           [ -d "$d" ] || continue
-          printf '  %s: %s\n' "$(basename "$d")" "$(find "$d" -mindepth 1 -maxdepth 1 -type d -regex '.*/[0-9_-]*' -printf '%f ' | tr ' ' '\n' | sort | tr '\n' ' ')"
+          printf '  %-10s %s (newest)\n' "$(basename "$d")" "$(gens "$d" | tr '\n' ' ' | sed 's/ $//')"
         done
-        echo "W2 (full):"
+        echo "full - whole disks                restore: nox backup restore --full [--from <generation>] <target>"
         for d in "$full"/*/; do
           [ -d "$d" ] || continue
-          printf '  %s: %s\n' "$(basename "$d")" "$(cd "$d" && ls -l --time-style=+%F *.zst 2>/dev/null | awk '{ printf "%s (%s, %s) ", $7, $5, $6 }')"
+          first=1
+          for g in $(gens "$d"); do
+            disks=""
+            for s in "$d$g"/*.sha256; do
+              [ -e "$s" ] || continue
+              n="$(basename "$s" .sha256)"
+              f="$(cd "$d$g" && ls "$n".tar.zst "$n".zst 2>/dev/null | head -n 1)"
+              disks="$disks''${disks:+, }$n $(human "$(stat -c %s "$d$g/$f")")"
+            done
+            [ "$g" = "$(gens "$d" | tail -n 1)" ] && g="$g (newest)"
+            if [ "$first" = 1 ]; then printf '  %-10s %s: %s\n' "$(basename "$d")" "$g" "$disks"; first=0
+            else printf '  %-10s %s: %s\n' "" "$g" "$disks"; fi
+          done
         done
-        df -h ${mnt} | tail -n 1
-        ;;
-      prune)
-        [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] || exit 2
-        for d in "$home"/*/; do
-          [ -d "$d" ] || continue
-          find "$d" -mindepth 1 -maxdepth 1 -type d -regex '.*/[0-9_-]*' -printf '%f\n' | sort | head -n -"$2" \
-            | while read -r r; do
-                echo "remove $(basename "$d")/$r"
-                [ "''${3:-}" = -n ] || rm -rf "''${d%/}/$r"
-              done
+        df -B1 --output=avail,size ${mnt} | tail -n 1 | while read -r a s; do
+          echo "disk: $(human "$a") free of $(human "$s")"
         done
         ;;
-      w2-put)
-        # Written next to the old copy, which stays until the commit
-        name_ok "$2" && file_ok "$3" || exit 2
-        mkdir -p "$full/$2"
-        cat >"$full/$2/$3.zst.new" || exit 1
-        ;;
-      w2-commit)
-        name_ok "$2" && file_ok "$3" && [[ "$4" =~ ^[0-9a-f]{64}$ ]] || exit 2
-        [ -s "$full/$2/$3.zst.new" ] || exit 1
-        mv -f "$full/$2/$3.zst.new" "$full/$2/$3.zst"
-        echo "$4" >"$full/$2/$3.sha256"
-        sync
-        ;;
-      w2-get)
-        # First line the raw sha256, then the zstd stream (no status line)
-        name_ok "$2" && file_ok "$3" && [ -s "$full/$2/$3.zst" ] || exit 2
-        cat "$full/$2/$3.sha256"
-        exec cat "$full/$2/$3.zst"
+      prune) # home|full <keep> -n|- [vm…]
+        kind="$2" keep="$3" dry="$4"
+        [ "$kind" = home ] || [ "$kind" = full ] || exit 2
+        [[ "$keep" =~ ^[0-9]+$ ]] && [ "$keep" -ge 1 ] || exit 2
+        base="${mnt}/nox/$kind"
+        shift 4
+        if [ $# -eq 0 ]; then
+          set -- $(find "$base" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+        fi
+        n=0
+        for vm in "$@"; do
+          name_ok "$vm" || exit 2
+          for g in $(gens "$base/$vm" | head -n -"$keep"); do
+            n=$((n + 1))
+            if [ "$dry" = -n ]; then
+              echo "would delete $kind $vm $g"
+            else
+              echo "delete $kind $vm $g"
+              rm -rf "$base/$vm/$g"
+            fi
+          done
+        done
+        [ "$n" -gt 0 ] || echo "nothing to delete"
         ;;
       *) exit 2 ;;
     esac
@@ -169,7 +266,7 @@ in
     };
 
     # dom0's vm-backup: first line `<command> [args]`, the output, then
-    # `exit <rc>`; w2-get streams without a status line
+    # `exit <rc>`; full-get streams without a status line
     nox-rpc.guest.handlers.backup = ''
       if [ "$source" != dom0 ]; then
         echo "error: only dom0"
@@ -177,7 +274,7 @@ in
       fi
       IFS= read -r line || exit 1
       read -ra args <<<"$line"
-      if [ "''${args[0]:-}" = w2-get ]; then
+      if [ "''${args[0]:-}" = full-get ]; then
         exec /run/wrappers/bin/sudo ${helper} "''${args[@]}"
       fi
       /run/wrappers/bin/sudo ${helper} "''${args[@]}" 2>&1

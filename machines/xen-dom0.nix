@@ -431,8 +431,8 @@ in
       in
       rules "deny"
       ++ rules "warn"
-      # W1 backup (vm-backup): only disp-backup reads /home/user of the VMs
-      # with a backup (registry `backupVms`) and writes it back
+      # home backup (vm-backup): only disp-backup reads /home/user of the
+      # VMs and writes it back; any NixOS VM can be named (README "Backup")
       ++ lib.concatMap (
         vm:
         map
@@ -446,7 +446,7 @@ in
             "backup-send"
             "backup-recv"
           ]
-      ) vmRegistry.backupVms
+      ) (builtins.filter (vm: vm.name != "disp-backup") vmRegistry.vms)
       ++ [
         {
           service = "print";
