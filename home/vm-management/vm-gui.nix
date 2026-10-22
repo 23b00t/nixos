@@ -12,6 +12,43 @@
 }:
 let
 
+  # Sandbox of dom0's wprsc (user unit wprsc@<vm>, xen-migration.md night
+  # run 2026-10-21): no network (own namespace, only AF_UNIX), no home, no
+  # /run except the system profile (icons), the compositor socket, its own
+  # relay socket and its runtime dir (bound per call in start_wprsc), so no
+  # session or system bus, no user manager, no other VM's relay sockets; own
+  # PID namespace, no capabilities, seccomp, 1 GB at most (no swap). PID 1 in its
+  # namespace ignores SIGTERM: stopped with SIGKILL (it keeps no state).
+  # Tried on the hp: ProcSubset=pid together with PrivatePIDs makes wprsc
+  # panic, so it is left out
+  wprscSandbox = lib.concatMapStringsSep " " (p: "-p ${p}") [
+    "PrivateUsers=yes"
+    "PrivateNetwork=yes"
+    "RestrictAddressFamilies=AF_UNIX"
+    "ProtectHome=tmpfs"
+    "ProtectSystem=strict"
+    "PrivateTmp=yes"
+    "PrivateDevices=yes"
+    "PrivatePIDs=yes"
+    "TemporaryFileSystem=/run:ro"
+    "BindReadOnlyPaths=/run/current-system"
+    "NoNewPrivileges=yes"
+    "CapabilityBoundingSet="
+    "SystemCallFilter=@system-service"
+    "SystemCallArchitectures=native"
+    "RestrictNamespaces=yes"
+    "LockPersonality=yes"
+    "MemoryDenyWriteExecute=yes"
+    "ProtectProc=invisible"
+    "ProtectKernelTunables=yes"
+    "ProtectKernelModules=yes"
+    "ProtectControlGroups=yes"
+    "MemoryMax=1G"
+    # without it, it swaps instead of being killed (3.8 GB swap in the test)
+    "MemorySwapMax=0"
+    "KillSignal=SIGKILL"
+  ];
+
   vmCases = lib.concatMapStrings (
     vm:
     "  ${vm.name}${
@@ -46,40 +83,59 @@ let
     done
     [ -S "$sock" ] || fail "$sock missing (does $VM run wprsd, is nox-relay-$VM up?)"
 
-    run="''${XDG_RUNTIME_DIR:-/tmp}"
-    pidfile="$run/wprsc-vchan-$VM.pid"
+    run="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+    unit="wprsc@$VM"
+    case "''${WAYLAND_DISPLAY:-wayland-0}" in
+      /*) wayland="$WAYLAND_DISPLAY" ;;
+      *) wayland="$run/''${WAYLAND_DISPLAY:-wayland-0}" ;;
+    esac
     # Locked: apps started together (niri spawn-at-startup) each saw no
-    # pidfile and started their own wprsc (three for chat, 2026-10-15).
+    # wprsc and started their own (three for chat, 2026-10-15).
     # wprsc must not inherit the lock fd, it would hold the lock forever.
     # The app answer comes before wprsd listens at boot: the VM refuses the
     # stream and wprsc exits at once (nvim's foot missing for 3 min, hp
-    # 2026-10-19), so start it again until it stays up
+    # 2026-10-19), so start it again until it stays up.
+    # wprsc runs as the user unit wprsc@<vm> (transient, gone when it ends;
+    # log: journalctl --user -u wprsc@<vm>) in a sandbox: it parses what
+    # the VM sends, so a hole in it must not reach dom0 (sandbox: let block
+    # above)
     start_wprsc() {
       (
         ${pkgs.util-linux}/bin/flock 9
         for _ in $(seq 30); do
-          [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null && break
-          # Title prefix: niri's border rule per trust label matches it
-          # (home/desktop/niri.nix `labelRules`)
-          setsid ${pkgs.wprs}/bin/wprsc --socket="$sock" \
-            --control-socket="$run/wprsc-vchan-$VM-ctrl.sock" \
-            --title-prefix="[$VM] " \
-            >"$run/wprsc-vchan-$VM.log" 2>&1 9>&- &
-          echo $! >"$pidfile"
+          systemctl --user is-active --quiet "$unit" && break
+          # App id prefix: niri's border rule per trust label matches it
+          # (home/desktop/niri.nix `labelRules`), the title prefix shows the VM.
+          # Fullscreen only via niri's keybinding, never on the app's request
+          systemd-run --user --quiet --collect --unit="$unit" \
+            ${wprscSandbox} \
+            -p BindReadOnlyPaths="$wayland" -p BindReadOnlyPaths="$sock" \
+            -p RuntimeDirectory="wprsc/$VM" -p BindPaths="$run/wprsc/$VM" \
+            -E WAYLAND_DISPLAY="$wayland" -E XDG_RUNTIME_DIR="$run" \
+            -E XCURSOR_THEME -E XCURSOR_SIZE -E XCURSOR_PATH \
+            ${pkgs.wprs}/bin/wprsc --socket="$sock" \
+            --control-socket="$run/wprsc/$VM/ctrl.sock" \
+            --title-prefix="[$VM] " --app-id-prefix="[$VM] " --deny-fullscreen true \
+            9>&- || true
           sleep 1
         done
-      ) 9>"$run/wprsc-vchan-$VM.lock"
+      ) 9>"$run/wprsc-$VM.lock"
     }
 
     # Same environment the wprs launcher sets for remote apps; over RPC the
     # VM sets it (apps.environment), only the cursor size comes from here
     cursor="XCURSOR_SIZE=''${XCURSOR_SIZE:-24}"
     [ -S "$rpc" ] || fail "$rpc missing (is nox-relay-$VM up?)"
+    # wprsc first: an app that comes up before any wprsc is attached gets no
+    # output from wprsd and ends (the first app after a VM boot never showed
+    # with the sandboxed wprsc, which takes longer to start; hp 2026-10-22).
+    # At boot wprsd may not listen yet: start_wprsc retries, and runs again
+    # after the app start in case the boot took longer than its tries
+    start_wprsc
     # Retry while the VM is still booting (the relay drops the call
     # without an answer); the handler answers "ok: ..." or "error: ...".
-    # The app unit waits for wprsd, so wprsc comes after it. One token for
-    # all tries: a retry after a lost answer doesn't start the app twice
-    # (NoX startApp; older handlers just get one more variable)
+    # One token for all tries: a retry after a lost answer doesn't start
+    # the app twice (NoX startApp; older handlers just get one more variable)
     token="$(${pkgs.coreutils}/bin/od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
     answer=""
     for _ in $(seq 60); do
