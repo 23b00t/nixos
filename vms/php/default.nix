@@ -52,6 +52,8 @@ in
 
   services.common-config = {
     enable = true;
+    # PDFs and images open there (xdg-open, e.g. from yazi)
+    browser = "firefox.desktop";
   };
 
   services.ide = {
@@ -160,6 +162,10 @@ in
       scooter
       ec
       delta
+
+      # Testing the web apps (User 2026-10-22)
+      firefox
+      chromium
     ]
     ++ builtins.attrValues phpToolPackages;
 

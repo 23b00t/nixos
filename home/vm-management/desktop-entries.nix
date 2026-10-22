@@ -273,7 +273,7 @@ in
         genericName = "Web Browser";
         vm = "net";
         binary = "zen";
-        icon = "web-browser";
+        icon = "zen-browser";
         categories = [
           "Network"
           "WebBrowser"
@@ -355,6 +355,31 @@ in
         binary = "bottles";
         icon = "com.usebottles.bottles";
         categories = [ "Utility" ];
+      })
+
+      # --- PHP VM: browsers for testing (no MIME types: dom0's defaults stay) ---
+      (mkVmEntry {
+        name = "Firefox";
+        genericName = "Web Browser";
+        vm = "php";
+        binary = "firefox";
+        icon = "firefox";
+        categories = [
+          "Network"
+          "WebBrowser"
+        ];
+      })
+
+      (mkVmEntry {
+        name = "Chromium";
+        genericName = "Web Browser";
+        vm = "php";
+        binary = "chromium";
+        icon = "chromium";
+        categories = [
+          "Network"
+          "WebBrowser"
+        ];
       })
 
       # --- Kali (image domain, wprs over vchan) ---

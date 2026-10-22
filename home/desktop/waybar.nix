@@ -33,6 +33,9 @@ let
         )
       ) config.xdg.desktopEntries
     )
+    # Xwayland windows carry only the VM prefix for now (wprs passes no X11
+    # class, xen-migration.md Known Issues): in kali that is Burp
+    ++ [ (lib.nameValuePair "[kali]" "kali-burpsuite") ]
   );
 in
 {
