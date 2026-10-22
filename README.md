@@ -218,6 +218,8 @@ journalctl -b -u microvm@<vm>                           # VM start/stop
 journalctl -b -u xen-input-proxy -u vm-usb-auto -u xen-links
 journalctl -b -u nox-relay-<vm>                         # vchan relay
 systemctl --user status wprsd                           # (in the VM) GUI server
+systemctl --user status wprsc@<vm>                      # (dom0) GUI client of a VM, sandboxed
+journalctl --user -u wprsc@<vm>                         # its log
 journalctl -b -u nox-sys-ready                          # boot order barrier
 ```
 
@@ -310,29 +312,256 @@ upload test from a VM against speed.cloudflare.com.
 
 ## Backup
 
-`nox backup` (= `vm-backup`) writes onto an external USB disk that is
-itself LUKS-encrypted (format it once by hand, ext4 inside). It starts the
-disposable `disp-backup`, attaches the disk (registry USB device
-`backup-disk`, else it asks for the busid from `vm-usb list`), asks for the
-passphrase, and closes and stops everything at the end. No SSH, dom0
-mounts nothing: data goes over nox-rpc.
+`nox backup` (= `vm-backup`) saves VMs onto an external USB disk that is
+itself LUKS-encrypted. It knows two kinds of backup:
 
-```sh
-nox backup                     # W1: /home/user of the VMs (rofi checklist; preselected: registry `backup`)
-nox backup nvim chat | --all   # W1 for these
-nox backup restore [--from <run>] <vm…|--all>   # W1 back in place (rsync --update: newer files stay, nothing is deleted)
-nox backup --full [--level N] [vm…|--all]      # W2: whole volume images, Whonix/kali images, builder key, dom0 ~/.ssh + ~/vm-images
-nox backup restore --full <vm…|--all>          # W2 back (replaces the images, VM stopped)
-nox backup list
-nox backup prune --keep N [-n]                 # W1: keep the newest N runs per VM
+- **home**: `/home/user` of NixOS VMs (without `~/.cache`). Small and fast;
+  the everyday backup.
+- **full**: whole disks: every persistent disk of a VM (home, var, store
+  overlay, …), the Whonix/Kali images, dom0's `~/.ssh`, the builder's key.
+  For before a reinstall or a big change.
+
+Each run of either kind is kept as a **generation**, named by its start
+time, e.g. `2026-10-21_201500`. `nox backup list` shows them, restores take
+the newest one unless you name one with `--from`.
+
+`nox backup` and `nox backup restore` without arguments only print the help
+(`nox backup --help` lists every command with an example).
+
+### Prepare the disk (once)
+
+One partition "Ext4 + LUKS" on the whole disk, see "Partition, format,
+encrypt a disk" under USB. Nothing else: `nox backup` creates its folders
+itself.
+
+### What every run does
+
+```text
+$ nox backup nvim
+vm-backup: starting disp-backup
+[sudo] password for nx:                 # starting the VM needs sudo
+BUSID    ID         NAME          OWNER
+2-1.2    0bda:9201  RTL9201       sys-usb
+busid of the backup disk: 2-1.2         # pick the disk from the list
+LUKS passphrase of the backup disk:     # opens it in disp-backup
+...                                     # the backup, with progress
 ```
 
-W1 runs are folders `nox/home/<vm>/<date>/` with hard links to the previous
-run (only changes take space); stopped VMs are started and stopped again.
-W2 keeps one copy per image (`nox/full/<name>/<file>.zst`, sha256 of the raw
-image next to it), replaced only after a complete write; running VMs are
-stopped and started again after one confirmation. `nox doctor` and a daily
-notification remind after 7 days without W1.
+1. Starts the disposable `disp-backup` (no network, empty on every start).
+2. Lists the USB devices and asks for the busid of the backup disk, then
+   attaches it to `disp-backup`.
+3. Asks for the LUKS passphrase; `disp-backup` opens and mounts the disk.
+4. Runs the backup or restore (below), with progress.
+5. Unmounts and locks the disk and stops `disp-backup`, also after an error
+   or Ctrl+C. Unplug the disk afterwards.
+
+dom0 never mounts the disk and there is no SSH: data goes over nox-rpc
+between the VMs, `disp-backup` and dom0.
+
+**Progress** shows one line per VM or disk (amount, %, rate, time left) and
+a total line for the whole run. home runs need a few seconds to count the
+files first.
+
+```text
+[1/2] coding                                  4 disks, 9.8 GB used
+  home                 3.1/3.1 GB  100%                   done 0:08
+  var                  0.2/0.4 GB   50%   380 MB/s   ETA 0:01
+total                  3.3/14.6 GB  23%              ETA 0:35
+```
+
+**At the end** a summary per VM or disk (OK or the error with its reason,
+amount, duration) and the new generation, a desktop notification
+("Backup done: 5 OK, 1 failed"), and the whole output as a log in
+`~/.local/state/nox-backup/<generation>.log` in dom0.
+
+### home: back up /home/user
+
+```sh
+nox backup nvim
+```
+Backs up `/home/user` of nvim. A VM that isn't running is started for it
+and stopped again afterwards.
+
+```sh
+nox backup nvim chat office
+```
+Several VMs in one run (one passphrase, one generation for all of them).
+
+```sh
+nox backup --all
+```
+All VMs with the registry field `backup` (by default every VM except
+`sys-*` and disposables; steam has `backup = false`, games come back from
+Steam). Any NixOS VM can still be named on its own, also those without
+`backup`. Image domains (Whonix, Kali) have no home backup, use full.
+
+Every generation is a complete copy, `nox/home/<vm>/<generation>/` on the
+disk. Files that didn't change since the previous generation are hard links
+to it, so a generation only takes the space of what changed.
+
+### home: restore
+
+```sh
+nox backup restore nvim
+```
+Copies the newest home generation of nvim back into its `/home/user`.
+Restores only add: nothing in the VM is deleted, and files that are newer
+in the VM than in the backup stay as they are. To get an exact old state,
+delete the files in the VM first.
+
+```sh
+nox backup restore nvim chat
+```
+Several VMs, each from its newest generation.
+
+```sh
+nox backup restore --all
+```
+All VMs with the registry field `backup`.
+
+```sh
+nox backup restore --from 2026-10-21_201500 nvim
+nox backup restore --from 2026-10-21_201500 nvim chat
+```
+A specific generation (names from `nox backup list`). With several VMs,
+each needs that generation (true for VMs saved in the same run); a VM
+without it fails with an error, the others are restored.
+
+### full: back up whole disks
+
+```sh
+nox backup disks coding
+```
+Lists the disks of coding that full backs up, with their size and the space
+actually used:
+
+```text
+coding   home 3.1 GB of 70 GB   var 0.4 GB of 20 GB   nix-store-overlay 6.2 GB of 24 GB   nix-db 0.1 GB of 0.5 GB
+```
+
+```sh
+nox backup disks --all
+```
+The same for everything full can back up (VMs, image domains, `dom0`,
+`builder`).
+
+```sh
+nox backup --full coding
+```
+All disks of coding. If coding is running, it asks once, stops it for the
+copy and starts it again afterwards (a running VM's disk would be copied in
+an inconsistent state). Only the used parts of a disk are read, so a 70 GB
+disk with 3 GB of data takes the time of 3 GB.
+
+```sh
+nox backup --full coding nvim whonix-workstation
+```
+Several targets in one run: VMs with all their disks and image domains
+(their one disk is called `image`).
+
+```sh
+nox backup --full coding:home,var
+nox backup --full coding:home nvim
+```
+Only some disks of a VM (`<vm>:<disk>,<disk>`, names from `nox backup
+disks`), freely mixed with whole VMs.
+
+```sh
+nox backup --full dom0 builder
+```
+dom0's `~/.ssh` and the builder's signing key. The rest of dom0 comes
+back from the config; `~/vm-images` holds only the image domains' images,
+which are targets of their own (`whonix-workstation`, …).
+
+```sh
+nox backup --full --all
+```
+Everything: all VMs and image domains with all disks, `dom0`, `builder`.
+
+```sh
+nox backup --full --level 9 coding
+```
+zstd compression level, from 1 (fastest, biggest files) to 19 (slowest,
+smallest files); default 3. Higher levels save space on the disk at the
+cost of much more time. `--level` comes right after `--full`.
+
+Every generation is a complete copy:
+`nox/full/<target>/<generation>/<disk>.tar.zst` with the checksum of each
+disk next to it. Unlike home, generations don't share data, so full
+generations take a lot of space; remove old ones with `prune`.
+
+### full: restore
+
+```sh
+nox backup restore --full coding
+```
+Replaces all disks of coding with those from its newest full generation.
+It asks first; coding is stopped meanwhile and started again if it was
+running. Each disk's checksum is checked before the old disk is replaced;
+on a mismatch the old disk stays. The disks belong to root, so sudo asks
+for your password (stopping and starting VMs, too).
+
+```sh
+nox backup restore --full coding:home
+nox backup restore --full coding nvim
+nox backup restore --full --all
+```
+Only some disks, several targets, or everything, as when backing up.
+
+```sh
+nox backup restore --full --from 2026-10-21_203000 coding
+```
+A specific full generation (names from `nox backup list`).
+
+```sh
+nox backup restore --full dom0 builder
+```
+dom0's `~/.ssh` and the builder's key are not written back automatically
+(they matter for dom0 itself); the command prints how to restore them by
+hand.
+
+### Look at the disk
+
+```sh
+nox backup list
+```
+All generations, home and full separately, with the restore command for
+each kind and the free space on the disk:
+
+```text
+home - /home/user                 restore: nox backup restore [--from <generation>] <vm>
+  chat     2026-10-21_201500 (newest)
+  nvim     2026-10-20_210000  2026-10-21_201500 (newest)
+full - whole disks                restore: nox backup restore --full [--from <generation>] <vm>
+  coding   2026-10-21_203000 (newest): home 3.1 GB, var 0.4 GB, nix-store-overlay 6.2 GB, nix-db 0.1 GB
+disk: 412 GB free of 596 GB
+```
+
+### Remove old generations
+
+```sh
+nox backup prune home --keep 10 -n
+```
+Shows which home generations would be deleted when keeping the newest 10
+per VM; `-n` deletes nothing.
+
+```sh
+nox backup prune home --keep 10
+```
+Deletes them. A home generation only frees the space of files no other
+generation uses (hard links).
+
+```sh
+nox backup prune full --keep 2
+nox backup prune full --keep 1 coding nvim
+```
+Keeps the newest 2 full generations of every VM, or the newest one of
+coding and nvim only.
+
+### Reminder
+
+`nox doctor` shows the age of the last home backup, and a daily
+notification reminds after 7 days without one.
 
 ## USB
 

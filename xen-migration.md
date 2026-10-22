@@ -1092,15 +1092,153 @@ Nächster großer Meilenstein des Users: **NoX-Module** (ein großer Teil dieser
 - **Bekannte Fehler, die beim Umbau stören:** VMs laufen nach einem Switch mit altem Runner weiter (`nox restart --stale` fehlt, braucht man nach jedem Umbau-Schritt); Shutdown hängt 90 s an `xenstored`; nox-relay bemerkt eine hart beendete Domain nicht; Xwayland-Fenster ohne Label-Rahmen (Known Issues).
 - **Ungetestete VMs vanilla, sys-vpn, win:** Entscheidung User: testen oder vorerst aus der Registry nehmen (ungetestete VMs mitzuverschieben macht den Umbau unübersichtlich).
 
+- **Stand 2026-10-21 Abend (User):**
+  - **Tastenwiederholung erledigt** (keine Doppelzeichen seit Build 1). Mögliche Ursache laut Befund vom 19.10.: wprsd meldet den Apps `repeat_delay=200 repeat_rate=200`, die App wiederholt selbst, bis das Loslassen ankommt; kam das Loslassen > 200 ms zu spät (dom0 unter Last: `acpi-cpufreq` bei 2,2 GHz, dom0 nur 4,7 GB), entstand eine Wiederholung. Mit HWP und vollem dom0-RAM kommt es rechtzeitig.
+  - **User, 2026-10-22:** Tor Browser in Whonix testen, ein Teil der xmg-Tests seit 2026-10-18; Backup auf dem xmg mit der Toshiba (home `--all`, full mit ein paar VMs, kein `full --all`), Probe-Wiederherstellung.
+  - **Todo User:** wprs-Fork committen + pushen (Fork, nixos-config, NoX), auf dem xmg testen (Vollbild-Knopf in zen/YouTube).
+  - **Zu besprechen (User + Claude):** wprsc abschotten → Nachtlauf (entschieden, `MemoryMax=1G`). Registry-Schema: noch völlig offen, der User überlegt, später besprechen. SSH-Rückfälle und Shell vs. Rust: am 2026-10-21 abends besprochen (siehe unten). drvPath-Skript läuft im Nachtlauf.
+  - **Known Issues neu eingeordnet:** nox-relay bei hart beendeter Domain → ansehen. „VMs mit altem Runner nach dem Umschalten“ → kein Issue (Normalverhalten, microvm.nix hat eine Option für Neustart nach Rebuild). Builder → dom0 langsam → Enhancement, niedrige Prio (auf dem xmg nicht beobachtet). Electron-Tray → historisch, Enhancement (Element-X11-Workaround). BT-Connect in App-VMs, SSH-Schlüssel aufräumen → Todo gemeinsam bei Gelegenheit. Weiter Todo: statix (W20), NixOS-Tests (Stufe 2), Steam-Kaltstart, wprsd in der VM profilieren (fps).
+  - **Schritt 4, besprochen 2026-10-21 abends:**
+    - **SSH-Rückfälle:** vm-clip, nox doctor, update-all laufen schon nur über nox-rpc. Übrige Reste (vm-run-SSH-/Admin-Netz-Zweig, SSH-Weiterleitungen für DBus/GitHub-Agent ohne vchan, Host-Einträge in `home/ssh.nix`) → **im Nachtlauf entfernen**, SSH bleibt nur für den builder (vorerst, `nix copy` über ssh-ng). `hostSSHKey`/`extraSSH` gehören zum Registry-Schema (später); Schlüssel in `~/.ssh` räumen wir gemeinsam auf.
+    - **Shell vs. Rust:** Rust schrittweise; `nox` (clap) übernimmt Hilfe und Prüfung der Argumente. **Offen: wo die Grenze liegt** — große Shell-Blöcke wie die rsync-Logik bleiben evtl. Shell. Vorschlag Claude zum Besprechen: Rust orchestriert (Argumente, Registry, Ablauf, Fortschritt, Zusammenfassung) und ruft externe Werkzeuge (rsync, tar, zstd, xl) als Prozesse auf; Skripte nur dort, wo sie in einer VM laufen müssen (rpc-Handler). Alles (Skripte und Crates) wandert ins NoX-Repo. Zuerst nach Rust: **backup, doctor** (Zeitpunkt offen).
+    - **Registry-Schema:** offen, User überlegt.
+    - **home-manager raus?** (User 2026-10-21, vor der Modularisierung besprechen): ob HM wegkommt (dom0-Desktop/Werkzeuge als NixOS-Module bzw. NoX-Pakete statt HM).
+  - **Nachtlauf 2026-10-21/22 (Claude):** (1) clap in nox-cli + Hilfe pro Unterbefehl (`nox backup help`, `nox backup restore help`, `nox <cmd> help`); (2) Backup-Tests mit der Test-Platte zu Ende; (3) drvPath-Abgleich-Skript + Lauf für hp, xmg und alle VMs; (4) **SSH-Reste entfernen** (siehe Schritt 4 oben), (5) **wprsc in dom0 abschotten** (User-Unit `wprsc@<vm>` statt `setsid`: kein Netz, nur eigener Relay-Socket, kein Session-Bus/User-Manager, `~` nur lesend, Syscall-Filter, `NoNewPrivileges`, `MemoryMax=1G`; Test auf dem hp inkl. Ausbruchsversuche aus der Unit). (6) **Backup-Ziel `dom0` = nur `~/.ssh`** (User 2026-10-21: `~/vm-images` raus, die Images haben eigene Ziele, der Rest ist laut README wiederherstellbar); README, `--help`, `disks` anpassen; builder-Schlüssel mittesten.
+  - **Bericht Nachtlauf (Claude, 2026-10-21 23:05 – 2026-10-22 03:10, ≈4 h, alles auf dem hp, nichts committet):** alle sechs Punkte erledigt. Sieben hp-Builds; drei davon ~40 min, weil jede NoX- oder VM-Modul-Änderung alle erofs-Store-Images neu baut; einer wurde nach 30 min vom Hintergrund-Limit beendet und neu gestartet; ein Build scheiterte an einem `'` in einem awk-Kommentar, behoben. dom0 für die Auswertungen jeweils kurz auf 16 GB (`xl mem-set`), danach wieder 12 GB. hp läuft auf dem letzten Build (`jp7xr46…`); gestoppt sind alle VMs außer sys-net/-usb/-firewall und coding. Danach ausgeschaltet (Auftrag User).
+    - **(1) clap in nox-cli (NoX):** `nox backup` ist ein clap-Baum: home (`<vm>… | --all`), `--full [--level 1..19] <target>… | --all`, `restore [--full] [--from <gen>]`, `disks`, `list`, `prune home|full --keep N [-n] [<target>…]`. clap prüft die Argumente vor vm-backup: Namen oder `--all` (genau eins), `--level` nur mit `--full`, `--from` im Format `2026-10-21_201500`, `--keep ≥ 1`. vm-backup selbst bleibt unverändert, `nox` baut seine Argumente. Hilfe: `nox backup help` / `--help` (Beschreibung beider Arten und Beispiele), `nox backup restore help` und `prune help` mit eigenen Beispielen; `nox backup` ohne Argumente zeigt die Hilfe. **`nox <cmd>… help` allgemein:** das Wort `help` als letztes Argument direkt nach Unterbefehlen wird zu `--help` (`nox usb attach help`, `nox ls help`); `nox run coding help` bleibt ein Programm-Argument. `nox ssh`: Hilfe und NoX-README sagen jetzt „nur der builder“. 8 Tests grün (clippy `-D warnings`, fmt).
+    - **(2) Backup-Tests mit Testplatte** (`NOX_BACKUP_TEST_DISK`, 4 GB, alle über `nox backup …`):
+      - home vanilla, leer und mit einer 5-MB-Probedatei; Folgegeneration inkrementell (176 B).
+      - restore: Datei in vanilla gelöscht, kam mit gleicher sha256 und mtime zurück; dazu `--from`.
+      - `list`, `prune -n`, `prune`.
+      - full: vanilla (3 Platten), `coding:var`, dom0, builder. Laufende VMs werden nach einer Rückfrage gestoppt und wieder gestartet, der builder für seinen Schlüssel gestartet und wieder gestoppt.
+      - restore --full dom0 + builder: landet in `~/nox-restore`, bitgleich mit dem Original.
+      - Datenweg einer VM-Platte: full-get, Prüfsumme, sparse entpackt, e2fsck sauber, Probedatei gleich.
+
+      **Zehn Fehler gefunden und behoben:**
+      1. **Hänger nach dem letzten Byte** (sehr wahrscheinlich auch beim ersten xmg-Test): In der rsh von disp-backup (`{ printf …; exec cat; } | nox-rpc`) las `cat` weiter rsyncs stdin, während rsync auf das Ende der rsh wartete. In dom0 nachgestellt. Fix: `cat` wird beendet, sobald nox-rpc endet.
+      2. **EAGAIN, sobald echte Daten fließen** (`nox-rpc: backup-send to vanilla: Resource temporarily unavailable (os error 11)`): rsync gibt seiner rsh ein nicht-blockierendes stdout (flags 04002), damit kam nox-rpc nicht klar. **Fix in NoX:** `nox_rpc::set_blocking`; der Client stellt stdin/stdout beim Start auf blockierend (mit Test). Mit 50 MB nachgestellt: das alte nox-rpc scheitert genau so, das neue überträgt bitgleich.
+      3. **Fortschrittsanzeige in den full-Backups:** Bei `pv 2> >(progress …)` in einer Pipe erbt die Prozess-Substitution pv's stdout, also die Pipe zu zstd. Die Anzeige landete so in der Sicherung und beim Restore auch im wiederhergestellten Strom (builder-Schlüssel 423 statt 101 Bytes). Fix: `progress … >&2`. **Full-Backups vom alten Stand neu machen:** Deren tar-Strom ist nicht mehr auf 512 Bytes ausgerichtet; vanilla home ließ sich nur zufällig noch entpacken.
+      4. **VM-Start aus vm-backup scheiterte** (`Failed to start microvm@vanilla.service: Connection timed out`): `systemctl` ohne sudo, polkit wollte ein Passwort. Jetzt `sudo systemctl` wie in manage-vms; auf dem xmg fragt sudo im Terminal.
+      5. **Laufende, aber noch bootende VM** ergab `target unreachable`: `start_for` wartet jetzt auch bei laufenden VMs auf rpc.
+      6. **Exit-Code 0 trotz FAILED** (home backup): `if summary …; then …; fi` wird zu `summary … && …`.
+      7. **Fehlermeldungen der VM unsichtbar** (`rsync error … code 23 (see previous errors)` ohne die eigentliche Meldung): Die VM-Seite schrieb sie auf ihr stderr, das nur im Journal der VM landet. Fix: `--no-msgs2stderr`, `checkRsync` erlaubt das Wort. Ursache in vanilla war `lost+found` (root, 0700), jetzt per `--exclude=/lost+found` ausgeschlossen.
+      8. **Anzeige:**
+         - Menge „0.0 B“: stats1 enthält keine „Total transferred file size“, jetzt `stats2`.
+         - Fortschritt „0.0 GB“ bei 5 MB: awk verglich nach `gsub` als Text, jetzt `b += 0`.
+         - Deutsche Zahlen aus der VM: `LC_ALL=C` im Helper.
+         - Bei überschätzter Größe stand am Ende „2 %, ETA 21:45“, jetzt 100 % bei Stromende.
+         - tar-Warnung zum Agent-Socket in `~/.ssh` unterdrückt.
+      9. **`prune` las `$2`/`$3` nach `shift 4`** (`$3: unbound variable`, trotzdem rc 0): Die Werte werden jetzt vorher gesichert. Lokal getestet: dry-run, Auswahl je VM, `--keep 0` und eine falsche Art werden abgelehnt.
+      10. **builder bei `--full builder` aus:** Vorher sauberes FAILED (`microvm@builder is not running`), jetzt wird er gestartet und danach wieder gestoppt.
+      - **Nicht auf dem hp testbar:** das Zurückschreiben einer VM-Platte (`restore --full <vm>`). Es braucht sudo für `/var/lib/microvms`, und auf dem hp gilt dafür kein NOPASSWD. Bis zu diesem Schritt getestet, der Fehlerfall ist sauber („the old disk stays“, kein Staging-Rest). → **Test User auf dem xmg** (README ergänzt: sudo fragt hier nach dem Passwort).
+    - **(3) drvPath-Abgleich:** `scripts/drvpaths save [datei] [name…]` wertet jede nixosConfiguration einzeln aus (die ganze Flotte in einem eval sprengt dom0); `scripts/drvpaths diff <alt> <neu>` listet die geänderten (keine Ausgabe, exit 0 = nichts geändert). `FLAKE=path:<kopie>` und `NIX_FLAGS="--override-input …"` für nicht eingecheckte Stände. Lauf: **25 Konfigurationen (hp, xmg, alle VMs) in 15 min, keine Fehler**. Eine zweite Auswertung (hp, vanilla) ergab dieselben drvPaths, der Abgleich ist also stabil. Die Liste stammt von lokalen `path:`-Overrides; **als Ausgangsbasis für die Modularisierung nach den Commits und `nix flake update` neu erzeugen.**
+    - **(4) SSH-Reste:**
+      - vm-run: Ping-Schleife, Admin-Netz, SSH-wprs-Launcher und DBus-Prüfung über SSH sind weg. Ohne wprs bleibt nur `vm-run -c builder` über `ssh builder` (Host-Eintrag und Relay-ProxyCommand aus `home/ssh.nix`); jede andere Domain bekommt eine Meldung mit dem Notzugang `xl console`.
+      - `vm-dbus-forward.nix` gelöscht, aus `github-agent-forward.nix` nur der Dienst `github-agent` behalten: Beide erzeugten auf dem hp keine einzige Unit mehr (alle Gäste nutzen vchan).
+      - `home/ssh.nix` enthielt schon nur den builder.
+      - Getestet: `vm-run -c builder uptime`, `nox ssh builder -T hostname`, `vm-run -c vanilla …`, `nox doctor`; fehlgeschlagen sind nur die von mir gestoppten Autostart-VMs und mein absichtlicher OOM-Test.
+      - Nebenbei: `vms/modules/whonix-net-config.nix` wird nirgends mehr importiert (Rest der alten Whonix-MicroVMs, Admin-Netz `10-ssh`). Nicht gelöscht, **Kandidat zum Aufräumen**.
+      - `vm-run` startet VMs weiter ohne sudo (polkit); auf dem hp ohne Agent scheitert das, unverändert.
+    - **(5) wprsc abgeschottet:** vm-gui startet wprsc als transiente User-Unit `wprsc@<vm>` (`systemd-run --user`, Log: `journalctl --user -u wprsc@<vm>`) statt per `setsid`. Die Sandbox:
+      - kein Netz (eigener Namespace, nur `AF_UNIX`)
+      - `ProtectHome=tmpfs`, also kein `~` statt nur lesend: Mit `~` lesbar hätte wprsc `~/.ssh` lesen und über den Relay-Socket in die VM schicken können.
+      - `/run` als leeres tmpfs, darin nur das Systemprofil, der Compositor-Socket, der eigene Relay-Socket und das eigene Laufzeitverzeichnis
+      - eigener PID-Namespace, keine Capabilities, `NoNewPrivileges`, `@system-service`, `MemoryDenyWriteExecute`
+      - `MemoryMax=1G` **plus `MemorySwapMax=0`**: Ohne Letzteres lagerte der Testprozess 3,8 GB in den Swap aus, statt beendet zu werden.
+
+      **Ausbruchsversuche aus genau dieser Sandbox, alle blockiert:** Session-Bus, User-Manager, niri-IPC, System-Bus, rpc-Socket einer anderen VM, PipeWire, ssh-agent, TCP (1.1.1.1, sys-net), `~/.ssh` lesen, `~`/`/nix/store`/`/etc` schreiben, sudo, neue User-/Netz-Namespaces, `/dev/xen`. Andere Prozesse unsichtbar (nur 3 eigene), 1,5 GB werden nach 2 s per OOM beendet.
+
+      **Auf dem Weg gefunden:**
+      - `ProcSubset=pid` zusammen mit PrivatePIDs bringt wprsc zum Absturz; weggelassen.
+      - Als PID 1 ignoriert wprsc SIGTERM, deshalb `KillSignal=SIGKILL`.
+      - **Die erste App nach einem VM-Boot ging verloren:** Die sandboxte Unit startet langsamer, und eine App ohne verbundenen wprsc bekommt von wprsd keine Ausgabe und endet. Mit dem alten vm-gui ging es (Gegenprobe). Fix: vm-gui startet wprsc vor der App (mit Wiederholung, bis wprsd lauscht) und danach noch einmal. Getestet: direkt nach einem VM-Neustart erscheint die App (9 s), und mit laufendem wprsc kommt sie sofort.
+
+      Fenster, Präfixe, `vm-clip` (liest weiterhin `--socket=` aus der Kommandozeile) und `nox doctor` funktionieren unverändert.
+    - **(6) Backup-Ziel `dom0` = nur `~/.ssh`:**
+      - Die Platte heißt jetzt `ssh` (`dom0 ssh 192.5 kB of 192.5 kB`), die Datei `ssh.tar.zst`; `~/vm-images` fällt weg.
+      - README angepasst: Einleitung, full, restore, Dateiname jetzt richtig `<disk>.tar.zst`.
+      - `--help` angepasst.
+      - Der builder-Schlüssel ist getestet (siehe (2)).
+    - **Außerdem:** `wprsc@<vm>` steht in der README unter „systemd units“. Memory-Notiz: hp-Builds mit NoX- oder VM-Änderungen brauchen ein langes Hintergrund-Limit.
+    - **Offen / für den User:**
+      - restore --full einer VM-Platte auf dem xmg testen (sudo).
+      - Die Pre-commit-Hook-Entscheidung im wprs-Fork (fmt-Drift von upstream, siehe unten).
+      - Nach den Pushes `nix flake update wprs nox` (Blöcke unten).
+      - Die Beobachtung „erste App nach VM-Neustart“ bei vanilla trat einmal bei `vm-run -c` auf, bevor die Reihenfolge geändert war; auf dem xmg beim Alltag darauf achten.
+      - Tests/Logs dieser Nacht auf dem hp: `~/.local/state/nox-backup/*.log`, `last` = heute (der Erinnerungs-Timer schweigt 7 Tage). Die Testplatte ist gelöscht, `~/nox-restore` leer. In vanilla liegen noch `~/Incoming/dom0/probe.bin` und zwei Dateien in `~/outbox`.
+
+**Commit-Blöcke Nachtlauf 2026-10-21/22** (hp, signiert; Reihenfolge: wprs-Fork → NoX → nixos-config, weil nixos-config beide als Flake-Input braucht. Vorher `git diff --cached --stat` ansehen.)
+
+wprs-Fork (Branch `nox`, die sieben Patches liegen in `.git/nox-series/`; zusammen ergeben sie genau den jetzigen Arbeitsstand, auf dem hp geprüft). Hook-Werkzeuge über nix shell; der Hook meldet die fmt-Drift von upstream in 5 Dateien, die schon auf master besteht. **Entscheidung offen:** `--no-verify`, nightly pinnen oder vorher einen fmt-Commit. Die Befehle unten nutzen den Hook; scheitert er nur an diesen 5 Dateien, den jeweiligen Commit mit `--no-verify` wiederholen.
+
+```sh
+cd ~/code/wprs
+nix shell nixpkgs#rustup nixpkgs#cargo-cranky
+git diff > ~/wprs-nox-all.patch            # Sicherung des Arbeitsstands
+git checkout -- .
+git apply .git/nox-series/01-modifier-sync.patch && git commit -S -am "bug fix: take held modifiers from the compositor's modifier state (stuck Super after focus moved by a compositor binding)"
+git apply .git/nox-series/02-frame-backpressure.patch && git commit -S -am "wprsd: hold frame callbacks while too many messages wait for the client (back pressure)"
+git apply .git/nox-series/03-decompress-reuse-buffer.patch && git commit -S -am "keep the decompression buffer across frames (no fresh zero pages and page faults per frame)"
+git apply .git/nox-series/04-selection-sync-flag.patch && git commit -S -am "wprsd: --selection-sync (default true) to keep selections local; data control for local clients"
+git apply .git/nox-series/05-title-prefix-untitled.patch && git commit -S -am "bug fix: wprsc's title prefix also on windows without a title"
+git apply .git/nox-series/06-app-id-prefix.patch && git commit -S -am "wprsc: --app-id-prefix"
+git apply .git/nox-series/07-deny-fullscreen.patch && git commit -S -am "wprsc: --deny-fullscreen (ignore fullscreen requests from remote windows)"
+git diff HEAD~7 HEAD | diff -q - ~/wprs-nox-all.patch && echo "Serie == Arbeitsstand"
+git push -u origin nox
+exit
+```
+
+NoX:
+
+```sh
+cd ~/code/NoX
+git add Cargo.lock crates/nox-rpc/Cargo.toml crates/nox-rpc/src/lib.rs crates/nox-rpc/src/bin/nox-rpc.rs
+git commit -S -m "nox-rpc: blocking stdio (rsync hands its remote shell a non-blocking stdout: EAGAIN under back pressure)"
+git add crates/nox-cli/src/main.rs README.md
+git commit -S -m "nox-cli: nox backup as a clap tree (home, --full, restore, disks, list, prune; arguments checked), nox <cmd>… help; nox ssh: builder only"
+git push
+```
+
+nixos-config (Branch `hp`; `scripts/drvpaths` und `modules/wprs-overlay.nix` sind neu):
+
+```sh
+cd ~/nixos-config
+nix flake update wprs nox
+git add flake.nix flake.lock modules/wprs-overlay.nix modules/wprs-clipboard.nix modules/wprs-modifier-sync.patch modules/wprs-frame-backpressure.patch modules/wprs-decompress-reuse-buffer.patch machines/common-configuration.nix vms/modules/wprs.nix modules/xen-image-domains.nix home/desktop/niri.nix home/desktop/waybar.nix vms/registry.nix
+git commit -S -m "wprs: fork as flake input (23b00t/wprs nox, the patches live there); wprsc app id prefix for niri rules and waybar icons, no fullscreen on request; image domains: app start waits for the user manager"
+git add home/vm-management/vm-backup.nix vms/disp-backup/default.nix vms/modules/vchan-relay.nix machines/xen-dom0.nix
+git commit -S -m "nox backup: home/full redesign (generations, vm:disk, dom0 = ~/.ssh, builder key, list, prune, progress, summary); fixes from the night test (rsh hang, rsync errors visible, progress out of the data, sudo for VM starts, prune)"
+git add home/vm-management/vm-run.nix home/vm-management/vm-dbus-forward.nix home/vm-management/github-agent-forward.nix home/home.nix
+git commit -S -m "SSH removal: vm-run without SSH/admin network (only the builder), DBus and GitHub agent SSH forwards gone"
+git add home/vm-management/vm-gui.nix
+git commit -S -m "vm-gui: wprsc sandboxed as user unit wprsc@<vm> (no network, no home, no buses, own relay socket only, 1 GB), started before the app"
+git add scripts/drvpaths
+git commit -S -m "scripts/drvpaths: drvPath of every configuration, diff for behaviour-preserving refactors"
+git add README.md xen-migration.md
+git commit -S -m "README: backup in detail, wprsc@<vm>; plan: night run 2026-10-21/22"
+git push
+```
+
 ### 2. Backup prüfen (vorgezogen)
 
 - `vm-backup`/`nox backup` ist gebaut, aber nie mit der Platte getestet. `/var`-Frage entschieden (User): W1 nur `/home`, `/var` steckt in W2 (ganze Images). Test mit der Platte: User, 2026-10-21.
 - Abnahme: W1 (Home aller VMs) und W2 (volle Images) auf die LUKS-Platte, **Probe-Wiederherstellung einer VM**, Erinnerung in `nox doctor`.
+
+- **Neudesign (grill, User + Claude, 2026-10-21), nach dem ersten echten Test auf dem xmg:** W1 hing stumm (`backup-send … done (91 bytes up, 0 down)`: die strenge Prüfung der rsync-Zeile im VM-Handler lehnte ab, Fehler nur auf stderr, rsync wartete ewig); Bedienung (rofi-Liste, Begriffe W1/W2, `--from`, `--level`) unklar. Spec:
+  - Begriffe **home** (`/home/user`) und **full** (ganze Platten). `nox backup` / `nox backup restore` ohne Argumente = Hilfe.
+  - home: `nox backup <vm>…` (jede NixOS-VM; rpc-Policy für alle), `--all` = Registry `backup`. Restore: `restore <vm>…|--all` neueste Generation, `--from <gen>` (mehrere VMs erlaubt), nichts gelöscht, neuere Dateien bleiben.
+  - full: `nox backup --full [--level N] <ziel>…|--all`, Ziel `<vm>` = alle Platten (`microvm.volumes`), `<vm>:home,var` = Auswahl, Image-Domain (`image`), `dom0` (`~/.ssh`, `~/vm-images`), `builder` (Schlüssel). Laufende VMs nach einer Rückfrage stoppen/starten. Nur belegte Daten lesen (Löcher überspringen). Restore `restore --full [--from <gen>] <ziel>…|--all`, sha256 vor dem Ersetzen; Builder-Schlüssel/dom0-Dateien von Hand (Befehl wird ausgegeben). `nox backup disks <vm>…|--all` listet die Platten.
+  - Ablage `nox/home/<vm>/<gen>/` (Hardlinks), `nox/full/<vm>/<gen>/<platte>.zst` + sha256, mehrere Generationen; `<gen>` = `YYYY-MM-DD_HHMMSS`, unvollständig = `<gen>.partial`, nie benutzt. `list`: Blöcke „home“ / „full“ mit Generationen (full: Platten + Größen), restore-Befehl, freier Platz. `prune home|full --keep N [<vm>…] [-n]`.
+  - Fortschritt: pro VM/Platte (Menge, %, Rate, Restzeit) + Gesamtzeile; am Ende Zusammenfassung (OK/Fehler mit Grund, Menge, Dauer, Generation), notify-send, Log `~/.local/state/nox-backup/<gen>.log`. Fehler immer sichtbar, kein stummes Hängen.
+  - Bleibt: disp-backup, busid-Abfrage (keine Platte in der Registry), sudo-Passwort beim Start (xmg hat kein NOPASSWD), LUKS-Passphrase, Erinnerung nach 7 Tagen ohne home.
+  - Test: versteckte Variable `NOX_BACKUP_TEST_DISK=<datei>` (Image-Datei per `xl block-attach` statt USB), Claude testet jeden Befehl auf dem hp, dann User auf dem xmg.
+  - Ablauf: **zuerst README** (jeder Anwendungsfall mit Beispiel), User nimmt ab, dann Implementierung nach README; `--help` listet alle Befehle mit Kurz-Erklärung/Beispiel. Danach (Nachtlauf): clap in nox-cli, Hilfe pro Unterbefehl (`nox backup restore help`, `nox <cmd> help`).
 - Pflicht vor dem Umbau und vor jeder Neuinstallation (hp, xmg) durch den Installer.
 
 ### 3. Härtung
 
 - **wprs-Fork** (zuerst): `23b00t/wprs` (Repo legt der User an), Branch mit je einem Commit pro Patch (modifier-sync, frame-backpressure, Clipboard-Isolation aus `modules/wprs-clipboard.nix`), Basis = heutiger nixpkgs-Stand (`12b864dc`); Flake-Input statt nixpkgs-wprs, ein gemeinsames Overlay für dom0 und VMs (heute doppelte Patch-Liste in `machines/common-configuration.nix` und `vms/modules/wprs.nix`); wprs ändert sich nur per `nix flake update wprs`, Update = Rebase auf upstream + `cargo test`. Neue Patches als Schalter im Stil von `--title-prefix`. Upstream-Beiträge macht der User, wenn alles läuft (Kandidaten: Gegendruck und Modifier-Sync als Fehlerbehebungen).
+  - **Spec (grill, User + Claude, 2026-10-21):** Fork `~/code/wprs` (`23b00t/wprs`), Branch `nox` auf `master` = `12b864d`. Upstream-tauglich wo nötig, sonst minimal; Claude committet nicht, Commits am Ende in einem Rutsch (User, in `nix shell nixpkgs#rustup nixpkgs#cargo-cranky`, Hook `ln -sf ../hooks/ .git/hooks`: nightly fmt, cranky, `cargo test`, miri; Claude prüft jeden Commit-Stand vorher mit `hooks/pre-commit`). Commits: (1) modifier-sync, (2) frame-backpressure, (3) decompress-reuse-buffer, (4) Clipboard-Isolation als wprsd-Flag `--no-selection-sync` + wlr-data-control, (5) Titel immer mit Präfix (`[vm]` ohne Titel), (6) wprsc `--app-id-prefix`, (7) wprsc `--deny-fullscreen` (Anforderungen der App beim Öffnen und zur Laufzeit ignoriert, Verlassen erlaubt), (8) Präfixe auch für Xwayland-Fenster. Danach nixos-config: Input `wprs` + ein Overlay (dom0 und VMs, Patch-Listen weg, Helfer aus `wprs-clipboard.nix` bleibt), vm-gui setzt beide Flags, niri `labelRules` nach App-ID, Fensterregeln/close-guard/terminal-tabs auf Präfix-IDs, waybar `app_ids-mapping` für bekannte Apps. Nicht dabei: PR an upstream, wprsc abschotten, Pixel über geteilten Speicher.
 - **Frontend-Härtung in wprsc (Qubes-Vorbild):**
   - App-ID immer mit VM-Präfix (`[coding] org.mozilla.firefox`, ohne App-ID der App nur `[coding]`): die VM kann weder dom0-Apps noch andere VMs vortäuschen; Rahmenfarben (niri `labelRules`) nach App-ID statt nach Titel; niri-Regeln auf VM-App-IDs (floating, vesktop …) und Icon-Suche in der Leiste anpassen.
   - Titel immer mit Präfix, `[vm]` als Titel für Fenster ohne Titel (heute grau ohne Präfix).
@@ -1111,10 +1249,11 @@ Nächster großer Meilenstein des Users: **NoX-Module** (ein großer Teil dieser
 
 ### 4. Vorbereitung NoX-Module
 
-- **`drvPath`-Abgleich:** kleines Skript, das für hp, xmg und jede VM `config.system.build.toplevel.drvPath` festhält; ein reiner Verschiebe-Schritt muss identische drvPaths ergeben → Umbau ohne Test auf der Maschine nachweisbar verhaltensgleich. Wichtigstes Werkzeug für den Meilenstein.
+- **`drvPath`-Abgleich:** **erledigt (Nachtlauf 2026-10-22, `scripts/drvpaths save|diff`; Basis nach den Commits neu erzeugen)** – kleines Skript, das für hp, xmg und jede VM `config.system.build.toplevel.drvPath` festhält; ein reiner Verschiebe-Schritt muss identische drvPaths ergeben → Umbau ohne Test auf der Maschine nachweisbar verhaltensgleich. Wichtigstes Werkzeug für den Meilenstein.
 - **Registry-Schema festlegen:** die Registry wird die Schnittstelle der NoX-Module. Felder der letzten Tage (`disposable`, `egress`, `backup`, `label`, `uplink`, `copy`, …) aufräumen, dokumentieren und sortieren: gehört zu NoX / gehört zur Config des Users.
-- **SSH-Rückfälle entfernen,** sobald die Image-Domains auf dem xmg neu eingerichtet sind (`vm-clip`, `nox doctor`, `update-all`); übrig bleibt nur der builder.
+- **SSH-Rückfälle entfernen** **erledigt (Nachtlauf 2026-10-22, nur der builder hat SSH)**, sobald die Image-Domains auf dem xmg neu eingerichtet sind (`vm-clip`, `nox doctor`, `update-all`); übrig bleibt nur der builder.
 - **Shell vs. Rust klären** (offene grill-Fragen zu `nox-cli` oben): bestimmt, wie die Module aussehen.
+- **home-manager raus?** (User 2026-10-21): vor der Modularisierung besprechen, ob HM wegkommt; bestimmt, ob die dom0-Werkzeuge NixOS-Module/Pakete werden.
 
 ### 5. NoX-Module (gründlich planen, grill)
 
