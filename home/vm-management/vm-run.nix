@@ -20,24 +20,12 @@ let
     vms = vmRegistry.vms ++ vmRegistry.imageDomains;
     assignments = [
       {
-        shellName = "IP";
-        attr = "ip";
-      }
-      {
         shellName = "FULL_NAME";
         attr = "name";
       }
       {
         shellName = "VM_USER";
         valueFrom = vmScriptLib.vmUser;
-      }
-      {
-        shellName = "DBUS_FORWARD_REQUIRED";
-        valueFrom = vm: if builtins.elem vm.name dbusForwardNames then 1 else 0;
-      }
-      {
-        shellName = "RELAY_SSH";
-        valueFrom = vm: if relayListen vm ? ssh then 1 else 0;
       }
       {
         shellName = "RELAY_GUI";
@@ -47,9 +35,8 @@ let
   };
 
   vmList = vmScriptLib.vmList (vmRegistry.vms ++ vmRegistry.imageDomains);
-  dbusForwardNames = map (vm: vm.name) (vmRegistry.dbusForwardParticipants or [ ]);
-  # Xen guests reached over vchan (nox-relay): SSH without the admin network
-  # (stage B), GUI apps over vm-gui (wprs + app start by RPC)
+  # Xen guests with wprsd (nox-relay serves it): GUI apps and terminals over
+  # vm-gui (wprs + app start by RPC)
   relayListen = vm: (osConfig.services.nox-relay.host.guests or { }).${vm.name}.listen or { };
 
   vmRunner = pkgs.writeShellScriptBin "vm-run" ''
@@ -62,8 +49,9 @@ let
 
     usage() {
       echo "Usage: vm-run [-c] [-u] [-e <ssh-arg>]... <vm-name-or-short> <binary> [args...]" >&2
+      echo "  -c: in a terminal of the VM (foot over wprs; the builder: SSH, -e for ssh)" >&2
       echo "       vm-run -u <vm-name-or-short>" >&2
-      echo "Example: vm-run -c -e -J -e jump-host net bash" >&2
+      echo "Example: vm-run -c coding htop; vm-run -c -e -v builder uptime" >&2
       echo "Available VMs:" >&2
       cat <<EOF >&2
 ${vmList}
@@ -110,7 +98,6 @@ ${vmCases}
     BINARY="$1"
     shift
 
-    KEY="$HOME/.ssh/$FULL_NAME-vm"
     SERVICE="microvm@$FULL_NAME.service"
     case " ${imageDomainNames} " in
       *" $FULL_NAME "*) SERVICE="xen-image@$FULL_NAME.service" ;;
@@ -154,74 +141,18 @@ ${vmCases}
       exec vm-gui "$FULL_NAME" "$BINARY" "$@"
     fi
 
-    MAX_RETRIES=30
-    if [ "$RELAY_SSH" -eq 1 ]; then
-      # SSH over vchan, no admin network to ping: the SSH check below
-      # covers the boot
-      MAX_RETRIES=60
-    else
-      COUNT=0
-      while ! ping -c 1 -W 1 "$IP" >/dev/null 2>&1; do
-        sleep 1
-        COUNT=$((COUNT+1))
-        if [ $COUNT -ge $MAX_RETRIES ]; then
-          ${pkgs.libnotify}/bin/notify-send "Error" "VM $FULL_NAME failed to start network."
-          exit 1
-        fi
-      done
+    # Without wprs only the builder is reachable, by SSH over vchan (its
+    # host entry and relay ProxyCommand: home/ssh.nix); the other domains
+    # have no sshd (xen-migration.md, SSH removal)
+    if [ "$FULL_NAME" != builder ]; then
+      echo "vm-run: $FULL_NAME has no wprs and no SSH (emergency: sudo xl console $FULL_NAME-vm)" >&2
+      exit 1
     fi
-
-    COUNT=0
-    while ! ssh -i "$KEY" \
-      -o IdentitiesOnly=yes \
-      -o StrictHostKeyChecking=accept-new \
-      -o BatchMode=yes \
-      -o ConnectTimeout=2 \
-      -o ConnectionAttempts=1 \
-      "$VM_USER@$IP" true >/dev/null 2>&1; do
-      sleep 1
-      COUNT=$((COUNT+1))
-      if [ $COUNT -ge $MAX_RETRIES ]; then
-        ${pkgs.libnotify}/bin/notify-send "Error" "VM $FULL_NAME is reachable by ping but SSH is not ready."
-        exit 1
-      fi
-    done
-
-    if [ "$DBUS_FORWARD_REQUIRED" -eq 1 ]; then
-      DBUS_FORWARD_SERVICE="vm-dbus-forward@$FULL_NAME.service"
-      # Xen guests get the bus over vchan (nox-relay): no forward unit
-      if systemctl --user cat "$DBUS_FORWARD_SERVICE" >/dev/null 2>&1 \
-        && ! systemctl --user is-active --quiet "$DBUS_FORWARD_SERVICE"; then
-        systemctl --user start "$DBUS_FORWARD_SERVICE" || true
-      fi
-
-      COUNT=0
-      while ! ssh -i "$KEY" \
-        -o IdentitiesOnly=yes \
-        -o StrictHostKeyChecking=accept-new \
-        -o BatchMode=yes \
-        -o ConnectTimeout=2 \
-        -o ConnectionAttempts=1 \
-        "$VM_USER@$IP" 'test -S /tmp/ssh_dbus.sock && busctl --address=unix:path=/tmp/ssh_dbus.sock --timeout=200ms status >/dev/null 2>&1'; do
-        sleep 1
-        COUNT=$((COUNT+1))
-        if [ $COUNT -ge $MAX_RETRIES ]; then
-          ${pkgs.libnotify}/bin/notify-send "Error" "VM $FULL_NAME SSH is ready but DBus tunnel is not ready."
-          exit 1
-        fi
-      done
+    if [ "$CLI_MODE" -eq 0 ]; then
+      echo "vm-run: the builder runs no wprs, use vm-run -c builder <cmd> (SSH)" >&2
+      exit 1
     fi
-
-    if [ "$CLI_MODE" -eq 1 ]; then
-      exec ssh -i "$KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "''${EXTRA_SSH_ARGS[@]}" "$VM_USER@$IP" -t -- "$BINARY" "$@"
-    else
-      # Title prefix for niri's border rule per trust label (as vm-gui);
-      # straight to wprsc, the launcher's --title-prefix appends ": "
-      wprs --wprsc-args="--title-prefix='[$FULL_NAME] '" "$IP" run -- "$BINARY" "$@" &
-      WPRS_PID=$!
-      wait $WPRS_PID
-      pkill -P $WPRS_PID ssh || true
-    fi
+    exec ssh "''${EXTRA_SSH_ARGS[@]}" -t builder -- "$BINARY" "$@"
   '';
 in
 {

@@ -1,69 +1,24 @@
-{ pkgs, osConfig ? { }, vmRegistry, ... }:
+# dom0's dedicated GitHub SSH agent. VMs with registry `allowGitHubAgent`
+# reach it over vchan (nox-relay, vms/modules/vchan-relay.nix); the SSH
+# remote forwards that used to carry it are gone (SSH removal, 2026-10-21)
+{ pkgs, ... }:
 let
-  # Guests that get the agent over vchan (nox-relay) need no SSH forward
-  relayed = osConfig.services.nox-relay.host.guests or { };
-  githubAgentHosts = builtins.filter (
-    h: (h.allowGitHubAgent or false) && !((relayed.${h.name}.serve or { }) ? github-agent)
-  ) vmRegistry.vms;
   githubAgentBin = import ./github-agent.nix { inherit pkgs; };
-  vmUser = "user";
-  localGitHubAgentSocket = "%h/.ssh/agent/github.sock";
-  remoteGitHubAgentSocket = "/tmp/ssh-github-agent.sock";
-  sshVmOptions = builtins.concatStringsSep " " [
-    "-o BatchMode=yes"
-    "-o ExitOnForwardFailure=yes"
-    "-o ServerAliveInterval=30"
-    "-o ServerAliveCountMax=3"
-    "-o ControlMaster=no"
-    "-o IdentitiesOnly=yes"
-    "-o StrictHostKeyChecking=no"
-    "-o UserKnownHostsFile=/dev/null"
-    "-o IdentityAgent=none"
-    "-o ForwardAgent=no"
-    "-o StreamLocalBindUnlink=yes"
-    "-o ConnectTimeout=5"
-  ];
 in
 {
-  systemd.user.services = {
-    github-agent = {
-      Unit = {
-        Description = "Ensure dedicated GitHub SSH agent is running";
-        After = [ "default.target" ];
-        Wants = [ "default.target" ];
-      };
-      Service = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = "${githubAgentBin}/bin/github-agent";
-      };
-      Install = {
-        WantedBy = [ "default.target" ];
-      };
+  systemd.user.services.github-agent = {
+    Unit = {
+      Description = "Ensure dedicated GitHub SSH agent is running";
+      After = [ "default.target" ];
+      Wants = [ "default.target" ];
     };
-  }
-  // builtins.listToAttrs (
-    map (
-      vm: {
-        name = "vm-github-agent-forward@${vm.name}";
-        value = {
-          Unit = {
-            Description = "Persistent GitHub agent remote-forward tunnel for ${vm.name}-vm";
-            After = [ "default.target" "github-agent.service" ];
-            Wants = [ "default.target" "github-agent.service" ];
-          };
-          Service = {
-            Type = "simple";
-            Restart = "always";
-            RestartSec = 5;
-            ExecStartPre = "${pkgs.coreutils}/bin/test -S ${localGitHubAgentSocket}";
-            ExecStart = "${pkgs.openssh}/bin/ssh -N ${sshVmOptions} -i %h/.ssh/${vm.name}-vm -R ${remoteGitHubAgentSocket}:${localGitHubAgentSocket} ${vmUser}@${vm.ip}";
-          };
-          Install = {
-            WantedBy = [ "default.target" ];
-          };
-        };
-      }
-    ) githubAgentHosts
-  );
+    Service = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${githubAgentBin}/bin/github-agent";
+    };
+    Install = {
+      WantedBy = [ "default.target" ];
+    };
+  };
 }

@@ -24,7 +24,6 @@ in
     ./vm-management/vm-backup.nix
     ./vm-management/vm-rollback.nix
     ./vm-management/desktop-entries.nix
-    ./vm-management/vm-dbus-forward.nix
     ./vm-management/github-agent-forward.nix
   ];
 
