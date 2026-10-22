@@ -36,6 +36,9 @@ in
     pkgs.wprs
     pkgs.xwayland
     clipboard.helper
+    # Real wl-copy/wl-paste against wprsd (nvim, yazi, ...); replaces the old
+    # fake that wrote to /tmp/fake-clipboard
+    pkgs.wl-clipboard
     # Terminal for `vm-run <vm> foot`, configured like dom0's foot
     pkgs.foot
   ];

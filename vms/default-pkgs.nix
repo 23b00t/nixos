@@ -17,20 +17,4 @@ with pkgs;
   poppler
   resvg
   imagemagick
-
-  # NOTE: Important that WAYLAND_DISPLAY = "wayland-0" is set as a fake var too
-  # Create fake wl-copy
-  (pkgs.writeShellScriptBin "wl-copy" ''
-    #!/usr/bin/env sh
-    cat > /tmp/fake-clipboard
-  '')
-  # Create fake wl-paste
-  (pkgs.writeShellScriptBin "wl-paste" ''
-    #!/usr/bin/env sh 
-    if [ -f /tmp/fake-clipboard ]; then
-      cat /tmp/fake-clipboard
-    else
-      echo ""
-    fi 
-  '')
 ]
