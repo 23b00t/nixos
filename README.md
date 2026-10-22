@@ -334,6 +334,14 @@ One partition "Ext4 + LUKS" on the whole disk, see "Partition, format,
 encrypt a disk" under USB. Nothing else: `nox backup` creates its folders
 itself.
 
+A disk may also carry other LUKS volumes. Then list the backup volume's
+LUKS UUID in `vms/registry.nix` (`backupLuksUuids`, several disks allowed):
+`nox backup` opens only a listed volume and never tries another one. With
+an empty list it takes a disk with exactly one LUKS volume; with several it
+stops and prints them (device, UUID, size), so the UUID can be copied from
+there. Or, with the disk in a VM: `lsblk -o NAME,FSTYPE,UUID,SIZE`
+(FSTYPE `crypto_LUKS`).
+
 ### What every run does
 
 ```text
@@ -350,7 +358,7 @@ LUKS passphrase of the backup disk:     # opens it in disp-backup
 1. Starts the disposable `disp-backup` (no network, empty on every start).
 2. Lists the USB devices and asks for the busid of the backup disk, then
    attaches it to `disp-backup`.
-3. Asks for the LUKS passphrase; `disp-backup` opens and mounts the disk.
+3. Asks for the LUKS passphrase (three tries); `disp-backup` opens and mounts the disk.
 4. Runs the backup or restore (below), with progress.
 5. Unmounts and locks the disk and stops `disp-backup`, also after an error
    or Ctrl+C. Unplug the disk afterwards.
@@ -737,8 +745,36 @@ happens, restart the Gateway.
 
 ### 7. Gateway commands
 
-From the Whonix wiki (Tor, Tor Controller, Bridges), run in
-the Gateway's terminal (`vm-run -c wg …`); not all tried here yet.
+Terminal in the Gateway: desktop entry "Terminal (whonix-gateway)" or
+`vm-run wg /nix/store/nox/bin/foot`.
+
+**nyx** does most of it: bandwidth, circuits, log, new identity (NEWNYM),
+reset Tor, and on page 5 the control interpreter for raw control commands.
+A bridge for the running Tor (until Tor restarts), tested 2026-10-22: get an
+obfs4 line from bridges.torproject.org, then in the interpreter:
+
+```
+SETCONF UseBridges=1 ClientTransportPlugin="obfs4 exec /usr/bin/obfs4proxy" Bridge="<bridge line>"
+GETCONF Bridge
+GETINFO status/bootstrap-phase
+SETCONF UseBridges=0                    # back to direct
+```
+
+Several bridges: several `Bridge="…"` in one `SETCONF`. No `SAVECONF` (it
+writes the whole running config into Tor's main torrc, past Whonix's
+`torrc.d`); permanent bridges go into `50_user.conf`, see below.
+
+New circuits: in the Workstation's Tor Browser "New Tor circuit for this
+site" (Ctrl+Shift+L) or "New Identity" (Ctrl+Shift+U, closes all tabs); for
+the whole Gateway NEWNYM (nyx or `tor-ctrl` below), only new connections.
+
+No Tor relay in the Gateway (Whonix advises against it: relay and client
+traffic on one Tor; here it would also need inbound ports through sys-net
+and sys-firewall). To help others: a snowflake proxy in a VM of its own
+(no inbound ports), or a relay in a VM of its own with a port forward.
+
+Other commands from the Whonix wiki (Tor, Tor Controller, Bridges), in the
+Gateway's terminal; not all tried here yet.
 
 ```sh
 tor-ctrl signal NEWNYM                  # new circuits for new connections ("250 OK")
@@ -1236,7 +1272,6 @@ Known issues and their status are tracked in
 - think over dropping zsh on the host (zellij: gone from dom0 except on the hp, 2026-10-17)
 - modularize config
 - restructure vms/ vm folders should not live on the same level as modules/ etc.
-- fix steam-vm bug: reboot is needed -> currently no way to do that. Maybe automate early reboot after first start and logging specific issue as trigger.
 - improve steam-vm: initial wlserver: backend/hedless... is taking quiet long till steam starts (about 30s)
 - let steam-vm participate in file sharing?
 - Monitor occasionally occurring shared libs error in nvim-vm
