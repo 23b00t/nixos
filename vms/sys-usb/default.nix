@@ -27,6 +27,7 @@ let
       lib.makeBinPath [
         usbip
         pkgs.coreutils
+        pkgs.kmod
         pkgs.nftables
         pkgs.gnutar
         pkgs.gnugrep
@@ -55,7 +56,40 @@ let
         ;;
       bind)
         busid_ok "''${2:-}" || exit 2
-        [ -f "/sys/bus/usb/devices/$2/usbip_status" ] || usbip bind -b "$2"
+        dev="/sys/bus/usb/devices/$2"
+        [ -f "$dev/usbip_status" ] && exit 0
+        # A UAS disk: uas has switched its interface to the UAS alternate
+        # setting, usbip-host would pass it on like that, and the target VM
+        # can only use usb-storage on alt 0 (vhci_hcd has no streams):
+        # endpoint stalls, resets in a loop, 0 B (Samsung T7, 2026-10-22).
+        # So ignore UAS for it from now on and let it come up again (alt 0,
+        # usb-storage) before usbip-host takes it
+        for i in "$dev/$2":*; do
+          [ "$(basename "$(readlink -f "$i/driver" 2>/dev/null)")" = uas ] || continue
+          vp="$(<"$dev/idVendor"):$(<"$dev/idProduct")"
+          q=/sys/module/usb_storage/parameters/quirks
+          modprobe usb-storage
+          case ",$(<"$q")," in
+            *",$vp:u,"*) ;;
+            ",,") echo "$vp:u" >"$q" ;;
+            *) echo "$(<"$q"),$vp:u" >"$q" ;;
+          esac
+          echo 0 >"$dev/authorized"
+          sleep 1
+          echo 1 >"$dev/authorized"
+          # Wait until usb-storage has set it up (its block device is there):
+          # taken away mid-setup, the disk's bulk-only state is broken and the
+          # VM sees stalls again (bound after 26 ms, hp 2026-10-22)
+          for _ in $(seq 40); do
+            # (no compgen: this bash lacks programmable completion)
+            blk=("$dev/$2":*/host*/target*/*/block/*)
+            [ -e "''${blk[0]}" ] && break
+            sleep 0.5
+          done
+          sleep 1
+          break
+        done
+        usbip bind -b "$2"
         ;;
       unbind)
         # Also frees a device still "in use" by a vanished client

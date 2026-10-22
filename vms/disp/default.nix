@@ -3,7 +3,7 @@
 # shell` in the store overlay, GUI over wprs), but every start begins empty:
 # dom0 deletes home and overlay images before start and after stop
 # (registry `disposable`, machines/xen-dom0.nix).
-{ ... }:
+{ pkgs, ... }:
 {
   imports = [
     ../modules/net-config.nix
@@ -45,7 +45,17 @@
 
     # Disks attached via vm-usb: gnome-disks / udisksctl (format, LUKS)
     udisks2.enable = true;
+
+    # Phone transfers (Bluetooth adapter via `nox usb attach <busid> disp`,
+    # pairings come along from sys-usb): blueman-manager sends files,
+    # blueman-applet accepts incoming ones (OBEX agent); bluez itself comes
+    # from usbip-client.nix (registry allowedOwners)
+    blueman.enable = true;
   };
+
+  # Phones over USB cable (MTP): android-file-transfer (GUI), or
+  # `aft-mtp-mount ~/phone` / `fusermount -u ~/phone`
+  environment.systemPackages = [ pkgs.android-file-transfer ];
 
   # As in yazi-config.nix: wheel may use udisks2 without a polkit agent
   security.polkit.extraConfig = ''

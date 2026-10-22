@@ -14,6 +14,7 @@
   lib,
   pkgs,
   config,
+  vmRegistry,
   ...
 }:
 let
@@ -82,16 +83,46 @@ let
       open | open-test)
         # The disk is the only sd* here (own disks are xvd*); vm-backup's
         # test disk (NOX_BACKUP_TEST_DISK) comes as xvdz. LUKS on the whole
-        # disk or on a partition
+        # disk or on a partition. A disk may hold several LUKS volumes: only
+        # one listed in the registry (`backupLuksUuids`) is opened, never
+        # another; without a list only a disk with a single LUKS volume
         IFS= read -r pw || exit 1
+        allowed=" ${lib.concatStringsSep " " vmRegistry.backupLuksUuids} "
         dev=""
+        found=()
+        seen=""
         for _ in $(seq 30); do
+          found=()
           for d in /dev/sd?* /dev/xvdz*; do
-            [ -b "$d" ] && cryptsetup isLuks "$d" 2>/dev/null && { dev="$d"; break 2; }
+            [ -b "$d" ] && cryptsetup isLuks "$d" 2>/dev/null || continue
+            uuid="$(cryptsetup luksUUID "$d")"
+            found+=("$d $uuid $(lsblk -dno SIZE "$d" | tr -d ' ')")
+            # the test disk is always fine
+            if { [ "$allowed" != "  " ] && [[ "$allowed" == *" $uuid "* ]]; } \
+              || { [ "$1" = open-test ] && [[ "$d" == /dev/xvdz* ]]; }; then
+              dev="$d"
+              break 2
+            fi
           done
+          if [ "$allowed" = "  " ] && [ "''${#found[@]}" -gt 0 ]; then
+            # Partitions may still be coming up: decide on a second look
+            [ -n "$seen" ] && break
+            seen=1
+          fi
           [ "$1" = open-test ] && [ -b /dev/xvdz ] && break
           sleep 1
         done
+        if [ "$allowed" = "  " ] && [ "''${#found[@]}" -eq 1 ]; then
+          dev="''${found[0]%% *}"
+        elif [ -z "$dev" ] && [ "''${#found[@]}" -gt 0 ] && [ "$1" = open ]; then
+          if [ "$allowed" = "  " ]; then
+            echo "error: several LUKS volumes on the disk; list the backup volume in the registry (backupLuksUuids):"
+          else
+            echo "error: none of the LUKS volumes on the disk is a backup volume (registry backupLuksUuids):"
+          fi
+          printf '  %s\n' "''${found[@]}"
+          exit 1
+        fi
         if [ -z "$dev" ] && [ "$1" = open-test ] && [ -b /dev/xvdz ]; then
           # Fresh test disk: format it like a real one (LUKS + ext4)
           echo "formatting the test disk"
@@ -102,8 +133,16 @@ let
           dev=/dev/xvdz
         fi
         [ -n "$dev" ] || { echo "error: no LUKS disk found (attached? formatted?)"; exit 1; }
-        printf '%s' "$pw" | cryptsetup open --key-file=- "$dev" noxbackup \
-          || { echo "error: wrong passphrase?"; exit 1; }
+        # cryptsetup exits 2 on a wrong passphrase: 3 tells vm-backup to ask again
+        printf '%s' "$pw" | cryptsetup open --key-file=- "$dev" noxbackup
+        rc=$?
+        if [ "$rc" = 2 ]; then
+          echo "wrong passphrase"
+          exit 3
+        elif [ "$rc" != 0 ]; then
+          echo "error: cryptsetup open failed ($rc)"
+          exit 1
+        fi
         mkdir -p ${mnt}
         mount /dev/mapper/noxbackup ${mnt} || { cryptsetup close noxbackup; exit 1; }
         mkdir -p "$home" "$full"
@@ -144,7 +183,7 @@ let
         tee "$d/$5" | sha256sum | cut -d' ' -f1 >"$d/$4.sha256" || exit 1
         [ -s "$d/$5" ] || { echo "error: empty stream"; exit 1; }
         echo "$6" >"$d/$4.used"
-        echo "stored $(human "$(stat -c %s "$d/$5")")"
+        echo "stored-bytes $(stat -c %s "$d/$5")"
         ;;
       full-commit) # <target> <gen>
         name_ok "$2" && gen_ok "$3" || exit 2

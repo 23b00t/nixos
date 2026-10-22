@@ -129,9 +129,10 @@ let
     }
     # Output of a call: rsync's progress2 lines become one line "<label>
     # amount % rate ETA" redrawn in place, `exit N` goes to <rc file>,
-    # "Total transferred file size" to $amountf, the rest is printed
+    # "Total transferred file size" to $amountf, a full backup's "stored-bytes"
+    # (compressed size on the disk) to $storedf, the rest is printed
     show() { # show <label> <rc file>
-      gawk -v label="$1" -v rcf="$2" -v amountf="''${amountf:-/dev/null}" '
+      gawk -v label="$1" -v rcf="$2" -v amountf="''${amountf:-/dev/null}" -v storedf="''${storedf:-/dev/null}" '
         function hum(x) { return x >= 1e9 ? sprintf("%.1f GB", x / 1e9) : x >= 1e6 ? sprintf("%.1f MB", x / 1e6) : sprintf("%.0f kB", x / 1e3) }
         BEGIN { RS = "[\r\n]+" }
         /^exit [0-9]+$/ { print $2 > rcf; next }
@@ -142,6 +143,7 @@ let
           drawn = 1; fflush(); next
         }
         /^Total transferred file size: / { t = $5; gsub(",", "", t); print t > amountf; next }
+        /^stored-bytes [0-9]+$/ { print $2 > storedf; next }
         /^(Number of|Total |Literal |Matched |File list|sent |total size)/ { next }
         { if (drawn) { printf "\n"; drawn = 0 } print; fflush() }
         END { if (drawn) printf "\n" }
@@ -155,7 +157,7 @@ let
         function eta(s) { s = int(s); return sprintf("%d:%02d", s / 60, s % 60) }
         function draw(b, now,   r, l1, l2, all) {
           if (now > ps) { r = (b - pb) / (now - ps); pb = b; ps = now; rate = rate ? 0.7 * rate + 0.3 * r : r }
-          l1 = sprintf("  %-20s %9s/%-9s %3d%%  %9s/s  ETA %s", label, hum(b), hum(size), size ? 100 * b / size : 100, hum(rate), rate > 0 ? eta((size - b) / rate) : "?")
+          l1 = sprintf("  %-20s %9s/%-9s %3d%%  %11s  ETA %s", label, hum(b), hum(size), size ? 100 * b / size : 100, rate > 0 ? hum(rate) "/s" : "-", b >= size ? "0:00" : rate > 0 ? eta((size - b) / rate) : "?")
           all = before + b
           r = (now > t0) ? all / (now - t0) : 0
           l2 = sprintf("  %-20s %9s/%-9s %3d%%               ETA %s", "total", hum(all), hum(total), total ? 100 * all / total : 100, r > 0 ? eta((total - all) / r) : "?")
@@ -203,10 +205,18 @@ let
         read -r -p "busid of the backup disk: " busid
         vm-usb attach "$busid" disp-backup || die "attach of $busid failed"
       fi
-      read -r -s -p "LUKS passphrase of the backup disk: " pw
-      echo >&2
-      printf '%s\n' "$pw" | call_in "$open" || { unset pw; die "could not open the backup disk"; }
-      unset pw
+      # Three tries; disp-backup answers 3 for a wrong passphrase
+      local try rc
+      for try in 1 2 3; do
+        read -r -s -p "LUKS passphrase of the backup disk: " pw
+        echo >&2
+        rc=0
+        printf '%s\n' "$pw" | call_in "$open" || rc=$?
+        unset pw
+        [ "$rc" = 0 ] && return 0
+        [ "$rc" = 3 ] && [ "$try" -lt 3 ] && continue
+        die "could not open the backup disk"
+      done
     }
     session_close() {
       trap - EXIT
@@ -350,7 +360,9 @@ let
         | zstd -T0 -q -"$level" -c | call_in "full-put $t $gen $d $file $3"
     }
     full_backup() { # full_backup <line "<target> <disk>…">…
-      local line t disks d total=0 before=0 used tt rc up=() i=0
+      local line t disks d total=0 before=0 used tt rc up=() i=0 storedf
+      # Compressed size on the disk of each one (disp-backup, show)
+      storedf="$(mktemp)"
       for line in "$@"; do
         t="''${line%% *}"
         for d in ''${line#* }; do total=$((total + $(used_of "$t" "$d"))); done
@@ -359,7 +371,7 @@ let
       if [ "''${#up[@]}" -gt 0 ]; then
         ask "stops and restarts for the copy: ''${up[*]}. Go on?" || die "aborted"
       fi
-      echo "full backup: $(human "$total") of data"
+      echo "full backup: $(human "$total") to read (used blocks, stored compressed)"
       run_t0="$(date +%s)"
       for line in "$@"; do
         i=$((i + 1))
@@ -382,8 +394,10 @@ let
           esac
           tt=$SECONDS
           used="$(used_of "$t" "$d")"
+          : >"$storedf"
           if full_put_one "$t" "$d" "$used" "$before" "$total"; then
-            note "$t:$d" OK "$(human "$used")" "$(clock $((SECONDS - tt)))"
+            # What lands on the disk (compressed), as `nox backup list` shows it
+            note "$t:$d" OK "$(human "$(cat "$storedf")")" "$(clock $((SECONDS - tt)))"
           else
             note "$t:$d" "FAILED: see the output above" - "$(clock $((SECONDS - tt)))"
             rc=1
@@ -401,6 +415,7 @@ let
         fi
         [ "$(kind_of "$t")" != builder ] || stop_again builder
       done
+      rm -f "$storedf"
     }
     # Stream of one disk from disp-backup (checksum checked there first)
     fetch() { # fetch <target> <gen> <disk> <used> <before> <total>

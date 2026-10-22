@@ -447,6 +447,7 @@ let
         allowedOwners = [
           "sys-usb"
           "chat"
+          "disp"
         ];
         microvmUsbPath = "vendorid=0x0bda,productid=0xb00e";
       }
@@ -522,6 +523,7 @@ let
         allowedOwners = [
           "sys-usb"
           "steam"
+          "disp"
         ];
         microvmUsbPath = "vendorid=0x8087,productid=0x0033";
       }
@@ -660,6 +662,15 @@ let
       };
     };
 
+  # LUKS volumes `nox backup` may open (cryptsetup luksUUID), any number of
+  # backup disks. Only a listed volume is ever opened, so a disk may carry
+  # other LUKS volumes. Empty: the only LUKS volume on the attached disk
+  # (several: error listing them)
+  backupLuksUuids = [
+    # Samsung T7 Touch, sda1 (309.8 GB); sda2 holds other data and is never opened
+    "c1b23529-a163-42c0-8aa4-9b4357c44b8c"
+  ];
+
   # The registry as one machine sees it: `vms`/`imageDomains` and everything
   # derived from them only hold what runs there (registry field `hosts`)
   forHost =
@@ -669,7 +680,12 @@ let
       hostVms = builtins.filter onHost vms;
     in
     {
-      inherit host byName byShort;
+      inherit
+        host
+        byName
+        byShort
+        backupLuksUuids
+        ;
       vms = hostVms;
       imageDomains = builtins.filter onHost imageDomains;
       natIPs = map (vm: vm.ip) (builtins.filter (vm: vm.nat or false) hostVms);
