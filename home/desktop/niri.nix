@@ -185,7 +185,7 @@ let
       "spawn-sh" = "vm-run net zen";
     };
 
-    "Mod+L" = {
+    "Mod+Alt+L" = {
       _props."hotkey-overlay-title" = "Lock the Screen: swaylock";
       spawn = [ "swaylock" ];
     };
@@ -332,59 +332,32 @@ let
     "Mod+Down"."focus-window-down" = { };
     "Mod+Up"."focus-window-up" = { };
     "Mod+Right"."focus-column-right" = { };
-    "Mod+H"."focus-column-left" = { };
-    "Mod+K"."focus-window-up" = { };
-
-    "Mod+Ctrl+Left"."move-column-left" = { };
-    "Mod+Ctrl+Down"."move-window-down" = { };
-    "Mod+Ctrl+Up"."move-window-up" = { };
-    "Mod+Ctrl+Right"."move-column-right" = { };
-    "Mod+Ctrl+H"."focus-monitor-left" = { };
-    "Mod+Ctrl+J"."focus-monitor-down" = { };
-    "Mod+Ctrl+K"."focus-monitor-up" = { };
-    "Mod+Ctrl+L"."focus-monitor-right" = { };
 
     "Mod+Ctrl+Home"."move-column-to-first" = { };
     "Mod+Ctrl+End"."move-column-to-last" = { };
 
-    "Mod+Shift+Left"."focus-monitor-left" = { };
-    "Mod+Shift+Down"."focus-monitor-down" = { };
-    "Mod+Shift+Up"."focus-monitor-up" = { };
-    "Mod+Shift+Right"."focus-monitor-right" = { };
+    # Monitors: Mod+H/J/K/L focus, with Shift the column (and its tabs) moves
+    "Mod+H"."focus-monitor-left" = { };
+    "Mod+J"."focus-monitor-down" = { };
+    "Mod+K"."focus-monitor-up" = { };
+    "Mod+L"."focus-monitor-right" = { };
+    "Mod+Shift+H"."move-column-to-monitor-left" = { };
+    "Mod+Shift+J"."move-column-to-monitor-down" = { };
+    "Mod+Shift+K"."move-column-to-monitor-up" = { };
+    "Mod+Shift+L"."move-column-to-monitor-right" = { };
 
-    "Mod+Shift+Ctrl+Left"."move-column-to-monitor-left" = { };
-    "Mod+Shift+Ctrl+Down"."move-column-to-monitor-down" = { };
-    "Mod+Shift+Ctrl+Up"."move-column-to-monitor-up" = { };
-    "Mod+Shift+Ctrl+Right"."move-column-to-monitor-right" = { };
-    "Mod+Shift+Ctrl+H"."move-window-to-monitor-left" = { };
-    "Mod+Shift+Ctrl+J"."move-window-to-monitor-down" = { };
-    "Mod+Shift+Ctrl+K"."move-window-to-monitor-up" = { };
-    "Mod+Shift+Ctrl+L"."move-window-to-monitor-right" = { };
+    "Mod+Alt+Left"."move-column-left" = { };
+    "Mod+Alt+Down"."move-window-down" = { };
+    "Mod+Alt+Up"."move-window-up" = { };
+    "Mod+Alt+Right"."move-column-right" = { };
 
-    "Mod+Alt+H"."focus-column-left" = { };
-    "Mod+Alt+J"."focus-window-down" = { };
-    "Mod+Alt+K"."focus-window-up" = { };
-    "Mod+Alt+L"."focus-column-right" = { };
-    "Mod+Alt+Shift+H"."move-column-left" = { };
-    "Mod+Alt+Shift+J"."move-window-down" = { };
-    "Mod+Alt+Shift+K"."move-window-up" = { };
-    "Mod+Alt+Shift+L"."move-column-right" = { };
-
-    "Mod+Page_Down"."focus-workspace-down" = { };
-    "Mod+Page_Up"."focus-workspace-up" = { };
     "Mod+U"."focus-workspace-down" = { };
     "Mod+I"."focus-workspace-up" = { };
-    "Mod+Ctrl+Page_Down"."move-column-to-workspace-down" = { };
-    "Mod+Ctrl+Page_Up"."move-column-to-workspace-up" = { };
-    "Mod+Ctrl+U"."move-column-to-workspace-down" = { };
-    "Mod+Ctrl+I"."move-column-to-workspace-up" = { };
-    "Mod+Shift+Page_Down"."move-workspace-down" = { };
-    "Mod+Shift+Page_Up"."move-workspace-up" = { };
-    "Mod+Shift+U"."move-workspace-down" = { };
-    "Mod+Shift+I"."move-workspace-up" = { };
+    "Mod+Shift+U"."move-column-to-workspace-down" = { };
+    "Mod+Shift+I"."move-column-to-workspace-up" = { };
 
     # Tabs of the focused column (VM terminals) by number; workspaces are
-    # reached with Mod+Page_Up/Down (Mod+I/U), Mod+Ctrl+<n> still moves columns
+    # reached with Mod+I/U, Mod+Ctrl+<n> still moves columns
     "Mod+1"."focus-window-in-column" = 1;
     "Mod+2"."focus-window-in-column" = 2;
     "Mod+3"."focus-window-in-column" = 3;
