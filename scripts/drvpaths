@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# drvpaths: fingerprint of the whole config, for refactors that must not
+# change behaviour (xen-migration.md step 4, NoX modules): the drvPath of
+# config.system.build.toplevel of every nixosConfiguration (hp, xmg, every
+# VM). Same drvPath = same system, byte for byte, without a test on the
+# machine.
+#
+#   scripts/drvpaths save [file] [name…]   evaluate, write "<name> <drvPath>"
+#                                          lines (default file: drvpaths.txt)
+#   scripts/drvpaths diff <old> <new>      the configurations that changed
+#
+# Typical: `scripts/drvpaths save /tmp/before`, move code around,
+# `scripts/drvpaths save /tmp/after`, `scripts/drvpaths diff /tmp/before
+# /tmp/after` (no output, exit 0: nothing changed). Run from the repo root;
+# untracked files are invisible to the flake (git add, or FLAKE=path:<copy>).
+# One evaluation per configuration, one after the other (a single eval of
+# the whole fleet needs too much memory in dom0). NIX_FLAGS: extra nix
+# arguments, e.g. "--override-input wprs path:../wprs".
+set -euo pipefail
+
+flake="${FLAKE:-.}"
+read -ra flags <<<"${NIX_FLAGS:-}"
+
+usage() {
+  sed -n '7,10p' "$0" | sed 's/^# \{0,1\}//' >&2
+  exit 2
+}
+
+case "${1:-}" in
+  save)
+    out="${2:-drvpaths.txt}"
+    shift $(($# >= 2 ? 2 : 1))
+    if [ $# -gt 0 ]; then
+      names=("$@")
+    else
+      mapfile -t names < <(nix eval "${flags[@]}" --raw "$flake#nixosConfigurations" \
+        --apply 'cs: builtins.concatStringsSep "\n" (builtins.filter (n: n != "default") (builtins.attrNames cs))')
+    fi
+    tmp="$(mktemp)"
+    trap 'rm -f "$tmp"' EXIT
+    rc=0
+    for n in "${names[@]}"; do
+      if d="$(nix eval "${flags[@]}" --raw "$flake#nixosConfigurations.\"$n\".config.system.build.toplevel.drvPath" 2>"$tmp.err")"; then
+        printf '%s %s\n' "$n" "$d" | tee -a "$tmp"
+      else
+        echo "drvpaths: $n: evaluation failed:" >&2
+        tail -n 5 "$tmp.err" >&2
+        printf '%s %s\n' "$n" "EVAL-ERROR" >>"$tmp"
+        rc=1
+      fi
+    done
+    rm -f "$tmp.err"
+    sort "$tmp" >"$out"
+    echo "drvpaths: ${#names[@]} configurations -> $out" >&2
+    exit "$rc"
+    ;;
+  diff)
+    [ $# -eq 3 ] || usage
+    # join on the name: changed, only before, only after
+    join -a1 -a2 -e MISSING -o 0,1.2,2.2 <(sort "$2") <(sort "$3") |
+      awk '$2 != $3 { printf "%-24s %s\n%-24s %s\n", $1, "- " $2, "", "+ " $3; n++ }
+           END { exit n > 0 }'
+    ;;
+  *) usage ;;
+esac
