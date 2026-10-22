@@ -15,6 +15,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # wprs fork (branch nox): nixpkgs' wprs with our fixes and flags
+    # (modifier sync, back pressure, decompression buffer, clipboard
+    # isolation, app id prefix, deny fullscreen)
+    wprs = {
+      url = "github:23b00t/wprs/nox";
+      flake = false;
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";

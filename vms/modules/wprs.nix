@@ -1,25 +1,18 @@
-{ lib, pkgs, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 let
   theme = import ../../home/desktop/theme.nix { inherit lib; };
-  # No selection sync with dom0 (WPRS_NO_SELECTION_SYNC below), explicit
-  # copy/paste via dom0's vm-clip
+  # vm-clip-helper: explicit copy/paste via dom0's vm-clip, the selection
+  # itself is not synced with dom0 (wprsd --selection-sync false)
   clipboard = import ../../modules/wprs-clipboard.nix { inherit pkgs; };
 in
 {
-  # Held modifiers follow the compositor (stuck Super, xen-migration.md);
-  # same patch as dom0 (machines/common-configuration.nix); frame callbacks wait
-  # while frames queue up for dom0 (back pressure, wprsd OOM during video)
-  nixpkgs.overlays = [
-    (final: prev: {
-      wprs = prev.wprs.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [
-          ../../modules/wprs-modifier-sync.patch
-          ../../modules/wprs-frame-backpressure.patch
-          clipboard.patch
-        ];
-      });
-    })
-  ];
+  # wprs from our fork, the same build as dom0 (modules/wprs-overlay.nix)
+  nixpkgs.overlays = [ (import ../../modules/wprs-overlay.nix { inherit inputs; }) ];
 
   systemd.user.services.wprsd = {
     description = "wprsd instance";
@@ -29,12 +22,12 @@ in
       Environment = [
         "PATH=/run/current-system/sw/bin"
         "RUST_BACKTRACE=1"
-        "WPRS_NO_SELECTION_SYNC=1"
       ];
       # Frame callbacks come from a wprsd timer (1/framerate - 2 ms after each
       # commit, default 60): Firefox got ~50 fps and dropped a third of a
       # 60 fps video; with 120 about 10-20 % (xmg 2026-10-18, README Known issues)
-      ExecStart = "/run/current-system/sw/bin/wprsd --framerate 120";
+      # No clipboard sync with dom0, explicit copy/paste via vm-clip
+      ExecStart = "/run/current-system/sw/bin/wprsd --framerate 120 --selection-sync false";
     };
     wantedBy = [ "default.target" ];
   };

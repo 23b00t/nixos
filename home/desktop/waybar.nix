@@ -1,6 +1,39 @@
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   theme = import ./theme.nix { inherit lib; };
+
+  # Taskbar icons for VM windows: their app ids carry "[<vm>] " (wprsc
+  # --app-id-prefix), which the taskbar can't resolve. Map the known apps
+  # back, from the desktop entries `vm-run <vm> <binary>`
+  # (home/vm-management/desktop-entries.nix): "[<vm>] <binary>" → its icon,
+  # plus the VM terminals "[<vm>] term-<vm>". Other apps get the default icon
+  appIdMapping = lib.listToAttrs (
+    lib.concatLists (
+      lib.mapAttrsToList (
+        _: entry:
+        let
+          words = lib.splitString " " (entry.exec or "");
+          vm = builtins.elemAt words 1;
+          binary = baseNameOf (builtins.elemAt words 2);
+          icon = if entry.icon or null != null then toString entry.icon else binary;
+        in
+        lib.optionals (builtins.length words >= 3 && builtins.head words == "vm-run") (
+          map (id: lib.nameValuePair "[${vm}] ${id}" icon) (
+            lib.unique [
+              binary
+              (lib.toLower binary)
+            ]
+          )
+          ++ [ (lib.nameValuePair "[${vm}] term-${vm}" "foot") ]
+        )
+      ) config.xdg.desktopEntries
+    )
+  );
 in
 {
   home.packages = with pkgs; [
@@ -227,7 +260,8 @@ in
             "markup": false,
             "on-click": "activate",
             "on-click-middle": "close",
-            "ignore-list": []
+            "ignore-list": [],
+            "app_ids-mapping": ${builtins.toJSON appIdMapping}
           },
 
           "clock": {

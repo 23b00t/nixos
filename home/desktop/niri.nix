@@ -9,15 +9,15 @@ let
   theme = import ./theme.nix { inherit lib; };
 
   # Trust label per VM (vms/registry.nix `label`, absent = untrusted): one
-  # window rule per label on the "[<vm>] " title prefix that dom0's wprsc
-  # sets (home/vm-management/vm-gui.nix, vm-run). A VM cannot fake it: its
-  # own title only follows the prefix. dom0's color only for titles that
-  # don't start with "[" (dom0's foot locks its title, home/home.nix);
-  # windows matching neither (a VM window without a title) keep the layout
-  # default `unknown`, never dom0's. No wprs patch needed for that
-  labelRule = label: title: {
+  # window rule per label on the "[<vm>] " app id prefix that dom0's wprsc
+  # sets (`--app-id-prefix`, home/vm-management/vm-gui.nix, vm-run; "[<vm>]"
+  # alone for windows without an app id). A VM cannot fake it: its own app
+  # id only follows the prefix. dom0's color only for app ids that don't
+  # start with "["; windows matching neither (a dom0 window without an app
+  # id) keep the layout default `unknown`
+  labelRule = label: appId: {
     "window-rule"._children = [
-      { match._props.title = title; }
+      { match._props."app-id" = appId; }
       {
         border = {
           "active-color" = theme.label.${label};
@@ -36,7 +36,7 @@ let
     (labelRule "dom0" "^[^\\[]")
   ]
   ++ lib.mapAttrsToList (
-    label: vms: labelRule label "^\\[(${lib.concatMapStringsSep "|" (vm: vm.name) vms})\\] "
+    label: vms: labelRule label "^\\[(${lib.concatMapStringsSep "|" (vm: vm.name) vms})\\]( |$)"
   ) (lib.groupBy (vm: vm.label or "untrusted") (vmRegistry.vms ++ vmRegistry.imageDomains));
 
   # Internal panel per machine. xmg: 2560x1600 at 60 Hz; at its preferred
@@ -111,7 +111,8 @@ let
     id=$(${pkgs.jq}/bin/jq -r '.id // empty' <<<"$w")
     app=$(${pkgs.jq}/bin/jq -r '.app_id // ""' <<<"$w")
     [ -n "$id" ] || exit 0
-    case "$app" in
+    # VM windows carry "[<vm>] " before the app id (wprsc --app-id-prefix)
+    case "''${app#\[*\] }" in
       foot | footclient | term-*) ;;
       *) exec niri msg action close-window --id "$id" ;;
     esac
@@ -155,7 +156,7 @@ let
     first=$(wait_window term-dom0) || exit 1
     for vm in nvim coding; do
       vm-run "$vm" foot -a "term-$vm" ${lib.escapeShellArgs vmZellij} &
-      id=$(wait_window "term-$vm") || continue
+      id=$(wait_window "[$vm] term-$vm") || continue
       niri msg action consume-or-expel-window-left --id "$id"
     done
     niri msg action focus-window --id "$first"
@@ -730,7 +731,7 @@ in
         { "spawn-at-startup"._args = [ "systemctl" "--user" "restart" "wpaperd.service" ]; }
         # Chat apps and zen at startup again: started with the session, wprsd
         # kept Super as pressed (apps got every key as Super+key); the wprs
-        # modifier patch (modules/wprs-modifier-sync.patch) should release it
+        # modifier sync (our wprs fork, modules/wprs-overlay.nix) releases it
         # (xen-migration.md, Known Issues). The tray apps (`trayApps` above)
         # are appended after this list.
         { "spawn-at-startup"._args = [ "${terminalTabs}" ]; }
@@ -739,7 +740,7 @@ in
           "window-rule"._children = [
             {
               match._props = {
-                "app-id" = "^term-(dom0|nvim|coding)$";
+                "app-id" = "^(term-dom0|\\[(nvim|coding)\\] term-(nvim|coding))$";
               };
             }
             { "open-on-workspace" = "terminal"; }
@@ -751,7 +752,7 @@ in
           "window-rule"._children = [
             {
               match._props = {
-                "app-id" = "^term-irc$";
+                "app-id" = "^\\[irc\\] term-irc$";
               };
             }
             { "open-on-workspace" = "remote"; }
@@ -762,7 +763,7 @@ in
           "window-rule"._children = [
             {
               match._props = {
-                "app-id" = "^(zen|app\\.zen_browser\\.zen)$";
+                "app-id" = "^\\[[a-z0-9-]+\\] (zen|app\\.zen_browser\\.zen)$";
               };
             }
             { "open-on-workspace" = "browser"; }

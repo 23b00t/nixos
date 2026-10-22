@@ -97,11 +97,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792435701,
-        "narHash": "sha256-RAqv7VJLTAtDDjj12epxRpjlgVTHTSlve2YHNTi/dUA=",
+        "lastModified": 1792676902,
+        "narHash": "sha256-/FmQiwnY0EEUV0ps1Yf0QKqBg+QfzmamokxqfAecnb8=",
         "owner": "23b00t",
         "repo": "NoX",
-        "rev": "ce33dd84448283a3c80f567e1e3b897441a74064",
+        "rev": "041494f774ba7c082fe22bd34479e75173bd1c0f",
         "type": "github"
       },
       "original": {
@@ -117,6 +117,7 @@
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_2",
         "nox": "nox",
+        "wprs": "wprs",
         "zen-browser": "zen-browser"
       }
     },
@@ -134,6 +135,23 @@
       "original": {
         "type": "git",
         "url": "https://spectrum-os.org/git/spectrum"
+      }
+    },
+    "wprs": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792676850,
+        "narHash": "sha256-BkOEqR/UgZKGNzpQZB7qdqXIYTbC3XDyWP4Bco1qync=",
+        "owner": "23b00t",
+        "repo": "wprs",
+        "rev": "6d322c00f407ce19b0dbbfffdbea7e45561f7960",
+        "type": "github"
+      },
+      "original": {
+        "owner": "23b00t",
+        "ref": "nox",
+        "repo": "wprs",
+        "type": "github"
       }
     },
     "zen-browser": {

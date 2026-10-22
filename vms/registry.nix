@@ -24,7 +24,7 @@ let
   #   egress      : outgoing traffic the VM may send through sys-firewall: [ { to = "<cidr>"; ports = [ <port> … ]; } … ]
   #                 (no ports = all ports to that net); absent = everything. DNS always via sys-firewall's resolver
   #   label       : trust label (Qubes-like), the window border color in dom0 (home/desktop/theme.nix
-  #                 `labels`, niri rules on the "[<vm>] " title prefix from wprsc): "sys" | "dev" | "personal" |
+  #                 `labels`, niri rules on the "[<vm>] " app id prefix from wprsc): "sys" | "dev" | "personal" |
   #                 "untrusted" | "vault" | "anon"; absent = "untrusted"
   #   copy        : files between domains over nox-rpc (vm-copy in a VM, nox copy in dom0): { incoming; outgoing; },
   #                 each "ask" | "warn" (ask, the user types the VM's name) | "deny"; absent: sys-* incoming "ask",

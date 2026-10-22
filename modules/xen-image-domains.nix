@@ -251,6 +251,13 @@ let
               args+=("$arg")
             done
             [ "''${#args[@]}" -gt 0 ] || { echo "error: no command"; exit 1; }
+            # Right after boot the user manager (linger) may not be up yet:
+            # systemd-run failed with "Failed to connect to user scope bus"
+            # (Whonix-Workstation started by vm-gui, 2026-10-21)
+            for _ in $(seq 60); do
+              [ -S "/run/user/$uid/bus" ] && [ -S "/run/user/$uid/systemd/private" ] && break
+              sleep 1
+            done
             # Same token rule as NoX's app handler: a retried call doesn't
             # start the app twice
             unit=()
@@ -326,12 +333,11 @@ let
         ${lib.optionalString d.wprs ''
           ln -s ${pkgs.wprs}/bin/xwayland-xdg-shell ${pkgs.xwayland}/bin/Xwayland \
             ${wprsClipboard.helper}/bin/vm-clip-helper $out/bin/
-          # The wprsd unit lives in the image (rootTree), the environment here:
-          # no selection sync with dom0 (modules/wprs-clipboard.nix)
+          # The wprsd unit lives in the image (rootTree), the arguments here:
+          # no selection sync with dom0 (explicit copy/paste via vm-clip)
           ln -s ${pkgs.writeShellScript "wprsd" ''
-            export WPRS_NO_SELECTION_SYNC=1
             # Frame pacing as in the NixOS VMs (vms/modules/wprs.nix)
-            exec ${pkgs.wprs}/bin/wprsd --framerate 120 "$@"
+            exec ${pkgs.wprs}/bin/wprsd --framerate 120 --selection-sync false "$@"
           ''} $out/bin/wprsd
         ''}
       '';

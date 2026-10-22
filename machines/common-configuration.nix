@@ -20,21 +20,8 @@ let
           colmena
           ;
       })
-      # wprs: held modifiers follow the compositor (stuck Super, xen-migration.md);
-      # clipboard isolation for the wprsd of the image domains (Whonix); frame
-      # callbacks wait while frames queue up for the client (back pressure);
-      # dom0 only: wprsc keeps its decompression buffer (no page faults per
-      # frame, the VMs' wprsd hardly decompresses)
-      (_final: prev: {
-        wprs = prev.wprs.overrideAttrs (old: {
-          patches = (old.patches or [ ]) ++ [
-            ../modules/wprs-modifier-sync.patch
-            ../modules/wprs-frame-backpressure.patch
-            (import ../modules/wprs-clipboard.nix { pkgs = prev; }).patch
-            ../modules/wprs-decompress-reuse-buffer.patch
-          ];
-        });
-      })
+      # wprs from our fork (flake input `wprs`), the same for dom0 and the VMs
+      (import ../modules/wprs-overlay.nix { inherit inputs; })
     ];
   };
   maxVMs = 50;
