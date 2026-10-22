@@ -831,7 +831,7 @@ over wprs (`vm-run k burpsuite`), updates with apt (`update-all`). The
 image domain integration expects the user `user` (UID 1000): Kali's `kali`
 is renamed once, offline.
 
-Network: first vif on sys-firewall's `vm-fw` (static 10.6.0.8/24 via 10.6.0.254, DNS 10.6.0.254, set by `nmcli` in kali; internet), second
+Network: first vif on sys-firewall's `vm-fw` (static 10.6.0.8/24 via 10.6.0.254, DNS 10.6.0.254, a NetworkManager profile in the image, see step 2; internet), second
 vif on the lab bridge `vm-lab` (10.5.0.8). VMs with registry `labTarget`
 (php, coding) join the lab only on demand: `vm-lab attach <vm>`
 (10.5.0.<last octet of the VM's IP>), `vm-lab detach <vm>`, `vm-lab status`.
@@ -898,8 +898,8 @@ mac-address=00:00:00:00:01:08
 
 [ipv4]
 method=manual
-address1=10.1.0.8/24,10.1.0.254
-dns=9.9.9.9;149.112.112.112;
+address1=10.6.0.8/24,10.6.0.254
+dns=10.6.0.254;
 
 [ipv6]
 method=disabled
@@ -924,6 +924,12 @@ EOF
 sudo chmod 600 /mnt/kali/etc/NetworkManager/system-connections/*.nmconnection
 sudo umount /mnt/kali
 ```
+
+An image set up before sys-firewall (2026-10-19) still has the old uplink
+(10.1.0.8 via 10.1.0.254, sys-net): no internet. Fix it once in kali:
+`sudo nmcli con mod uplink ipv4.method manual ipv4.addresses 10.6.0.8/24
+ipv4.gateway 10.6.0.254 ipv4.dns 10.6.0.254 && sudo nmcli con up uplink`
+(xmg 2026-10-22).
 
 ### 3. Units
 
