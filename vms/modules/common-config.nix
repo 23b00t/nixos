@@ -19,8 +19,6 @@ let
     else
       { };
   hostSSHKey = currentVm.hostSSHKey or null;
-  dbusForwardParticipants = vmRegistry.dbusForwardParticipants or [ ];
-  dbusForwardEnabled = builtins.elem vmName (map (vm: vm.name) dbusForwardParticipants);
 in
 {
   imports = [
@@ -195,7 +193,6 @@ in
       GTK_CURSORS_THEME = "Bibata-Modern-Ice";
       XCURSOR_THEME = "Bibata-Modern-Ice";
       WAYLAND_CURSOR_THEME = "Bibata-Modern-Ice";
-      WAYLAND_DISPLAY = "wayland-0";
     };
 
     fonts.packages = with pkgs; [
@@ -235,15 +232,6 @@ in
         _: if config.programs.neovim.defaultEditor then "nvim.desktop" else "vim.desktop"
       ))
     ];
-
-    environment.shellInit = mkIf dbusForwardEnabled ''
-      if [ -n "$SSH_CONNECTION" ] && [ -S /tmp/ssh_dbus.sock ] \
-        && ${pkgs.systemd}/bin/busctl --address=unix:path=/tmp/ssh_dbus.sock --timeout=200ms status >/dev/null 2>&1; then
-        export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_dbus.sock
-      else
-        unset DBUS_SESSION_BUS_ADDRESS
-      fi
-    '';
 
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user} 0755 ${cfg.user} users -"

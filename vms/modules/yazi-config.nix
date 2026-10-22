@@ -21,14 +21,15 @@
     linemode = "size"
     show_hidden = true
 
-    # yazi runs over SSH (explorer), GUI apps need the wprs display like
-    # vm-run starts them; text files open in $EDITOR (vim/nvim)
+    # GUI apps need the wprs display like vm-run starts them; text files
+    # open in $EDITOR (vim/nvim)
     [opener]
     open = [
-      # setsid + no inherited fds: yazi runs over SSH (explorer), which would
-      # otherwise wait for the browser before it closes. No portal: over SSH
-      # the session bus is dom0's forwarded one, without a portal (chat)
-      { run = 'setsid -f env -u NIXOS_XDG_OPEN_USE_PORTAL WAYLAND_DISPLAY=wprs-0 DISPLAY=:100 XDG_SESSION_TYPE=wayland xdg-open "$1" </dev/null >/dev/null 2>&1', desc = "Open", orphan = true },
+      # setsid + no inherited fds: the browser outlives yazi and its foot
+      # window (explorer). No portal: xdg-desktop-portal never starts in the
+      # VMs (needs graphical-session.target). %s1 = the file, quoted by yazi
+      # (yazi 26 no longer fills in $1)
+      { run = 'setsid -f env -u NIXOS_XDG_OPEN_USE_PORTAL WAYLAND_DISPLAY=wprs-0 DISPLAY=:100 XDG_SESSION_TYPE=wayland xdg-open %s1 </dev/null >/dev/null 2>&1', desc = "Open", orphan = true },
     ]
 
     [[plugin.prepend_fetchers]]
@@ -56,6 +57,19 @@
     desc = "Chmod on selected files"
     on   = ["c", "m"]
     run  = "plugin chmod"
+
+    # vm-copy: type the target VM at the cursor, dom0 asks in a rofi dialog;
+    # the files land in ~/Incoming/<this vm> there. %s = selection, else the
+    # hovered file
+    [[mgr.prepend_keymap]]
+    desc = "Copy to another VM (type its name, dom0 asks)"
+    on   = ["C", "c"]
+    run  = 'shell --block --interactive --cursor=8 "vm-copy  %s"'
+
+    [[mgr.prepend_keymap]]
+    desc = "Move to another VM (type its name, dom0 asks)"
+    on   = ["C", "m"]
+    run  = 'shell --block --interactive --cursor=11 "vm-copy -m  %s"'
 
     [[mgr.prepend_keymap]]
     desc = "Jump to char"
