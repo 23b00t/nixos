@@ -3,7 +3,7 @@
   pkgs,
   config,
   vmRegistry,
-  inputs,
+
   ...
 }:
 let
@@ -14,49 +14,12 @@ let
   };
 in
 {
-  imports = [
-    (inputs.nox.lib.vms + "/modules/net-config.nix")
-    (inputs.nox.lib.vms + "/modules/common-config.nix")
-    (inputs.nox.lib.vms + "/modules/yazi-config.nix")
-    (inputs.nox.lib.vms + "/modules/ide.nix")
-    (inputs.nox.lib.vms + "/modules/zsh.nix")
-    (inputs.nox.lib.vms + "/modules/zellij.nix")
-  ];
-
-  networking.hostName = "godot-vm";
   nixpkgs.config.allowUnfree = true;
 
+  # Not migrated yet (enable = false): GPU passthrough as an Xen HVM like
+  # steam comes with the godot migration
   microvm = {
     registerClosure = false;
-    hypervisor = "qemu";
-    optimize.enable = false;
-    qemu.extraArgs = [
-      "-display"
-      "none"
-      "-device"
-      "virtio-vga,max_outputs=1"
-      "-device"
-      "qemu-xhci"
-      "-device"
-      "virtio-serial-pci"
-      "-device"
-      "virtio-keyboard-pci"
-      "-device"
-      "virtio-tablet-pci"
-      "-chardev"
-      "spicevmc,id=spicechannel0,name=vdagent"
-      "-device"
-      "virtserialport,chardev=spicechannel0,name=com.redhat.spice.0"
-      "-spice"
-      "port=5930,addr=127.0.0.1,disable-ticketing=on,image-compression=off,jpeg-wan-compression=never,zlib-glz-wan-compression=never"
-    ];
-    volumes = [
-      {
-        mountPoint = "/home/user";
-        image = "home.img";
-        size = 20000;
-      }
-    ];
     shares = [
       {
         proto = "virtiofs";
@@ -66,35 +29,13 @@ in
       }
     ];
     devices = map mkPciDevice gpuPciPaths;
-    mem = 16384;
-    vcpu = 6;
   };
 
-  services.net-config = {
-    enable = true;
-    index = 13;
-    mac = "00:00:00:00:00:0d";
+  services.common-config.browser = "firefox.desktop";
+  services.zellij-env.tabsKdlFile = builtins.path {
+    name = "tabs.kdl";
+    path = ./godot/tabs.kdl;
   };
-  services.common-config = {
-    enable = true;
-    browser = "firefox.desktop";
-  };
-  services.ide = {
-    enable = true;
-    githubAgent.enable = true;
-  };
-  services.zellij-env = {
-    enable = true;
-    tabsKdlFile = builtins.path {
-      name = "tabs.kdl";
-      path = ./tabs.kdl;
-    };
-  };
-  services.zsh-env = {
-    enable = true;
-  };
-
-  services.qemuGuest.enable = true;
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -137,8 +78,6 @@ in
     withUWSM = true;
     xwayland.enable = true;
   };
-  services.spice-vdagentd.enable = true;
-
   services.greetd = {
     enable = true;
     settings = rec {
@@ -150,7 +89,7 @@ in
     };
   };
 
-  environment.etc."hyprland.conf".source = ./hypr.conf;
+  environment.etc."hyprland.conf".source = ./godot/hypr.conf;
 
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
@@ -190,8 +129,6 @@ in
   ];
 
   environment.systemPackages = with pkgs; [
-    # Unfree, the user's own (no longer from NoX ide.nix)
-    claude-code
     xdg-utils
     kitty
     godot
@@ -212,5 +149,4 @@ in
     pulse.enable = true;
   };
 
-  system.stateVersion = "26.05";
 }

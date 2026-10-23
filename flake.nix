@@ -106,7 +106,9 @@
             extraPackages = (vmDefinition.packages or (_: { })) { inherit pkgs; };
           in
           acc // extraPackages
-        ) { } (builtins.attrNames vmDefinitions);
+        ) { } (builtins.attrNames vmDefinitions)
+        # php's PHP shells as flake packages (php is a VM with a role now)
+        // import ./vms/php/packages.nix { inherit pkgs; };
 
       hpConfig = mkMachine "hp" [
         ./machines/hp/configuration.nix

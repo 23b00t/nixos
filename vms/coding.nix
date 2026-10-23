@@ -1,4 +1,9 @@
-{ pkgs, inputs, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 let
   # termusic with the mpv backend and a larger pulse buffer (from the former
   # music VM)
@@ -32,65 +37,27 @@ let
   });
 in
 {
-  imports = [
-    (inputs.nox.lib.vms + "/modules/net-config.nix")
-    (inputs.nox.lib.vms + "/modules/common-config.nix")
-    (inputs.nox.lib.vms + "/modules/ide.nix")
-    (inputs.nox.lib.vms + "/modules/zsh.nix")
-    (inputs.nox.lib.vms + "/modules/zellij.nix")
-    (inputs.nox.lib.vms + "/modules/persistent-store-overlay.nix")
-    (inputs.nox.lib.vms + "/modules/yazi-config.nix")
-  ];
-
-  nixpkgs.config.allowUnfree = true;
-
-  networking.hostName = "coding-vm";
+  imports = [ (inputs.nox.lib.vms + "/modules/persistent-store-overlay.nix") ];
 
   microvm = {
     # Own closure valid in the Nix DB, so builds never delete it from the
     # persistent store overlay (see vms/builder, 2026-10-06)
     registerClosure = true;
-    hypervisor = "xen";
-    volumes = [
-      {
-        mountPoint = "/home/user";
-        image = "home.img";
-        size = 70000;
-      }
+    volumes = lib.mkAfter [
       {
         mountPoint = "/var";
         image = "var.img";
         size = 20000;
       }
     ];
-    # Boots with 4096 MB, the RAM balancer grows it up to 8192 MB
-    mem = 8192;
-    balloon = true;
-    initialBalloonMem = 4096;
-    vcpu = 4;
   };
 
   services = {
     persistentStoreOverlay.enable = true;
 
-    net-config = {
-      enable = true;
-      index = 6;
-      mac = "00:00:00:00:00:06";
-    };
-
-    common-config = {
-      enable = true;
-      browser = "firefox.desktop";
-    };
-
-    ide = {
-      enable = true;
-      githubAgent.enable = true;
-    };
+    common-config.browser = "firefox.desktop";
 
     zsh-env = {
-      enable = true;
       extraAliases = {
         dc = "docker compose";
         cmd = "eval $(fzf < ~/cmds)";
@@ -106,12 +73,9 @@ in
       '';
     };
 
-    zellij-env = {
-      enable = true;
-      tabsKdlFile = builtins.path {
-        name = "tabs.kdl";
-        path = ./tabs.kdl;
-      };
+    zellij-env.tabsKdlFile = builtins.path {
+      name = "tabs.kdl";
+      path = ./coding/tabs.kdl;
     };
   };
 
@@ -128,8 +92,6 @@ in
   };
 
   environment.systemPackages = with pkgs; [
-    # Unfree, the user's own (no longer from NoX ide.nix)
-    claude-code
     termusic-mpv
     mpv
     yt-dlp
@@ -137,10 +99,7 @@ in
     ddate
     cowsay
 
-    postman
-    dbeaver-bin
     devenv
-    firefox
 
     ruby
 
@@ -187,9 +146,7 @@ in
   # no ALSA device in the VM). Copied only if missing: termusic writes to it
   systemd.tmpfiles.rules = [
     "d /home/user/.config/termusic 0755 user users -"
-    "C /home/user/.config/termusic/server.toml 0644 user users - ${./termusic/server.toml}"
-    "C /home/user/.config/termusic/tui.toml 0644 user users - ${./termusic/tui.toml}"
+    "C /home/user/.config/termusic/server.toml 0644 user users - ${./coding/termusic/server.toml}"
+    "C /home/user/.config/termusic/tui.toml 0644 user users - ${./coding/termusic/tui.toml}"
   ];
-
-  system.stateVersion = "26.05";
 }

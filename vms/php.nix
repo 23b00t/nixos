@@ -1,6 +1,6 @@
-{ lib, pkgs, inputs, ... }:
+{ lib, pkgs, ... }:
 let
-  phpToolPackages = import ./packages.nix { inherit pkgs; };
+  phpToolPackages = import ./php/packages.nix { inherit pkgs; };
 
   phpShells = {
     "82" = phpToolPackages.php82-shell;
@@ -33,36 +33,9 @@ let
   );
 in
 {
-  imports = [
-    (inputs.nox.lib.vms + "/modules/net-config.nix")
-    (inputs.nox.lib.vms + "/modules/yazi-config.nix")
-    (inputs.nox.lib.vms + "/modules/ide.nix")
-    (inputs.nox.lib.vms + "/modules/zsh.nix")
-    (inputs.nox.lib.vms + "/modules/zellij.nix")
-    (inputs.nox.lib.vms + "/modules/common-config.nix")
-  ];
-
-  networking.hostName = "php-vm";
-
-  services.net-config = {
-    enable = true;
-    index = 15;
-    mac = "00:00:00:00:00:0f";
-  };
-
-  services.common-config = {
-    enable = true;
-    # PDFs and images open there (xdg-open, e.g. from yazi)
-    browser = "firefox.desktop";
-  };
-
-  services.ide = {
-    enable = true;
-    githubAgent.enable = true;
-  };
+  services.common-config.browser = "firefox.desktop";
 
   services.zsh-env = {
-    enable = true;
     extraAliases = {
       il = "~/.config/zellij-layout/il-layout.sh";
     };
@@ -115,44 +88,27 @@ in
     '';
   };
 
-  services.zellij-env = {
-    enable = true;
-    tabsKdlFile = builtins.path {
-      name = "tabs.kdl";
-      path = ./tabs.kdl;
-    };
+  services.zellij-env.tabsKdlFile = builtins.path {
+    name = "tabs.kdl";
+    path = ./php/tabs.kdl;
   };
 
-  environment.etc."zellij-layout".source = ./zellij-layout;
+  environment.etc."zellij-layout".source = ./php/zellij-layout;
 
-  microvm = {
+  microvm.volumes = lib.mkAfter [
+    {
+      mountPoint = "/var";
+      image = "var.img";
+      size = 20000;
+    }
+  ];
 
-    hypervisor = "xen";
-    volumes = [
-      {
-        mountPoint = "/home/user";
-        image = "home.img";
-        size = 25000;
-      }
-      {
-        mountPoint = "/var";
-        image = "var.img";
-        size = 20000;
-      }
-    ];
-
-    # Boots with 4096 MB, the RAM balancer grows it up to 16384 MB
-    mem = 16384;
-    balloon = true;
-    initialBalloonMem = 4096;
-    vcpu = 2;
-  };
+  # Unfree, the user's own
+  nox.unfree = [ "intelephense" ];
 
   environment.systemPackages =
     with pkgs;
     [
-      # Unfree, the user's own (no longer from NoX ide.nix)
-      claude-code
       phpstan
       intelephense
       vscode-langservers-extracted
@@ -164,10 +120,6 @@ in
       scooter
       ec
       delta
-
-      # Testing the web apps (User 2026-10-22)
-      firefox
-      chromium
     ]
     ++ builtins.attrValues phpToolPackages;
 
@@ -220,6 +172,4 @@ in
       ${pkgs.systemd}/bin/systemd-tmpfiles --create ${phpTmpfilesFile}
     '';
   };
-
-  system.stateVersion = "26.05";
 }

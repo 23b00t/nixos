@@ -13,6 +13,12 @@
 
   nox.vms = {
     nvim = {
+      role = "dev";
+      module = ./nvim.nix;
+      memory = 2048;
+      memoryMax = 4096;
+      vcpu = 2;
+      home.size = 10000;
       index = 1;
       short = "n";
       label = "dev";
@@ -64,6 +70,18 @@
       features = [ "yazi" ];
     };
     coding = {
+      role = "dev";
+      module = ./coding.nix;
+      storeGroup = null;
+      memory = 4096;
+      memoryMax = 8192;
+      vcpu = 4;
+      home.size = 70000;
+      apps = {
+        postman = { };
+        dbeaver = { };
+        firefox = { };
+      };
       index = 6;
       short = "cc";
       label = "dev";
@@ -196,6 +214,13 @@
     };
     # dGPU passthrough like steam; not on Xen yet
     godot = {
+      role = "dev";
+      module = ./godot.nix;
+      storeGroup = null;
+      memory = 16384;
+      memoryMax = null;
+      vcpu = 6;
+      home.size = 20000;
       enable = false;
       index = 13;
       short = "g";
@@ -204,6 +229,13 @@
       features = [ "yazi" ];
     };
     mirage = {
+      role = "dev";
+      module = ./mirage.nix;
+      storeGroup = null;
+      memory = 8192;
+      memoryMax = null;
+      vcpu = 4;
+      home.size = 12000;
       enable = false;
       index = 14;
       short = "mi";
@@ -212,6 +244,17 @@
       dbus = false;
     };
     php = {
+      role = "dev";
+      module = ./php.nix;
+      memory = 4096;
+      memoryMax = 16384;
+      vcpu = 2;
+      home.size = 25000;
+      apps = {
+        # browsers for testing, no MIME types (dom0's defaults stay)
+        firefox.mimeType = [ ];
+        chromium = { };
+      };
       enable = host == "xmg";
       index = 15;
       short = "p";
@@ -224,6 +267,12 @@
       labTarget = true;
     };
     ruby = {
+      role = "dev";
+      module = ./ruby.nix;
+      memory = 4096;
+      memoryMax = 12288;
+      vcpu = 2;
+      home.size = 25000;
       enable = host == "xmg";
       index = 16;
       short = "r";
@@ -234,6 +283,13 @@
       features = [ "yazi" ];
     };
     nix = {
+      role = "dev";
+      module = ./nix.nix;
+      storeGroup = null;
+      memory = 8192;
+      memoryMax = null;
+      vcpu = 2;
+      home.size = 10000;
       enable = false;
       index = 24;
       short = "nix";
