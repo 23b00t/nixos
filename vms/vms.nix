@@ -188,9 +188,15 @@
     # Only common-config; software imperatively in the persistent store
     # overlay (standalone store image, no storeGroup)
     vanilla = {
+      role = "minimal";
+      module = ./vanilla.nix;
       index = 29;
       short = "va";
       label = "untrusted";
+      memory = 2048;
+      memoryMax = 4096;
+      vcpu = 1;
+      home.size = 20000;
       # First client of sys-vpn (test); remove for the direct uplink via sys-firewall
       uplink = "sys-vpn";
       githubAgent = false;

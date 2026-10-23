@@ -33,7 +33,6 @@ in
   coding = mkVm "coding";
   builder = mkNoxVm "builder";
   sys-print = mkNoxVm "sys-print";
-  vanilla = mkVm "vanilla";
   sys-vpn = mkNoxVm "sys-vpn";
   disp = mkNoxVm "disp";
   disp-backup = mkNoxVm "disp-backup";
