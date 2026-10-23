@@ -44,9 +44,9 @@
       # Standalone VM outputs (nixosConfigurations.<vm>, packages) see the
       # registry like the xmg host; each host gets its own view in mkMachine
       vmRegistry = registry.forHost "xmg";
-      # VMs with a role come from NoX (registry.definitions), the rest from
-      # vms/definitions.nix
-      vmDefinitions = import ./vms/definitions.nix { inherit inputs; } // registry.definitions;
+      # Every VM's definition (module, specialArgs, packages) comes from NoX:
+      # roles with the user's own modules, the infrastructure VMs
+      vmDefinitions = registry.definitions;
 
       baseModules = [
         inputs.nox.nixosModules.dom0-base
@@ -95,20 +95,10 @@
         _: vmSystem: vmSystem.config.microvm.declaredRunner
       ) vmSystems;
 
-      vmExtraPackages =
-        let
-          pkgs = import nixpkgs { inherit system; };
-        in
-        builtins.foldl' (
-          acc: name:
-          let
-            vmDefinition = vmDefinitions.${name};
-            extraPackages = (vmDefinition.packages or (_: { })) { inherit pkgs; };
-          in
-          acc // extraPackages
-        ) { } (builtins.attrNames vmDefinitions)
-        # php's PHP shells as flake packages (php is a VM with a role now)
-        // import ./vms/php/packages.nix { inherit pkgs; };
+      # php's PHP shells as flake packages
+      vmExtraPackages = import ./vms/php/packages.nix {
+        pkgs = import nixpkgs { inherit system; };
+      };
 
       hpConfig = mkMachine "hp" [
         ./machines/hp/configuration.nix

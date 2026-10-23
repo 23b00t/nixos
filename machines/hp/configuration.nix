@@ -19,9 +19,11 @@
 
   # Keyboard layout
   console.keyMap = "us";
-  services.xserver.xkb.layout = "us,de";
-  services.xserver.xkb.variant = "intl";
-  services.xserver.xkb.options = "grp:alt_shift_toggle";
+  services.xserver.xkb = {
+    layout = "us,de";
+    variant = "intl";
+    options = "grp:alt_shift_toggle";
+  };
 
   # TODO: Would need adoption to other hardware
   # services.usbguard = {

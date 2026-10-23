@@ -69,17 +69,19 @@ in
     flakeBump
   ];
 
-  services.ide.lazyvimRepo = "git@github.com:23b00t/lazyvim.git";
+  services = {
+    ide.lazyvimRepo = "git@github.com:23b00t/lazyvim.git";
 
-  services.zellij-env.tabsKdlFile = builtins.path {
-    name = "tabs.kdl";
-    path = ./nvim/tabs.kdl;
-  };
+    zellij-env.tabsKdlFile = builtins.path {
+      name = "tabs.kdl";
+      path = ./nvim/tabs.kdl;
+    };
 
-  services.zsh-env = {
-    ohMyPoshTheme = "1_shell.omp.json";
-    extraAliases = {
-      edit = "sudo -e";
+    zsh-env = {
+      ohMyPoshTheme = "1_shell.omp.json";
+      extraAliases = {
+        edit = "sudo -e";
+      };
     };
   };
 }

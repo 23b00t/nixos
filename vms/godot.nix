@@ -2,22 +2,18 @@
   lib,
   pkgs,
   config,
-  vmRegistry,
 
   ...
 }:
-let
-  gpuPciPaths = vmRegistry.hardware.pci.devicePaths.gpu or [ ];
-  mkPciDevice = path: {
-    bus = "pci";
-    inherit path;
-  };
-in
 {
-  nixpkgs.config.allowUnfree = true;
+  # Unfree, own store image
+  nox.unfree = [
+    "nvidia-x11"
+    "nvidia-settings"
+  ];
 
-  # Not migrated yet (enable = false): GPU passthrough as an Xen HVM like
-  # steam comes with the godot migration
+  # Not migrated yet (enable = false): the GPU (gpu = true) as an Xen HVM
+  # like steam comes with the godot migration
   microvm = {
     registerClosure = false;
     shares = [
@@ -28,36 +24,56 @@ in
         mountPoint = "/nix/.ro-store";
       }
     ];
-    devices = map mkPciDevice gpuPciPaths;
   };
 
-  services.common-config.browser = "firefox.desktop";
-  services.zellij-env.tabsKdlFile = builtins.path {
-    name = "tabs.kdl";
-    path = ./godot/tabs.kdl;
+  services = {
+    common-config.browser = "firefox.desktop";
+    zellij-env.tabsKdlFile = builtins.path {
+      name = "tabs.kdl";
+      path = ./godot/tabs.kdl;
+    };
+    xserver.videoDrivers = [ "nvidia" ];
+    getty.autologinUser = "user";
+    greetd = {
+      enable = true;
+      settings = rec {
+        initial_session = {
+          command = "${pkgs.hyprland}/bin/start-hyprland";
+          user = "user";
+        };
+        default_session = initial_session;
+      };
+    };
+    pulseaudio.enable = false;
+    pipewire = {
+      enable = true;
+      alsa.enable = true;
+      alsa.support32Bit = true;
+      pulse.enable = true;
+    };
   };
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.grub.enable = lib.mkForce false;
-
-  boot.kernelParams = [
-    "vfio-pci.disable_idle_d3=1"
-    "nvidia-drm.modeset=1"
-  ];
-  boot.extraModprobeConfig = ''
-    options vfio-pci disable_idle_d3=1
-    options nvidia-drm modeset=1 fbdev=1
-  '';
-
-  boot.blacklistedKernelModules = [ "nouveau" ];
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+      grub.enable = lib.mkForce false;
+    };
+    kernelParams = [
+      "vfio-pci.disable_idle_d3=1"
+      "nvidia-drm.modeset=1"
+    ];
+    extraModprobeConfig = ''
+      options vfio-pci disable_idle_d3=1
+      options nvidia-drm modeset=1 fbdev=1
+    '';
+    blacklistedKernelModules = [ "nouveau" ];
+  };
 
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
   };
-
-  services.xserver.videoDrivers = [ "nvidia" ];
 
   hardware.nvidia = {
     modesetting.enable = true;
@@ -71,62 +87,53 @@ in
     powerManagement.finegrained = false;
   };
 
-  services.getty.autologinUser = "user";
-
-  programs.hyprland = {
-    enable = true;
-    withUWSM = true;
-    xwayland.enable = true;
-  };
-  services.greetd = {
-    enable = true;
-    settings = rec {
-      initial_session = {
-        command = "${pkgs.hyprland}/bin/start-hyprland";
-        user = "user";
-      };
-      default_session = initial_session;
+  programs = {
+    hyprland = {
+      enable = true;
+      withUWSM = true;
+      xwayland.enable = true;
+    };
+    nix-ld = {
+      enable = true;
+      libraries = with pkgs; [
+        icu
+        stdenv.cc.cc
+        zlib
+        icu
+        expat
+        openssl
+        curl
+        pulseaudio
+        alsa-lib
+        dbus
+        mesa
+        libglvnd
+        vulkan-loader
+        vulkan-headers
+        libvorbis
+        libogg
+        libopus
+        libpng
+        libjpeg
+        fontconfig
+        freetype
+        libuuid
+        libxcb
+        libx11
+        libxext
+        libxrandr
+        libxcursor
+        libxi
+        libxtst
+        libxinerama
+        libxscrnsaver
+        glib
+        gtk3
+      ];
     };
   };
 
   environment.etc."hyprland.conf".source = ./godot/hypr.conf;
-
-  programs.nix-ld.enable = true;
-  programs.nix-ld.libraries = with pkgs; [
-    icu
-    stdenv.cc.cc
-    zlib
-    icu
-    expat
-    openssl
-    curl
-    pulseaudio
-    alsa-lib
-    dbus
-    mesa
-    libglvnd
-    vulkan-loader
-    vulkan-headers
-    libvorbis
-    libogg
-    libopus
-    libpng
-    libjpeg
-    fontconfig
-    freetype
-    libuuid
-    libxcb
-    libx11
-    libxext
-    libxrandr
-    libxcursor
-    libxi
-    libxtst
-    libxinerama
-    libxscrnsaver
-    glib
-    gtk3
-  ];
 
   environment.systemPackages = with pkgs; [
     xdg-utils
@@ -140,13 +147,5 @@ in
     "L+ /home/user/.config/hypr/hyprland.conf - - - - /etc/hyprland.conf"
   ];
 
-  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
-
 }

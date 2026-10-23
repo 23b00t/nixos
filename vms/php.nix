@@ -33,64 +33,66 @@ let
   );
 in
 {
-  services.common-config.browser = "firefox.desktop";
+  services = {
+    common-config.browser = "firefox.desktop";
 
-  services.zsh-env = {
-    extraAliases = {
-      il = "~/.config/zellij-layout/il-layout.sh";
+    zsh-env = {
+      extraAliases = {
+        il = "~/.config/zellij-layout/il-layout.sh";
+      };
+      extraShellInit = ''
+        _ilias_cid() {
+          local cid
+          cid=$(sudo docker compose ps -q ilias)
+          if [ -z "$cid" ]; then
+            echo "No running 'ilias' container found." >&2
+            return 1
+          fi
+          echo "$cid"
+        }
+        _mysql_cid() {
+          local cid
+          cid=$(sudo docker compose ps -q mysql)
+          if [ -z "$cid" ]; then
+            echo "No running 'mysql' container found." >&2
+            return 1
+          fi
+          echo "$cid"
+        }
+        cli() {
+          local cid
+          cid="$(_ilias_cid)" || return 1
+          sudo docker exec -it "$cid" /bin/bash
+        }
+        cdu() {
+          local cid
+          cid="$(_ilias_cid)" || return 1
+          sudo docker exec -it "$cid" /bin/bash -c 'composer du'
+        }
+        ildb() {
+          local cid
+          cid="$(_mysql_cid)" || return 1
+          sudo docker exec -it "$cid" /bin/bash -c 'mariadb -h 127.0.0.1 -P 3306 -u ilias -p'
+        }
+        log() {
+          local cid
+          cid="$(_ilias_cid)" || return 1
+          sudo docker logs -f "$cid"
+        }
+        start() {
+          sudo docker compose start
+        }
+        stop() {
+          sudo docker compose stop
+        }
+
+      '';
     };
-    extraShellInit = ''
-      _ilias_cid() {
-        local cid
-        cid=$(sudo docker compose ps -q ilias)
-        if [ -z "$cid" ]; then
-          echo "No running 'ilias' container found." >&2
-          return 1
-        fi
-        echo "$cid"
-      }
-      _mysql_cid() {
-        local cid
-        cid=$(sudo docker compose ps -q mysql)
-        if [ -z "$cid" ]; then
-          echo "No running 'mysql' container found." >&2
-          return 1
-        fi
-        echo "$cid"
-      }
-      cli() {
-        local cid
-        cid="$(_ilias_cid)" || return 1
-        sudo docker exec -it "$cid" /bin/bash
-      }
-      cdu() {
-        local cid
-        cid="$(_ilias_cid)" || return 1
-        sudo docker exec -it "$cid" /bin/bash -c 'composer du'
-      }
-      ildb() {
-        local cid
-        cid="$(_mysql_cid)" || return 1
-        sudo docker exec -it "$cid" /bin/bash -c 'mariadb -h 127.0.0.1 -P 3306 -u ilias -p'
-      }
-      log() {
-        local cid
-        cid="$(_ilias_cid)" || return 1
-        sudo docker logs -f "$cid"
-      }
-      start() {
-        sudo docker compose start
-      }
-      stop() {
-        sudo docker compose stop
-      }
 
-    '';
-  };
-
-  services.zellij-env.tabsKdlFile = builtins.path {
-    name = "tabs.kdl";
-    path = ./php/tabs.kdl;
+    zellij-env.tabsKdlFile = builtins.path {
+      name = "tabs.kdl";
+      path = ./php/tabs.kdl;
+    };
   };
 
   environment.etc."zellij-layout".source = ./php/zellij-layout;

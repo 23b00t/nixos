@@ -2,25 +2,26 @@
 # sys-usb (registry owner); audio over pipewire into dom0's pulse.
 { lib, pkgs, ... }:
 {
-  services.common-config.browser = "chromium-browser.desktop";
+  services = {
+    common-config.browser = "chromium-browser.desktop";
+    pulseaudio.enable = false;
+    pipewire = {
+      enable = true;
+      alsa.enable = true;
+      pulse.enable = true;
+    };
+    gnome.gnome-keyring.enable = true;
+  };
 
   users.users.user.extraGroups = lib.mkAfter [ "video" ];
 
-  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    pulse.enable = true;
-  };
 
   xdg.portal = {
     enable = true;
     extraPortals = with pkgs; [ xdg-desktop-portal-gtk ];
     config.common.default = [ "gtk" ];
   };
-
-  services.gnome.gnome-keyring.enable = true;
 
   environment.systemPackages = with pkgs; [
     # vesktop without GPU (apps.vesktop.install = false)

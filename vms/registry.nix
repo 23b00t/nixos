@@ -360,8 +360,7 @@ in
 {
   inherit forHost;
   hosts = builtins.attrNames hostProfiles;
-  # VMs with a role: their definitions (module, specialArgs, packages) built
-  # by NoX; they replace the entries of the same name in definitions.nix
+  # Every VM's definition (module, specialArgs, packages), built by NoX
   inherit ((import (nox.lib.registry + "/definitions.nix") { inherit lib; }) (noxFor null))
     definitions
     ;

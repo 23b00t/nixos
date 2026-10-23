@@ -52,9 +52,11 @@ above.
   gets: only VMs whose `hosts` contain it (no `hosts` = all machines,
   `hosts = [ ]` = definition kept, not built). Lookups by name
   (`byName`/`byShort`) cover all VMs.
-- `vms/definitions.nix`, `vms/<name>/default.nix`: VM modules;
-  `vms/modules/`: shared guest modules; `vms/store-groups.nix`: shared
-  read-only store images per trust group (registry `storeGroup`).
+- `vms/vms.nix`: every VM as `nox.vms.<name>` (role, label, apps,
+  resources; NoX schema), `vms/<name>.nix`: what is the VM's own on top of
+  its role, extra files in `vms/<name>/`; `vms/apps.nix`: the user's unfree
+  apps; `vms/roles/`: additions to NoX's roles. Guest modules, roles and
+  the infrastructure VMs come from NoX.
 - `machines/common-configuration.nix`: everything both machines share;
   `machines/xen-dom0.nix`: the Xen dom0; `machines/<machine>/`: hardware,
   machine specifics (`xen.nix`).
@@ -614,8 +616,8 @@ A disk for `nox backup`: one LUKS partition with ext4 inside (see Backup).
 
 ### New VM
 
-Use the `new-vm` Claude skill; keep `vms/vms.nix`, `vms/definitions.nix` and
-`vms/<name>/default.nix` consistent (`create-vm` is gone; a new tool in Rust
+A new VM is an entry in `vms/vms.nix` (index, role, label, apps, resources)
+plus, if needed, `vms/<name>.nix` (`create-vm` is gone; a new tool in Rust
 comes after the installer). No SSH key:
 dom0 reaches new VMs over nox-rpc and wprs (only the builder has `hostSSHKey`).
 
