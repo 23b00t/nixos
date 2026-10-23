@@ -3,18 +3,18 @@
 # here for now. The modules read the result as `vmRegistry` (forHost below).
 { lib, nox }:
 let
-  # nox.vms/nox.images of one machine (host null: all definitions, for the
-  # lookups by name) in the registry's entry format
-  domainsFor =
+  # nox.* of one machine (host null: all definitions, for the lookups by name)
+  noxFor =
     host:
-    import (nox.lib.registry + "/legacy.nix") { inherit lib; }
-      (lib.evalModules {
-        modules = [
-          (nox.lib.registry + "/vms.nix")
-          ./vms.nix
-        ];
-        specialArgs = { inherit host; };
-      }).config.nox;
+    (lib.evalModules {
+      modules = [
+        (nox.lib.registry + "/vms.nix")
+        ./vms.nix
+      ];
+      specialArgs = { inherit host; };
+    }).config.nox;
+  # … in the registry's entry format
+  domainsFor = host: import (nox.lib.registry + "/legacy.nix") { inherit lib; } (noxFor host);
   all = domainsFor null;
   vms = all.vms;
 
@@ -360,4 +360,9 @@ in
 {
   inherit forHost;
   hosts = builtins.attrNames hostProfiles;
+  # VMs with a role: their definitions (module, specialArgs, packages) built
+  # by NoX; they replace the entries of the same name in definitions.nix
+  inherit ((import (nox.lib.registry + "/definitions.nix") { inherit lib; }) (noxFor null))
+    definitions
+    ;
 }

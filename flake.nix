@@ -9,9 +9,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # NoX (NixOS on Xen): dom0 and VM modules, tools, nox-relay
+    # NoX (NixOS on Xen): dom0 and VM modules, tools, nox-relay; branch
+    # nox-roles until the roles are merged into main
     nox = {
-      url = "github:23b00t/NoX";
+      url = "github:23b00t/NoX/nox-roles";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -43,7 +44,9 @@
       # Standalone VM outputs (nixosConfigurations.<vm>, packages) see the
       # registry like the xmg host; each host gets its own view in mkMachine
       vmRegistry = registry.forHost "xmg";
-      vmDefinitions = import ./vms/definitions.nix { inherit inputs; };
+      # VMs with a role come from NoX (registry.definitions), the rest from
+      # vms/definitions.nix
+      vmDefinitions = import ./vms/definitions.nix { inherit inputs; } // registry.definitions;
 
       baseModules = [
         inputs.nox.nixosModules.dom0-base
