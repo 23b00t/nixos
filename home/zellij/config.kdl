@@ -230,15 +230,6 @@ keybinds clear-defaults=true {
     renamepane {
         bind "esc" { UndoRenamePane; SwitchToMode "pane"; }
     }
-    shared_except "locked" {
-        bind "Ctrl b" {
-            LaunchOrFocusPlugin "file:/etc/zellij/plugins/zbuffers.wasm" {
-                floating true
-                move_to_focused_tab true
-            }
-            SwitchToMode "Locked"
-        }
-    }
     // shared_except "locked" {
     //     bind "Ctrl n" {
     //         Run "bash" "-c" "~/nixos-config/devenv/ilias-devenv/zellij-layout/il-layout.sh" {

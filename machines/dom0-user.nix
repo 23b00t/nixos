@@ -6,9 +6,6 @@
   pkgs,
   ...
 }:
-let
-  cmds = ../home/resources/cmds;
-in
 {
   users.users.nx.packages = with pkgs; [
     fastfetch
@@ -22,7 +19,6 @@ in
     lsof # list open files
     # system tools
     pciutils # lspci
-    usbutils # lsusb
     nerd-fonts.fira-code
     bibata-cursors
   ];
@@ -32,9 +28,7 @@ in
     shellAliases = {
       ll = "ls -l";
       la = "ls -la";
-      edit = "sudo -e";
       sc = "systemctl";
-      kali = "vm-run -c kali distrobox enter kali";
     };
     promptInit = ''
       PS1='\[\e[1;34m\]\u@\h\[\e[0m\] \[\e[1;32m\]\w\[\e[0m\] \$ '
@@ -51,20 +45,6 @@ in
         # ble.sh: suggestions from the history as shadow text (like
         # zsh-autosuggestions), accept with Right/End
         source ${pkgs.blesh}/share/blesh/ble.sh --noattach
-
-        # VMs by their full names, via manage-vms (sudo NOPASSWD for microvm@
-        # units; a (re)started VM gets its tray apps again, vm-tray)
-        vmunit() {
-          [ $# -ge 2 ] && [ "$2" != help ] || { echo "usage: ms|mst|mr <vm>..." >&2; return 2; }
-          manage-vms "$@"
-        }
-        ms() { vmunit start "$@"; }
-        mst() { vmunit stop "$@"; }
-        mr() { vmunit restart "$@"; }
-
-        # Pick a command from the list (fzf) and run it; pcmd: edit it first
-        cmd() { local c; c=$(fzf < ${cmds}) && eval "$c"; }
-        pcmd() { local c; c=$(fzf < ${cmds}) && read -r -e -i "$c" -p '> ' c && eval "$c"; }
 
         # nox xen|nix|root: the line that ran lands in this shell's history
         # (nox writes it to NOX_HISTORY_OUT)

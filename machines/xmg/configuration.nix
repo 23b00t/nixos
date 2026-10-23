@@ -23,54 +23,58 @@
 
   # Keyboard layout
   console.keyMap = "us";
-  services.xserver.xkb.layout = "us";
-  services.xserver.xkb.variant = "intl";
-  services.xserver.xkb.options = "grp:alt_shift_toggle";
+  services = {
+    xserver.xkb = {
+      layout = "us";
+      variant = "intl";
+      options = "grp:alt_shift_toggle";
+    };
 
-  services.keyd = {
-    enable = true;
-    keyboards = {
-      internal = {
-        # IDs, wie z.B. ["0001:0001"] (Vendor:Product)
-        # journalctl -xeu keyd.service | grep -i keyboard
-        ids = [ "0001:0001" ];
-        settings = {
-          main = {
-            y = "z";
-            z = "y";
-            # leftctrl = "esc";
-            # esc = "leftctrl";
+    keyd = {
+      enable = true;
+      keyboards = {
+        internal = {
+          # IDs, wie z.B. ["0001:0001"] (Vendor:Product)
+          # journalctl -xeu keyd.service | grep -i keyboard
+          ids = [ "0001:0001" ];
+          settings = {
+            main = {
+              y = "z";
+              z = "y";
+              # leftctrl = "esc";
+              # esc = "leftctrl";
+            };
           };
         };
       };
     };
-  };
 
-  # sddm greeter (weston) on the internal panel at 60 Hz. Weston takes the
-  # preferred 300 Hz, niri inherits that state at login and cannot light the
-  # third output (atomic test EINVAL, 2026-10-15). Same as the nixpkgs weston
-  # command plus an [output] section.
-  services.displayManager.sddm.wayland.compositorCommand =
-    let
-      xkb = config.services.xserver.xkb;
-      westonIni = (pkgs.formats.ini { }).generate "weston.ini" {
-        libinput = {
-          enable-tap = config.services.libinput.mouse.tapping;
-          left-handed = config.services.libinput.mouse.leftHanded;
+    # sddm greeter (weston) on the internal panel at 60 Hz. Weston takes the
+    # preferred 300 Hz, niri inherits that state at login and cannot light the
+    # third output (atomic test EINVAL, 2026-10-15). Same as the nixpkgs weston
+    # command plus an [output] section.
+    displayManager.sddm.wayland.compositorCommand =
+      let
+        xkb = config.services.xserver.xkb;
+        westonIni = (pkgs.formats.ini { }).generate "weston.ini" {
+          libinput = {
+            enable-tap = config.services.libinput.mouse.tapping;
+            left-handed = config.services.libinput.mouse.leftHanded;
+          };
+          keyboard = {
+            keymap_model = xkb.model;
+            keymap_layout = xkb.layout;
+            keymap_variant = xkb.variant;
+            keymap_options = xkb.options;
+          };
+          output = {
+            name = "eDP-1";
+            mode = "2560x1600@60";
+          };
         };
-        keyboard = {
-          keymap_model = xkb.model;
-          keymap_layout = xkb.layout;
-          keymap_variant = xkb.variant;
-          keymap_options = xkb.options;
-        };
-        output = {
-          name = "eDP-1";
-          mode = "2560x1600@60";
-        };
-      };
-    in
-    "${lib.getExe pkgs.weston} --shell=kiosk -c ${westonIni}";
+      in
+      "${lib.getExe pkgs.weston} --shell=kiosk -c ${westonIni}";
+  };
 
   networking.hostName = lib.mkForce "xmg";
 }

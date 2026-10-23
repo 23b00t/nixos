@@ -4,7 +4,6 @@
 {
   config,
   lib,
-  pkgs,
   modulesPath,
   ...
 }:
@@ -14,31 +13,35 @@
     (modulesPath + "/installer/scan/not-detected.nix")
   ];
 
-  boot.initrd.availableKernelModules = [
-    "xhci_pci"
-    "nvme"
-    "usb_storage"
-    "usbhid"
-    "sd_mod"
-    "sdhci_pci"
-  ];
-  boot.initrd.kernelModules = [ "i915" ];
-  boot.kernelParams = [
-    "quiet"
-    "splash"
-  ];
-  boot.kernelModules = [
-    "kvm-intel"
-  ];
-  boot.extraModulePackages = [ ];
+  boot = {
+    initrd = {
+      availableKernelModules = [
+        "xhci_pci"
+        "nvme"
+        "usb_storage"
+        "usbhid"
+        "sd_mod"
+        "sdhci_pci"
+      ];
+      kernelModules = [ "i915" ];
+    };
+    kernelParams = [
+      "quiet"
+      "splash"
+    ];
+    kernelModules = [
+      "kvm-intel"
+    ];
+    extraModulePackages = [ ];
+
+    initrd.luks.devices."luks-d543c80b-81c7-41a3-adff-858842a802d3".device =
+      "/dev/disk/by-uuid/d543c80b-81c7-41a3-adff-858842a802d3";
+  };
 
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/2e4d8d98-65c8-4e08-be35-c7ef6af78d9a";
     fsType = "ext4";
   };
-
-  boot.initrd.luks.devices."luks-d543c80b-81c7-41a3-adff-858842a802d3".device =
-    "/dev/disk/by-uuid/d543c80b-81c7-41a3-adff-858842a802d3";
 
   fileSystems."/boot" = {
     device = "/dev/disk/by-uuid/AFD0-B50A";
