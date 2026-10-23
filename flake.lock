@@ -1,25 +1,5 @@
 {
   "nodes": {
-    "home-manager": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1791123389,
-        "narHash": "sha256-4ln1QbTLlSC6Wo0Jus/YZuueOBBNhTSa9KMSnco+j8M=",
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "rev": "8cfa9c9514e86f3b88856958b4692e7312b96598",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "type": "github"
-      }
-    },
     "microvm": {
       "inputs": {
         "nixpkgs": [
@@ -97,11 +77,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792766792,
-        "narHash": "sha256-o9mc0CMTBTU9AMmbbsriUO1ByLj4qctbozNrXQo37a4=",
+        "lastModified": 1792767947,
+        "narHash": "sha256-fqcUDNsiAxjjoZ+U9/eIrF6eq0ZdsJWwmEC9golShvs=",
         "owner": "23b00t",
         "repo": "NoX",
-        "rev": "4c6b0038df448e3e083cdf29d517709b0293bd6a",
+        "rev": "1328777cdc22d30925ed10c2b113201895cb9f63",
         "type": "github"
       },
       "original": {
@@ -113,7 +93,6 @@
     },
     "root": {
       "inputs": {
-        "home-manager": "home-manager",
         "microvm": "microvm",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_2",

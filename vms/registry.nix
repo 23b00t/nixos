@@ -1,5 +1,5 @@
 let
-  # Central VM registry used across host, home-manager scripts and helper tools.
+  # Central VM registry used across host, dom0 tools and helper tools.
   # Each VM entry has the following fields:
   #   name        : long name without "-vm" suffix (e.g. "nvim")
   #   short       : short alias used in CLI tools (e.g. "n")
@@ -338,7 +338,6 @@ let
       allowGitHubAgent = false;
       enableHostDbusForward = false;
     }
-    # create-vm: registry-vms
   ];
 
   # Image domains: guests from upstream disk images (Whonix, Kali), not NixOS and

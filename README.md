@@ -200,7 +200,6 @@ new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 | `xen-vnc <domain>` | display of an HVM domain with a stubdomain (Tails) |
 | `sys-net-rescue` | sys-net doesn't come up: NICs back to dom0 |
 | `sys-usb-rescue` | sys-usb doesn't come up: USB controllers back to dom0 (also automatic after 120 s) |
-| `create-vm` | new VM |
 | `nox copy [-m] [-n] [--max <bytes>] [<from-vm>] <to-vm> <path>…` | files over nox-rpc: from dom0, or from `<from-vm>` (paths relative to its home) when the first two arguments are VMs. dom0's own request needs no answer, except into a `warn` VM (vault: type its name). Lands in `~/Incoming/<source>` in the target, never overwrites (suffix), files and directories only (links dropped, `..` paths refused), at most what the sender announced and 10 GB. `-m` moves, `-n` shows what would be sent. Rules: registry `copy` (sys-* give nothing out, sys-print takes nothing, vault `warn`); never into dom0 |
 | Mod+Alt+C / Mod+Alt+V (`vm-clip copy\|paste`) | clipboard between domains: copy the text clipboard of the focused window's VM (or dom0) into dom0's store, paste it into the focused window's VM (or dom0), then press Ctrl+V there; the store is emptied. VMs don't share their clipboard with dom0 otherwise. Copying out of vault asks, sys-* VMs are excluded (registry `clipboard`) |
 | `vm-run <vm> foot [cmd…]` | terminal from a VM over wprs (dom0: `foot`, Mod+T). At login: one column with tabs dom0, nvim, coding (zellij in the VM; Mod+1…3), on the xmg irc on "remote"; kitty and zellij are gone from dom0 (zellij stays on the hp) |
@@ -615,9 +614,9 @@ A disk for `nox backup`: one LUKS partition with ext4 inside (see Backup).
 
 ### New VM
 
-Use `create-vm` or the `new-vm` Claude skill; keep `vms/registry.nix`,
-`vms/definitions.nix` and `vms/<name>/default.nix` consistent (markers
-`# create-vm: registry-vms` and `# create-vm: definitions`). No SSH key:
+Use the `new-vm` Claude skill; keep `vms/registry.nix`, `vms/definitions.nix`
+and `vms/<name>/default.nix` consistent (`create-vm` is gone; a new tool in
+Rust comes after the installer). No SSH key:
 dom0 reaches new VMs over nox-rpc and wprs (only the builder has `hostSSHKey`).
 
 ### Additional setup for IDE VMs

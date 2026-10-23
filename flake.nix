@@ -24,11 +24,6 @@
       flake = false;
     };
 
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     nixos-hardware.url = "github:nixos/nixos-hardware/master";
 
     zen-browser = {
@@ -120,9 +115,9 @@
       packages.${system} = vmRunnerPackages // vmExtraPackages;
 
       # NixOS tests (qemu; without KVM, e.g. in a Xen dom0, emulated and slow)
-      checks.${system}.sys-vpn-killswitch =
-        nixpkgs.legacyPackages.${system}.testers.runNixOSTest
-          (inputs.nox.lib.tests + "/sys-vpn-killswitch.nix");
+      checks.${system}.sys-vpn-killswitch = nixpkgs.legacyPackages.${system}.testers.runNixOSTest (
+        inputs.nox.lib.tests + "/sys-vpn-killswitch.nix"
+      );
 
       nixosConfigurations = vmSystems // {
         hp = hpConfig;

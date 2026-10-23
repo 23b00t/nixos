@@ -1,5 +1,5 @@
 # The user's part of every machine: user account, locale, own keyboards,
-# laptop hardware profile, home-manager wiring. Everything else of dom0
+# laptop hardware profile, shell and tools (dom0-user.nix). Everything else of dom0
 # comes from NoX (nixosModules.dom0-base, xen-dom0).
 {
   lib,
@@ -37,49 +37,33 @@ in
     inputs.nixos-hardware.nixosModules.common-hidpi # High-DPI displays
     inputs.nixos-hardware.nixosModules.common-pc-laptop # Laptops
     inputs.nixos-hardware.nixosModules.common-pc-ssd # SSD storage
+
+    ./dom0-user.nix
   ];
 
-  # Home Manager Configuration - manages user-specific configurations (dotfiles, themes, etc.)
-  home-manager = {
-    useGlobalPkgs = true;
-    useUserPackages = true;
-    extraSpecialArgs = {
-      inherit inputs;
-      hostname = config.networking.hostName;
-      inherit vmRegistry;
-    };
-    users."nx" =
-      { ... }:
-      {
-        imports = [
-          ../home/home.nix
-        ];
-      };
-  };
-
   services.udev = {
-        extraRules = ''
-          # Keyboard
-          SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
-          # Mouse
-          SUBSYSTEM=="usb", ATTR{idVendor}=="260d", ATTR{idProduct}=="1121", GROUP="kvm"
-        ''
-        + lib.optionalString (vmReservedUsbRules != "") ''
+    extraRules = ''
+      # Keyboard
+      SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="2303", GROUP="kvm"
+      # Mouse
+      SUBSYSTEM=="usb", ATTR{idVendor}=="260d", ATTR{idProduct}=="1121", GROUP="kvm"
+    ''
+    + lib.optionalString (vmReservedUsbRules != "") ''
 
-          # VM-reserved USB devices are generated from vms/registry.nix
-          ${vmReservedUsbRules}
+      # VM-reserved USB devices are generated from vms/registry.nix
+      ${vmReservedUsbRules}
+    '';
+    packages = [
+      (pkgs.writeTextFile {
+        name = "kaleidoskope-udev-rules";
+        destination = "/etc/udev/rules.d/50-kaleidoskope.rules";
+        text = ''
+          # Kaleidoscope keyboards
+          SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2303", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
+          SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2302", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
         '';
-        packages = [
-          (pkgs.writeTextFile {
-            name = "kaleidoskope-udev-rules";
-            destination = "/etc/udev/rules.d/50-kaleidoskope.rules";
-            text = ''
-              # Kaleidoscope keyboards
-              SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2303", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
-              SUBSYSTEMS=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="2302", SYMLINK+="Atreus",  ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_CANDIDATE}="0", TAG+="uaccess", TAG+="seat"
-            '';
-          })
-        ];
+      })
+    ];
   };
 
   # User

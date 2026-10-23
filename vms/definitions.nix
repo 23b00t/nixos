@@ -38,5 +38,4 @@ in
   disp = mkNoxVm "disp";
   disp-backup = mkNoxVm "disp-backup";
   sys-firewall = mkNoxVm "sys-firewall";
-  # create-vm: definitions
 }
