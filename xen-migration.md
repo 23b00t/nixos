@@ -1357,7 +1357,7 @@ git push
   - **B. godot** nach der Task oben: nvidia-Logik 1:1 von steam, foot statt kitty, Hyprland raus, Kompositor recherchieren (niri / cage / gamescope) mit Empfehlung (Entscheidung User), Betriebsarten (a)/(b) per Feld; nur Auswertung, `enable = false` bleibt.
   - **C. Schritt 4:** Vorlage (`nix flake init -t nox`) und aus den Optionen erzeugte Doku (`nox.vms`, `nox.roles`, `nox.apps`, `nox.infra`, `nox.storeGroups`, `nox.desktop.*`).
   - **nox-cli:** nur Bestandsaufnahme der Bash-Skripte (Umfang, Abhängigkeiten, Reihenfolge) für ein grill.
-  - **Nicht im Nachtlauf (User: strittig, erst besprechen):** dom0 `allowUnfree` in NoX `dom0/base.nix`, nm-applet als App, `apps` für Image-Domains, `features` aus der Rolle ableiten, CLAUDE.md/Skill `new-vm`.
+  - **D. Kleinkram (besprochen, User 2026-10-23):** dom0 **auf keinen Fall** `allowUnfree` (NoX `dom0/base.nix`: herausfinden, wofür es steht, und entfernen; falls dom0 wirklich ein unfreies Paket braucht, nur per Name und im Bericht nennen); sys-nets nm-applet als App (Tray aus `apps`); `apps` auch für Image-Domains (`nox.images.<n>.apps`, kali/Whonix-Einträge raus aus NoX); `features` aus der Rolle ableiten (Übergangsfeld weg); CLAUDE.md und Skill `new-vm` an die neue Struktur anpassen.
   - **Morgen (User):** xmg-Build, prüfen was in NoX zu persönlich ist (zellij-Config …), Kleinkram, Merge `nox-roles`.
   - Ende: Bericht + Commit-Blöcke hier, Memory, Test-VMs stoppen, dom0-RAM zurück, hp herunterfahren (wie in den letzten Nachtläufen).
 - **Task godot-Migration (User, 2026-10-23; nach Abschluss der Modularisierung, vor dem Aktivieren):**
