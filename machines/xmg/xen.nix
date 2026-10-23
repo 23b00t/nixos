@@ -1,10 +1,11 @@
-# Xen dom0 on xmg: the shared dom0 (machines/xen-dom0.nix) plus what only
+# Xen dom0 on xmg: the shared dom0 (NoX nixos/dom0/xen-dom0.nix) plus what only
 # this machine needs.
 {
   config,
   lib,
   pkgs,
   vmRegistry,
+  inputs,
   ...
 }:
 let
@@ -38,7 +39,7 @@ let
   '';
 in
 {
-  imports = [ ../xen-dom0.nix ];
+  imports = [ inputs.nox.nixosModules.xen-dom0 ];
 
   # dom0 with 6 GB (measured 2026-10-15: 2.0 GB used + 0.7 GB shared of
   # 6.8 GB). The xmg evaluates and builds in the builder VM (dom0-update),

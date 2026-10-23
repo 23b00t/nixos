@@ -1,12 +1,12 @@
 # vanilla: only what common-config brings, no packages of its own in the repo.
 # Software comes in imperatively (`nix profile install nixpkgs#…`) and stays
 # in the persistent store overlay across reboots; GUI apps over wprs.
-{ ... }:
+{ inputs, ... }:
 {
   imports = [
-    ../modules/net-config.nix
-    ../modules/common-config.nix
-    ../modules/persistent-store-overlay.nix
+    (inputs.nox.lib.vms + "/modules/net-config.nix")
+    (inputs.nox.lib.vms + "/modules/common-config.nix")
+    (inputs.nox.lib.vms + "/modules/persistent-store-overlay.nix")
   ];
 
   networking.hostName = "vanilla-vm";

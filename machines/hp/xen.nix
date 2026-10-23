@@ -1,8 +1,8 @@
-# Xen dom0 on hp: the shared dom0 (machines/xen-dom0.nix) plus what only the
+# Xen dom0 on hp: the shared dom0 (NoX nixos/dom0/xen-dom0.nix) plus what only the
 # test laptop has.
-{ lib, ... }:
+{ lib, inputs, ... }:
 {
-  imports = [ ../xen-dom0.nix ];
+  imports = [ inputs.nox.nixosModules.xen-dom0 ];
 
   # v3: Tails (HVM, qemu in a Linux stubdomain): `xen-vnc tails` shows its
   # display. The domain itself is still a test config (xen-migration.md)

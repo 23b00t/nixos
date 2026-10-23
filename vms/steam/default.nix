@@ -7,6 +7,7 @@
   pkgs,
   config,
   vmRegistry,
+  inputs,
   ...
 }:
 let
@@ -20,11 +21,11 @@ let
 in
 {
   imports = [
-    ../modules/net-config.nix
-    ../modules/vchan-relay.nix
-    ../modules/usbip-client.nix
+    (inputs.nox.lib.vms + "/modules/net-config.nix")
+    (inputs.nox.lib.vms + "/modules/vchan-relay.nix")
+    (inputs.nox.lib.vms + "/modules/usbip-client.nix")
     # GUI and foot over wprs instead of SSH (no common-config here)
-    ../modules/wprs.nix
+    (inputs.nox.lib.vms + "/modules/wprs.nix")
   ];
 
   nixpkgs.overlays = [

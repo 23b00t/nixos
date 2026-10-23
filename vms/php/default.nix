@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, inputs, ... }:
 let
   phpToolPackages = import ./packages.nix { inherit pkgs; };
 
@@ -34,12 +34,12 @@ let
 in
 {
   imports = [
-    ../modules/net-config.nix
-    ../modules/yazi-config.nix
-    ../modules/ide.nix
-    ../modules/zsh.nix
-    ../modules/zellij.nix
-    ../modules/common-config.nix
+    (inputs.nox.lib.vms + "/modules/net-config.nix")
+    (inputs.nox.lib.vms + "/modules/yazi-config.nix")
+    (inputs.nox.lib.vms + "/modules/ide.nix")
+    (inputs.nox.lib.vms + "/modules/zsh.nix")
+    (inputs.nox.lib.vms + "/modules/zellij.nix")
+    (inputs.nox.lib.vms + "/modules/common-config.nix")
   ];
 
   networking.hostName = "php-vm";

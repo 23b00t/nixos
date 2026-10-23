@@ -671,6 +671,11 @@ let
     "c1b23529-a163-42c0-8aa4-9b4357c44b8c"
   ];
 
+  # The builder VMs' public signing keys (signing-key-<machine>.pub, trusted by
+  # that dom0's dom0-update) and the commit signers the builder accepts
+  # (allowed-signers)
+  builderKeys = ./builder;
+
   # The registry as one machine sees it: `vms`/`imageDomains` and everything
   # derived from them only hold what runs there (registry field `hosts`)
   forHost =
@@ -685,6 +690,7 @@ let
         byName
         byShort
         backupLuksUuids
+        builderKeys
         ;
       vms = hostVms;
       imageDomains = builtins.filter onHost imageDomains;

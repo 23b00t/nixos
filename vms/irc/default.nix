@@ -1,12 +1,12 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 let
   index = 11;
 in
 {
   imports = [
-    ../modules/net-config.nix
-    ../modules/common-config.nix
-    ../modules/zellij.nix
+    (inputs.nox.lib.vms + "/modules/net-config.nix")
+    (inputs.nox.lib.vms + "/modules/common-config.nix")
+    (inputs.nox.lib.vms + "/modules/zellij.nix")
   ];
 
   networking.hostName = "irc-vm";

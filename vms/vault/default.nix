@@ -1,9 +1,9 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
   imports = [
-    ../modules/net-config.nix
-    ../modules/common-config.nix
-    ../modules/yazi-config.nix
+    (inputs.nox.lib.vms + "/modules/net-config.nix")
+    (inputs.nox.lib.vms + "/modules/common-config.nix")
+    (inputs.nox.lib.vms + "/modules/yazi-config.nix")
   ];
 
   networking.hostName = "vault-vm";

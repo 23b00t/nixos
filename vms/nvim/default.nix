@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 let
   # Full system update, step 1 (step 2: `update-all` in dom0): updates the
   # flake inputs of the repo in the current directory, commits flake.lock
@@ -44,12 +44,12 @@ let
 in
 {
   imports = [
-    ../modules/net-config.nix
-    ../modules/yazi-config.nix
-    ../modules/ide.nix
-    ../modules/zsh.nix
-    ../modules/zellij.nix
-    ../modules/common-config.nix
+    (inputs.nox.lib.vms + "/modules/net-config.nix")
+    (inputs.nox.lib.vms + "/modules/yazi-config.nix")
+    (inputs.nox.lib.vms + "/modules/ide.nix")
+    (inputs.nox.lib.vms + "/modules/zsh.nix")
+    (inputs.nox.lib.vms + "/modules/zellij.nix")
+    (inputs.nox.lib.vms + "/modules/common-config.nix")
   ];
 
   networking.hostName = "nvim-vm";

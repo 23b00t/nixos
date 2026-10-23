@@ -5,6 +5,8 @@ let
     specialArgs = { };
     packages = { pkgs, ... }: { };
   };
+  # Infrastructure VMs come from NoX
+  mkNoxVm = name: (mkVm name) // { module = inputs.nox.lib.vms + "/${name}"; };
 in
 {
   nvim = mkVm "nvim";
@@ -25,16 +27,16 @@ in
     packages = { pkgs, ... }: import ./php/packages.nix { inherit pkgs; };
   };
   ruby = mkVm "ruby";
-  sys-usb = mkVm "sys-usb";
-  sys-net = mkVm "sys-net";
+  sys-usb = mkNoxVm "sys-usb";
+  sys-net = mkNoxVm "sys-net";
   nix = mkVm "nix";
   coding = mkVm "coding";
-  builder = mkVm "builder";
-  sys-print = mkVm "sys-print";
+  builder = mkNoxVm "builder";
+  sys-print = mkNoxVm "sys-print";
   vanilla = mkVm "vanilla";
-  sys-vpn = mkVm "sys-vpn";
-  disp = mkVm "disp";
-  disp-backup = mkVm "disp-backup";
-  sys-firewall = mkVm "sys-firewall";
+  sys-vpn = mkNoxVm "sys-vpn";
+  disp = mkNoxVm "disp";
+  disp-backup = mkNoxVm "disp-backup";
+  sys-firewall = mkNoxVm "sys-firewall";
   # create-vm: definitions
 }

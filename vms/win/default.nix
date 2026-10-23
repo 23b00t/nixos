@@ -5,11 +5,11 @@
 # to steam): Mesa in software (llvmpipe/lavapipe). Internet yes, isolated from
 # the other VMs (uplink isolation in sys-net), no session bus from dom0.
 # Plan: xen-migration.md "Phase 4: Neue VMs".
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
   imports = [
-    ../modules/common-config.nix
-    ../modules/net-config.nix
+    (inputs.nox.lib.vms + "/modules/common-config.nix")
+    (inputs.nox.lib.vms + "/modules/net-config.nix")
   ];
 
   networking.hostName = "win-vm";

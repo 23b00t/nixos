@@ -9,9 +9,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # NoX (NixOS on Xen): nox-relay (vchan socket relay), later more tools
+    # NoX (NixOS on Xen): dom0 and VM modules, tools, nox-relay; branch
+    # nox-modules until the modularization is merged into main
     nox = {
-      url = "github:23b00t/NoX";
+      url = "github:23b00t/NoX/nox-modules";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -48,6 +49,7 @@
       vmDefinitions = import ./vms/definitions.nix { inherit inputs; };
 
       baseModules = [
+        inputs.nox.nixosModules.dom0-base
         ./machines/common-configuration.nix
       ];
 
@@ -83,7 +85,7 @@
       vmSystems = builtins.mapAttrs (name: _: mkVmSystem name) vmDefinitions;
 
       # Group store images, built from the same systems that boot from them
-      storeGroups = import ./vms/store-groups.nix {
+      storeGroups = import (inputs.nox.lib.vms + "/store-groups.nix") {
         inherit (nixpkgs) lib;
         inherit (inputs.microvm.lib) buildStoreDisk;
         inherit vmRegistry vmSystems;
@@ -120,7 +122,7 @@
       # NixOS tests (qemu; without KVM, e.g. in a Xen dom0, emulated and slow)
       checks.${system}.sys-vpn-killswitch =
         nixpkgs.legacyPackages.${system}.testers.runNixOSTest
-          ./tests/sys-vpn-killswitch.nix;
+          (inputs.nox.lib.tests + "/sys-vpn-killswitch.nix");
 
       nixosConfigurations = vmSystems // {
         hp = hpConfig;

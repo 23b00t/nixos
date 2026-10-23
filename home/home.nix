@@ -7,24 +7,24 @@
   ...
 }:
 let
-  theme = import ./desktop/theme.nix { inherit lib; };
-  myGithubAgent = import ./vm-management/github-agent.nix { inherit pkgs; };
+  theme = import (inputs.nox.lib.home + "/desktop/theme.nix") { inherit lib; };
+  myGithubAgent = import (inputs.nox.lib.home + "/vm-management/github-agent.nix") { inherit pkgs; };
 in
 {
   imports = [
     ./vim.nix
-    ./desktop/waybar.nix
-    ./desktop/rofi.nix
-    ./desktop/niri.nix
-    ./desktop/xdg-gtk-qt.nix
+    (inputs.nox.lib.home + "/desktop/waybar.nix")
+    (inputs.nox.lib.home + "/desktop/rofi.nix")
+    (inputs.nox.lib.home + "/desktop/niri.nix")
+    (inputs.nox.lib.home + "/desktop/xdg-gtk-qt.nix")
     ./ssh.nix
-    ./vm-management/vm-run.nix
-    ./vm-management/vm-gui.nix
-    ./vm-management/vm-doctor.nix
-    ./vm-management/vm-backup.nix
-    ./vm-management/vm-rollback.nix
-    ./vm-management/desktop-entries.nix
-    ./vm-management/github-agent-forward.nix
+    (inputs.nox.lib.home + "/vm-management/vm-run.nix")
+    (inputs.nox.lib.home + "/vm-management/vm-gui.nix")
+    (inputs.nox.lib.home + "/vm-management/vm-doctor.nix")
+    (inputs.nox.lib.home + "/vm-management/vm-backup.nix")
+    (inputs.nox.lib.home + "/vm-management/vm-rollback.nix")
+    (inputs.nox.lib.home + "/vm-management/desktop-entries.nix")
+    (inputs.nox.lib.home + "/vm-management/github-agent-forward.nix")
   ];
 
   home = {
@@ -53,7 +53,7 @@ in
     nerd-fonts.fira-code
     # chromium
     bibata-cursors
-    (import ./vm-management/manage-vms.nix { inherit pkgs vmRegistry; })
+    (import (inputs.nox.lib.home + "/vm-management/manage-vms.nix") { inherit pkgs vmRegistry; })
     # nox disp: start the ad-hoc disposable (empty on every start, registry
     # `disposable`) and open a program in it, foot by default; `nox stop
     # disp` throws it away
@@ -68,8 +68,8 @@ in
       done
       exec vm-run disp "$@"
     '')
-    (import ./vm-management/create-vm.nix { inherit pkgs; })
-    (import ./vm-management/explorer.nix { inherit pkgs vmRegistry; })
+    (import (inputs.nox.lib.home + "/vm-management/create-vm.nix") { inherit pkgs; })
+    (import (inputs.nox.lib.home + "/vm-management/explorer.nix") { inherit pkgs vmRegistry; })
     myGithubAgent
     # GitHub agent is now also started automatically as user service below.
   ];

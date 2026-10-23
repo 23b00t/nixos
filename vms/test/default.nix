@@ -1,11 +1,11 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
   imports = [
-    ../modules/net-config.nix
-    ../modules/ide.nix
-    ../modules/zsh.nix
-    ../modules/persistent-store-overlay.nix
-    ../modules/common-config.nix
+    (inputs.nox.lib.vms + "/modules/net-config.nix")
+    (inputs.nox.lib.vms + "/modules/ide.nix")
+    (inputs.nox.lib.vms + "/modules/zsh.nix")
+    (inputs.nox.lib.vms + "/modules/persistent-store-overlay.nix")
+    (inputs.nox.lib.vms + "/modules/common-config.nix")
   ];
 
   nixpkgs.config.allowUnfree = true;

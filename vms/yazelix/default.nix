@@ -4,9 +4,9 @@ let
 in
 {
   imports = [
-    ../modules/net-config.nix
-    ../modules/common-config.nix
-    ../modules/zsh.nix
+    (inputs.nox.lib.vms + "/modules/net-config.nix")
+    (inputs.nox.lib.vms + "/modules/common-config.nix")
+    (inputs.nox.lib.vms + "/modules/zsh.nix")
   ];
 
   networking.hostName = "yazelix-vm";
