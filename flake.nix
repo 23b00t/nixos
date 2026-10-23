@@ -37,7 +37,10 @@
     let
       system = "x86_64-linux";
 
-      registry = import ./vms/registry.nix;
+      registry = import ./vms/registry.nix {
+        inherit (nixpkgs) lib;
+        inherit (inputs) nox;
+      };
       # Standalone VM outputs (nixosConfigurations.<vm>, packages) see the
       # registry like the xmg host; each host gets its own view in mkMachine
       vmRegistry = registry.forHost "xmg";
