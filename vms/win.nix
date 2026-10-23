@@ -18,6 +18,8 @@
   nox.unfree = [
     "corefonts"
     "vista-fonts"
+    # pulled in by bottles (Lossless Scaling frame generation)
+    "lsfg-vk"
   ];
 
   environment.systemPackages = with pkgs; [
