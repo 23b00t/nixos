@@ -86,7 +86,6 @@
       },
       "original": {
         "owner": "23b00t",
-        "ref": "nox-modules",
         "repo": "NoX",
         "type": "github"
       }
