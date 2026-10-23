@@ -4,6 +4,8 @@
 # there (enable = false: definition kept, nowhere).
 { host, ... }:
 {
+  imports = [ ./apps.nix ];
+
   # Additions to NoX's roles: claude-code in every dev VM, so the dev store
   # group holds unfree software
   nox.roles.dev.module = ./roles/dev.nix;
@@ -20,19 +22,45 @@
       features = [ "yazi" ];
     };
     chat = {
+      role = "desktop";
+      module = ./chat.nix;
       index = 2;
       short = "c";
       label = "personal";
       storeGroup = "prop";
       autostart = true;
+      memory = 4096;
+      memoryMax = 8192;
+      vcpu = 4;
+      home.size = 4096;
+      apps = {
+        vesktop = {
+          install = false;
+          tray = true;
+        };
+        element.tray = true;
+        telegram.tray = true;
+        slack = { };
+        chrome = { };
+      };
       features = [ "yazi" ];
     };
     net = {
+      role = "browser";
+      module = ./net.nix;
       index = 5;
       short = "net";
       label = "untrusted";
       storeGroup = "desktop";
       autostart = true;
+      memory = 3072;
+      memoryMax = 6144;
+      vcpu = 4;
+      home.size = 10000;
+      apps = {
+        zen = { };
+        firefox.install = false;
+      };
       features = [ "yazi" ];
     };
     coding = {

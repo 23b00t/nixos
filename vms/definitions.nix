@@ -10,12 +10,6 @@ let
 in
 {
   nvim = mkVm "nvim";
-  chat = mkVm "chat";
-  net = (mkVm "net") // {
-    specialArgs = {
-      inherit (inputs) zen-browser;
-    };
-  };
   win = mkVm "win";
   steam = mkVm "steam";
   godot = mkVm "godot";
