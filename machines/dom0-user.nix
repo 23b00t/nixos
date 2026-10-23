@@ -106,10 +106,12 @@ in
     };
   };
 
-  # zellij in dom0 only on the hp (machines/hp/configuration.nix); zellij
-  # reads /etc/zellij when ~/.config/zellij is absent
-  environment.etc."zellij" = lib.mkIf (config.networking.hostName == "hp") {
-    source = ../home/zellij;
+  # zellij in dom0 only on the hp (machines/hp/configuration.nix). Without
+  # ZELLIJ_CONFIG_DIR zellij writes its default config to ~/.config/zellij
+  # on the first start, which then shadows /etc/zellij
+  environment = lib.mkIf (config.networking.hostName == "hp") {
+    etc."zellij".source = ../home/zellij;
+    variables.ZELLIJ_CONFIG_DIR = "/etc/zellij";
   };
 
   # SSH_AUTH_SOCK stays dom0's own agent (programs.ssh.startAgent). The
