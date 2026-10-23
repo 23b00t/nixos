@@ -4,6 +4,11 @@
 # there (enable = false: definition kept, nowhere).
 { host, ... }:
 {
+  # Additions to NoX's roles: claude-code in every dev VM, so the dev store
+  # group holds unfree software
+  nox.roles.dev.module = ./roles/dev.nix;
+  nox.storeGroups.dev.unfree = true;
+
   nox.vms = {
     nvim = {
       index = 1;
@@ -52,30 +57,54 @@
       dbus = false;
     };
     office = {
+      role = "desktop";
+      module = ./office.nix;
       index = 9;
       short = "o";
       label = "personal";
       storeGroup = "desktop";
       uplink = null;
+      memory = 2048;
+      memoryMax = 6144;
+      vcpu = 4;
+      home.size = 20000;
+      apps = {
+        libreoffice = { };
+        gimp = { };
+        inkscape = { };
+        vlc = { };
+        pinta = { };
+        pdfarranger = { };
+      };
       features = [ "yazi" ];
     };
     vault = {
+      role = "desktop";
       index = 10;
       short = "v";
       label = "vault";
       storeGroup = "desktop";
       uplink = null;
+      memory = 1024;
+      memoryMax = 2048;
+      vcpu = 1;
+      home.size = 30000;
+      apps.keepassxc = { };
       clipboard = "ask";
       copy.incoming = "warn";
       features = [ "yazi" ];
     };
     irc = {
+      role = "terminal";
+      module = ./irc.nix;
       index = 11;
       short = "i";
       label = "personal";
       storeGroup = "desktop";
       autostart = true;
       uplink = null;
+      memory = 2048;
+      home.size = 512;
     };
     sys-usb = {
       index = 23;

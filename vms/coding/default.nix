@@ -128,6 +128,8 @@ in
   };
 
   environment.systemPackages = with pkgs; [
+    # Unfree, the user's own (no longer from NoX ide.nix)
+    claude-code
     termusic-mpv
     mpv
     yt-dlp

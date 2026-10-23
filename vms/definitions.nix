@@ -17,9 +17,6 @@ in
     };
   };
   win = mkVm "win";
-  office = mkVm "office";
-  vault = mkVm "vault";
-  irc = mkVm "irc";
   steam = mkVm "steam";
   godot = mkVm "godot";
   mirage = mkVm "mirage";
