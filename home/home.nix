@@ -116,6 +116,18 @@ in
       cmd() { local c; c=$(fzf < ${./resources/cmds}) && eval "$c"; }
       pcmd() { local c; c=$(fzf < ${./resources/cmds}) && read -r -e -i "$c" -p '> ' c && eval "$c"; }
 
+      # nox xen|nix|root: the line that ran lands in this shell's history
+      # (nox writes it to NOX_HISTORY_OUT)
+      nox() {
+        local f rc
+        f=$(mktemp) || return
+        NOX_HISTORY_OUT=$f command nox "$@"
+        rc=$?
+        [ -s "$f" ] && history -s "$(<"$f")"
+        rm -f "$f"
+        return $rc
+      }
+
       [[ ''${BLE_VERSION-} ]] && ble-attach
     '';
   };
