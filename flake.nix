@@ -33,93 +33,52 @@
   };
 
   outputs =
-    { self, nixpkgs, ... }@inputs:
+    { nixpkgs, ... }@inputs:
     let
       system = "x86_64-linux";
+      hardware = import ./machines/hardware.nix { inherit (nixpkgs) lib; };
 
-      registry = import ./vms/registry.nix {
-        inherit (nixpkgs) lib;
-        inherit (inputs) nox;
-      };
-      # Standalone VM outputs (nixosConfigurations.<vm>, packages) see the
-      # registry like the xmg host; each host gets its own view in mkMachine
-      vmRegistry = registry.forHost "xmg";
-      # Every VM's definition (module, specialArgs, packages) comes from NoX:
-      # roles with the user's own modules, the infrastructure VMs
-      vmDefinitions = registry.definitions;
-
-      baseModules = [
-        inputs.nox.nixosModules.dom0-base
-        ./machines/common-configuration.nix
-      ];
-
-      mkMachine =
-        host: extraModules:
-        inputs.nixpkgs.lib.nixosSystem {
-          inherit system;
-          specialArgs = {
-            inherit inputs vmDefinitions;
-            vmRegistry = registry.forHost host;
+      # Machines (dom0 with their VMs), one nixosConfiguration per VM, the
+      # runners and store images: NoX's flake glue; the domains come from
+      # vms/vms.nix, the hardware from machines/hardware.nix
+      nox = inputs.nox.lib.mkSystems {
+        inherit inputs;
+        inherit (hardware) backupLuksUuids;
+        vms = ./vms/vms.nix;
+        modules = [ ./machines/common-configuration.nix ];
+        machines = {
+          hp = {
+            modules = [ ./machines/hp/configuration.nix ];
+            hardware = hardware.machines.hp;
           };
-          modules = baseModules ++ extraModules;
+          xmg = {
+            modules = [ ./machines/xmg/configuration.nix ];
+            hardware = hardware.machines.xmg;
+          };
         };
-
-      mkVmSystem =
-        name:
-        let
-          vmDefinition = vmDefinitions.${name};
-        in
-        inputs.nixpkgs.lib.nixosSystem {
-          inherit system;
-          specialArgs = {
-            inherit inputs vmRegistry;
-          }
-          // (vmDefinition.specialArgs or { });
-          modules = [
-            inputs.microvm.nixosModules.microvm
-            vmDefinition.module
-            (storeGroups.moduleFor name)
-          ];
-        };
-
-      vmSystems = builtins.mapAttrs (name: _: mkVmSystem name) vmDefinitions;
-
-      # Group store images, built from the same systems that boot from them
-      storeGroups = import (inputs.nox.lib.vms + "/store-groups.nix") {
-        inherit (nixpkgs) lib;
-        inherit (inputs.microvm.lib) buildStoreDisk;
-        inherit vmRegistry vmSystems;
+        # The standalone VM outputs see the registry like the xmg
+        vmView = "xmg";
+        # The builder VMs' public signing keys (signing-key-<machine>.pub,
+        # trusted by that dom0's dom0-update) and the commit signers the
+        # builder accepts (allowed-signers)
+        builderKeys = ./vms/builder;
       };
-
-      vmRunnerPackages = builtins.mapAttrs (
-        _: vmSystem: vmSystem.config.microvm.declaredRunner
-      ) vmSystems;
 
       # php's PHP shells as flake packages
       vmExtraPackages = import ./vms/php/packages.nix {
         pkgs = import nixpkgs { inherit system; };
       };
-
-      hpConfig = mkMachine "hp" [
-        ./machines/hp/configuration.nix
-      ];
-
-      xmgConfig = mkMachine "xmg" [
-        ./machines/xmg/configuration.nix
-      ];
     in
     {
-      packages.${system} = vmRunnerPackages // vmExtraPackages;
+      packages.${system} = nox.packages.${system} // vmExtraPackages;
 
       # NixOS tests (qemu; without KVM, e.g. in a Xen dom0, emulated and slow)
       checks.${system}.sys-vpn-killswitch = nixpkgs.legacyPackages.${system}.testers.runNixOSTest (
         inputs.nox.lib.tests + "/sys-vpn-killswitch.nix"
       );
 
-      nixosConfigurations = vmSystems // {
-        hp = hpConfig;
-        xmg = xmgConfig;
-        default = hpConfig;
+      nixosConfigurations = nox.nixosConfigurations // {
+        default = nox.nixosConfigurations.hp;
       };
     };
 }

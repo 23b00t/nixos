@@ -1,39 +1,9 @@
-# Registry: the VMs come from vms/vms.nix (NoX schema `nox.vms`/`nox.images`,
-# evaluated per machine); hardware, host profiles and the derived lists stay
-# here for now. The modules read the result as `vmRegistry` (forHost below).
-{ lib, nox }:
+# Hardware of the machines for NoX (nox.lib.mkSystems, NoX
+# nixos/registry/machine.nix): USB inventory, passed-through PCI devices and
+# the host profile per machine, plus the backup volumes. The domains are in
+# vms/vms.nix.
+{ lib }:
 let
-  # nox.* of one machine (host null: all definitions, for the lookups by name)
-  noxFor =
-    host:
-    (lib.evalModules {
-      modules = [
-        (nox.lib.registry + "/vms.nix")
-        ./vms.nix
-      ];
-      specialArgs = { inherit host; };
-    }).config.nox;
-  # … in the registry's entry format
-  domainsFor = host: import (nox.lib.registry + "/legacy.nix") { inherit lib; } (noxFor host);
-  all = domainsFor null;
-  vms = all.vms;
-
-  # Lookups by name cover all VMs (IPs, keys, store groups), also those not on
-  # the current machine; the lists per machine come from `forHost` below.
-  byName = builtins.listToAttrs (
-    map (vm: {
-      name = vm.name;
-      value = vm;
-    }) vms
-  );
-
-  byShort = builtins.listToAttrs (
-    map (vm: {
-      name = vm.short;
-      value = vm;
-    }) (builtins.filter (vm: vm.short != null) vms)
-  );
-
   # Central USB/Bluetooth inventory and ownership policy, per machine.
   # Owner `host` = input device forwarded to dom0 by the input proxy; another
   # VM as owner = exported via USB/IP; owner `sys-usb` = stays there.
@@ -282,35 +252,6 @@ let
     };
   };
 
-  mkHardware =
-    host:
-    let
-      usbDevices = usbDevicesFor.${host};
-      pciDeviceIds = pciDeviceIdsFor.${host};
-    in
-    {
-      pci = {
-        deviceIds = pciDeviceIds;
-        devicePaths = pciDevicePathsFor.${host};
-        vfioIds = (pciDeviceIds.gpu or [ ]) ++ (pciDeviceIds.gpuAudio or [ ]) ++ pciDeviceIds.nic;
-      };
-      usb = {
-        devices = usbDevices;
-        byName = builtins.listToAttrs (
-          map (device: {
-            name = device.name;
-            value = device;
-          }) usbDevices
-        );
-        hostAllow = builtins.filter (device: device.policy == "host-allow") usbDevices;
-        vmReserved = builtins.filter (device: device.policy == "vm-reserved") usbDevices;
-        defaultForOwner =
-          owner: builtins.filter (device: (device.defaultOwner or null) == owner) usbDevices;
-        allowedForOwner =
-          owner: builtins.filter (device: builtins.elem owner (device.allowedOwners or [ ])) usbDevices;
-      };
-    };
-
   # LUKS volumes `nox backup` may open (cryptsetup luksUUID), any number of
   # backup disks. Only a listed volume is ever opened, so a disk may carry
   # other LUKS volumes. Empty: the only LUKS volume on the attached disk
@@ -319,49 +260,13 @@ let
     # Samsung T7 Touch, sda1 (309.8 GB); sda2 holds other data and is never opened
     "c1b23529-a163-42c0-8aa4-9b4357c44b8c"
   ];
-
-  # The builder VMs' public signing keys (signing-key-<machine>.pub, trusted by
-  # that dom0's dom0-update) and the commit signers the builder accepts
-  # (allowed-signers)
-  builderKeys = ./builder;
-
-  # The registry as one machine sees it: `vms`/`imageDomains` and everything
-  # derived from them only hold what runs there (nox.vms.<name>.enable)
-  forHost =
-    host:
-    let
-      domains = domainsFor host;
-      hostVms = domains.vmsOnHost;
-    in
-    {
-      inherit
-        host
-        byName
-        byShort
-        backupLuksUuids
-        builderKeys
-        ;
-      vms = hostVms;
-      imageDomains = domains.imagesOnHost;
-      natIPs = map (vm: vm.ip) (builtins.filter (vm: vm.nat or false) hostVms);
-      autostartNames = map (vm: vm.name) (builtins.filter (vm: vm.autostart or false) hostVms);
-      dbusForwardParticipants = builtins.filter (vm: vm.enableHostDbusForward or true) hostVms;
-      # W1 backup (vm-backup) preselects these; field `backup`, default false
-      # for sys-* and disposables
-      backupVms = builtins.filter (
-        vm: vm.backup or (!(builtins.substring 0 4 vm.name == "sys-" || (vm.disposable or false)))
-      ) hostVms;
-      vmHasFeature = feature: builtins.filter (vm: builtins.elem feature (vm.features or [ ])) hostVms;
-      globalExtraSSH = [ ];
-      hardware = mkHardware host;
-      hostProfile = hostProfiles.${host};
-    };
 in
 {
-  inherit forHost;
-  hosts = builtins.attrNames hostProfiles;
-  # Every VM's definition (module, specialArgs, packages), built by NoX
-  inherit ((import (nox.lib.registry + "/definitions.nix") { inherit lib; }) (noxFor null))
-    definitions
-    ;
+  machines = lib.mapAttrs (host: profile: {
+    inherit profile;
+    usbDevices = usbDevicesFor.${host};
+    pciDeviceIds = pciDeviceIdsFor.${host};
+    pciDevicePaths = pciDevicePathsFor.${host};
+  }) hostProfiles;
+  inherit backupLuksUuids;
 }

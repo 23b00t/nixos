@@ -45,13 +45,11 @@ above.
 
 ## Repository layout
 
-- `flake.nix`: composition; `nixosConfigurations.{hp,xmg}`, one
-  `nixosConfigurations.<vm>` per VM definition.
-- `vms/registry.nix`: single source of truth for VMs, image domains and the
-  hardware of each machine. `forHost "<machine>"` is the view a machine
-  gets: only VMs whose `hosts` contain it (no `hosts` = all machines,
-  `hosts = [ ]` = definition kept, not built). Lookups by name
-  (`byName`/`byShort`) cover all VMs.
+- `flake.nix`: inputs and one call of NoX's `lib.mkSystems`:
+  `nixosConfigurations.{hp,xmg}`, one `nixosConfigurations.<vm>` per VM, the
+  runners and store images.
+- `machines/hardware.nix`: hardware of each machine (host profile,
+  passed-through PCI devices, USB inventory) and the backup volumes.
 - `vms/vms.nix`: every VM as `nox.vms.<name>` (role, label, apps,
   resources; NoX schema), `vms/<name>.nix`: what is the VM's own on top of
   its role, extra files in `vms/<name>/`; `vms/apps.nix`: the user's unfree
@@ -336,7 +334,7 @@ encrypt a disk" under USB. Nothing else: `nox backup` creates its folders
 itself.
 
 A disk may also carry other LUKS volumes. Then list the backup volume's
-LUKS UUID in `vms/registry.nix` (`backupLuksUuids`, several disks allowed):
+LUKS UUID in `machines/hardware.nix` (`backupLuksUuids`, several disks allowed):
 `nox backup` opens only a listed volume and never tries another one. With
 an empty list it takes a disk with exactly one LUKS volume; with several it
 stops and prints them (device, UUID, size), so the UUID can be copied from
@@ -1059,8 +1057,8 @@ as our `vm-usbip`. That does not matter for the clients (they only talk to
 
 ### Use
 
-- A VM goes through the VPN with `uplink = "sys-vpn"` (and `nat = true`)
-  in `vms/registry.nix`, then rebuild and restart the VM. Starting it
+- A VM goes through the VPN with `uplink = "sys-vpn"`
+  in `vms/vms.nix`, then rebuild and restart the VM. Starting it
   also starts sys-vpn (vanilla is the first client).
 - Check in the client: `curl -s https://ifconfig.me` shows the VPN's IP.
 - Tunnel in sys-vpn: `nmcli connection show --active`,

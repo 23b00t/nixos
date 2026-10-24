@@ -2,7 +2,7 @@
 # nixos/registry/vms.nix; field descriptions there). `host` is the machine
 # the registry is evaluated for: `enable = host == "xmg"` runs a VM only
 # there (enable = false: definition kept, nowhere).
-{ host, ... }:
+{ host, lib, ... }:
 {
   imports = [ ./apps.nix ];
 
@@ -35,7 +35,6 @@
         storeGroup = "dev";
         autostart = true;
         githubAgent = true;
-        features = [ "yazi" ];
       };
       chat = {
         role = "desktop";
@@ -59,7 +58,6 @@
           slack = { };
           chrome = { };
         };
-        features = [ "yazi" ];
       };
       net = {
         role = "browser";
@@ -77,7 +75,6 @@
           zen = { };
           firefox.install = false;
         };
-        features = [ "yazi" ];
       };
       coding = {
         role = "dev";
@@ -98,7 +95,6 @@
         autostart = true;
         githubAgent = true;
         dbus = true;
-        features = [ "yazi" ];
         # kali tests its apps over the lab bridge (vm-lab attach)
         labTarget = true;
       };
@@ -139,7 +135,6 @@
           pinta = { };
           pdfarranger = { };
         };
-        features = [ "yazi" ];
       };
       vault = {
         role = "desktop";
@@ -155,7 +150,6 @@
         apps.keepassxc = { };
         clipboard = "ask";
         copy.incoming = "warn";
-        features = [ "yazi" ];
       };
       irc = {
         role = "terminal";
@@ -188,7 +182,10 @@
         dbus = false;
       };
       # dGPU passthrough like steam; not on Xen yet
-      godot = {
+      # gpu = true: own desktop on the dGPU (mode a); false: windows over wprs
+      # (mode b), the editor in software with the Compatibility renderer
+      # (vms/godot.nix)
+      godot = rec {
         role = "dev";
         module = ./godot.nix;
         gpu = true;
@@ -202,7 +199,23 @@
         short = "g";
         label = "dev";
         githubAgent = true;
-        features = [ "yazi" ];
+        apps = lib.optionalAttrs (!gpu) {
+          godot = {
+            # vms/godot.nix installs it
+            install = false;
+            name = "Godot";
+            genericName = "Game Engine";
+            icon = "godot";
+            categories = [
+              "Development"
+              "IDE"
+            ];
+            args = [
+              "--rendering-method"
+              "gl_compatibility"
+            ];
+          };
+        };
       };
       mirage = {
         role = "dev";
@@ -238,7 +251,6 @@
         storeGroup = "dev";
         githubAgent = true;
         dbus = false;
-        features = [ "yazi" ];
         # kali tests its apps over the lab bridge (vm-lab attach)
         labTarget = true;
       };
@@ -256,7 +268,6 @@
         storeGroup = "dev";
         githubAgent = true;
         dbus = false;
-        features = [ "yazi" ];
       };
       nix = {
         role = "dev";
@@ -272,7 +283,6 @@
         label = "dev";
         githubAgent = true;
         dbus = false;
-        features = [ "yazi" ];
       };
       # Only common-config; software imperatively in the persistent store
       # overlay (standalone store image, no storeGroup)
@@ -306,6 +316,15 @@
         index = 28;
         short = "ww";
         label = "anon";
+        apps.torbrowser = {
+          name = "Tor Browser";
+          genericName = "Web Browser";
+          icon = "web-browser";
+          categories = [
+            "Network"
+            "WebBrowser"
+          ];
+        };
       };
       # Kali from the upstream QEMU image (machines/xmg/xen.nix); uplink via
       # sys-net, second vif on the lab bridge (vm-lab) for testing labTarget VMs
@@ -314,6 +333,27 @@
         index = 8;
         short = "k";
         label = "untrusted";
+        apps = {
+          burpsuite = {
+            name = "Burp Suite";
+            genericName = "Web Security Testing";
+            icon = "kali-burpsuite";
+            categories = [
+              "Network"
+              "Security"
+            ];
+          };
+          # own id: the catalog's firefox would add its MIME types
+          firefox-esr = {
+            name = "Firefox";
+            genericName = "Web Browser";
+            icon = "firefox";
+            categories = [
+              "Network"
+              "WebBrowser"
+            ];
+          };
+        };
       };
     };
   };
