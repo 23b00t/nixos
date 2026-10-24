@@ -99,4 +99,46 @@
   # ever hold the GitHub key: github.com uses it via IdentityAgent (NoX
   # dom0/tools/ssh.nix), git commit signing via gpg.ssh.program
   # (machines/hp/dev-access.nix).
+
+  # Windows at login (NoX desktop/niri.nix): one column with the terminal
+  # tabs dom0, nvim, coding (zellij in dom0 on the hp, it stays there), zen
+  # in net, irc (zellij with tiny) on the xmg; vm-autostart opens a VM's
+  # again after its (re)start
+  nox.desktop.login =
+    let
+      xmg = config.networking.hostName == "xmg";
+    in
+    {
+      terminalTabs = [
+        "dom0"
+        "nvim"
+        "coding"
+      ];
+      dom0Command = lib.optionals (!xmg) [
+        "zellij"
+        "--layout"
+        "tabs"
+      ];
+      windows = [
+        {
+          vm = "net";
+          command = [ "zen" ];
+          appId = "zen|app\\.zen_browser\\.zen";
+        }
+      ]
+      ++ lib.optional xmg {
+        vm = "irc";
+        command = [
+          "foot"
+          "-a"
+          "term-irc"
+          "zellij"
+          "--layout"
+          "tabs"
+          "attach"
+          "-c"
+        ];
+        appId = "term-irc";
+      };
+    };
 }

@@ -1,4 +1,4 @@
-{ pkgs, inputs, ... }:
+{ pkgs, ... }:
 let
   # Full system update, step 1 (step 2: `update-all` in dom0): updates the
   # flake inputs of the repo in the current directory, commits flake.lock
@@ -43,47 +43,20 @@ let
   '';
 in
 {
-  imports = [
-    (inputs.nox.lib.vms + "/modules/net-config.nix")
-    (inputs.nox.lib.vms + "/modules/yazi-config.nix")
-    (inputs.nox.lib.vms + "/modules/ide.nix")
-    (inputs.nox.lib.vms + "/modules/zsh.nix")
-    (inputs.nox.lib.vms + "/modules/zellij.nix")
-    (inputs.nox.lib.vms + "/modules/common-config.nix")
+  microvm.shares = [
+    {
+      proto = "virtiofs";
+      tag = "host-home";
+      source = "/home/nx";
+      mountPoint = "/mnt/host";
+    }
+    {
+      proto = "virtiofs";
+      tag = "ro-store";
+      source = "/nix/store";
+      mountPoint = "/nix/.ro-store";
+    }
   ];
-
-  networking.hostName = "nvim-vm";
-
-  microvm = {
-    
-    hypervisor = "xen";
-    volumes = [
-      {
-        mountPoint = "/home/user";
-        image = "home.img";
-        size = 10000;
-      }
-    ];
-    shares = [
-      {
-        proto = "virtiofs";
-        tag = "host-home";
-        source = "/home/nx";
-        mountPoint = "/mnt/host";
-      }
-      {
-        proto = "virtiofs";
-        tag = "ro-store";
-        source = "/nix/store";
-        mountPoint = "/nix/.ro-store";
-      }
-    ];
-    # Boots with 2048 MB, the RAM balancer grows it up to 4096 MB
-    mem = 4096;
-    balloon = true;
-    initialBalloonMem = 2048;
-    vcpu = 2; # 1 vCPU: input lagged a little (xmg, 2026-10-17)
-  };
 
   environment.systemPackages = with pkgs; [
     lua-language-server
@@ -96,38 +69,19 @@ in
     flakeBump
   ];
 
-  services.net-config = {
-    enable = true;
-    index = 1;
-    mac = "00:00:00:00:00:01";
-  };
+  services = {
+    ide.lazyvimRepo = "git@github.com:23b00t/lazyvim.git";
 
-  services.common-config = {
-    enable = true;
-  };
-
-  services.ide = {
-    enable = true;
-    githubAgent.enable = true;
-    lazyvimRepo = "git@github.com:23b00t/lazyvim.git";
-  };
-
-  services.zellij-env = {
-    enable = true;
-    tabsKdlFile = builtins.path {
+    zellij-env.tabsKdlFile = builtins.path {
       name = "tabs.kdl";
-      path = ./tabs.kdl;
+      path = ./nvim/tabs.kdl;
+    };
+
+    zsh-env = {
+      ohMyPoshTheme = "1_shell.omp.json";
+      extraAliases = {
+        edit = "sudo -e";
+      };
     };
   };
-
-  services.zsh-env = {
-    enable = true;
-    ohMyPoshTheme = "1_shell.omp.json";
-
-    extraAliases = {
-      edit = "sudo -e";
-    };
-  };
-
-  system.stateVersion = "26.05";
 }

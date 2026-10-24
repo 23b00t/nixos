@@ -11,6 +11,8 @@ let
   ];
 in
 {
+  # unfree, allowed by name (NoX dom0/unfree.nix)
+  nox.unfree = [ "claude-code" ];
   environment.systemPackages = with pkgs; [
     claude-code
     lazygit
