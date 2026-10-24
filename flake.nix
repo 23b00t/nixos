@@ -9,10 +9,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # NoX (NixOS on Xen): dom0 and VM modules, tools, nox-relay; branch
-    # nox-roles until the roles are merged into main
+    # NoX (NixOS on Xen): dom0 and VM modules, tools, nox-relay
     nox = {
-      url = "github:23b00t/NoX/nox-roles";
+      url = "github:23b00t/NoX";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

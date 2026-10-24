@@ -12,6 +12,25 @@
     roles.dev.module = ./roles/dev.nix;
     storeGroups.dev.unfree = true;
 
+    # Every VM: time zone and German formats like dom0
+    # (machines/common-configuration.nix)
+    vmModule =
+      { config, lib, ... }:
+      lib.mkIf config.services.common-config.enable {
+        time.timeZone = "Europe/Berlin";
+        i18n.extraLocaleSettings = {
+          LC_TIME = "de_DE.UTF-8";
+          LC_MONETARY = "de_DE.UTF-8";
+          LC_NUMERIC = "de_DE.UTF-8";
+          LC_MEASUREMENT = "de_DE.UTF-8";
+          LC_PAPER = "de_DE.UTF-8";
+          LC_ADDRESS = "de_DE.UTF-8";
+          LC_TELEPHONE = "de_DE.UTF-8";
+          LC_NAME = "de_DE.UTF-8";
+          LC_IDENTIFICATION = "de_DE.UTF-8";
+        };
+      };
+
     # NoX infrastructure besides sys-net, sys-usb and sys-firewall
     infra = {
       sys-vpn.enable = true;
@@ -165,6 +184,8 @@
       };
       # NoX infrastructure (nox.infra): the key dom0 logs in to the builder with
       builder.hostSSHKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINX+ZshJR9vhy9Fq1J6VteXQASQhNEzFtQ1bV1L+j1eY builder-vm";
+      # the config the builder builds (dom0-update)
+      builder.module.nox.builder.repoUrl = "https://github.com/23b00t/nixos";
       # Xen HVM with the dGPU (PCI passthrough); input and Bluetooth via
       # USB/IP from sys-usb (`vm-usb attach <device> steam`)
       steam = {

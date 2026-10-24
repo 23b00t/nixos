@@ -207,6 +207,9 @@ new kernel/Xen errors), `nox rollback|snapshot|gc` (see Rollback).
 In the VMs: `vm-copy [-m] [-n] <vm> <files>` (dom0 asks in a rofi dialog with the
 size and names, files land in `~/Incoming/<source>`; the old `cp-vm` over
 the vmcopy account is gone), `vm-print <printer-ip> <file>` (via sys-print).
+In yazi: select files (Space; without a selection the hovered file), then
+`C c` (copy) or `C m` (move), type the target VM at the cursor, Enter; dom0
+asks the same way (tested 2026-10-24).
 
 ### systemd units
 
@@ -282,6 +285,26 @@ passthrough (sys-net, sys-usb, steam) have fixed memory.
   (see "sys-vpn (VPN)").
 - vifs are re-attached by `xen-links` when a driver domain restarts.
 - Never remove the dom0 networkd rule that leaves `vnet*` unmanaged.
+
+### WLAN off by default (xmg)
+
+sys-net keeps only `/etc/NetworkManager/system-connections`, not the radio
+state, so `nmcli radio wifi off` lasts only until the next start. Instead
+the WLAN profile does not connect on its own (stored in the profile, so it
+survives restarts):
+
+1. Terminal in sys-net: `vm-run -c sys-net bash` (the user is in group
+   `networkmanager`, no sudo).
+2. Find the profile: `nmcli -f NAME,TYPE,AUTOCONNECT connection show`
+   (TYPE `wifi` / `802-11-wireless`).
+3. `nmcli connection modify "<name>" connection.autoconnect no` (every WLAN
+   profile).
+4. Optional now: `nmcli connection down "<name>"`.
+5. Check: AUTOCONNECT `no` in step 2; after `nox restart sys-net` the WLAN
+   stays down.
+
+On demand: click the network in nm-applet, or `nmcli connection up
+"<name>"`; back to automatic with `connection.autoconnect yes`.
 
 ### sys-net on the xmg (RTL8125): what it took
 

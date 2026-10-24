@@ -8,7 +8,6 @@
 }:
 {
   users.users.nx.packages = with pkgs; [
-    fastfetch
     # misc
     file
     tree
@@ -99,6 +98,12 @@
   # ever hold the GitHub key: github.com uses it via IdentityAgent (NoX
   # dom0/tools/ssh.nix), git commit signing via gpg.ssh.program
   # (machines/hp/dev-access.nix).
+
+  # niri's keyboard: US international with AltGr dead keys, Alt+Shift switches
+  nox.desktop.keyboard = {
+    variant = "altgr-intl";
+    options = "grp:alt_shift_toggle";
+  };
 
   # Windows at login (NoX desktop/niri.nix): one column with the terminal
   # tabs dom0, nvim, coding (zellij in dom0 on the hp, it stays there), zen
