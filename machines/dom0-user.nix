@@ -99,6 +99,14 @@
   # dom0/tools/ssh.nix), git commit signing via gpg.ssh.program
   # (machines/hp/dev-access.nix).
 
+  # Wallpapers per output and on the lock screen (NoX default: nix-wallpaper-dracula)
+  nox.desktop.wpaperd.settings = {
+    "DP-1".path = "${./wallpapers/ntc.jpg}";
+    "DP-2".path = "${./wallpapers/edger_lucy_neon.jpg}";
+    "eDP-1".path = "${./wallpapers/cat_lofi_cafe.jpg}";
+  };
+  nox.desktop.swaylock.settings.image = "${./wallpapers/cat_lofi_cafe.jpg}";
+
   # niri's keyboard: US international with AltGr dead keys, Alt+Shift switches
   nox.desktop.keyboard = {
     variant = "altgr-intl";

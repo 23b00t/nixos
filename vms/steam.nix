@@ -194,7 +194,14 @@ in
           #!/usr/bin/env bash
           set -xeu pipefail
 
-          MAXMODE=$(head -1 /sys/class/drm/card0-HDMI-A-1/modes)
+          # The autologin is faster than the dGPU's connector (nvidia-drm
+          # initializes ~2 s later): wait up to 15 s for its modes, else
+          # MAXMODE stays empty and a monitor is taken for the TV
+          for _ in $(seq 30); do
+            MAXMODE=$(head -1 /sys/class/drm/card0-HDMI-A-1/modes 2>/dev/null || true)
+            [[ -n "$MAXMODE" ]] && break
+            sleep 0.5
+          done
           if [[ "$MAXMODE" == "1920x1080" ]]; then
             DEVICE_TYPE="monitor"
           else
